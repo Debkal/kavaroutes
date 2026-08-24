@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "commercial-platform",
+  "name": "Commercial multi-tenant platform",
+  "seed": "kavaroutes-wp001-commercial-platform-v1",
+  "approval": "provisional",
+  "serviceWindow": { "value": 10, "unit": "hour" },
+  "adaptiveSampling": {
+    "moving": { "value": 5, "unit": "second/sample" },
+    "enRoute": { "value": 15, "unit": "second/sample" },
+    "stationary": { "value": 60, "unit": "second/sample" },
+    "retainedAverage": { "value": 15, "unit": "second/sample" }
+  },
+  "tenantGroups": [
+    { "id": "small", "count": 70 },
+    { "id": "growth", "count": 25 },
+    { "id": "enterprise", "count": 5 }
+  ],
+  "dimensions": {
+    "tenants": { "value": 100, "unit": "tenant" },
+    "activeVehicles": { "value": 5000, "unit": "vehicle" },
+    "driverSessions": { "value": 6000, "unit": "concurrent_session" },
+    "webUsers": { "value": 1000, "unit": "concurrent_user" },
+    "trips": { "value": 100000, "unit": "trip/service_day" },
+    "legs": { "value": 200000, "unit": "leg/service_day" },
+    "importRows": { "value": 250000, "unit": "row/burst", "peakDuration": { "value": 15, "unit": "minute" } },
+    "realtimeConnections": { "value": 10000, "unit": "connection" },
+    "apiRate": { "value": 1000, "unit": "request/second", "peakDuration": { "value": 15, "unit": "minute" } },
+    "locationRate": { "value": 1000, "unit": "sample/second", "peakDuration": { "value": 15, "unit": "minute" } },
+    "retainedLocationSamples": { "value": 12000000, "unit": "sample/service_day" },
+    "outboundFanout": { "value": 20000, "unit": "delivery/second", "peakDuration": { "value": 15, "unit": "minute" } }
+  },
+  "derivedValues": [{
+    "field": "dimensions.retainedLocationSamples.value",
+    "formula": "activeVehicles * serviceWindowSeconds / retainedAverageSeconds",
+    "inputs": ["dimensions.activeVehicles.value", "serviceWindow", "adaptiveSampling.retainedAverage.value"]
+  }],
+  "externalServices": [{
+    "name": "external-providers",
+    "mode": "simulated",
+    "assumption": "No cloud, Google Maps, messaging, broker, or other vendor calls are made; future runners must inject measured provider behavior.",
+    "documented": true
+  }]
+}

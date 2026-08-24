@@ -1,0 +1,182 @@
+{
+  "contractType": "kavaroutes.synthetic-workload-scenario",
+  "digest": "4bcb2b579fcb7ccff06badd2c426c35a876e38ca5da406ba98d0b192f91d52c7",
+  "fixtures": {
+    "actors": [
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_user_360cfeac9388ac18d496",
+        "key": "user",
+        "kind": "user",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-service-day-boundary-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_trip_e374e26f522ec1822b54",
+        "key": "trip",
+        "kind": "trip",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-service-day-boundary-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_command_64cfbc5c49aea5c690ce",
+        "key": "command",
+        "kind": "command",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-service-day-boundary-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_event_74f904c486926fd8f716",
+        "key": "event",
+        "kind": "event",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-service-day-boundary-v1",
+        "tenantOrdinal": 0
+      }
+    ],
+    "references": [
+      {
+        "from": "user",
+        "fromId": "syn_user_360cfeac9388ac18d496",
+        "tenantOrdinal": 0,
+        "to": "trip",
+        "toId": "syn_trip_e374e26f522ec1822b54"
+      },
+      {
+        "from": "command",
+        "fromId": "syn_command_64cfbc5c49aea5c690ce",
+        "tenantOrdinal": 0,
+        "to": "trip",
+        "toId": "syn_trip_e374e26f522ec1822b54"
+      },
+      {
+        "from": "event",
+        "fromId": "syn_event_74f904c486926fd8f716",
+        "tenantOrdinal": 0,
+        "to": "command",
+        "toId": "syn_command_64cfbc5c49aea5c690ce"
+      }
+    ]
+  },
+  "profileId": "small-pilot",
+  "scenarioId": "service-day-boundary",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-small-pilot-v1|scenario-service-day-boundary-v1",
+  "source": {
+    "duration": {
+      "unit": "hour",
+      "value": 4
+    },
+    "externalServices": [
+      {
+        "assumption": "A future runner must inject a fixed clock and IANA time-zone database version; no wall clock or provider is assumed.",
+        "documented": true,
+        "mode": "deterministic-clock",
+        "name": "time-source"
+      }
+    ],
+    "fixtures": {
+      "actors": [
+        {
+          "entityOrdinal": 0,
+          "key": "user",
+          "kind": "user",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "trip",
+          "kind": "trip",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "command",
+          "kind": "command",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "event",
+          "kind": "event",
+          "tenantOrdinal": 0
+        }
+      ],
+      "references": [
+        {
+          "from": "user",
+          "tenantOrdinal": 0,
+          "to": "trip"
+        },
+        {
+          "from": "command",
+          "tenantOrdinal": 0,
+          "to": "trip"
+        },
+        {
+          "from": "event",
+          "tenantOrdinal": 0,
+          "to": "command"
+        }
+      ]
+    },
+    "id": "service-day-boundary",
+    "name": "Multiple time zones, DST boundary, overnight runs, and close",
+    "parameters": {
+      "dstCases": [
+        "spring-forward",
+        "fall-back"
+      ],
+      "overnightRuns": true,
+      "timeZones": [
+        "America/Los_Angeles",
+        "America/Denver",
+        "America/Chicago",
+        "America/New_York"
+      ]
+    },
+    "phases": [
+      {
+        "duration": {
+          "unit": "hour",
+          "value": 1
+        },
+        "id": "pre-boundary",
+        "loadMultipliers": {
+          "apiRate": 0.5,
+          "trips": 0.25
+        }
+      },
+      {
+        "duration": {
+          "unit": "hour",
+          "value": 2
+        },
+        "id": "dst-and-midnight",
+        "loadMultipliers": {
+          "apiRate": 1,
+          "outboundFanout": 1,
+          "trips": 0.5
+        }
+      },
+      {
+        "duration": {
+          "unit": "hour",
+          "value": 1
+        },
+        "id": "service-close",
+        "loadMultipliers": {
+          "apiRate": 1,
+          "outboundFanout": 0.5
+        }
+      }
+    ],
+    "profileIds": [
+      "*"
+    ],
+    "schemaVersion": "1.0.0",
+    "seed": "scenario-service-day-boundary-v1"
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kavaroutes.local/schemas/workload-profile.schema.json",
+  "title": "KavaRoutes synthetic workload profile",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "seed", "approval", "serviceWindow", "adaptiveSampling", "tenantGroups", "dimensions", "derivedValues", "externalServices"],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$" },
+    "name": { "type": "string", "minLength": 1 },
+    "seed": { "type": "string", "minLength": 1 },
+    "approval": { "const": "provisional" },
+    "serviceWindow": { "$ref": "#/$defs/duration" },
+    "adaptiveSampling": {
+      "type": "object",
+      "required": ["moving", "enRoute", "stationary", "retainedAverage"],
+      "additionalProperties": false,
+      "properties": {
+        "moving": { "$ref": "#/$defs/sampleInterval" },
+        "enRoute": { "$ref": "#/$defs/sampleInterval" },
+        "stationary": { "$ref": "#/$defs/sampleInterval" },
+        "retainedAverage": { "$ref": "#/$defs/sampleInterval" }
+      }
+    },
+    "tenantGroups": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "count"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "count": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "dimensions": {
+      "type": "object",
+      "required": ["tenants", "activeVehicles", "driverSessions", "webUsers", "trips", "legs", "importRows", "realtimeConnections", "apiRate", "locationRate", "retainedLocationSamples", "outboundFanout"],
+      "additionalProperties": false,
+      "properties": {
+        "tenants": { "$ref": "#/$defs/quantity" },
+        "activeVehicles": { "$ref": "#/$defs/quantity" },
+        "driverSessions": { "$ref": "#/$defs/quantity" },
+        "webUsers": { "$ref": "#/$defs/quantity" },
+        "trips": { "$ref": "#/$defs/quantity" },
+        "legs": { "$ref": "#/$defs/quantity" },
+        "importRows": { "$ref": "#/$defs/rate" },
+        "realtimeConnections": { "$ref": "#/$defs/quantity" },
+        "apiRate": { "$ref": "#/$defs/rate" },
+        "locationRate": { "$ref": "#/$defs/rate" },
+        "retainedLocationSamples": { "$ref": "#/$defs/quantity" },
+        "outboundFanout": { "$ref": "#/$defs/rate" }
+      }
+    },
+    "derivedValues": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["field", "formula", "inputs"],
+        "properties": {
+          "field": { "type": "string", "minLength": 1 },
+          "formula": { "type": "string", "minLength": 1 },
+          "inputs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+        }
+      }
+    },
+    "externalServices": { "$ref": "#/$defs/externalServices" }
+  },
+  "$defs": {
+    "duration": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "enum": ["second", "minute", "hour"] }
+      }
+    },
+    "quantity": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "integer", "minimum": 0 },
+        "unit": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rate": {
+      "allOf": [
+        { "$ref": "#/$defs/quantity" },
+        { "type": "object", "required": ["peakDuration"], "properties": { "peakDuration": { "$ref": "#/$defs/duration" } } }
+      ]
+    },
+    "sampleInterval": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "integer", "minimum": 1 },
+        "unit": { "const": "second/sample" }
+      }
+    },
+    "externalServices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "mode", "assumption", "documented"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "mode": { "type": "string", "minLength": 1 },
+          "assumption": { "type": "string", "minLength": 1 },
+          "documented": { "const": true }
+        }
+      }
+    }
+  }
+}

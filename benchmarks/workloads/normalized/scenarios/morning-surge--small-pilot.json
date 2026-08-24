@@ -1,0 +1,190 @@
+{
+  "contractType": "kavaroutes.synthetic-workload-scenario",
+  "digest": "634061386f0d3a348210742b019e5f2c4bfca52c4d405d5fcc055318d328fa29",
+  "fixtures": {
+    "actors": [
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_tenant_51a553f9eb6f64b4458d",
+        "key": "tenant",
+        "kind": "tenant",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-morning-surge-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_user_ca87b9c47cddacf916c1",
+        "key": "user",
+        "kind": "user",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-morning-surge-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_trip_ab33678fc7c919661a22",
+        "key": "trip",
+        "kind": "trip",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-morning-surge-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_command_11733889b02b85aced46",
+        "key": "command",
+        "kind": "command",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-morning-surge-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_event_2fcbcf4627046798506a",
+        "key": "event",
+        "kind": "event",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-morning-surge-v1",
+        "tenantOrdinal": 0
+      }
+    ],
+    "references": [
+      {
+        "from": "user",
+        "fromId": "syn_user_ca87b9c47cddacf916c1",
+        "tenantOrdinal": 0,
+        "to": "trip",
+        "toId": "syn_trip_ab33678fc7c919661a22"
+      },
+      {
+        "from": "command",
+        "fromId": "syn_command_11733889b02b85aced46",
+        "tenantOrdinal": 0,
+        "to": "trip",
+        "toId": "syn_trip_ab33678fc7c919661a22"
+      },
+      {
+        "from": "event",
+        "fromId": "syn_event_2fcbcf4627046798506a",
+        "tenantOrdinal": 0,
+        "to": "command",
+        "toId": "syn_command_11733889b02b85aced46"
+      }
+    ]
+  },
+  "profileId": "small-pilot",
+  "scenarioId": "morning-surge",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-small-pilot-v1|scenario-morning-surge-v1",
+  "source": {
+    "duration": {
+      "unit": "minute",
+      "value": 60
+    },
+    "externalServices": [
+      {
+        "assumption": "Address, routing, and broker behavior is modeled without network or paid API calls.",
+        "documented": true,
+        "mode": "simulated",
+        "name": "maps-and-import-providers"
+      }
+    ],
+    "fixtures": {
+      "actors": [
+        {
+          "entityOrdinal": 0,
+          "key": "tenant",
+          "kind": "tenant",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "user",
+          "kind": "user",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "trip",
+          "kind": "trip",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "command",
+          "kind": "command",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "event",
+          "kind": "event",
+          "tenantOrdinal": 0
+        }
+      ],
+      "references": [
+        {
+          "from": "user",
+          "tenantOrdinal": 0,
+          "to": "trip"
+        },
+        {
+          "from": "command",
+          "tenantOrdinal": 0,
+          "to": "trip"
+        },
+        {
+          "from": "event",
+          "tenantOrdinal": 0,
+          "to": "command"
+        }
+      ]
+    },
+    "id": "morning-surge",
+    "name": "Morning import and dispatch surge",
+    "parameters": {
+      "importAcknowledgement": "asynchronous",
+      "routeDemandGeneration": "simulated"
+    },
+    "phases": [
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 10
+        },
+        "id": "warmup",
+        "loadMultipliers": {
+          "apiRate": 1,
+          "importRows": 1,
+          "outboundFanout": 1
+        }
+      },
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 30
+        },
+        "id": "ten-x-surge",
+        "loadMultipliers": {
+          "apiRate": 10,
+          "importRows": 10,
+          "outboundFanout": 5,
+          "realtimeConnections": 2
+        }
+      },
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 20
+        },
+        "id": "recovery",
+        "loadMultipliers": {
+          "apiRate": 2,
+          "importRows": 2,
+          "outboundFanout": 2
+        }
+      }
+    ],
+    "profileIds": [
+      "*"
+    ],
+    "schemaVersion": "1.0.0",
+    "seed": "scenario-morning-surge-v1"
+  }
+}

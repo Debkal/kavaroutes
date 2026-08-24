@@ -1,0 +1,229 @@
+{
+  "approval": "provisional",
+  "contractType": "kavaroutes.synthetic-workload-profile",
+  "digest": "f836a1f091d83a0ea6d087d17f7228f2252458d3e40a85a2a1b741f89a166692",
+  "distribution": {
+    "countsByKind": {
+      "command": [
+        12000
+      ],
+      "event": [
+        24000
+      ],
+      "location_sample": [
+        180000
+      ],
+      "tenant": [
+        1
+      ],
+      "trip": [
+        1500
+      ],
+      "user": [
+        125
+      ],
+      "vehicle": [
+        75
+      ]
+    },
+    "rule": "integer quotient across tenants; remainder assigned by ascending tenant ordinal"
+  },
+  "entityPopulations": {
+    "command": {
+      "formula": "dimensions.legs * 4",
+      "total": 12000
+    },
+    "event": {
+      "formula": "commands * 2",
+      "total": 24000
+    },
+    "location_sample": {
+      "formula": "dimensions.retainedLocationSamples",
+      "total": 180000
+    },
+    "tenant": {
+      "formula": "dimensions.tenants",
+      "total": 1
+    },
+    "trip": {
+      "formula": "dimensions.trips",
+      "total": 1500
+    },
+    "user": {
+      "formula": "dimensions.driverSessions + dimensions.webUsers",
+      "total": 125
+    },
+    "vehicle": {
+      "formula": "dimensions.activeVehicles",
+      "total": 75
+    }
+  },
+  "identityContract": {
+    "algorithm": "sha256(seed|kind|tenantOrdinal|entityOrdinal), first 20 hex characters",
+    "sampleIds": {
+      "command": [
+        "syn_command_4e029cb8e7d104b4ef08",
+        "syn_command_567044cc8d22be937a8e"
+      ],
+      "event": [
+        "syn_event_0bbf6f1951bce1ccfd96",
+        "syn_event_1347c3e13ad870aaa20a"
+      ],
+      "location_sample": [
+        "syn_location_sample_f5e020f8df1e3b24b978",
+        "syn_location_sample_74092dc4f4e90e8240f8"
+      ],
+      "tenant": [
+        "syn_tenant_5c08efaa5dcab640780d",
+        "syn_tenant_5c08efaa5dcab640780d"
+      ],
+      "trip": [
+        "syn_trip_af777fb3f2b3820fcb2d",
+        "syn_trip_19004aba482106f19516"
+      ],
+      "user": [
+        "syn_user_63bd3c10eb3e4822254d",
+        "syn_user_d46036b1466aa07d5568"
+      ],
+      "vehicle": [
+        "syn_vehicle_ec5ea9c69d12b8a1b7e7",
+        "syn_vehicle_f829580ad6972a6590ed"
+      ]
+    },
+    "supportedKinds": [
+      "tenant",
+      "user",
+      "trip",
+      "vehicle",
+      "location_sample",
+      "command",
+      "event"
+    ],
+    "tenantIds": [
+      "syn_tenant_5c08efaa5dcab640780d"
+    ]
+  },
+  "profileId": "p0-growth",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-p0-growth-v1",
+  "source": {
+    "adaptiveSampling": {
+      "enRoute": {
+        "unit": "second/sample",
+        "value": 15
+      },
+      "moving": {
+        "unit": "second/sample",
+        "value": 5
+      },
+      "retainedAverage": {
+        "unit": "second/sample",
+        "value": 15
+      },
+      "stationary": {
+        "unit": "second/sample",
+        "value": 60
+      }
+    },
+    "approval": "provisional",
+    "derivedValues": [
+      {
+        "field": "dimensions.retainedLocationSamples.value",
+        "formula": "activeVehicles * serviceWindowSeconds / retainedAverageSeconds",
+        "inputs": [
+          "dimensions.activeVehicles.value",
+          "serviceWindow",
+          "adaptiveSampling.retainedAverage.value"
+        ]
+      }
+    ],
+    "dimensions": {
+      "activeVehicles": {
+        "unit": "vehicle",
+        "value": 75
+      },
+      "apiRate": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "request/second",
+        "value": 100
+      },
+      "driverSessions": {
+        "unit": "concurrent_session",
+        "value": 100
+      },
+      "importRows": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "row/burst",
+        "value": 10000
+      },
+      "legs": {
+        "unit": "leg/service_day",
+        "value": 3000
+      },
+      "locationRate": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "sample/second",
+        "value": 15
+      },
+      "outboundFanout": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "delivery/second",
+        "value": 1000
+      },
+      "realtimeConnections": {
+        "unit": "connection",
+        "value": 250
+      },
+      "retainedLocationSamples": {
+        "unit": "sample/service_day",
+        "value": 180000
+      },
+      "tenants": {
+        "unit": "tenant",
+        "value": 1
+      },
+      "trips": {
+        "unit": "trip/service_day",
+        "value": 1500
+      },
+      "webUsers": {
+        "unit": "concurrent_user",
+        "value": 25
+      }
+    },
+    "externalServices": [
+      {
+        "assumption": "No cloud, Google Maps, messaging, broker, or other vendor calls are made; future runners must inject measured provider behavior.",
+        "documented": true,
+        "mode": "simulated",
+        "name": "external-providers"
+      }
+    ],
+    "id": "p0-growth",
+    "name": "P0 growth tenant",
+    "schemaVersion": "1.0.0",
+    "seed": "kavaroutes-wp001-p0-growth-v1",
+    "serviceWindow": {
+      "unit": "hour",
+      "value": 10
+    },
+    "tenantGroups": [
+      {
+        "count": 1,
+        "id": "p0-growth"
+      }
+    ]
+  }
+}

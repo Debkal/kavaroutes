@@ -1,0 +1,152 @@
+{
+  "contractType": "kavaroutes.synthetic-workload-scenario",
+  "digest": "81bcdc644088d0434ffb292627a2a0d469e74505d27af5b98a686d4f5d4b0efb",
+  "fixtures": {
+    "actors": [
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_vehicle_9e78e025fe656547c921",
+        "key": "vehicle",
+        "kind": "vehicle",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-location-burst-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_location_sample_7535c2aa54b1bac02d72",
+        "key": "sample",
+        "kind": "location_sample",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-location-burst-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_event_71978f50ee9a16b74214",
+        "key": "event",
+        "kind": "event",
+        "seed": "kavaroutes-wp001-small-pilot-v1|scenario-location-burst-v1",
+        "tenantOrdinal": 0
+      }
+    ],
+    "references": [
+      {
+        "from": "sample",
+        "fromId": "syn_location_sample_7535c2aa54b1bac02d72",
+        "tenantOrdinal": 0,
+        "to": "vehicle",
+        "toId": "syn_vehicle_9e78e025fe656547c921"
+      },
+      {
+        "from": "event",
+        "fromId": "syn_event_71978f50ee9a16b74214",
+        "tenantOrdinal": 0,
+        "to": "vehicle",
+        "toId": "syn_vehicle_9e78e025fe656547c921"
+      }
+    ]
+  },
+  "profileId": "small-pilot",
+  "scenarioId": "location-burst",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-small-pilot-v1|scenario-location-burst-v1",
+  "source": {
+    "duration": {
+      "unit": "minute",
+      "value": 20
+    },
+    "externalServices": [
+      {
+        "assumption": "Capture jitter, accuracy, and network delay are synthetic; no device or mapping service is contacted.",
+        "documented": true,
+        "mode": "simulated",
+        "name": "mobile-location-provider"
+      }
+    ],
+    "fixtures": {
+      "actors": [
+        {
+          "entityOrdinal": 0,
+          "key": "vehicle",
+          "kind": "vehicle",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "sample",
+          "kind": "location_sample",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "event",
+          "kind": "event",
+          "tenantOrdinal": 0
+        }
+      ],
+      "references": [
+        {
+          "from": "sample",
+          "tenantOrdinal": 0,
+          "to": "vehicle"
+        },
+        {
+          "from": "event",
+          "tenantOrdinal": 0,
+          "to": "vehicle"
+        }
+      ]
+    },
+    "id": "location-burst",
+    "name": "Five-second moving-location burst with adaptive backoff",
+    "parameters": {
+      "burstInterval": {
+        "unit": "second/sample",
+        "value": 5
+      },
+      "staleThreshold": {
+        "unit": "second",
+        "value": 60
+      }
+    },
+    "phases": [
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 5
+        },
+        "id": "baseline",
+        "loadMultipliers": {
+          "locationRate": 1,
+          "outboundFanout": 1
+        }
+      },
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 10
+        },
+        "id": "moving-five-second-burst",
+        "loadMultipliers": {
+          "locationRate": 3,
+          "outboundFanout": 3
+        }
+      },
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 5
+        },
+        "id": "adaptive-backoff",
+        "loadMultipliers": {
+          "locationRate": 0.25,
+          "outboundFanout": 0.5
+        }
+      }
+    ],
+    "profileIds": [
+      "*"
+    ],
+    "schemaVersion": "1.0.0",
+    "seed": "scenario-location-burst-v1"
+  }
+}

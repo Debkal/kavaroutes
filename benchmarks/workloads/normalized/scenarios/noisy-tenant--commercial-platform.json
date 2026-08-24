@@ -1,0 +1,141 @@
+{
+  "contractType": "kavaroutes.synthetic-workload-scenario",
+  "digest": "03cb36ed6fa4408d0f21df93a40c904e48b682708ce5a66ed6479e9b747fad19",
+  "fixtures": {
+    "actors": [
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_user_d502e343bbd38cb5b8de",
+        "key": "noisy-user",
+        "kind": "user",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-noisy-tenant-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_trip_407f7bece8b950445d7a",
+        "key": "noisy-trip",
+        "kind": "trip",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-noisy-tenant-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_user_3826ac534809ed5a308a",
+        "key": "protected-user",
+        "kind": "user",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-noisy-tenant-v1",
+        "tenantOrdinal": 1
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_trip_0b9c8ee5f112425e2833",
+        "key": "protected-trip",
+        "kind": "trip",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-noisy-tenant-v1",
+        "tenantOrdinal": 1
+      }
+    ],
+    "references": [
+      {
+        "from": "noisy-user",
+        "fromId": "syn_user_d502e343bbd38cb5b8de",
+        "tenantOrdinal": 0,
+        "to": "noisy-trip",
+        "toId": "syn_trip_407f7bece8b950445d7a"
+      },
+      {
+        "from": "protected-user",
+        "fromId": "syn_user_3826ac534809ed5a308a",
+        "tenantOrdinal": 1,
+        "to": "protected-trip",
+        "toId": "syn_trip_0b9c8ee5f112425e2833"
+      }
+    ]
+  },
+  "profileId": "commercial-platform",
+  "scenarioId": "noisy-tenant",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-noisy-tenant-v1",
+  "source": {
+    "duration": {
+      "unit": "minute",
+      "value": 15
+    },
+    "externalServices": [
+      {
+        "assumption": "Tenant quotas and provider responses are abstract inputs with no selected cache, gateway, queue, or cloud vendor.",
+        "documented": true,
+        "mode": "simulated",
+        "name": "rate-limiter-and-provider-quotas"
+      }
+    ],
+    "fixtures": {
+      "actors": [
+        {
+          "entityOrdinal": 0,
+          "key": "noisy-user",
+          "kind": "user",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "noisy-trip",
+          "kind": "trip",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "protected-user",
+          "kind": "user",
+          "tenantOrdinal": 1
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "protected-trip",
+          "kind": "trip",
+          "tenantOrdinal": 1
+        }
+      ],
+      "references": [
+        {
+          "from": "noisy-user",
+          "tenantOrdinal": 0,
+          "to": "noisy-trip"
+        },
+        {
+          "from": "protected-user",
+          "tenantOrdinal": 1,
+          "to": "protected-trip"
+        }
+      ]
+    },
+    "id": "noisy-tenant",
+    "name": "Noisy tenant isolation and quota pressure",
+    "parameters": {
+      "expectedIsolationFailures": 0,
+      "noisyTenantOrdinal": 0,
+      "protectedTenantOrdinal": 1
+    },
+    "phases": [
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "id": "tenant-zero-pressure",
+        "loadMultipliers": {
+          "apiRate": 10,
+          "importRows": 10,
+          "locationRate": 10,
+          "outboundFanout": 10
+        }
+      }
+    ],
+    "profileIds": [
+      "commercial-platform"
+    ],
+    "schemaVersion": "1.0.0",
+    "seed": "scenario-noisy-tenant-v1"
+  }
+}

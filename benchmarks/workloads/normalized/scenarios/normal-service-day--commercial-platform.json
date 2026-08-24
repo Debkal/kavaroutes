@@ -1,0 +1,217 @@
+{
+  "contractType": "kavaroutes.synthetic-workload-scenario",
+  "digest": "986505cee177ee91bdd40ec3e4e61cbdf83b23c8ffb5f33bfcc24c8416cd4668",
+  "fixtures": {
+    "actors": [
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_tenant_504c009ba91cbb8e1fd6",
+        "key": "tenant",
+        "kind": "tenant",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-normal-service-day-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_user_1659f370e553897da5ef",
+        "key": "user",
+        "kind": "user",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-normal-service-day-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_trip_92bdbed38764e716803b",
+        "key": "trip",
+        "kind": "trip",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-normal-service-day-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_vehicle_69c8cf47aea2e92dc480",
+        "key": "vehicle",
+        "kind": "vehicle",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-normal-service-day-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_location_sample_f2442541a8dea1901e62",
+        "key": "sample",
+        "kind": "location_sample",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-normal-service-day-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_command_a421c3e69f78e15747fa",
+        "key": "command",
+        "kind": "command",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-normal-service-day-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_event_294619dc3b673dd5e4ec",
+        "key": "event",
+        "kind": "event",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-normal-service-day-v1",
+        "tenantOrdinal": 0
+      }
+    ],
+    "references": [
+      {
+        "from": "user",
+        "fromId": "syn_user_1659f370e553897da5ef",
+        "tenantOrdinal": 0,
+        "to": "trip",
+        "toId": "syn_trip_92bdbed38764e716803b"
+      },
+      {
+        "from": "vehicle",
+        "fromId": "syn_vehicle_69c8cf47aea2e92dc480",
+        "tenantOrdinal": 0,
+        "to": "trip",
+        "toId": "syn_trip_92bdbed38764e716803b"
+      },
+      {
+        "from": "sample",
+        "fromId": "syn_location_sample_f2442541a8dea1901e62",
+        "tenantOrdinal": 0,
+        "to": "vehicle",
+        "toId": "syn_vehicle_69c8cf47aea2e92dc480"
+      },
+      {
+        "from": "command",
+        "fromId": "syn_command_a421c3e69f78e15747fa",
+        "tenantOrdinal": 0,
+        "to": "trip",
+        "toId": "syn_trip_92bdbed38764e716803b"
+      },
+      {
+        "from": "event",
+        "fromId": "syn_event_294619dc3b673dd5e4ec",
+        "tenantOrdinal": 0,
+        "to": "command",
+        "toId": "syn_command_a421c3e69f78e15747fa"
+      }
+    ]
+  },
+  "profileId": "commercial-platform",
+  "scenarioId": "normal-service-day",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-normal-service-day-v1",
+  "source": {
+    "duration": {
+      "unit": "hour",
+      "value": 10
+    },
+    "externalServices": [
+      {
+        "assumption": "Provider latency and outcomes are synthetic inputs; no vendor traffic is generated.",
+        "documented": true,
+        "mode": "simulated",
+        "name": "all-external-providers"
+      }
+    ],
+    "fixtures": {
+      "actors": [
+        {
+          "entityOrdinal": 0,
+          "key": "tenant",
+          "kind": "tenant",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "user",
+          "kind": "user",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "trip",
+          "kind": "trip",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "vehicle",
+          "kind": "vehicle",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "sample",
+          "kind": "location_sample",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "command",
+          "kind": "command",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "event",
+          "kind": "event",
+          "tenantOrdinal": 0
+        }
+      ],
+      "references": [
+        {
+          "from": "user",
+          "tenantOrdinal": 0,
+          "to": "trip"
+        },
+        {
+          "from": "vehicle",
+          "tenantOrdinal": 0,
+          "to": "trip"
+        },
+        {
+          "from": "sample",
+          "tenantOrdinal": 0,
+          "to": "vehicle"
+        },
+        {
+          "from": "command",
+          "tenantOrdinal": 0,
+          "to": "trip"
+        },
+        {
+          "from": "event",
+          "tenantOrdinal": 0,
+          "to": "command"
+        }
+      ]
+    },
+    "id": "normal-service-day",
+    "name": "Normal intake-to-billing service day",
+    "parameters": {
+      "workflow": "intake-schedule-dispatch-execute-verify-billing-ready"
+    },
+    "phases": [
+      {
+        "duration": {
+          "unit": "hour",
+          "value": 10
+        },
+        "id": "steady-service",
+        "loadMultipliers": {
+          "apiRate": 1,
+          "locationRate": 1,
+          "outboundFanout": 1,
+          "trips": 1
+        }
+      }
+    ],
+    "profileIds": [
+      "*"
+    ],
+    "schemaVersion": "1.0.0",
+    "seed": "scenario-normal-service-day-v1"
+  }
+}

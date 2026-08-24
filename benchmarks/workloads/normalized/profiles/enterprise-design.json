@@ -1,0 +1,229 @@
+{
+  "approval": "provisional",
+  "contractType": "kavaroutes.synthetic-workload-profile",
+  "digest": "f2e91fcfd7e8a9bbabe82cbc029e968bcb8f1ceccbe4afbf723ae4a628f8592e",
+  "distribution": {
+    "countsByKind": {
+      "command": [
+        80000
+      ],
+      "event": [
+        160000
+      ],
+      "location_sample": [
+        1200000
+      ],
+      "tenant": [
+        1
+      ],
+      "trip": [
+        10000
+      ],
+      "user": [
+        750
+      ],
+      "vehicle": [
+        500
+      ]
+    },
+    "rule": "integer quotient across tenants; remainder assigned by ascending tenant ordinal"
+  },
+  "entityPopulations": {
+    "command": {
+      "formula": "dimensions.legs * 4",
+      "total": 80000
+    },
+    "event": {
+      "formula": "commands * 2",
+      "total": 160000
+    },
+    "location_sample": {
+      "formula": "dimensions.retainedLocationSamples",
+      "total": 1200000
+    },
+    "tenant": {
+      "formula": "dimensions.tenants",
+      "total": 1
+    },
+    "trip": {
+      "formula": "dimensions.trips",
+      "total": 10000
+    },
+    "user": {
+      "formula": "dimensions.driverSessions + dimensions.webUsers",
+      "total": 750
+    },
+    "vehicle": {
+      "formula": "dimensions.activeVehicles",
+      "total": 500
+    }
+  },
+  "identityContract": {
+    "algorithm": "sha256(seed|kind|tenantOrdinal|entityOrdinal), first 20 hex characters",
+    "sampleIds": {
+      "command": [
+        "syn_command_fdb3a4bf750cf21dc81e",
+        "syn_command_9ed9b444536b5960c967"
+      ],
+      "event": [
+        "syn_event_a7cd7e9e9d452efec2ea",
+        "syn_event_9baa82515638103a890b"
+      ],
+      "location_sample": [
+        "syn_location_sample_f4fd9e0e154902468c5e",
+        "syn_location_sample_040480ed26c47914c45a"
+      ],
+      "tenant": [
+        "syn_tenant_df1c876a6a742d194008",
+        "syn_tenant_df1c876a6a742d194008"
+      ],
+      "trip": [
+        "syn_trip_f716539e46cab6bba3a8",
+        "syn_trip_986d45375ac04b759033"
+      ],
+      "user": [
+        "syn_user_b141a8f26053a750790f",
+        "syn_user_6744e8903203819960a2"
+      ],
+      "vehicle": [
+        "syn_vehicle_4c3662a14e5b42b14ac7",
+        "syn_vehicle_fd5d2979f61c7a6337c9"
+      ]
+    },
+    "supportedKinds": [
+      "tenant",
+      "user",
+      "trip",
+      "vehicle",
+      "location_sample",
+      "command",
+      "event"
+    ],
+    "tenantIds": [
+      "syn_tenant_df1c876a6a742d194008"
+    ]
+  },
+  "profileId": "enterprise-design",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-enterprise-design-v1",
+  "source": {
+    "adaptiveSampling": {
+      "enRoute": {
+        "unit": "second/sample",
+        "value": 15
+      },
+      "moving": {
+        "unit": "second/sample",
+        "value": 5
+      },
+      "retainedAverage": {
+        "unit": "second/sample",
+        "value": 15
+      },
+      "stationary": {
+        "unit": "second/sample",
+        "value": 60
+      }
+    },
+    "approval": "provisional",
+    "derivedValues": [
+      {
+        "field": "dimensions.retainedLocationSamples.value",
+        "formula": "activeVehicles * serviceWindowSeconds / retainedAverageSeconds",
+        "inputs": [
+          "dimensions.activeVehicles.value",
+          "serviceWindow",
+          "adaptiveSampling.retainedAverage.value"
+        ]
+      }
+    ],
+    "dimensions": {
+      "activeVehicles": {
+        "unit": "vehicle",
+        "value": 500
+      },
+      "apiRate": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "request/second",
+        "value": 500
+      },
+      "driverSessions": {
+        "unit": "concurrent_session",
+        "value": 650
+      },
+      "importRows": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "row/burst",
+        "value": 100000
+      },
+      "legs": {
+        "unit": "leg/service_day",
+        "value": 20000
+      },
+      "locationRate": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "sample/second",
+        "value": 100
+      },
+      "outboundFanout": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "delivery/second",
+        "value": 5000
+      },
+      "realtimeConnections": {
+        "unit": "connection",
+        "value": 1500
+      },
+      "retainedLocationSamples": {
+        "unit": "sample/service_day",
+        "value": 1200000
+      },
+      "tenants": {
+        "unit": "tenant",
+        "value": 1
+      },
+      "trips": {
+        "unit": "trip/service_day",
+        "value": 10000
+      },
+      "webUsers": {
+        "unit": "concurrent_user",
+        "value": 100
+      }
+    },
+    "externalServices": [
+      {
+        "assumption": "No cloud, Google Maps, messaging, broker, or other vendor calls are made; future runners must inject measured provider behavior.",
+        "documented": true,
+        "mode": "simulated",
+        "name": "external-providers"
+      }
+    ],
+    "id": "enterprise-design",
+    "name": "Enterprise design tenant",
+    "schemaVersion": "1.0.0",
+    "seed": "kavaroutes-wp001-enterprise-design-v1",
+    "serviceWindow": {
+      "unit": "hour",
+      "value": 10
+    },
+    "tenantGroups": [
+      {
+        "count": 1,
+        "id": "enterprise-design"
+      }
+    ]
+  }
+}

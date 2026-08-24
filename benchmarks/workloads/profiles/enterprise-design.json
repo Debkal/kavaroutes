@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "enterprise-design",
+  "name": "Enterprise design tenant",
+  "seed": "kavaroutes-wp001-enterprise-design-v1",
+  "approval": "provisional",
+  "serviceWindow": { "value": 10, "unit": "hour" },
+  "adaptiveSampling": {
+    "moving": { "value": 5, "unit": "second/sample" },
+    "enRoute": { "value": 15, "unit": "second/sample" },
+    "stationary": { "value": 60, "unit": "second/sample" },
+    "retainedAverage": { "value": 15, "unit": "second/sample" }
+  },
+  "tenantGroups": [{ "id": "enterprise-design", "count": 1 }],
+  "dimensions": {
+    "tenants": { "value": 1, "unit": "tenant" },
+    "activeVehicles": { "value": 500, "unit": "vehicle" },
+    "driverSessions": { "value": 650, "unit": "concurrent_session" },
+    "webUsers": { "value": 100, "unit": "concurrent_user" },
+    "trips": { "value": 10000, "unit": "trip/service_day" },
+    "legs": { "value": 20000, "unit": "leg/service_day" },
+    "importRows": { "value": 100000, "unit": "row/burst", "peakDuration": { "value": 15, "unit": "minute" } },
+    "realtimeConnections": { "value": 1500, "unit": "connection" },
+    "apiRate": { "value": 500, "unit": "request/second", "peakDuration": { "value": 15, "unit": "minute" } },
+    "locationRate": { "value": 100, "unit": "sample/second", "peakDuration": { "value": 15, "unit": "minute" } },
+    "retainedLocationSamples": { "value": 1200000, "unit": "sample/service_day" },
+    "outboundFanout": { "value": 5000, "unit": "delivery/second", "peakDuration": { "value": 15, "unit": "minute" } }
+  },
+  "derivedValues": [{
+    "field": "dimensions.retainedLocationSamples.value",
+    "formula": "activeVehicles * serviceWindowSeconds / retainedAverageSeconds",
+    "inputs": ["dimensions.activeVehicles.value", "serviceWindow", "adaptiveSampling.retainedAverage.value"]
+  }],
+  "externalServices": [{
+    "name": "external-providers",
+    "mode": "simulated",
+    "assumption": "No cloud, Google Maps, messaging, broker, or other vendor calls are made; future runners must inject measured provider behavior.",
+    "documented": true
+  }]
+}

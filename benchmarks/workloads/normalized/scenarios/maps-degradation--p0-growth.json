@@ -1,0 +1,175 @@
+{
+  "contractType": "kavaroutes.synthetic-workload-scenario",
+  "digest": "b33352f2895c38d6c3556a438798e186c6b6ec526d64b4eccd9405e8dece1563",
+  "fixtures": {
+    "actors": [
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_user_74171881b5fb8a129f46",
+        "key": "user",
+        "kind": "user",
+        "seed": "kavaroutes-wp001-p0-growth-v1|scenario-maps-degradation-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_trip_eda19295eacbcdf917e8",
+        "key": "trip",
+        "kind": "trip",
+        "seed": "kavaroutes-wp001-p0-growth-v1|scenario-maps-degradation-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_command_40e9881b62f6d0a00bb4",
+        "key": "command",
+        "kind": "command",
+        "seed": "kavaroutes-wp001-p0-growth-v1|scenario-maps-degradation-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_event_87ecb1afc250dc93fb76",
+        "key": "event",
+        "kind": "event",
+        "seed": "kavaroutes-wp001-p0-growth-v1|scenario-maps-degradation-v1",
+        "tenantOrdinal": 0
+      }
+    ],
+    "references": [
+      {
+        "from": "user",
+        "fromId": "syn_user_74171881b5fb8a129f46",
+        "tenantOrdinal": 0,
+        "to": "command",
+        "toId": "syn_command_40e9881b62f6d0a00bb4"
+      },
+      {
+        "from": "command",
+        "fromId": "syn_command_40e9881b62f6d0a00bb4",
+        "tenantOrdinal": 0,
+        "to": "trip",
+        "toId": "syn_trip_eda19295eacbcdf917e8"
+      },
+      {
+        "from": "event",
+        "fromId": "syn_event_87ecb1afc250dc93fb76",
+        "tenantOrdinal": 0,
+        "to": "command",
+        "toId": "syn_command_40e9881b62f6d0a00bb4"
+      }
+    ]
+  },
+  "profileId": "p0-growth",
+  "scenarioId": "maps-degradation",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-p0-growth-v1|scenario-maps-degradation-v1",
+  "source": {
+    "duration": {
+      "unit": "minute",
+      "value": 30
+    },
+    "externalServices": [
+      {
+        "assumption": "No Google API call is made; response classes and latency are injected by a future runner.",
+        "documented": true,
+        "mode": "simulated-degradation",
+        "name": "Google Maps"
+      }
+    ],
+    "fixtures": {
+      "actors": [
+        {
+          "entityOrdinal": 0,
+          "key": "user",
+          "kind": "user",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "trip",
+          "kind": "trip",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "command",
+          "kind": "command",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "event",
+          "kind": "event",
+          "tenantOrdinal": 0
+        }
+      ],
+      "references": [
+        {
+          "from": "user",
+          "tenantOrdinal": 0,
+          "to": "command"
+        },
+        {
+          "from": "command",
+          "tenantOrdinal": 0,
+          "to": "trip"
+        },
+        {
+          "from": "event",
+          "tenantOrdinal": 0,
+          "to": "command"
+        }
+      ]
+    },
+    "id": "maps-degradation",
+    "name": "Google Maps latency, quota, and rejection degradation",
+    "parameters": {
+      "authoritativeState": "must-remain-usable",
+      "providerResponses": [
+        "latency",
+        "quota-exhausted",
+        "retryable-rejection",
+        "non-retryable-rejection"
+      ]
+    },
+    "phases": [
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 5
+        },
+        "id": "healthy",
+        "loadMultipliers": {
+          "apiRate": 1
+        }
+      },
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 20
+        },
+        "id": "degraded",
+        "loadMultipliers": {
+          "apiRate": 2,
+          "outboundFanout": 1
+        }
+      },
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 5
+        },
+        "id": "recovery",
+        "loadMultipliers": {
+          "apiRate": 1.5
+        }
+      }
+    ],
+    "profileIds": [
+      "*"
+    ],
+    "schemaVersion": "1.0.0",
+    "seed": "scenario-maps-degradation-v1"
+  }
+}

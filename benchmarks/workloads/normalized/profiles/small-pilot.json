@@ -1,0 +1,229 @@
+{
+  "approval": "provisional",
+  "contractType": "kavaroutes.synthetic-workload-profile",
+  "digest": "5324dba9f597cbbcc04db67fdda16ebda111b13af063211b8aea63975bca9244",
+  "distribution": {
+    "countsByKind": {
+      "command": [
+        4000
+      ],
+      "event": [
+        8000
+      ],
+      "location_sample": [
+        60000
+      ],
+      "tenant": [
+        1
+      ],
+      "trip": [
+        500
+      ],
+      "user": [
+        40
+      ],
+      "vehicle": [
+        25
+      ]
+    },
+    "rule": "integer quotient across tenants; remainder assigned by ascending tenant ordinal"
+  },
+  "entityPopulations": {
+    "command": {
+      "formula": "dimensions.legs * 4",
+      "total": 4000
+    },
+    "event": {
+      "formula": "commands * 2",
+      "total": 8000
+    },
+    "location_sample": {
+      "formula": "dimensions.retainedLocationSamples",
+      "total": 60000
+    },
+    "tenant": {
+      "formula": "dimensions.tenants",
+      "total": 1
+    },
+    "trip": {
+      "formula": "dimensions.trips",
+      "total": 500
+    },
+    "user": {
+      "formula": "dimensions.driverSessions + dimensions.webUsers",
+      "total": 40
+    },
+    "vehicle": {
+      "formula": "dimensions.activeVehicles",
+      "total": 25
+    }
+  },
+  "identityContract": {
+    "algorithm": "sha256(seed|kind|tenantOrdinal|entityOrdinal), first 20 hex characters",
+    "sampleIds": {
+      "command": [
+        "syn_command_fd4141fe712e66d71097",
+        "syn_command_e155a3cbcf5d6855358a"
+      ],
+      "event": [
+        "syn_event_44f42c8c22b380c0a405",
+        "syn_event_6df0d8289c777f8c0d2f"
+      ],
+      "location_sample": [
+        "syn_location_sample_2f72e6479bc15064bd75",
+        "syn_location_sample_e40235a43fc3cf6f6ed0"
+      ],
+      "tenant": [
+        "syn_tenant_05d9a10c4c04c7368d3e",
+        "syn_tenant_05d9a10c4c04c7368d3e"
+      ],
+      "trip": [
+        "syn_trip_3fd85759613f7244423a",
+        "syn_trip_6583f90828b55fc35e6f"
+      ],
+      "user": [
+        "syn_user_735c769102693dd0beb1",
+        "syn_user_023ac54f6828474d5716"
+      ],
+      "vehicle": [
+        "syn_vehicle_4700129ec50fa4b90618",
+        "syn_vehicle_a7f6450d61c68f7bda11"
+      ]
+    },
+    "supportedKinds": [
+      "tenant",
+      "user",
+      "trip",
+      "vehicle",
+      "location_sample",
+      "command",
+      "event"
+    ],
+    "tenantIds": [
+      "syn_tenant_05d9a10c4c04c7368d3e"
+    ]
+  },
+  "profileId": "small-pilot",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-small-pilot-v1",
+  "source": {
+    "adaptiveSampling": {
+      "enRoute": {
+        "unit": "second/sample",
+        "value": 15
+      },
+      "moving": {
+        "unit": "second/sample",
+        "value": 5
+      },
+      "retainedAverage": {
+        "unit": "second/sample",
+        "value": 15
+      },
+      "stationary": {
+        "unit": "second/sample",
+        "value": 60
+      }
+    },
+    "approval": "provisional",
+    "derivedValues": [
+      {
+        "field": "dimensions.retainedLocationSamples.value",
+        "formula": "activeVehicles * serviceWindowSeconds / retainedAverageSeconds",
+        "inputs": [
+          "dimensions.activeVehicles.value",
+          "serviceWindow",
+          "adaptiveSampling.retainedAverage.value"
+        ]
+      }
+    ],
+    "dimensions": {
+      "activeVehicles": {
+        "unit": "vehicle",
+        "value": 25
+      },
+      "apiRate": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "request/second",
+        "value": 25
+      },
+      "driverSessions": {
+        "unit": "concurrent_session",
+        "value": 30
+      },
+      "importRows": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "row/burst",
+        "value": 2500
+      },
+      "legs": {
+        "unit": "leg/service_day",
+        "value": 1000
+      },
+      "locationRate": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "sample/second",
+        "value": 5
+      },
+      "outboundFanout": {
+        "peakDuration": {
+          "unit": "minute",
+          "value": 15
+        },
+        "unit": "delivery/second",
+        "value": 250
+      },
+      "realtimeConnections": {
+        "unit": "connection",
+        "value": 100
+      },
+      "retainedLocationSamples": {
+        "unit": "sample/service_day",
+        "value": 60000
+      },
+      "tenants": {
+        "unit": "tenant",
+        "value": 1
+      },
+      "trips": {
+        "unit": "trip/service_day",
+        "value": 500
+      },
+      "webUsers": {
+        "unit": "concurrent_user",
+        "value": 10
+      }
+    },
+    "externalServices": [
+      {
+        "assumption": "No cloud, Google Maps, messaging, broker, or other vendor calls are made; future runners must inject measured provider behavior.",
+        "documented": true,
+        "mode": "simulated",
+        "name": "external-providers"
+      }
+    ],
+    "id": "small-pilot",
+    "name": "Small pilot tenant",
+    "schemaVersion": "1.0.0",
+    "seed": "kavaroutes-wp001-small-pilot-v1",
+    "serviceWindow": {
+      "unit": "hour",
+      "value": 10
+    },
+    "tenantGroups": [
+      {
+        "count": 1,
+        "id": "small-pilot"
+      }
+    ]
+  }
+}

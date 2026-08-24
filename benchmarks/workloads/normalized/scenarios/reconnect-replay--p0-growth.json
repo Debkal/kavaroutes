@@ -1,0 +1,176 @@
+{
+  "contractType": "kavaroutes.synthetic-workload-scenario",
+  "digest": "ef11e6fb781419cfad0379cee6f775d2029c19925ed5197d2e9f6fd8aab91573",
+  "fixtures": {
+    "actors": [
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_user_44c488c929e4a282f288",
+        "key": "user",
+        "kind": "user",
+        "seed": "kavaroutes-wp001-p0-growth-v1|scenario-reconnect-replay-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_location_sample_15877c87386184240d3e",
+        "key": "sample",
+        "kind": "location_sample",
+        "seed": "kavaroutes-wp001-p0-growth-v1|scenario-reconnect-replay-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_command_2f638c597112c35dce40",
+        "key": "command",
+        "kind": "command",
+        "seed": "kavaroutes-wp001-p0-growth-v1|scenario-reconnect-replay-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_event_0d783fa7d6237d630106",
+        "key": "event",
+        "kind": "event",
+        "seed": "kavaroutes-wp001-p0-growth-v1|scenario-reconnect-replay-v1",
+        "tenantOrdinal": 0
+      }
+    ],
+    "references": [
+      {
+        "from": "user",
+        "fromId": "syn_user_44c488c929e4a282f288",
+        "tenantOrdinal": 0,
+        "to": "sample",
+        "toId": "syn_location_sample_15877c87386184240d3e"
+      },
+      {
+        "from": "user",
+        "fromId": "syn_user_44c488c929e4a282f288",
+        "tenantOrdinal": 0,
+        "to": "command",
+        "toId": "syn_command_2f638c597112c35dce40"
+      },
+      {
+        "from": "event",
+        "fromId": "syn_event_0d783fa7d6237d630106",
+        "tenantOrdinal": 0,
+        "to": "command",
+        "toId": "syn_command_2f638c597112c35dce40"
+      }
+    ]
+  },
+  "profileId": "p0-growth",
+  "scenarioId": "reconnect-replay",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-p0-growth-v1|scenario-reconnect-replay-v1",
+  "source": {
+    "duration": {
+      "unit": "minute",
+      "value": 20
+    },
+    "externalServices": [
+      {
+        "assumption": "Disconnect, push loss, and reconnection are synthetic inputs; no hosted realtime or push provider is used.",
+        "documented": true,
+        "mode": "simulated",
+        "name": "push-and-realtime-providers"
+      }
+    ],
+    "fixtures": {
+      "actors": [
+        {
+          "entityOrdinal": 0,
+          "key": "user",
+          "kind": "user",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "sample",
+          "kind": "location_sample",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "command",
+          "kind": "command",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "event",
+          "kind": "event",
+          "tenantOrdinal": 0
+        }
+      ],
+      "references": [
+        {
+          "from": "user",
+          "tenantOrdinal": 0,
+          "to": "sample"
+        },
+        {
+          "from": "user",
+          "tenantOrdinal": 0,
+          "to": "command"
+        },
+        {
+          "from": "event",
+          "tenantOrdinal": 0,
+          "to": "command"
+        }
+      ]
+    },
+    "id": "reconnect-replay",
+    "name": "Twenty-five percent driver reconnect and replay",
+    "parameters": {
+      "deduplication": "device-session-sequence",
+      "reconnectingDriversFraction": 0.25,
+      "recovery": "cursor-and-manifest"
+    },
+    "phases": [
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 5
+        },
+        "id": "disconnect",
+        "loadMultipliers": {
+          "outboundFanout": 0.75,
+          "realtimeConnections": 0.75
+        }
+      },
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 10
+        },
+        "id": "replay",
+        "loadMultipliers": {
+          "apiRate": 4,
+          "locationRate": 4,
+          "outboundFanout": 4,
+          "realtimeConnections": 1
+        }
+      },
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 5
+        },
+        "id": "steady",
+        "loadMultipliers": {
+          "apiRate": 1,
+          "locationRate": 1,
+          "realtimeConnections": 1
+        }
+      }
+    ],
+    "profileIds": [
+      "*"
+    ],
+    "schemaVersion": "1.0.0",
+    "seed": "scenario-reconnect-replay-v1"
+  }
+}

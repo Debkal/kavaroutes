@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "reconnect-replay",
+  "name": "Twenty-five percent driver reconnect and replay",
+  "seed": "scenario-reconnect-replay-v1",
+  "profileIds": ["*"],
+  "duration": { "value": 20, "unit": "minute" },
+  "phases": [
+    { "id": "disconnect", "duration": { "value": 5, "unit": "minute" }, "loadMultipliers": { "realtimeConnections": 0.75, "outboundFanout": 0.75 } },
+    { "id": "replay", "duration": { "value": 10, "unit": "minute" }, "loadMultipliers": { "realtimeConnections": 1, "apiRate": 4, "locationRate": 4, "outboundFanout": 4 } },
+    { "id": "steady", "duration": { "value": 5, "unit": "minute" }, "loadMultipliers": { "realtimeConnections": 1, "apiRate": 1, "locationRate": 1 } }
+  ],
+  "parameters": { "reconnectingDriversFraction": 0.25, "deduplication": "device-session-sequence", "recovery": "cursor-and-manifest" },
+  "fixtures": {
+    "actors": [
+      { "key": "user", "kind": "user", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "sample", "kind": "location_sample", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "command", "kind": "command", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "event", "kind": "event", "tenantOrdinal": 0, "entityOrdinal": 0 }
+    ],
+    "references": [
+      { "from": "user", "to": "sample", "tenantOrdinal": 0 },
+      { "from": "user", "to": "command", "tenantOrdinal": 0 },
+      { "from": "event", "to": "command", "tenantOrdinal": 0 }
+    ]
+  },
+  "externalServices": [{
+    "name": "push-and-realtime-providers",
+    "mode": "simulated",
+    "assumption": "Disconnect, push loss, and reconnection are synthetic inputs; no hosted realtime or push provider is used.",
+    "documented": true
+  }]
+}

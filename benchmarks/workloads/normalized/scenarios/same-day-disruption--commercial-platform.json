@@ -1,0 +1,188 @@
+{
+  "contractType": "kavaroutes.synthetic-workload-scenario",
+  "digest": "131745c814af05059bac08ba2407e9beb4d1f6eed20d631a61cf72395e2c3832",
+  "fixtures": {
+    "actors": [
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_user_4e5b0a2253dcade62ceb",
+        "key": "user",
+        "kind": "user",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-same-day-disruption-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_trip_896176eea3c5448f9a36",
+        "key": "trip",
+        "kind": "trip",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-same-day-disruption-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_vehicle_c1f180af90035ac94051",
+        "key": "vehicle",
+        "kind": "vehicle",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-same-day-disruption-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_command_6a7e881945909dfd26e1",
+        "key": "command",
+        "kind": "command",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-same-day-disruption-v1",
+        "tenantOrdinal": 0
+      },
+      {
+        "entityOrdinal": 0,
+        "generatedId": "syn_event_7663abc363a3dbf050d9",
+        "key": "event",
+        "kind": "event",
+        "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-same-day-disruption-v1",
+        "tenantOrdinal": 0
+      }
+    ],
+    "references": [
+      {
+        "from": "vehicle",
+        "fromId": "syn_vehicle_c1f180af90035ac94051",
+        "tenantOrdinal": 0,
+        "to": "trip",
+        "toId": "syn_trip_896176eea3c5448f9a36"
+      },
+      {
+        "from": "user",
+        "fromId": "syn_user_4e5b0a2253dcade62ceb",
+        "tenantOrdinal": 0,
+        "to": "command",
+        "toId": "syn_command_6a7e881945909dfd26e1"
+      },
+      {
+        "from": "command",
+        "fromId": "syn_command_6a7e881945909dfd26e1",
+        "tenantOrdinal": 0,
+        "to": "trip",
+        "toId": "syn_trip_896176eea3c5448f9a36"
+      },
+      {
+        "from": "event",
+        "fromId": "syn_event_7663abc363a3dbf050d9",
+        "tenantOrdinal": 0,
+        "to": "command",
+        "toId": "syn_command_6a7e881945909dfd26e1"
+      }
+    ]
+  },
+  "profileId": "commercial-platform",
+  "scenarioId": "same-day-disruption",
+  "schemaVersion": "1.0.0",
+  "seed": "kavaroutes-wp001-commercial-platform-v1|scenario-same-day-disruption-v1",
+  "source": {
+    "duration": {
+      "unit": "minute",
+      "value": 30
+    },
+    "externalServices": [
+      {
+        "assumption": "Candidate route costs are synthetic and do not call an optimizer or Maps API.",
+        "documented": true,
+        "mode": "simulated",
+        "name": "route-cost-provider"
+      }
+    ],
+    "fixtures": {
+      "actors": [
+        {
+          "entityOrdinal": 0,
+          "key": "user",
+          "kind": "user",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "trip",
+          "kind": "trip",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "vehicle",
+          "kind": "vehicle",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "command",
+          "kind": "command",
+          "tenantOrdinal": 0
+        },
+        {
+          "entityOrdinal": 0,
+          "key": "event",
+          "kind": "event",
+          "tenantOrdinal": 0
+        }
+      ],
+      "references": [
+        {
+          "from": "vehicle",
+          "tenantOrdinal": 0,
+          "to": "trip"
+        },
+        {
+          "from": "user",
+          "tenantOrdinal": 0,
+          "to": "command"
+        },
+        {
+          "from": "command",
+          "tenantOrdinal": 0,
+          "to": "trip"
+        },
+        {
+          "from": "event",
+          "tenantOrdinal": 0,
+          "to": "command"
+        }
+      ]
+    },
+    "id": "same-day-disruption",
+    "name": "Driver call-out or vehicle breakdown recovery",
+    "parameters": {
+      "disruption": "call-out-or-breakdown",
+      "recommendationMode": "advisory-only"
+    },
+    "phases": [
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 5
+        },
+        "id": "detection",
+        "loadMultipliers": {
+          "apiRate": 2,
+          "outboundFanout": 2
+        }
+      },
+      {
+        "duration": {
+          "unit": "minute",
+          "value": 25
+        },
+        "id": "mass-reassignment",
+        "loadMultipliers": {
+          "apiRate": 5,
+          "locationRate": 2,
+          "outboundFanout": 5
+        }
+      }
+    ],
+    "profileIds": [
+      "*"
+    ],
+    "schemaVersion": "1.0.0",
+    "seed": "scenario-same-day-disruption-v1"
+  }
+}

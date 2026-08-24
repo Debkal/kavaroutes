@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "not-run",
+  "profileId": "p0-growth",
+  "scenarioId": "normal-service-day",
+  "datasetDigest": "replace-with-normalized-contract-digest",
+  "environment": "unassigned-provider-neutral-environment",
+  "implementationVersion": "unassigned-version",
+  "duration": { "value": 1, "unit": "second" },
+  "metrics": {
+    "throughput": { "value": null, "unit": "operation/second" },
+    "latencyP50": { "value": null, "unit": "millisecond" },
+    "latencyP95": { "value": null, "unit": "millisecond" },
+    "latencyP99": { "value": null, "unit": "millisecond" },
+    "errorRate": { "value": null, "unit": "error/operation" },
+    "rejectedSamples": { "value": null, "unit": "sample" },
+    "duplicates": { "value": null, "unit": "effect" },
+    "lostAcknowledgements": { "value": null, "unit": "acknowledgement" },
+    "cursorRecoveryTime": { "value": null, "unit": "millisecond" },
+    "tenantIsolationFailures": { "value": null, "unit": "failure" }
+  },
+  "estimatedUnitCosts": [
+    { "name": "active-vehicle", "value": null, "currency": "USD", "unit": "active_vehicle/month" },
+    { "name": "completed-trip", "value": null, "currency": "USD", "unit": "completed_trip" },
+    { "name": "retained-location", "value": null, "currency": "USD", "unit": "retained_sample" },
+    { "name": "realtime-delivery", "value": null, "currency": "USD", "unit": "1000_deliveries" },
+    { "name": "maps-request", "value": null, "currency": "USD", "unit": "request" },
+    { "name": "matrix-element", "value": null, "currency": "USD", "unit": "element" },
+    { "name": "notification", "value": null, "currency": "USD", "unit": "notification" },
+    { "name": "imported-trip", "value": null, "currency": "USD", "unit": "imported_trip" }
+  ]
+}

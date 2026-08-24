@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "same-day-disruption",
+  "name": "Driver call-out or vehicle breakdown recovery",
+  "seed": "scenario-same-day-disruption-v1",
+  "profileIds": ["*"],
+  "duration": { "value": 30, "unit": "minute" },
+  "phases": [
+    { "id": "detection", "duration": { "value": 5, "unit": "minute" }, "loadMultipliers": { "apiRate": 2, "outboundFanout": 2 } },
+    { "id": "mass-reassignment", "duration": { "value": 25, "unit": "minute" }, "loadMultipliers": { "apiRate": 5, "outboundFanout": 5, "locationRate": 2 } }
+  ],
+  "parameters": { "disruption": "call-out-or-breakdown", "recommendationMode": "advisory-only" },
+  "fixtures": {
+    "actors": [
+      { "key": "user", "kind": "user", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "trip", "kind": "trip", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "vehicle", "kind": "vehicle", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "command", "kind": "command", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "event", "kind": "event", "tenantOrdinal": 0, "entityOrdinal": 0 }
+    ],
+    "references": [
+      { "from": "vehicle", "to": "trip", "tenantOrdinal": 0 },
+      { "from": "user", "to": "command", "tenantOrdinal": 0 },
+      { "from": "command", "to": "trip", "tenantOrdinal": 0 },
+      { "from": "event", "to": "command", "tenantOrdinal": 0 }
+    ]
+  },
+  "externalServices": [{
+    "name": "route-cost-provider",
+    "mode": "simulated",
+    "assumption": "Candidate route costs are synthetic and do not call an optimizer or Maps API.",
+    "documented": true
+  }]
+}

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "noisy-tenant",
+  "name": "Noisy tenant isolation and quota pressure",
+  "seed": "scenario-noisy-tenant-v1",
+  "profileIds": ["commercial-platform"],
+  "duration": { "value": 15, "unit": "minute" },
+  "phases": [{
+    "id": "tenant-zero-pressure",
+    "duration": { "value": 15, "unit": "minute" },
+    "loadMultipliers": { "importRows": 10, "apiRate": 10, "locationRate": 10, "outboundFanout": 10 }
+  }],
+  "parameters": { "noisyTenantOrdinal": 0, "protectedTenantOrdinal": 1, "expectedIsolationFailures": 0 },
+  "fixtures": {
+    "actors": [
+      { "key": "noisy-user", "kind": "user", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "noisy-trip", "kind": "trip", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "protected-user", "kind": "user", "tenantOrdinal": 1, "entityOrdinal": 0 },
+      { "key": "protected-trip", "kind": "trip", "tenantOrdinal": 1, "entityOrdinal": 0 }
+    ],
+    "references": [
+      { "from": "noisy-user", "to": "noisy-trip", "tenantOrdinal": 0 },
+      { "from": "protected-user", "to": "protected-trip", "tenantOrdinal": 1 }
+    ]
+  },
+  "externalServices": [{
+    "name": "rate-limiter-and-provider-quotas",
+    "mode": "simulated",
+    "assumption": "Tenant quotas and provider responses are abstract inputs with no selected cache, gateway, queue, or cloud vendor.",
+    "documented": true
+  }]
+}

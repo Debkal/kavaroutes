@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kavaroutes.local/schemas/workload-result.schema.json",
+  "title": "Provider-neutral KavaRoutes workload result",
+  "type": "object",
+  "required": ["schemaVersion", "status", "profileId", "scenarioId", "datasetDigest", "environment", "implementationVersion", "duration", "metrics", "estimatedUnitCosts"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "status": { "enum": ["not-run", "completed", "failed"] },
+    "profileId": { "type": "string", "minLength": 1 },
+    "scenarioId": { "type": "string", "minLength": 1 },
+    "datasetDigest": { "type": "string", "minLength": 1 },
+    "environment": { "type": "string", "minLength": 1 },
+    "implementationVersion": { "type": "string", "minLength": 1 },
+    "duration": { "$ref": "#/$defs/duration" },
+    "metrics": {
+      "type": "object",
+      "required": ["throughput", "latencyP50", "latencyP95", "latencyP99", "errorRate", "rejectedSamples", "duplicates", "lostAcknowledgements", "cursorRecoveryTime", "tenantIsolationFailures"],
+      "additionalProperties": false,
+      "properties": {
+        "throughput": { "$ref": "#/$defs/metric" },
+        "latencyP50": { "$ref": "#/$defs/metric" },
+        "latencyP95": { "$ref": "#/$defs/metric" },
+        "latencyP99": { "$ref": "#/$defs/metric" },
+        "errorRate": { "$ref": "#/$defs/metric" },
+        "rejectedSamples": { "$ref": "#/$defs/metric" },
+        "duplicates": { "$ref": "#/$defs/metric" },
+        "lostAcknowledgements": { "$ref": "#/$defs/metric" },
+        "cursorRecoveryTime": { "$ref": "#/$defs/metric" },
+        "tenantIsolationFailures": { "$ref": "#/$defs/metric" }
+      }
+    },
+    "estimatedUnitCosts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "value", "currency", "unit"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "value": { "type": ["number", "null"], "minimum": 0 },
+          "currency": { "type": "string", "minLength": 1 },
+          "unit": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "duration": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": "number", "exclusiveMinimum": 0 },
+        "unit": { "enum": ["second", "minute", "hour"] }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "required": ["value", "unit"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": ["number", "null"], "minimum": 0 },
+        "unit": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

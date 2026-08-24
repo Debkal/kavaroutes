@@ -1,0 +1,16 @@
+{
+  "name": "@kavaroutes/workload-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Provider-neutral synthetic workload contracts for KavaRoutes Work Package 001",
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "validate": "node scripts/validate.mjs",
+    "test": "node --test test/contracts.test.mjs",
+    "verify": "node scripts/generate.mjs && node scripts/validate.mjs && node --test test/contracts.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

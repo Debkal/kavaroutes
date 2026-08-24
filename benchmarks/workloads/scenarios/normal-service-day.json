@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "normal-service-day",
+  "name": "Normal intake-to-billing service day",
+  "seed": "scenario-normal-service-day-v1",
+  "profileIds": ["*"],
+  "duration": { "value": 10, "unit": "hour" },
+  "phases": [{
+    "id": "steady-service",
+    "duration": { "value": 10, "unit": "hour" },
+    "loadMultipliers": { "trips": 1, "apiRate": 1, "locationRate": 1, "outboundFanout": 1 }
+  }],
+  "parameters": { "workflow": "intake-schedule-dispatch-execute-verify-billing-ready" },
+  "fixtures": {
+    "actors": [
+      { "key": "tenant", "kind": "tenant", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "user", "kind": "user", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "trip", "kind": "trip", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "vehicle", "kind": "vehicle", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "sample", "kind": "location_sample", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "command", "kind": "command", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "event", "kind": "event", "tenantOrdinal": 0, "entityOrdinal": 0 }
+    ],
+    "references": [
+      { "from": "user", "to": "trip", "tenantOrdinal": 0 },
+      { "from": "vehicle", "to": "trip", "tenantOrdinal": 0 },
+      { "from": "sample", "to": "vehicle", "tenantOrdinal": 0 },
+      { "from": "command", "to": "trip", "tenantOrdinal": 0 },
+      { "from": "event", "to": "command", "tenantOrdinal": 0 }
+    ]
+  },
+  "externalServices": [{
+    "name": "all-external-providers",
+    "mode": "simulated",
+    "assumption": "Provider latency and outcomes are synthetic inputs; no vendor traffic is generated.",
+    "documented": true
+  }]
+}

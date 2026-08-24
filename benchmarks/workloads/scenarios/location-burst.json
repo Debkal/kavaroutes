@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "location-burst",
+  "name": "Five-second moving-location burst with adaptive backoff",
+  "seed": "scenario-location-burst-v1",
+  "profileIds": ["*"],
+  "duration": { "value": 20, "unit": "minute" },
+  "phases": [
+    { "id": "baseline", "duration": { "value": 5, "unit": "minute" }, "loadMultipliers": { "locationRate": 1, "outboundFanout": 1 } },
+    { "id": "moving-five-second-burst", "duration": { "value": 10, "unit": "minute" }, "loadMultipliers": { "locationRate": 3, "outboundFanout": 3 } },
+    { "id": "adaptive-backoff", "duration": { "value": 5, "unit": "minute" }, "loadMultipliers": { "locationRate": 0.25, "outboundFanout": 0.5 } }
+  ],
+  "parameters": { "burstInterval": { "value": 5, "unit": "second/sample" }, "staleThreshold": { "value": 60, "unit": "second" } },
+  "fixtures": {
+    "actors": [
+      { "key": "vehicle", "kind": "vehicle", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "sample", "kind": "location_sample", "tenantOrdinal": 0, "entityOrdinal": 0 },
+      { "key": "event", "kind": "event", "tenantOrdinal": 0, "entityOrdinal": 0 }
+    ],
+    "references": [
+      { "from": "sample", "to": "vehicle", "tenantOrdinal": 0 },
+      { "from": "event", "to": "vehicle", "tenantOrdinal": 0 }
+    ]
+  },
+  "externalServices": [{
+    "name": "mobile-location-provider",
+    "mode": "simulated",
+    "assumption": "Capture jitter, accuracy, and network delay are synthetic; no device or mapping service is contacted.",
+    "documented": true
+  }]
+}
