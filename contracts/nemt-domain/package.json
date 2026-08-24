@@ -1,0 +1,15 @@
+{
+  "name": "@kavaroutes/nemt-domain-contract",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Synthetic, provider-neutral Work Package 003 NEMT domain contract",
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "generate": "node scripts/generate.mjs",
+    "test": "node --test test/domain.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

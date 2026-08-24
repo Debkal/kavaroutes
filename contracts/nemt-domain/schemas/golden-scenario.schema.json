@@ -1,0 +1,11 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://kavaroutes.local/contracts/nemt-domain/golden-scenario.schema.json",
+  "title":"KavaRoutes WP003 synthetic golden scenario",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["id","caseType","initialState","inputs","commandSequence","acceptedRejectedResults","finalState","emittedEvents","humanAttention","retryBehavior","financialConsequence"],
+  "properties":{
+    "id":{"type":"string","pattern":"^GOLDEN_[0-9]{2}_"},"caseType":{"type":"string","minLength":1},"initialState":{"type":"object"},"inputs":{"type":"object"},"commandSequence":{"type":"array","minItems":1,"items":{"type":"string"}},"acceptedRejectedResults":{"type":"array","minItems":1,"items":{"type":"object","required":["decision","reason"],"properties":{"decision":{"enum":["ACCEPT","REJECT","NO_EFFECT","QUEUE"]},"reason":{"type":"string"}},"additionalProperties":false}},"finalState":{"type":"object"},"emittedEvents":{"type":"array","items":{"type":"string"}},"humanAttention":{"type":"string"},"retryBehavior":{"type":"string"},"financialConsequence":{"type":"string"}
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "name": "kavaroutes",
+  "version": "0.0.0-wp008",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": "24.19.0",
+    "npm": "11.17.0"
+  },
+  "packageManager": "npm@11.17.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "tsc -b --clean",
+    "check:architecture": "node scripts/check-architecture.mjs",
+    "check:dependencies": "node scripts/dependency-review.mjs",
+    "generate:openapi": "node scripts/generate-openapi.mjs",
+    "test": "npm run build && npm run generate:openapi && npm run check:architecture && node --test --test-concurrency=1 test/core.test.mjs test/architecture-negative.test.mjs test/api.test.mjs test/telemetry.test.mjs test/websocket.test.mjs test/smoke.test.mjs test/container-policy.test.mjs",
+    "test:database": "node --test --test-concurrency=1 test/database.integration.test.mjs",
+    "test:worker": "node --test --test-concurrency=1 test/worker.integration.test.mjs",
+    "test:all": "npm test && npm run test:database && npm run test:worker",
+    "wp006:lint": "node packages/postgres-persistence/scripts/lint-migrations.mjs",
+    "wp006:migrate": "node packages/postgres-persistence/scripts/migrate.mjs",
+    "wp006:snapshot": "node packages/postgres-persistence/scripts/schema-snapshot.mjs --check",
+    "wp006:test": "node --test --test-concurrency=1 packages/postgres-persistence/test/*.test.mjs",
+    "wp006:benchmark": "node packages/postgres-persistence/scripts/benchmark.mjs",
+    "wp006:verify": "npm run build && npm run wp006:lint && npm run wp006:test && npm run wp006:snapshot && npm run wp006:benchmark",
+    "wp007:catalog": "node packages/api-contracts/scripts/generate-catalog.mjs",
+    "wp007:generate": "node packages/api-contracts/scripts/generate-artifacts.mjs",
+    "wp007:lint": "node packages/api-contracts/scripts/lint-artifacts.mjs",
+    "wp007:clients": "tsc -p packages/api-contracts/tsconfig.clients.json --noEmit",
+    "wp007:test": "node --test --test-concurrency=1 packages/api-contracts/test/api.test.mjs packages/api-contracts/test/contract.test.mjs",
+    "wp007:test:database": "node --test --test-concurrency=1 packages/api-contracts/test/postgres.integration.test.mjs",
+    "wp007:benchmark": "node packages/api-contracts/scripts/benchmark.mjs",
+    "wp007:verify": "npm run build && npm run wp007:catalog && npm run wp007:generate && npm run wp007:lint && npm run wp007:clients && npm run wp007:test && npm run wp007:test:database && npm run wp007:benchmark",
+    "wp008:catalog": "node packages/durable-execution/scripts/generate-catalog.mjs",
+    "wp008:lint": "node packages/durable-execution/scripts/lint.mjs",
+    "wp008:test": "node --test --test-concurrency=1 packages/durable-execution/test/contracts.test.mjs",
+    "wp008:test:database": "node --test --test-concurrency=1 packages/durable-execution/test/postgres.integration.test.mjs",
+    "wp008:snapshot": "node packages/durable-execution/scripts/verify-schema-snapshot.mjs",
+    "wp008:benchmark": "node packages/durable-execution/scripts/benchmark.mjs",
+    "wp008:benchmark:database": "node packages/durable-execution/scripts/benchmark.database.mjs",
+    "wp008:verify": "npm run build && npm run wp006:lint && npm run wp008:catalog && npm run wp008:lint && npm run wp008:test && npm run wp008:test:database && npm run wp008:snapshot && npm run wp008:benchmark && npm run wp008:benchmark:database"
+  },
+  "dependencies": {
+    "@fastify/swagger": "9.8.1",
+    "@fastify/type-provider-typebox": "6.1.0",
+    "@fastify/websocket": "11.3.0",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/sdk-node": "0.221.0",
+    "drizzle-orm": "0.45.2",
+    "fastify": "5.12.1",
+    "pg": "8.23.0",
+    "pg-boss": "12.28.0",
+    "pino": "10.3.1",
+    "typebox": "1.3.7",
+    "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/pg": "8.23.1",
+    "@types/ws": "8.18.1",
+    "typescript": "6.0.3"
+  }
+}

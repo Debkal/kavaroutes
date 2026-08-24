@@ -1,0 +1,11 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://kavaroutes.local/contracts/nemt-domain/event-envelope.schema.json",
+  "title":"KavaRoutes synthetic domain event envelope",
+  "type":"object",
+  "additionalProperties":false,
+  "required":["eventId","tenantId","aggregateType","aggregateId","aggregateVersion","eventType","schemaVersion","occurredAt","recordedAt","actorType","actorId","commandId","idempotencyKey","correlationId","causationId","source","classificationIds","policyVersion"],
+  "properties":{
+    "eventId":{"type":"string","minLength":1},"tenantId":{"type":"string","pattern":"^syn_tenant_"},"aggregateType":{"type":"string","minLength":1},"aggregateId":{"type":"string","pattern":"^syn_"},"aggregateVersion":{"type":"integer","minimum":1},"eventType":{"type":"string","minLength":1},"schemaVersion":{"const":"1.0.0"},"occurredAt":{"type":"string","format":"date-time"},"recordedAt":{"type":"string","format":"date-time"},"actorType":{"type":"string","minLength":1},"actorId":{"type":"string","pattern":"^syn_"},"commandId":{"type":"string","pattern":"^syn_"},"idempotencyKey":{"type":"string","pattern":"^syn_"},"correlationId":{"type":"string","pattern":"^syn_"},"causationId":{"type":"string","pattern":"^syn_"},"source":{"type":"string","minLength":1},"classificationIds":{"type":"array","minItems":1,"items":{"type":"string"}},"policyVersion":{"type":"string","minLength":1},"serviceDate":{"type":"string","format":"date"},"timezone":{"type":"string","minLength":1}
+  }
+}

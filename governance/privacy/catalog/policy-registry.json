@@ -1,0 +1,119 @@
+{
+  "schemaVersion": "1.0.0",
+  "policyVersion": "privacy-synthetic-v1",
+  "approvalState": "PROVISIONAL_NOT_PRODUCTION_APPROVED",
+  "purposes": [
+    "RIDER_INTAKE", "ASSIGNED_SERVICE_DELIVERY", "FACILITY_COORDINATION", "BILLING_PROOF",
+    "SUPPORT_DIAGNOSTICS", "BREAK_GLASS", "MAPS_ROUTE_GUIDANCE", "NOTIFICATION_WAKEUP",
+    "OBSERVABILITY", "PARTNER_EXPORT", "RETENTION_DELETION", "COMPLIANCE_EVALUATION",
+    "INCIDENT_RESPONSE", "CONTINGENCY_RECOVERY", "ACCESS_REVIEW"
+  ],
+  "roles": [
+    { "id": "DISPATCHER", "tenantScoped": true },
+    { "id": "DRIVER", "tenantScoped": true },
+    { "id": "FACILITY_USER", "tenantScoped": true },
+    { "id": "BILLING_USER", "tenantScoped": true },
+    { "id": "SUPPORT_USER", "tenantScoped": true },
+    { "id": "PRIVACY_OFFICIAL_ROLE", "tenantScoped": false },
+    { "id": "SECURITY_OFFICIAL_ROLE", "tenantScoped": false },
+    { "id": "SYSTEM_PROCESSOR", "tenantScoped": true }
+  ],
+  "destinations": [
+    { "id": "INTERNAL_TRIP_SERVICE", "kind": "internal", "approvalState": "PROVISIONAL" },
+    { "id": "DRIVER_MANIFEST", "kind": "internal-projection", "approvalState": "PROVISIONAL" },
+    { "id": "FACILITY_PORTAL", "kind": "internal-projection", "approvalState": "PROVISIONAL" },
+    { "id": "BILLING_WORKSPACE", "kind": "internal-projection", "approvalState": "PROVISIONAL" },
+    { "id": "SUPPORT_CONSOLE", "kind": "internal-projection", "approvalState": "PROVISIONAL" },
+    { "id": "GOOGLE_MAPS_ROUTE_GUIDANCE", "kind": "exact-external-service", "approvalState": "NO_PHI_ENVELOPE_ONLY_PENDING_QUALIFIED_REVIEW" },
+    { "id": "GENERIC_PUSH_PROVIDER", "kind": "external-category-fixture", "approvalState": "OPAQUE_REFERENCE_ONLY" },
+    { "id": "ALLOWLISTED_OBSERVABILITY", "kind": "internal-or-external", "approvalState": "REDACTED_METADATA_ONLY" },
+    { "id": "SYNTHETIC_PARTNER_EXACT_SERVICE", "kind": "exact-external-service-fixture", "approvalState": "PROVISIONAL" },
+    { "id": "DELETION_LEDGER", "kind": "internal", "approvalState": "PROVISIONAL" },
+    { "id": "GOVERNANCE_REGISTRY", "kind": "internal", "approvalState": "PROVISIONAL" }
+  ],
+  "retentionPolicies": [
+    {
+      "id": "RET_RAW_LOCATION_30D_PROVISIONAL", "effectiveDate": "2026-08-24", "scope": "synthetic-location-architecture-default",
+      "basis": "ARQ-002 minimization hypothesis; qualified approval required", "trigger": "sample-recorded", "duration": { "value": 30, "unit": "day" },
+      "disposition": "delete-or-transform-to-approved-proof", "holdPrecedence": true, "backupAging": "bounded-documented-cycle",
+      "verificationState": "PLANNED", "approvalState": "PROVISIONAL"
+    },
+    {
+      "id": "RET_OPERATIONAL_LOG_30D_PROVISIONAL", "effectiveDate": "2026-08-24", "scope": "allowlisted-operational-telemetry",
+      "basis": "ARQ-002 operational default; qualified approval required", "trigger": "telemetry-recorded", "duration": { "value": 30, "unit": "day" },
+      "disposition": "delete", "holdPrecedence": true, "backupAging": "bounded-documented-cycle",
+      "verificationState": "PLANNED", "approvalState": "PROVISIONAL"
+    },
+    {
+      "id": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "effectiveDate": "2026-08-24", "scope": "capacity-only-not-final-policy",
+      "basis": "ARQ-002 contract-policy architecture capability", "trigger": "record-finalized", "duration": { "value": 10, "unit": "year" },
+      "disposition": "policy-evaluated-delete-or-archive", "holdPrecedence": true, "backupAging": "bounded-documented-cycle",
+      "verificationState": "PLANNED", "approvalState": "PROVISIONAL_CAPABILITY_ONLY"
+    },
+    {
+      "id": "RET_COMPLIANCE_DOC_6Y_CAPABILITY", "effectiveDate": "2026-08-24", "scope": "applicable-compliance-documentation-capability",
+      "basis": "HHS documentation retention capability; applicability and start rule require review", "trigger": "policy-effective-or-last-in-effect", "duration": { "value": 6, "unit": "year" },
+      "disposition": "policy-evaluated-delete-or-archive", "holdPrecedence": true, "backupAging": "bounded-documented-cycle",
+      "verificationState": "PLANNED", "approvalState": "PROVISIONAL_CAPABILITY_ONLY"
+    },
+    {
+      "id": "RET_OFFLINE_ACK_WINDOW", "effectiveDate": "2026-08-24", "scope": "synthetic-driver-cache",
+      "basis": "minimum recovery need", "trigger": "server-acknowledgement", "duration": { "value": 1, "unit": "day" },
+      "disposition": "purge-after-confirmed-sync", "holdPrecedence": true, "backupAging": "not-backed-up",
+      "verificationState": "PLANNED", "approvalState": "PROVISIONAL"
+    },
+    {
+      "id": "RET_SYNTHETIC", "effectiveDate": "2026-08-24", "scope": "conspicuously-synthetic-contract-fixtures",
+      "basis": "development utility only", "trigger": "fixture-created", "duration": { "value": 1, "unit": "year" },
+      "disposition": "delete-when-no-longer-useful", "holdPrecedence": true, "backupAging": "repository-history-if-tracked",
+      "verificationState": "PLANNED", "approvalState": "PROVISIONAL"
+    }
+  ],
+  "fields": [
+    { "id": "rider.identity", "tags": ["rider-identity", "rider-trip-context"], "classifications": ["PERSONAL_CONFIDENTIAL", "REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["RIDER_INTAKE", "ASSIGNED_SERVICE_DELIVERY", "FACILITY_COORDINATION"], "roles": ["DISPATCHER", "DRIVER", "FACILITY_USER"], "destinations": ["INTERNAL_TRIP_SERVICE", "DRIVER_MANIFEST", "FACILITY_PORTAL"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "rider.contact", "tags": ["rider-identity", "medical-trip-context"], "classifications": ["REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["RIDER_INTAKE", "ASSIGNED_SERVICE_DELIVERY"], "roles": ["DISPATCHER", "DRIVER"], "destinations": ["INTERNAL_TRIP_SERVICE", "DRIVER_MANIFEST"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "trip.medicalContext", "tags": ["medical-trip-context", "rider-trip-context"], "classifications": ["REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["RIDER_INTAKE"], "roles": ["DISPATCHER"], "destinations": ["INTERNAL_TRIP_SERVICE"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "trip.accommodation", "tags": ["medical-trip-context"], "classifications": ["REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["RIDER_INTAKE", "ASSIGNED_SERVICE_DELIVERY"], "roles": ["DISPATCHER", "DRIVER"], "destinations": ["INTERNAL_TRIP_SERVICE", "DRIVER_MANIFEST"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "trip.notes", "tags": ["free-text", "medical-trip-context"], "classifications": ["REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["RIDER_INTAKE"], "roles": ["DISPATCHER"], "destinations": ["INTERNAL_TRIP_SERVICE"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "trip.internalId", "tags": ["rider-trip-context"], "classifications": ["INTERNAL", "REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["RIDER_INTAKE", "BILLING_PROOF"], "roles": ["DISPATCHER", "BILLING_USER", "SYSTEM_PROCESSOR"], "destinations": ["INTERNAL_TRIP_SERVICE", "BILLING_WORKSPACE"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "route.origin.address", "tags": ["medical-trip-context", "precise-location"], "classifications": ["REGULATED_HEALTH", "RESTRICTED_LOCATION"], "subject": "RIDER", "purposes": ["RIDER_INTAKE", "ASSIGNED_SERVICE_DELIVERY", "MAPS_ROUTE_GUIDANCE"], "roles": ["DISPATCHER", "DRIVER", "SYSTEM_PROCESSOR"], "destinations": ["INTERNAL_TRIP_SERVICE", "DRIVER_MANIFEST", "GOOGLE_MAPS_ROUTE_GUIDANCE"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_MAPS_REVIEW" },
+    { "id": "route.origin.coordinates", "tags": ["precise-location"], "classifications": ["RESTRICTED_LOCATION", "REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["MAPS_ROUTE_GUIDANCE"], "roles": ["SYSTEM_PROCESSOR"], "destinations": ["GOOGLE_MAPS_ROUTE_GUIDANCE"], "retentionClass": "RET_RAW_LOCATION_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_MAPS_REVIEW" },
+    { "id": "route.destination.address", "tags": ["medical-trip-context", "precise-location"], "classifications": ["REGULATED_HEALTH", "RESTRICTED_LOCATION"], "subject": "RIDER", "purposes": ["RIDER_INTAKE", "ASSIGNED_SERVICE_DELIVERY", "MAPS_ROUTE_GUIDANCE"], "roles": ["DISPATCHER", "DRIVER", "SYSTEM_PROCESSOR"], "destinations": ["INTERNAL_TRIP_SERVICE", "DRIVER_MANIFEST", "GOOGLE_MAPS_ROUTE_GUIDANCE"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_MAPS_REVIEW" },
+    { "id": "route.destination.coordinates", "tags": ["precise-location"], "classifications": ["RESTRICTED_LOCATION", "REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["MAPS_ROUTE_GUIDANCE"], "roles": ["SYSTEM_PROCESSOR"], "destinations": ["GOOGLE_MAPS_ROUTE_GUIDANCE"], "retentionClass": "RET_RAW_LOCATION_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_MAPS_REVIEW" },
+    { "id": "route.waypoints.coordinates", "tags": ["precise-location"], "classifications": ["RESTRICTED_LOCATION", "REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["MAPS_ROUTE_GUIDANCE"], "roles": ["SYSTEM_PROCESSOR"], "destinations": ["GOOGLE_MAPS_ROUTE_GUIDANCE"], "retentionClass": "RET_RAW_LOCATION_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_MAPS_REVIEW" },
+    { "id": "route.travelMode", "tags": ["routing-parameter"], "classifications": ["INTERNAL"], "subject": "SYSTEM", "purposes": ["MAPS_ROUTE_GUIDANCE"], "roles": ["SYSTEM_PROCESSOR"], "destinations": ["GOOGLE_MAPS_ROUTE_GUIDANCE"], "retentionClass": "RET_SYNTHETIC", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_MAPS_REVIEW" },
+    { "id": "route.routingPreference", "tags": ["routing-parameter"], "classifications": ["INTERNAL"], "subject": "SYSTEM", "purposes": ["MAPS_ROUTE_GUIDANCE"], "roles": ["SYSTEM_PROCESSOR"], "destinations": ["GOOGLE_MAPS_ROUTE_GUIDANCE"], "retentionClass": "RET_SYNTHETIC", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_MAPS_REVIEW" },
+    { "id": "location.breadcrumb", "tags": ["precise-location", "historical-location", "rider-trip-context"], "classifications": ["RESTRICTED_LOCATION", "REGULATED_HEALTH"], "subject": "DRIVER_AND_RIDER", "purposes": ["ASSIGNED_SERVICE_DELIVERY"], "roles": ["DISPATCHER", "SYSTEM_PROCESSOR"], "destinations": ["INTERNAL_TRIP_SERVICE"], "retentionClass": "RET_RAW_LOCATION_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_LOCATION_POLICY" },
+    { "id": "proof.timestamps", "tags": ["medical-trip-context"], "classifications": ["REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["BILLING_PROOF"], "roles": ["BILLING_USER"], "destinations": ["BILLING_WORKSPACE"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "proof.signature", "tags": ["rider-identity", "medical-trip-context"], "classifications": ["REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["BILLING_PROOF"], "roles": ["BILLING_USER"], "destinations": ["BILLING_WORKSPACE"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "billing.amount", "tags": ["billing", "medical-trip-context"], "classifications": ["FINANCIAL_RESTRICTED", "REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["BILLING_PROOF"], "roles": ["BILLING_USER"], "destinations": ["BILLING_WORKSPACE"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "payer.claimId", "tags": ["claim", "rider-trip-context"], "classifications": ["FINANCIAL_RESTRICTED", "REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["BILLING_PROOF", "PARTNER_EXPORT"], "roles": ["BILLING_USER"], "destinations": ["BILLING_WORKSPACE", "SYNTHETIC_PARTNER_EXACT_SERVICE"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "notification.opaqueReference", "tags": ["opaque-reference"], "classifications": ["INTERNAL"], "subject": "SYSTEM", "purposes": ["NOTIFICATION_WAKEUP"], "roles": ["SYSTEM_PROCESSOR"], "destinations": ["GENERIC_PUSH_PROVIDER"], "retentionClass": "RET_OFFLINE_ACK_WINDOW", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "telemetry.operationName", "tags": ["technical-metadata"], "classifications": ["INTERNAL"], "subject": "SYSTEM", "purposes": ["OBSERVABILITY"], "roles": ["SUPPORT_USER", "SYSTEM_PROCESSOR"], "destinations": ["ALLOWLISTED_OBSERVABILITY"], "retentionClass": "RET_OPERATIONAL_LOG_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "support.maskedDiagnostic", "tags": ["technical-metadata"], "classifications": ["INTERNAL"], "subject": "SYSTEM", "purposes": ["SUPPORT_DIAGNOSTICS", "BREAK_GLASS"], "roles": ["SUPPORT_USER"], "destinations": ["SUPPORT_CONSOLE"], "retentionClass": "RET_OPERATIONAL_LOG_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" },
+    { "id": "facility.relatedTripStatus", "tags": ["rider-trip-context"], "classifications": ["REGULATED_HEALTH"], "subject": "RIDER", "purposes": ["FACILITY_COORDINATION"], "roles": ["FACILITY_USER"], "destinations": ["FACILITY_PORTAL"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY" }
+  ],
+  "mapsAllowlist": ["route.origin.address", "route.origin.coordinates", "route.destination.address", "route.destination.coordinates", "route.waypoints.coordinates", "route.travelMode", "route.routingPreference"],
+  "observabilityAllowlist": ["telemetry.operationName"],
+  "redactionCanaries": [
+    { "kind": "name", "value": "SYNTHETIC_CANARY_PERSON_ALPHA" },
+    { "kind": "address", "value": "SYNTHETIC_CANARY_ROUTE_POINT_ALPHA" },
+    { "kind": "coordinates", "value": "SYNTHETIC_CANARY_COORDINATE_ALPHA" },
+    { "kind": "free_text", "value": "SYNTHETIC_CANARY_FREE_TEXT_ALPHA" },
+    { "kind": "identifier", "value": "syn_canary_identifier_alpha" },
+    { "kind": "credential", "value": "SYNTHETIC_CANARY_CREDENTIAL_NOT_USABLE" },
+    { "kind": "token", "value": "SYNTHETIC_CANARY_TOKEN_NOT_USABLE" }
+  ],
+  "officialSources": [
+    { "id": "SRC_HHS_PRIVACY", "title": "HHS HIPAA Privacy Rule summary", "url": "https://www.hhs.gov/hipaa/for-professionals/privacy/laws-regulations/index.html", "accessed": "2026-08-24", "authority": "HHS/OCR" },
+    { "id": "SRC_HHS_MINIMUM_NECESSARY", "title": "HHS minimum necessary guidance", "url": "https://www.hhs.gov/hipaa/for-professionals/privacy/guidance/minimum-necessary-requirement/index.html", "accessed": "2026-08-24", "authority": "HHS/OCR" },
+    { "id": "SRC_HHS_SECURITY", "title": "HIPAA Security Rule technical safeguards", "url": "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-C/section-164.312", "accessed": "2026-08-24", "authority": "eCFR" },
+    { "id": "SRC_HHS_BREACH", "title": "HHS Breach Notification Rule", "url": "https://www.hhs.gov/hipaa/for-professionals/breach-notification/index.html", "accessed": "2026-08-24", "authority": "HHS/OCR" },
+    { "id": "SRC_HHS_BAA", "title": "HHS business associate contract guidance", "url": "https://www.hhs.gov/hipaa/for-professionals/covered-entities/sample-business-associate-agreement-provisions/index.html", "accessed": "2026-08-24", "authority": "HHS/OCR" },
+    { "id": "SRC_HHS_RISK_ANALYSIS", "title": "HHS security risk analysis guidance", "url": "https://www.hhs.gov/hipaa/for-professionals/security/guidance/guidance-risk-analysis/index.html", "accessed": "2026-08-24", "authority": "HHS/OCR" },
+    { "id": "SRC_HHS_AUDIT_PROTOCOL", "title": "HHS OCR HIPAA Audit Protocol", "url": "https://www.hhs.gov/hipaa/for-professionals/compliance-enforcement/audit/protocol/index.html", "accessed": "2026-08-24", "authority": "HHS/OCR" },
+    { "id": "SRC_HHS_NO_CERTIFICATION", "title": "HHS FAQ: certification is not required or recognized", "url": "https://www.hhs.gov/hipaa/for-professionals/faq/2003/are-we-required-to-certify-our-organizations-compliance-with-the-standards/index.html", "accessed": "2026-08-24", "authority": "HHS/OCR" },
+    { "id": "SRC_HHS_NO_SELF_CERT_BAA", "title": "HHS FAQ: certification cannot replace a BAA", "url": "https://www.hhs.gov/hipaa/for-professionals/faq/237/can-business-associates-self-certify/index.html", "accessed": "2026-08-24", "authority": "HHS/OCR" },
+    { "id": "SRC_GOOGLE_MAPS_TERMS", "title": "Google Maps Platform terms", "url": "https://cloud.google.com/maps-platform/terms", "accessed": "2026-08-24", "authority": "Google" }
+  ]
+}

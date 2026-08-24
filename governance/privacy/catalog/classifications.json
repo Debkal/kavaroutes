@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0.0",
+  "policyVersion": "privacy-synthetic-v1",
+  "classifications": [
+    {
+      "id": "PUBLIC",
+      "description": "Explicitly approved for public distribution.",
+      "handlingRules": ["publication-approval", "integrity-protection"]
+    },
+    {
+      "id": "INTERNAL",
+      "description": "Non-public operational data without personal or health context.",
+      "handlingRules": ["authenticated-access", "tenant-scope-when-applicable", "no-public-logs-by-default"]
+    },
+    {
+      "id": "PERSONAL_CONFIDENTIAL",
+      "description": "Personal or workforce data not currently joined to health service.",
+      "handlingRules": ["minimum-access", "encryption", "administrative-access-audit", "approved-retention"]
+    },
+    {
+      "id": "RESTRICTED_LOCATION",
+      "description": "Precise or historical person or device location and resulting inferences.",
+      "handlingRules": ["explicit-purpose", "tight-viewer-scope", "short-raw-retention", "no-advertising", "viewer-audit"]
+    },
+    {
+      "id": "REGULATED_HEALTH",
+      "description": "Identifiable NEMT rider-trip health context or data protected to the same conservative baseline.",
+      "handlingRules": ["minimum-necessary", "approved-processor-only", "disclosure-audit", "no-nonproduction-copy", "qualified-review-required"]
+    },
+    {
+      "id": "FINANCIAL_RESTRICTED",
+      "description": "High-impact financial, claim, payment, government identifier, or financial-integrity data.",
+      "handlingRules": ["segregated-access", "masked-display", "immutable-history", "approved-retention"]
+    },
+    {
+      "id": "SECRET",
+      "description": "Authentication, cryptographic, or recovery material prohibited from ordinary records and fixtures.",
+      "handlingRules": ["managed-secret-storage", "rotation", "never-log", "never-fixture", "never-markdown", "never-url", "least-privilege-machine-access"]
+    }
+  ],
+  "escalationRules": [
+    { "id": "ESC_RIDER_MEDICAL_CONTEXT", "whenAll": ["rider-identity", "medical-trip-context"], "add": ["REGULATED_HEALTH"] },
+    { "id": "ESC_PRECISE_LOCATION", "whenAny": ["precise-location", "historical-location"], "add": ["RESTRICTED_LOCATION"] },
+    { "id": "ESC_RIDER_LOCATION_JOIN", "whenAll": ["rider-trip-context", "precise-location"], "add": ["REGULATED_HEALTH", "RESTRICTED_LOCATION"] },
+    { "id": "ESC_BILLING", "whenAny": ["billing", "claim", "payment"], "add": ["FINANCIAL_RESTRICTED"] },
+    { "id": "ESC_CREDENTIAL", "whenAny": ["credential", "token", "cryptographic-key"], "add": ["SECRET"] },
+    { "id": "ESC_FREE_TEXT", "whenAny": ["free-text"], "add": ["REGULATED_HEALTH"] }
+  ],
+  "inheritanceRule": "Effective classifications are the union of direct, inherited, joined, and escalation-rule classifications; no caller may subtract a classification.",
+  "secretProhibition": ["fixtures", "logs", "telemetry", "markdown", "urls", "ordinary-domain-records"]
+}

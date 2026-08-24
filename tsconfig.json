@@ -1,0 +1,14 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared-kernel" },
+    { "path": "packages/platform-engine" },
+    { "path": "packages/transport-schemas" },
+    { "path": "packages/platform-test-support" },
+    { "path": "packages/postgres-persistence" },
+    { "path": "packages/api-contracts" },
+    { "path": "packages/durable-execution" },
+    { "path": "apps/api-host" },
+    { "path": "apps/worker-host" }
+  ]
+}

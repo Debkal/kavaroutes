@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "wp007.local-benchmark.v1",
+  "environment": "local-wsl-in-process-synthetic",
+  "http": {
+    "samples": 100,
+    "p50Milliseconds": 0.101,
+    "p95Milliseconds": 0.191,
+    "p95ThresholdMilliseconds": 250
+  },
+  "strictJson": {
+    "bytes": 3291,
+    "samples": 180,
+    "p50Milliseconds": 0.063,
+    "p95Milliseconds": 0.079,
+    "p95ThresholdMilliseconds": 25
+  }
+}

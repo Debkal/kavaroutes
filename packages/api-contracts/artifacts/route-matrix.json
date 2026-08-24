@@ -1,0 +1,261 @@
+{
+  "schemaVersion": "wp007.route-matrix.v1",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/v1/me",
+      "operationId": "getMe",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "406",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch-days/{serviceDate}",
+      "operationId": "getDispatchDay",
+      "statuses": [
+        "200",
+        "304",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/action-batches",
+      "operationId": "submitDriverActionBatch",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/location-batches",
+      "operationId": "submitDriverLocationBatch",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/manifest",
+      "operationId": "getDriverManifest",
+      "statuses": [
+        "200",
+        "304",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/operations/{operationId}",
+      "operationId": "getOperation",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "410",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/rider-searches",
+      "operationId": "searchRiders",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/trips",
+      "operationId": "listTrips",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "410",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/trips",
+      "operationId": "createTrip",
+      "statuses": [
+        "201",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/trips/{tripId}",
+      "operationId": "getTrip",
+      "statuses": [
+        "200",
+        "304",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "HEAD",
+      "path": "/v1/organizations/{organizationId}/trips/{tripId}",
+      "operationId": "headTrip",
+      "statuses": [
+        "200",
+        "304",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/trips/{tripId}/commands/cancel",
+      "operationId": "cancelTrip",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    }
+  ]
+}

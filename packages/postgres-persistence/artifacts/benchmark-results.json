@@ -1,0 +1,1827 @@
+{
+  "format": 1,
+  "generatedAt": "2026-08-24T20:38:34.796Z",
+  "environment": {
+    "hostname": "Comfy",
+    "platform": "linux",
+    "release": "6.18.33.2-microsoft-standard-WSL2",
+    "architecture": "x64",
+    "cpuModel": "AMD Ryzen 7 7700X 8-Core Processor",
+    "logicalCpuCount": 8,
+    "memoryBytes": 16770527232,
+    "node": "v24.19.0",
+    "database": {
+      "postgres": "17.5 (Debian 17.5-1.pgdg110+1)",
+      "postgis": "3.5.2"
+    },
+    "settings": [
+      {
+        "name": "effective_cache_size",
+        "setting": "524288",
+        "unit": "8kB"
+      },
+      {
+        "name": "max_connections",
+        "setting": "120",
+        "unit": null
+      },
+      {
+        "name": "shared_buffers",
+        "setting": "16384",
+        "unit": "8kB"
+      },
+      {
+        "name": "shared_preload_libraries",
+        "setting": "pg_stat_statements",
+        "unit": null
+      },
+      {
+        "name": "TimeZone",
+        "setting": "UTC",
+        "unit": null
+      },
+      {
+        "name": "track_io_timing",
+        "setting": "on",
+        "unit": null
+      },
+      {
+        "name": "work_mem",
+        "setting": "4096",
+        "unit": "kB"
+      }
+    ],
+    "image": "postgis/postgis:17-3.5@sha256:624f5195b91d424dbebf018890148cc0e5a3e80db5467da8b53cc2ed2ce49216"
+  },
+  "scope": {
+    "data": "synthetic-only",
+    "rls": true,
+    "claims": "local component evidence only; not a production capacity claim",
+    "declaredUnexecutedProfiles": [
+      {
+        "name": "enterprise-design",
+        "vehicles": 500,
+        "trips": 10000,
+        "legs": 20000,
+        "breadcrumbs": 1200000,
+        "importItems": 100000
+      },
+      {
+        "name": "commercial-platform",
+        "vehicles": 5000,
+        "tenants": 100,
+        "trips": 100000,
+        "legs": 200000,
+        "breadcrumbs": 12000000,
+        "importItems": 250000
+      }
+    ],
+    "extraProfileConfiguration": "Set WP006_EXTRA_PROFILE_JSON to a JSON array; non-required profiles remain unproven until actually run."
+  },
+  "results": [
+    {
+      "profile": {
+        "importShapeItems": 0,
+        "name": "small",
+        "vehicles": 25,
+        "trips": 500,
+        "legs": 1000,
+        "breadcrumbs": 60000,
+        "importItems": 2500
+      },
+      "seed": {
+        "totalMs": 17573.783,
+        "breadcrumbMs": 888.789,
+        "breadcrumbRowsPerSecond": 67507.6,
+        "profileImportMs": 29.32,
+        "importShapeAdditionalMs": 0.031,
+        "finalImportRows": 2500
+      },
+      "queries": [
+        {
+          "id": "lookup-rider-facility",
+          "kind": "read",
+          "coldMs": 0.058,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.604,
+            "p95Ms": 0.696,
+            "p99Ms": 0.704,
+            "maxMs": 0.704
+          },
+          "plan": {
+            "planningMs": 0.171,
+            "executionMs": 0.058,
+            "rootNode": "Result",
+            "actualRows": 1,
+            "sharedHitBlocks": 4,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "rider",
+              "facility"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "day-dispatch-board",
+          "kind": "read",
+          "coldMs": 0.028,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.667,
+            "p95Ms": 1.055,
+            "p99Ms": 1.092,
+            "maxMs": 1.092
+          },
+          "plan": {
+            "planningMs": 0.12,
+            "executionMs": 0.028,
+            "rootNode": "Limit",
+            "actualRows": 25,
+            "sharedHitBlocks": 1,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "run"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "unassigned-trips",
+          "kind": "read",
+          "coldMs": 0.389,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.824,
+            "p95Ms": 0.976,
+            "p99Ms": 1.092,
+            "maxMs": 1.092
+          },
+          "plan": {
+            "planningMs": 0.308,
+            "executionMs": 0.389,
+            "rootNode": "Limit",
+            "actualRows": 0,
+            "sharedHitBlocks": 32,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "run_leg",
+              "trip_leg"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "ordered-run-manifest",
+          "kind": "read",
+          "coldMs": 0.051,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.617,
+            "p95Ms": 0.799,
+            "p99Ms": 0.803,
+            "maxMs": 0.803
+          },
+          "plan": {
+            "planningMs": 0.104,
+            "executionMs": 0.051,
+            "rootNode": "Sort",
+            "actualRows": 40,
+            "sharedHitBlocks": 16,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "run_leg"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "resource-conflict",
+          "kind": "read",
+          "coldMs": 0.02,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.516,
+            "p95Ms": 0.667,
+            "p99Ms": 0.667,
+            "maxMs": 0.667
+          },
+          "plan": {
+            "planningMs": 0.116,
+            "executionMs": 0.02,
+            "rootNode": "Limit",
+            "actualRows": 1,
+            "sharedHitBlocks": 1,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "resource_reservation"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "nearby-current-vehicles",
+          "kind": "read",
+          "coldMs": 3.829,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.6,
+            "p95Ms": 0.745,
+            "p99Ms": 0.864,
+            "maxMs": 0.864
+          },
+          "plan": {
+            "planningMs": 0.239,
+            "executionMs": 3.829,
+            "rootNode": "Limit",
+            "actualRows": 25,
+            "sharedHitBlocks": 34,
+            "sharedReadBlocks": 0,
+            "walRecords": 2,
+            "scannedRelations": [
+              "current_position"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "service-area-boundary",
+          "kind": "read",
+          "coldMs": 0.086,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.511,
+            "p95Ms": 0.558,
+            "p99Ms": 0.578,
+            "maxMs": 0.578
+          },
+          "plan": {
+            "planningMs": 0.105,
+            "executionMs": 0.086,
+            "rootNode": "Limit",
+            "actualRows": 1,
+            "sharedHitBlocks": 1,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "service_area"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "last-known-position",
+          "kind": "read",
+          "coldMs": 0.051,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.527,
+            "p95Ms": 0.797,
+            "p99Ms": 0.84,
+            "maxMs": 0.84
+          },
+          "plan": {
+            "planningMs": 0.07,
+            "executionMs": 0.051,
+            "rootNode": "Result",
+            "actualRows": 1,
+            "sharedHitBlocks": 1,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "current_position"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "breadcrumb-time-window",
+          "kind": "read",
+          "coldMs": 0.311,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 1.311,
+            "p95Ms": 1.648,
+            "p99Ms": 1.907,
+            "maxMs": 1.907
+          },
+          "plan": {
+            "planningMs": 0.29,
+            "executionMs": 0.311,
+            "rootNode": "Limit",
+            "actualRows": 500,
+            "sharedHitBlocks": 347,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "location_breadcrumb_2026_08"
+            ],
+            "partitionsPruned": 5
+          }
+        },
+        {
+          "id": "aggregate-audit-history",
+          "kind": "read",
+          "coldMs": 0.019,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.535,
+            "p95Ms": 0.663,
+            "p99Ms": 0.863,
+            "maxMs": 0.863
+          },
+          "plan": {
+            "planningMs": 0.133,
+            "executionMs": 0.019,
+            "rootNode": "Result",
+            "actualRows": 1,
+            "sharedHitBlocks": 3,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "event"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "billing-ready-work",
+          "kind": "read",
+          "coldMs": 0.063,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.629,
+            "p95Ms": 0.728,
+            "p99Ms": 0.785,
+            "maxMs": 0.785
+          },
+          "plan": {
+            "planningMs": 0.112,
+            "executionMs": 0.063,
+            "rootNode": "Limit",
+            "actualRows": 100,
+            "sharedHitBlocks": 8,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "billing_case"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "integration-duplicate",
+          "kind": "read",
+          "coldMs": 0.017,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.494,
+            "p95Ms": 0.545,
+            "p99Ms": 0.546,
+            "maxMs": 0.546
+          },
+          "plan": {
+            "planningMs": 0.104,
+            "executionMs": 0.017,
+            "rootNode": "Result",
+            "actualRows": 1,
+            "sharedHitBlocks": 1,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "receipt"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "idempotency-replay",
+          "kind": "read",
+          "coldMs": 0.02,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.469,
+            "p95Ms": 0.513,
+            "p99Ms": 0.561,
+            "maxMs": 0.561
+          },
+          "plan": {
+            "planningMs": 0.12,
+            "executionMs": 0.02,
+            "rootNode": "Result",
+            "actualRows": 1,
+            "sharedHitBlocks": 1,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "idempotency_record"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "stale-version-conflict",
+          "kind": "command",
+          "coldMs": 0.035,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.498,
+            "p95Ms": 0.574,
+            "p99Ms": 0.588,
+            "maxMs": 0.588
+          },
+          "plan": {
+            "planningMs": 0.062,
+            "executionMs": 0.035,
+            "rootNode": "ModifyTable",
+            "actualRows": 0,
+            "sharedHitBlocks": 1,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "run"
+            ],
+            "partitionsPruned": 0
+          }
+        }
+      ],
+      "mixedReadWrite": {
+        "operations": 60,
+        "rejected": 0,
+        "elapsedMs": 242.81
+      },
+      "duplicateBatchAttempts": 50,
+      "crossTenantPoolReuse": {
+        "hidden": 0,
+        "restored": 1
+      },
+      "retentionPartitions": [
+        {
+          "partition_name": "realtime.location_breadcrumb_2026_08",
+          "eligible_rows": "60000",
+          "held_rows": "0",
+          "minimum_due_at": "2026-08-31T00:00:01.000Z",
+          "dry_run": true
+        }
+      ],
+      "sizes": [
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_08",
+          "total_bytes": "28377088",
+          "index_bytes": "15048704"
+        },
+        {
+          "schema": "integration",
+          "relation": "item",
+          "total_bytes": "794624",
+          "index_bytes": "499712"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "run_leg",
+          "total_bytes": "507904",
+          "index_bytes": "360448"
+        },
+        {
+          "schema": "intake",
+          "relation": "trip_leg",
+          "total_bytes": "458752",
+          "index_bytes": "278528"
+        },
+        {
+          "schema": "audit",
+          "relation": "event",
+          "total_bytes": "344064",
+          "index_bytes": "221184"
+        },
+        {
+          "schema": "intake",
+          "relation": "rider",
+          "total_bytes": "237568",
+          "index_bytes": "131072"
+        },
+        {
+          "schema": "intake",
+          "relation": "address",
+          "total_bytes": "237568",
+          "index_bytes": "131072"
+        },
+        {
+          "schema": "intake",
+          "relation": "trip_request",
+          "total_bytes": "212992",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "billing",
+          "relation": "billing_case",
+          "total_bytes": "172032",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "realtime",
+          "relation": "current_position",
+          "total_bytes": "90112",
+          "index_bytes": "40960"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_10",
+          "total_bytes": "81920",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "run",
+          "total_bytes": "81920",
+          "index_bytes": "32768"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_batch_receipt",
+          "total_bytes": "81920",
+          "index_bytes": "32768"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_09",
+          "total_bytes": "81920",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_default",
+          "total_bytes": "81920",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_06",
+          "total_bytes": "81920",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "integration",
+          "relation": "receipt",
+          "total_bytes": "81920",
+          "index_bytes": "32768"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_07",
+          "total_bytes": "81920",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "intake",
+          "relation": "service_area",
+          "total_bytes": "73728",
+          "index_bytes": "24576"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "assignment",
+          "total_bytes": "73728",
+          "index_bytes": "32768"
+        }
+      ],
+      "vacuumAnalyze": [
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_08",
+          "n_live_tup": "60000",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.087Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "integration",
+          "relation": "item",
+          "n_live_tup": "2500",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.204Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "run_leg",
+          "n_live_tup": "1000",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:39.967Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "trip_leg",
+          "n_live_tup": "1000",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:39.876Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "address",
+          "n_live_tup": "501",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.195Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "rider",
+          "n_live_tup": "500",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.199Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "trip_request",
+          "n_live_tup": "500",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.201Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "billing",
+          "relation": "billing_case",
+          "n_live_tup": "500",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.089Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "audit",
+          "relation": "event",
+          "n_live_tup": "500",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.205Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "resource_reservation",
+          "n_live_tup": "25",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:39.964Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "assignment",
+          "n_live_tup": "25",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:39.962Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "run",
+          "n_live_tup": "25",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:39.965Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "realtime",
+          "relation": "current_position",
+          "n_live_tup": "25",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:39.970Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "facility",
+          "n_live_tup": "1",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.196Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "service_area",
+          "n_live_tup": "1",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.197Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "integration",
+          "relation": "receipt",
+          "n_live_tup": "1",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.202Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_batch_receipt",
+          "n_live_tup": "1",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:39.968Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_10",
+          "n_live_tup": "0",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.090Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb",
+          "n_live_tup": "0",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.191Z",
+          "analyze_count": "1",
+          "vacuum_count": "0"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_06",
+          "n_live_tup": "0",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:37:40.090Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        }
+      ],
+      "pgStatStatements": [
+        {
+          "calls": "1",
+          "mean_exec_time": 47888.332789,
+          "rows": "1500",
+          "shared_blks_hit": "13730",
+          "shared_blks_read": "2",
+          "wal_records": "6036"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 15761.126188,
+          "rows": "500",
+          "shared_blks_hit": "4433",
+          "shared_blks_read": "2",
+          "wal_records": "2009"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 15718.78978,
+          "rows": "500",
+          "shared_blks_hit": "4433",
+          "shared_blks_read": "2",
+          "wal_records": "2009"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 2687.994204,
+          "rows": "240000",
+          "shared_blks_hit": "2439196",
+          "shared_blks_read": "0",
+          "wal_records": "965419"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 2620.6730430000002,
+          "rows": "180000",
+          "shared_blks_hit": "2167732",
+          "shared_blks_read": "3",
+          "wal_records": "726681"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 2403.462838,
+          "rows": "75",
+          "shared_blks_hit": "578",
+          "shared_blks_read": "2",
+          "wal_records": "228"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 887.637649,
+          "rows": "60000",
+          "shared_blks_hit": "713904",
+          "shared_blks_read": "3",
+          "wal_records": "243007"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 857.3235099999999,
+          "rows": "60000",
+          "shared_blks_hit": "713904",
+          "shared_blks_read": "3",
+          "wal_records": "243007"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 819.95726,
+          "rows": "25",
+          "shared_blks_hit": "227",
+          "shared_blks_read": "2",
+          "wal_records": "78"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 812.394989,
+          "rows": "25",
+          "shared_blks_hit": "227",
+          "shared_blks_read": "2",
+          "wal_records": "78"
+        },
+        {
+          "calls": "4",
+          "mean_exec_time": 24.63259975,
+          "rows": "2",
+          "shared_blks_hit": "75",
+          "shared_blks_read": "0",
+          "wal_records": "3"
+        },
+        {
+          "calls": "4",
+          "mean_exec_time": 22.3479525,
+          "rows": "2",
+          "shared_blks_hit": "75",
+          "shared_blks_read": "0",
+          "wal_records": "3"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 85.61284900000001,
+          "rows": "10000",
+          "shared_blks_hit": "110108",
+          "shared_blks_read": "3",
+          "wal_records": "40220"
+        },
+        {
+          "calls": "2",
+          "mean_exec_time": 32.5348255,
+          "rows": "2",
+          "shared_blks_hit": "104",
+          "shared_blks_read": "2",
+          "wal_records": "10"
+        },
+        {
+          "calls": "2",
+          "mean_exec_time": 30.8073035,
+          "rows": "2",
+          "shared_blks_hit": "104",
+          "shared_blks_read": "2",
+          "wal_records": "10"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 54.43117,
+          "rows": "3000",
+          "shared_blks_hit": "65825",
+          "shared_blks_read": "3",
+          "wal_records": "13586"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 42.008775,
+          "rows": "3000",
+          "shared_blks_hit": "53766",
+          "shared_blks_read": "4",
+          "wal_records": "18128"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 33.389304,
+          "rows": "1",
+          "shared_blks_hit": "95",
+          "shared_blks_read": "2",
+          "wal_records": "6"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 32.703677,
+          "rows": "1",
+          "shared_blks_hit": "64",
+          "shared_blks_read": "2",
+          "wal_records": "6"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 32.106632000000005,
+          "rows": "1",
+          "shared_blks_hit": "64",
+          "shared_blks_read": "2",
+          "wal_records": "6"
+        }
+      ],
+      "locks": [
+        {
+          "mode": "AccessShareLock",
+          "granted": true,
+          "count": 1
+        }
+      ],
+      "gates": {
+        "indexedReadP95LimitMs": 100,
+        "authoritativeCommandP95LimitMs": 250,
+        "observedMaxReadP95Ms": 1.648,
+        "observedMaxCommandP95Ms": 0.574,
+        "passed": true
+      }
+    },
+    {
+      "profile": {
+        "importShapeItems": 250000,
+        "name": "p0-growth",
+        "vehicles": 75,
+        "trips": 1500,
+        "legs": 3000,
+        "breadcrumbs": 180000,
+        "importItems": 10000
+      },
+      "seed": {
+        "totalMs": 55154.558,
+        "breadcrumbMs": 2647.645,
+        "breadcrumbRowsPerSecond": 67984.9,
+        "profileImportMs": 95.726,
+        "importShapeAdditionalMs": 2523.322,
+        "finalImportRows": 250000
+      },
+      "queries": [
+        {
+          "id": "lookup-rider-facility",
+          "kind": "read",
+          "coldMs": 0.052,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.464,
+            "p95Ms": 0.539,
+            "p99Ms": 0.548,
+            "maxMs": 0.548
+          },
+          "plan": {
+            "planningMs": 0.129,
+            "executionMs": 0.052,
+            "rootNode": "Result",
+            "actualRows": 1,
+            "sharedHitBlocks": 4,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "rider",
+              "facility"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "day-dispatch-board",
+          "kind": "read",
+          "coldMs": 0.04,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.555,
+            "p95Ms": 0.612,
+            "p99Ms": 0.624,
+            "maxMs": 0.624
+          },
+          "plan": {
+            "planningMs": 0.111,
+            "executionMs": 0.04,
+            "rootNode": "Limit",
+            "actualRows": 75,
+            "sharedHitBlocks": 2,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "run"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "unassigned-trips",
+          "kind": "read",
+          "coldMs": 0.946,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 1.104,
+            "p95Ms": 1.185,
+            "p99Ms": 1.29,
+            "maxMs": 1.29
+          },
+          "plan": {
+            "planningMs": 0.299,
+            "executionMs": 0.946,
+            "rootNode": "Limit",
+            "actualRows": 0,
+            "sharedHitBlocks": 92,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "run_leg",
+              "trip_leg"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "ordered-run-manifest",
+          "kind": "read",
+          "coldMs": 0.054,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.462,
+            "p95Ms": 0.601,
+            "p99Ms": 0.61,
+            "maxMs": 0.61
+          },
+          "plan": {
+            "planningMs": 0.088,
+            "executionMs": 0.054,
+            "rootNode": "Sort",
+            "actualRows": 40,
+            "sharedHitBlocks": 41,
+            "sharedReadBlocks": 1,
+            "walRecords": 0,
+            "scannedRelations": [
+              "run_leg"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "resource-conflict",
+          "kind": "read",
+          "coldMs": 0.024,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.453,
+            "p95Ms": 0.564,
+            "p99Ms": 0.611,
+            "maxMs": 0.611
+          },
+          "plan": {
+            "planningMs": 0.108,
+            "executionMs": 0.024,
+            "rootNode": "Limit",
+            "actualRows": 1,
+            "sharedHitBlocks": 2,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "resource_reservation"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "nearby-current-vehicles",
+          "kind": "read",
+          "coldMs": 3.436,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.59,
+            "p95Ms": 0.663,
+            "p99Ms": 0.675,
+            "maxMs": 0.675
+          },
+          "plan": {
+            "planningMs": 0.191,
+            "executionMs": 3.436,
+            "rootNode": "Limit",
+            "actualRows": 75,
+            "sharedHitBlocks": 33,
+            "sharedReadBlocks": 2,
+            "walRecords": 2,
+            "scannedRelations": [
+              "current_position"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "service-area-boundary",
+          "kind": "read",
+          "coldMs": 0.042,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.461,
+            "p95Ms": 0.52,
+            "p99Ms": 0.576,
+            "maxMs": 0.576
+          },
+          "plan": {
+            "planningMs": 0.087,
+            "executionMs": 0.042,
+            "rootNode": "Limit",
+            "actualRows": 1,
+            "sharedHitBlocks": 1,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "service_area"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "last-known-position",
+          "kind": "read",
+          "coldMs": 0.043,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.5,
+            "p95Ms": 0.621,
+            "p99Ms": 0.865,
+            "maxMs": 0.865
+          },
+          "plan": {
+            "planningMs": 0.066,
+            "executionMs": 0.043,
+            "rootNode": "Result",
+            "actualRows": 1,
+            "sharedHitBlocks": 2,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "current_position"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "breadcrumb-time-window",
+          "kind": "read",
+          "coldMs": 0.586,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 1.093,
+            "p95Ms": 1.323,
+            "p99Ms": 1.517,
+            "maxMs": 1.517
+          },
+          "plan": {
+            "planningMs": 0.257,
+            "executionMs": 0.586,
+            "rootNode": "Limit",
+            "actualRows": 500,
+            "sharedHitBlocks": 426,
+            "sharedReadBlocks": 82,
+            "walRecords": 0,
+            "scannedRelations": [
+              "location_breadcrumb_2026_08"
+            ],
+            "partitionsPruned": 5
+          }
+        },
+        {
+          "id": "aggregate-audit-history",
+          "kind": "read",
+          "coldMs": 0.028,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.476,
+            "p95Ms": 0.559,
+            "p99Ms": 0.596,
+            "maxMs": 0.596
+          },
+          "plan": {
+            "planningMs": 0.155,
+            "executionMs": 0.028,
+            "rootNode": "Result",
+            "actualRows": 1,
+            "sharedHitBlocks": 1,
+            "sharedReadBlocks": 2,
+            "walRecords": 0,
+            "scannedRelations": [
+              "event"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "billing-ready-work",
+          "kind": "read",
+          "coldMs": 0.07,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.603,
+            "p95Ms": 0.682,
+            "p99Ms": 0.933,
+            "maxMs": 0.933
+          },
+          "plan": {
+            "planningMs": 0.112,
+            "executionMs": 0.07,
+            "rootNode": "Limit",
+            "actualRows": 100,
+            "sharedHitBlocks": 0,
+            "sharedReadBlocks": 9,
+            "walRecords": 0,
+            "scannedRelations": [
+              "billing_case"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "integration-duplicate",
+          "kind": "read",
+          "coldMs": 0.017,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.443,
+            "p95Ms": 0.547,
+            "p99Ms": 0.558,
+            "maxMs": 0.558
+          },
+          "plan": {
+            "planningMs": 0.101,
+            "executionMs": 0.017,
+            "rootNode": "Result",
+            "actualRows": 1,
+            "sharedHitBlocks": 1,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "receipt"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "idempotency-replay",
+          "kind": "read",
+          "coldMs": 0.036,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.44,
+            "p95Ms": 0.509,
+            "p99Ms": 0.519,
+            "maxMs": 0.519
+          },
+          "plan": {
+            "planningMs": 0.12,
+            "executionMs": 0.036,
+            "rootNode": "Result",
+            "actualRows": 1,
+            "sharedHitBlocks": 0,
+            "sharedReadBlocks": 1,
+            "walRecords": 0,
+            "scannedRelations": [
+              "idempotency_record"
+            ],
+            "partitionsPruned": 0
+          }
+        },
+        {
+          "id": "stale-version-conflict",
+          "kind": "command",
+          "coldMs": 0.036,
+          "warm": {
+            "samples": 20,
+            "p50Ms": 0.487,
+            "p95Ms": 0.515,
+            "p99Ms": 0.524,
+            "maxMs": 0.524
+          },
+          "plan": {
+            "planningMs": 0.058,
+            "executionMs": 0.036,
+            "rootNode": "ModifyTable",
+            "actualRows": 0,
+            "sharedHitBlocks": 2,
+            "sharedReadBlocks": 0,
+            "walRecords": 0,
+            "scannedRelations": [
+              "run"
+            ],
+            "partitionsPruned": 0
+          }
+        }
+      ],
+      "mixedReadWrite": {
+        "operations": 60,
+        "rejected": 0,
+        "elapsedMs": 546.214
+      },
+      "duplicateBatchAttempts": 50,
+      "crossTenantPoolReuse": {
+        "hidden": 0,
+        "restored": 1
+      },
+      "retentionPartitions": [
+        {
+          "partition_name": "realtime.location_breadcrumb_2026_08",
+          "eligible_rows": "180000",
+          "held_rows": "0",
+          "minimum_due_at": "2026-08-31T00:00:01.000Z",
+          "dry_run": true
+        }
+      ],
+      "sizes": [
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_08",
+          "total_bytes": "85049344",
+          "index_bytes": "45146112"
+        },
+        {
+          "schema": "integration",
+          "relation": "item",
+          "total_bytes": "71581696",
+          "index_bytes": "46252032"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "run_leg",
+          "total_bytes": "1474560",
+          "index_bytes": "1114112"
+        },
+        {
+          "schema": "intake",
+          "relation": "trip_leg",
+          "total_bytes": "1212416",
+          "index_bytes": "753664"
+        },
+        {
+          "schema": "audit",
+          "relation": "event",
+          "total_bytes": "761856",
+          "index_bytes": "483328"
+        },
+        {
+          "schema": "intake",
+          "relation": "rider",
+          "total_bytes": "499712",
+          "index_bytes": "278528"
+        },
+        {
+          "schema": "intake",
+          "relation": "address",
+          "total_bytes": "483328",
+          "index_bytes": "245760"
+        },
+        {
+          "schema": "intake",
+          "relation": "trip_request",
+          "total_bytes": "458752",
+          "index_bytes": "139264"
+        },
+        {
+          "schema": "billing",
+          "relation": "billing_case",
+          "total_bytes": "335872",
+          "index_bytes": "139264"
+        },
+        {
+          "schema": "realtime",
+          "relation": "current_position",
+          "total_bytes": "180224",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "resource_reservation",
+          "total_bytes": "98304",
+          "index_bytes": "40960"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "run",
+          "total_bytes": "90112",
+          "index_bytes": "32768"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_07",
+          "total_bytes": "81920",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_batch_receipt",
+          "total_bytes": "81920",
+          "index_bytes": "32768"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_09",
+          "total_bytes": "81920",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_default",
+          "total_bytes": "81920",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_06",
+          "total_bytes": "81920",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_10",
+          "total_bytes": "81920",
+          "index_bytes": "73728"
+        },
+        {
+          "schema": "integration",
+          "relation": "receipt",
+          "total_bytes": "81920",
+          "index_bytes": "32768"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "assignment",
+          "total_bytes": "81920",
+          "index_bytes": "32768"
+        }
+      ],
+      "vacuumAnalyze": [
+        {
+          "schema": "integration",
+          "relation": "item",
+          "n_live_tup": "250000",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.945Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_08",
+          "n_live_tup": "180000",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.776Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "run_leg",
+          "n_live_tup": "3000",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.634Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "trip_leg",
+          "n_live_tup": "3000",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.548Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "address",
+          "n_live_tup": "1501",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.898Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "rider",
+          "n_live_tup": "1500",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.904Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "billing",
+          "relation": "billing_case",
+          "n_live_tup": "1500",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.789Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "audit",
+          "relation": "event",
+          "n_live_tup": "1500",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.949Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "trip_request",
+          "n_live_tup": "1500",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.906Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "assignment",
+          "n_live_tup": "75",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.630Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "realtime",
+          "relation": "current_position",
+          "n_live_tup": "75",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.637Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "resource_reservation",
+          "n_live_tup": "75",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.631Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "dispatch",
+          "relation": "run",
+          "n_live_tup": "75",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.632Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "service_area",
+          "n_live_tup": "1",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.900Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "integration",
+          "relation": "receipt",
+          "n_live_tup": "1",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.907Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_batch_receipt",
+          "n_live_tup": "1",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.635Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "facility",
+          "n_live_tup": "1",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.899Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "realtime",
+          "relation": "location_breadcrumb_2026_06",
+          "n_live_tup": "0",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.791Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "intake",
+          "relation": "authorization",
+          "n_live_tup": "0",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.891Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        },
+        {
+          "schema": "realtime",
+          "relation": "retention_quarantine",
+          "n_live_tup": "0",
+          "n_dead_tup": "0",
+          "last_analyze": "2026-08-24T20:38:33.790Z",
+          "analyze_count": "1",
+          "vacuum_count": "1"
+        }
+      ],
+      "pgStatStatements": [
+        {
+          "calls": "1",
+          "mean_exec_time": 47888.332789,
+          "rows": "1500",
+          "shared_blks_hit": "13730",
+          "shared_blks_read": "2",
+          "wal_records": "6036"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 47276.412725,
+          "rows": "1500",
+          "shared_blks_hit": "13730",
+          "shared_blks_read": "2",
+          "wal_records": "6036"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 15761.126188,
+          "rows": "500",
+          "shared_blks_hit": "4433",
+          "shared_blks_read": "2",
+          "wal_records": "2009"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 15718.78978,
+          "rows": "500",
+          "shared_blks_hit": "4433",
+          "shared_blks_read": "2",
+          "wal_records": "2009"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 2687.994204,
+          "rows": "240000",
+          "shared_blks_hit": "2439196",
+          "shared_blks_read": "0",
+          "wal_records": "965419"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 2646.523917,
+          "rows": "180000",
+          "shared_blks_hit": "2167732",
+          "shared_blks_read": "3",
+          "wal_records": "726681"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 2620.6730430000002,
+          "rows": "180000",
+          "shared_blks_hit": "2167732",
+          "shared_blks_read": "3",
+          "wal_records": "726681"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 2519.247943,
+          "rows": "240000",
+          "shared_blks_hit": "2438782",
+          "shared_blks_read": "414",
+          "wal_records": "965419"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 2435.473317,
+          "rows": "75",
+          "shared_blks_hit": "578",
+          "shared_blks_read": "2",
+          "wal_records": "228"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 2403.462838,
+          "rows": "75",
+          "shared_blks_hit": "578",
+          "shared_blks_read": "2",
+          "wal_records": "228"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 887.637649,
+          "rows": "60000",
+          "shared_blks_hit": "713904",
+          "shared_blks_read": "3",
+          "wal_records": "243007"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 857.3235099999999,
+          "rows": "60000",
+          "shared_blks_hit": "713904",
+          "shared_blks_read": "3",
+          "wal_records": "243007"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 819.95726,
+          "rows": "25",
+          "shared_blks_hit": "227",
+          "shared_blks_read": "2",
+          "wal_records": "78"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 812.394989,
+          "rows": "25",
+          "shared_blks_hit": "227",
+          "shared_blks_read": "2",
+          "wal_records": "78"
+        },
+        {
+          "calls": "4",
+          "mean_exec_time": 24.63259975,
+          "rows": "2",
+          "shared_blks_hit": "75",
+          "shared_blks_read": "0",
+          "wal_records": "3"
+        },
+        {
+          "calls": "4",
+          "mean_exec_time": 22.3479525,
+          "rows": "2",
+          "shared_blks_hit": "75",
+          "shared_blks_read": "0",
+          "wal_records": "3"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 85.61284900000001,
+          "rows": "10000",
+          "shared_blks_hit": "110108",
+          "shared_blks_read": "3",
+          "wal_records": "40220"
+        },
+        {
+          "calls": "1",
+          "mean_exec_time": 82.52226399999999,
+          "rows": "10000",
+          "shared_blks_hit": "110108",
+          "shared_blks_read": "3",
+          "wal_records": "40220"
+        },
+        {
+          "calls": "2",
+          "mean_exec_time": 32.5348255,
+          "rows": "2",
+          "shared_blks_hit": "104",
+          "shared_blks_read": "2",
+          "wal_records": "10"
+        },
+        {
+          "calls": "2",
+          "mean_exec_time": 30.8073035,
+          "rows": "2",
+          "shared_blks_hit": "104",
+          "shared_blks_read": "2",
+          "wal_records": "10"
+        }
+      ],
+      "locks": [
+        {
+          "mode": "AccessShareLock",
+          "granted": true,
+          "count": 1
+        }
+      ],
+      "gates": {
+        "indexedReadP95LimitMs": 100,
+        "authoritativeCommandP95LimitMs": 250,
+        "observedMaxReadP95Ms": 1.323,
+        "observedMaxCommandP95Ms": 0.515,
+        "passed": true
+      }
+    }
+  ]
+}

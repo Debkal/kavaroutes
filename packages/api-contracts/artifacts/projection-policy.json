@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "wp007.projection-policy.v1",
+  "policyVersion": "privacy-synthetic-v1",
+  "projections": [
+    {
+      "schemaId": "DispatcherTrip",
+      "role": "DISPATCHER",
+      "purpose": "RIDER_INTAKE",
+      "destination": "INTERNAL_TRIP_SERVICE",
+      "sensitiveFields": [
+        {"property":"tripId","policyField":"trip.internalId"},
+        {"property":"riderReference","policyField":"rider.identity"}
+      ]
+    },
+    {
+      "schemaId": "DriverManifest",
+      "role": "DRIVER",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "destination": "DRIVER_MANIFEST",
+      "sensitiveFields": [
+        {"property":"assignments[].syntheticLocationLabel","policyField":"route.origin.address"}
+      ],
+      "forbiddenProperties": ["billing", "amountMinor", "claim", "internalNotes", "preciseFleetPosition", "fullManifest"]
+    },
+    {
+      "schemaId": "FacilityTripProjection",
+      "role": "FACILITY_USER",
+      "purpose": "FACILITY_COORDINATION",
+      "destination": "FACILITY_PORTAL",
+      "sensitiveFields": [
+        {"property":"lifecycle","policyField":"facility.relatedTripStatus"}
+      ],
+      "forbiddenProperties": ["billing", "driverManifest", "preciseFleetPosition", "internalNotes", "unrelatedRiders"]
+    },
+    {
+      "schemaId": "BillingProjection",
+      "role": "BILLING_USER",
+      "purpose": "BILLING_PROOF",
+      "destination": "BILLING_WORKSPACE",
+      "sensitiveFields": [
+        {"property":"amountMinor","policyField":"billing.amount"},
+        {"property":"proofRecordedAt","policyField":"proof.timestamps"}
+      ],
+      "forbiddenProperties": ["driverManifest", "preciseFleetPosition", "riderContact", "workforceNotes"]
+    },
+    {
+      "schemaId": "AuditProjection",
+      "role": "SUPPORT_USER",
+      "purpose": "SUPPORT_DIAGNOSTICS",
+      "destination": "SUPPORT_CONSOLE",
+      "sensitiveFields": [
+        {"property":"actionReference","policyField":"support.maskedDiagnostic"}
+      ],
+      "forbiddenProperties": ["rawLog", "requestBody", "responseBody", "authorization", "location"]
+    },
+    {
+      "schemaId": "IntegrationProjection",
+      "role": "SYSTEM_PROCESSOR",
+      "purpose": "PARTNER_EXPORT",
+      "destination": "SYNTHETIC_PARTNER_EXACT_SERVICE",
+      "sensitiveFields": [],
+      "forbiddenProperties": ["riderIdentity", "medicalContext", "driverLocation", "billingAmount"]
+    }
+  ]
+}

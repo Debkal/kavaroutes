@@ -1,0 +1,122 @@
+{
+  "format": 1,
+  "failures": {
+    "TRANSIENT_DEPENDENCY": {
+      "retryable": true,
+      "maximumAttempts": 8,
+      "baseDelaySeconds": 2,
+      "maximumDelaySeconds": 300,
+      "maximumAgeSeconds": 86400,
+      "jitter": "FULL",
+      "retryableCodes": [
+        "ECONNRESET",
+        "ETIMEDOUT",
+        "HTTP_502",
+        "HTTP_503",
+        "HTTP_504"
+      ],
+      "respectRetryAfter": false,
+      "circuitOpenAfter": 5,
+      "concurrencyLimit": 8,
+      "deadLetterReason": "TRANSIENT_EXHAUSTED",
+      "owner": "platform",
+      "terminalAction": "DEAD_LETTER"
+    },
+    "PROVIDER_THROTTLE": {
+      "retryable": true,
+      "maximumAttempts": 6,
+      "baseDelaySeconds": 15,
+      "maximumDelaySeconds": 900,
+      "maximumAgeSeconds": 259200,
+      "jitter": "FULL",
+      "retryableCodes": [
+        "HTTP_429"
+      ],
+      "respectRetryAfter": true,
+      "circuitOpenAfter": 3,
+      "concurrencyLimit": 2,
+      "deadLetterReason": "PROVIDER_THROTTLE_EXHAUSTED",
+      "owner": "integrations",
+      "terminalAction": "DEAD_LETTER"
+    },
+    "DATABASE_CONCURRENCY": {
+      "retryable": true,
+      "maximumAttempts": 10,
+      "baseDelaySeconds": 1,
+      "maximumDelaySeconds": 60,
+      "maximumAgeSeconds": 3600,
+      "jitter": "FULL",
+      "retryableCodes": [
+        "40001",
+        "40P01",
+        "53300"
+      ],
+      "respectRetryAfter": false,
+      "circuitOpenAfter": 8,
+      "concurrencyLimit": 8,
+      "deadLetterReason": "DATABASE_CONCURRENCY_EXHAUSTED",
+      "owner": "platform",
+      "terminalAction": "DEAD_LETTER"
+    },
+    "PERMANENT_VALIDATION": {
+      "retryable": false,
+      "maximumAttempts": 1,
+      "baseDelaySeconds": 0,
+      "maximumDelaySeconds": 0,
+      "maximumAgeSeconds": 0,
+      "jitter": "NONE",
+      "retryableCodes": [],
+      "respectRetryAfter": false,
+      "circuitOpenAfter": 1,
+      "concurrencyLimit": 1,
+      "deadLetterReason": "PERMANENT_VALIDATION",
+      "owner": "domain-owner",
+      "terminalAction": "DEAD_LETTER"
+    },
+    "AUTHORIZATION_CONFIGURATION": {
+      "retryable": false,
+      "maximumAttempts": 1,
+      "baseDelaySeconds": 0,
+      "maximumDelaySeconds": 0,
+      "maximumAgeSeconds": 0,
+      "jitter": "NONE",
+      "retryableCodes": [],
+      "respectRetryAfter": false,
+      "circuitOpenAfter": 1,
+      "concurrencyLimit": 1,
+      "deadLetterReason": "AUTHORIZATION_CONFIGURATION",
+      "owner": "security",
+      "terminalAction": "BLOCK"
+    },
+    "UNSUPPORTED_SCHEMA": {
+      "retryable": false,
+      "maximumAttempts": 1,
+      "baseDelaySeconds": 0,
+      "maximumDelaySeconds": 0,
+      "maximumAgeSeconds": 0,
+      "jitter": "NONE",
+      "retryableCodes": [],
+      "respectRetryAfter": false,
+      "circuitOpenAfter": 1,
+      "concurrencyLimit": 1,
+      "deadLetterReason": "UNSUPPORTED_SCHEMA",
+      "owner": "platform",
+      "terminalAction": "BLOCK"
+    },
+    "AMBIGUOUS_EXTERNAL_OUTCOME": {
+      "retryable": false,
+      "maximumAttempts": 1,
+      "baseDelaySeconds": 0,
+      "maximumDelaySeconds": 0,
+      "maximumAgeSeconds": 0,
+      "jitter": "NONE",
+      "retryableCodes": [],
+      "respectRetryAfter": false,
+      "circuitOpenAfter": 1,
+      "concurrencyLimit": 1,
+      "deadLetterReason": "AMBIGUOUS_EXTERNAL_OUTCOME",
+      "owner": "integrations",
+      "terminalAction": "MANUAL_REVIEW"
+    }
+  }
+}

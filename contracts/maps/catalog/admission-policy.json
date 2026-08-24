@@ -1,0 +1,14 @@
+{
+  "schemaVersion":"1.0.0","policyVersion":"maps-admission-v1","status":"SYNTHETIC_LIMITS_NOT_PRODUCTION_APPROVED","priceVersion":"google-global-2026-08-24","budgetAlertsAreHardCaps":false,"admissionControlIsHardCap":true,"unknownSkuPolicy":"REJECT_AND_REQUIRE_HUMAN_REVIEW","crossTenantLedgerPolicy":"REJECT",
+  "operations":[
+    {"id":"ADDRESS_AUTOCOMPLETE","priority":"INTERACTIVE","criticality":"CRITICAL","allowedSkus":["AUTOCOMPLETE_REQUESTS","AUTOCOMPLETE_SESSION_USAGE"],"tenantMonthlyUnitCeiling":50000,"projectDailyQuotaCeiling":100000,"tokenBucket":{"capacity":20,"refillPerSecond":5},"retry":{"maxAttempts":2,"backoff":"BOUNDED_EXPONENTIAL_JITTER","honorRetryAfter":true}},
+    {"id":"ADDRESS_SELECTION","priority":"INTERACTIVE","criticality":"CRITICAL","allowedSkus":["PLACE_DETAILS_ESSENTIALS","PLACE_DETAILS_IDS_ONLY"],"tenantMonthlyUnitCeiling":20000,"projectDailyQuotaCeiling":50000,"tokenBucket":{"capacity":10,"refillPerSecond":3},"retry":{"maxAttempts":2,"backoff":"BOUNDED_EXPONENTIAL_JITTER","honorRetryAfter":true}},
+    {"id":"GEOCODE","priority":"BACKGROUND_OR_INTERACTIVE","criticality":"CRITICAL_WHEN_USER_WAITING","allowedSkus":["GEOCODING"],"tenantMonthlyUnitCeiling":30000,"projectDailyQuotaCeiling":50000,"tokenBucket":{"capacity":10,"refillPerSecond":2},"retry":{"maxAttempts":3,"backoff":"BOUNDED_EXPONENTIAL_JITTER","honorRetryAfter":true}},
+    {"id":"ROUTE","priority":"LIVE_ETA_OR_PLANNING","criticality":"CRITICAL_NEAR_SERVICE","allowedSkus":["COMPUTE_ROUTES_ESSENTIALS","COMPUTE_ROUTES_PRO"],"tenantMonthlyUnitCeiling":50000,"projectDailyQuotaCeiling":100000,"tokenBucket":{"capacity":20,"refillPerSecond":5},"retry":{"maxAttempts":2,"backoff":"BOUNDED_EXPONENTIAL_JITTER","honorRetryAfter":true}},
+    {"id":"MATRIX","priority":"CANDIDATE_SCORING","criticality":"SHEDDABLE_BEFORE_MANUAL_DISPATCH","allowedSkus":["COMPUTE_MATRIX_ESSENTIALS","COMPUTE_MATRIX_PRO"],"tenantMonthlyUnitCeiling":250000,"projectDailyQuotaCeiling":1000000,"tokenBucket":{"capacity":625,"refillPerSecond":50},"retry":{"maxAttempts":1,"backoff":"BOUNDED_EXPONENTIAL_JITTER","honorRetryAfter":true}},
+    {"id":"OPTIMIZE","priority":"SHADOW_BACKGROUND","criticality":"SHEDDABLE_FIRST","allowedSkus":["OPTIMIZATION_SINGLE_VEHICLE","OPTIMIZATION_FLEET"],"tenantMonthlyUnitCeiling":50000,"projectDailyQuotaCeiling":100000,"tokenBucket":{"capacity":100,"refillPerSecond":1},"retry":{"maxAttempts":1,"backoff":"BOUNDED_EXPONENTIAL_JITTER","honorRetryAfter":true}}
+  ],
+  "ledgerFields":["tenantId","operationId","skuId","billableUnit","estimatedUnits","admittedUnits","actualUnits","priceVersion","requestFingerprint","recordedAt"],
+  "reconciliation":{"internalUnitsToProviderBilling":"DAILY","priceListReview":"MONTHLY","unknownSkuAction":"STOP_PATH_AND_HUMAN_REVIEW","tierEscalationAction":"STOP_UNLESS_PRE_ADMITTED"},
+  "sheddingOrder":["SHADOW_OPTIMIZATION","BULK_REFRESH","BACKGROUND_RECOMPUTATION","MATRIX_AUTOMATION","LIVE_CRITICAL_OPERATION_LAST"]
+}

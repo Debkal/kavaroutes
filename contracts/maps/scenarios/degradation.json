@@ -1,0 +1,13 @@
+{
+  "schemaVersion":"1.0.0","fixtureSeed":"kavaroutes-wp004-degradation-v1","status":"SYNTHETIC",
+  "scenarios":[
+    {"id":"DEGRADE_ADDRESS_UNAVAILABLE","failure":"ADDRESS_SERVICE_UNAVAILABLE","expectedReason":"ADDRESS_UNVERIFIED_PROVIDER_UNAVAILABLE","providerCall":"ATTEMPT_FAILED_OR_NOT_MADE","authoritativeState":"UNCHANGED","automation":"MANUAL_VERIFICATION_OR_DEFERRAL","stalePolicy":"NO_COORDINATE_INVENTION","humanAttention":"OPERATIONAL_IF_BLOCKING"},
+    {"id":"DEGRADE_ROUTE_UNAVAILABLE","failure":"ROUTE_UNAVAILABLE","expectedReason":"ROUTE_PROJECTION_UNAVAILABLE","providerCall":"FAILED","authoritativeState":"UNCHANGED","automation":"MANUAL_DISPATCH_ALLOWED_AFTER_HARD_RULES","stalePolicy":"TIMESTAMP_AND_LABEL_STALE_OR_UNAVAILABLE","humanAttention":"OPERATIONAL_IF_BLOCKING"},
+    {"id":"DEGRADE_MATRIX_BUDGET","failure":"MATRIX_UNAVAILABLE_OR_OVER_BUDGET","expectedReason":"AUTOMATIC_SCORING_STOPPED","providerCall":"NO_FURTHER_CALL","authoritativeState":"PRIOR_ASSIGNMENT_PRESERVED","automation":"STOPPED","stalePolicy":"NO_STALE_SCORE_APPLICATION","humanAttention":"MANUAL_HARD_CONSTRAINT_VALIDATION"},
+    {"id":"DEGRADE_OPTIMIZER","failure":"OPTIMIZER_UNAVAILABLE_OR_INFEASIBLE","expectedReason":"OPTIMIZATION_PLAN_NOT_APPLIED","providerCall":"FAILED_OR_INFEASIBLE","authoritativeState":"UNCHANGED","automation":"STOPPED","stalePolicy":"NO_PARTIAL_OR_PRIOR_PLAN_APPLICATION","humanAttention":"MANUAL_PLANNING"},
+    {"id":"DEGRADE_DYNAMIC_MAP","failure":"DYNAMIC_MAP_UNAVAILABLE","expectedReason":"MAP_ENHANCEMENT_UNAVAILABLE","providerCall":"FAILED","authoritativeState":"BOARD_LIST_COMMANDS_REMAIN_AVAILABLE","automation":"CORE_COMMANDS_CONTINUE","stalePolicy":"NO_MAP_DERIVED_AUTHORITY","humanAttention":"NONE_UNLESS_PROLONGED"},
+    {"id":"DEGRADE_RATE_QUOTA","failure":"RATE_LIMIT_OR_QUOTA","expectedReason":"BOUNDED_RETRY_AND_SHEDDING","providerCall":"BOUNDED_RETRY_ONLY","authoritativeState":"UNCHANGED","automation":"SHED_LOW_PRIORITY_FIRST","stalePolicy":"NO_RETRY_STORM","humanAttention":"ALERT_AND_QUOTA_REVIEW_WITHOUT_AUTO_EXPANSION"},
+    {"id":"DEGRADE_PRIVACY","failure":"PRIVACY_POLICY_REJECTION","expectedReason":"MAPS_PRIVACY_FIELD_REJECTED","providerCall":"NOT_MADE","authoritativeState":"UNCHANGED","automation":"STOPPED","stalePolicy":"LOG_FIELD_IDS_AND_POLICY_ONLY_NO_VALUES","humanAttention":"CORRECT_REQUEST_NO_BYPASS"},
+    {"id":"DEGRADE_CREDENTIAL_SKU","failure":"CREDENTIAL_ABUSE_OR_UNKNOWN_SKU","expectedReason":"PROVIDER_PATH_DISABLED","providerCall":"NOT_MADE_OR_DISABLED","authoritativeState":"UNCHANGED","automation":"AFFECTED_PATH_STOPPED","stalePolicy":"NO_UNKNOWN_SKU_ADMISSION","humanAttention":"REQUIRED_BEFORE_ROTATION_QUOTA_OR_BILLING_EXPANSION"}
+  ]
+}

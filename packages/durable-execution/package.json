@@ -1,0 +1,16 @@
+{
+  "name": "@kavaroutes/durable-execution",
+  "version": "0.0.0-wp008",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@kavaroutes/postgres-persistence": "0.0.0-wp006",
+    "pg": "8.23.0",
+    "pg-boss": "12.28.0"
+  }
+}

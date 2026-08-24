@@ -1,0 +1,24 @@
+{
+  "schemaVersion":"1.0.0","policyVersion":"maps-storage-display-v1","effectiveDate":"2026-08-24","status":"DATED_DEFAULT_PENDING_QUALIFIED_REVIEW","sourceIds":["SRC_MAPS_SERVICE_TERMS","SRC_PLACES_POLICY","SRC_PLACE_ID"],
+  "records":[
+    {"id":"CUSTOMER_ADDRESS","owner":"KAVAROUTES","fields":["customerSuppliedText","source","recordedAt"],"retention":"KAVAROUTES_APPROVED_POLICY","providerContent":false,"deleteWithExpiredProviderCache":false},
+    {"id":"PROVIDER_REFERENCE","owner":"PROVIDER_REFERENCE","fields":["provider","placeId","obtainedAt","lastRefreshAt","refreshDueAt"],"retention":"PLACE_ID_INDEFINITE","refreshAfter":{"value":12,"unit":"month"},"providerContent":true,"deleteWithExpiredProviderCache":false},
+    {"id":"LICENSED_PROVIDER_CACHE","owner":"LICENSED_PROVIDER_CONTENT","fields":["provider","sourceOperation","contentKind","obtainedAt","expiresAt","termsVersion","refreshState","contentFingerprint"],"retention":"MAX_30_DAYS_DEFAULT","maxAge":{"value":30,"unit":"day"},"providerContent":true,"deleteWithExpiredProviderCache":true},
+    {"id":"ATTRIBUTION_PROVENANCE","owner":"DISPLAY_POLICY","fields":["provider","sourceOperation","displaySurface","attributionRequired","attributionRendered","termsVersion"],"retention":"WITH_ASSOCIATED_DISPLAY_OR_RECORD","providerContent":false,"deleteWithExpiredProviderCache":false},
+    {"id":"TERMS_PRICING_VERSION","owner":"POLICY_REGISTRY","fields":["termsVersion","priceVersion","effectiveDate","sourceIds","reviewState"],"retention":"APPEND_ONLY_POLICY_HISTORY","providerContent":false,"deleteWithExpiredProviderCache":false},
+    {"id":"KAVAROUTES_EVIDENCE","owner":"KAVAROUTES","fields":["evidenceId","source","captureTime","amendmentLineage","verificationState"],"retention":"KAVAROUTES_APPROVED_EVIDENCE_POLICY","providerContent":false,"deleteWithExpiredProviderCache":false}
+  ],
+  "authorityRules":[
+    "PROVIDER_OUTPUT_CANNOT_TRANSITION_EXECUTION",
+    "PROVIDER_OUTPUT_CANNOT_VALIDATE_ASSIGNMENT",
+    "PROVIDER_OUTPUT_CANNOT_ASSERT_SERVICE_COMPLETION",
+    "PROVIDER_OUTPUT_CANNOT_ESTABLISH_BILLABLE_MILEAGE",
+    "OPTIMIZER_OUTPUT_IS_ADVISORY_AND_REQUIRES_KAVAROUTES_COMMAND"
+  ],
+  "displayRules":[
+    {"content":"GOOGLE_CONTENT","surface":"GOOGLE_MAP","attribution":"REQUIRED","decision":"ALLOW_IF_RENDERED"},
+    {"content":"GOOGLE_CONTENT","surface":"NO_MAP","attribution":"REQUIRED","decision":"ALLOW_IF_TERMS_PERMIT_AND_RENDERED"},
+    {"content":"GOOGLE_CONTENT","surface":"NON_GOOGLE_MAP","attribution":"INSUFFICIENT","decision":"REJECT_CONTENT_MAP_MISMATCH"}
+  ],
+  "forbiddenUses":["PREFETCH_OR_BULK_DOWNLOAD","SCRAPE","REHOST","INDEPENDENT_LOCATION_DIRECTORY","AI_TRAINING_OR_TESTING","MIX_WITH_NON_GOOGLE_MAP"]
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion":"1.0.0","fixtureSeed":"kavaroutes-wp004-golden-v1","status":"SYNTHETIC_NO_REAL_ADDRESS_OR_LOCATION",
+  "examples":[
+    {"id":"GOLDEN_AUTOCOMPLETE_SUCCESS","type":"AUTOCOMPLETE_ACCOUNTING","input":{"requests":4,"terminatedWithDetailsEssentials":true},"expected":{"autocompleteRequestUnits":4,"sessionUsageUnits":0,"detailsUnits":1,"reason":"SUCCESS_WITHIN_FIRST_TWELVE"}},
+    {"id":"GOLDEN_AUTOCOMPLETE_LONG_SUCCESS","type":"AUTOCOMPLETE_ACCOUNTING","input":{"requests":14,"terminatedWithDetailsEssentials":true},"expected":{"autocompleteRequestUnits":12,"sessionUsageUnits":2,"detailsUnits":1,"reason":"SUCCESS_AFTER_TWELVE"}},
+    {"id":"GOLDEN_AUTOCOMPLETE_ABANDONED","type":"AUTOCOMPLETE_ACCOUNTING","input":{"requests":14,"terminatedWithDetailsEssentials":false},"expected":{"autocompleteRequestUnits":14,"sessionUsageUnits":0,"detailsUnits":0,"reason":"ABANDONED_ALL_REQUESTS_BILLABLE"}},
+    {"id":"GOLDEN_MATRIX_ELEMENTS","type":"MATRIX_ACCOUNTING","input":{"origins":3,"destinations":4},"expected":{"billableUnits":12,"unit":"MATRIX_ELEMENT","reason":"ORIGINS_TIMES_DESTINATIONS"}},
+    {"id":"GOLDEN_FLEET_SHIPMENTS","type":"OPTIMIZATION_ACCOUNTING","input":{"vehicles":3,"shipments":10},"expected":{"skuId":"OPTIMIZATION_FLEET","billableUnits":10,"unit":"SHIPMENT","reason":"TWO_OR_MORE_VEHICLES_FLEET_SKU"}},
+    {"id":"GOLDEN_SINGLE_SHIPMENTS","type":"OPTIMIZATION_ACCOUNTING","input":{"vehicles":1,"shipments":10},"expected":{"skuId":"OPTIMIZATION_SINGLE_VEHICLE","billableUnits":10,"unit":"SHIPMENT","reason":"ONE_VEHICLE_SINGLE_SKU"}},
+    {"id":"GOLDEN_TRAFFIC_TIER","type":"FIELD_TIER","input":{"operation":"ROUTE","routingPreference":"TRAFFIC_AWARE","fieldMask":["routes.distanceMeters","routes.duration"]},"expected":{"skuId":"COMPUTE_ROUTES_PRO","decision":"ALLOW_SYNTHETIC_CONTRACT","reason":"TRAFFIC_FEATURE_SELECTS_PRO"}},
+    {"id":"GOLDEN_WILDCARD_MASK","type":"FIELD_TIER","input":{"operation":"ROUTE","routingPreference":"TRAFFIC_UNAWARE","fieldMask":["*"]},"expected":{"skuId":null,"decision":"REJECT","reason":"WILDCARD_FIELD_MASK_FORBIDDEN"}},
+    {"id":"GOLDEN_CACHE_EXPIRED","type":"CACHE_EXPIRY","input":{"obtainedAt":"2026-07-01T00:00:00Z","evaluationAt":"2026-08-01T00:00:01Z","maxAgeDays":30},"expected":{"decision":"REJECT","reason":"PROVIDER_CONTENT_EXPIRED","deleteCustomerAddress":false,"deleteKavaRoutesEvidence":false}},
+    {"id":"GOLDEN_ATTRIBUTION_GOOGLE_MAP","type":"DISPLAY_PAIRING","input":{"content":"GOOGLE_CONTENT","surface":"GOOGLE_MAP","attributionRendered":true},"expected":{"decision":"ALLOW","reason":"VALID_GOOGLE_MAP_PAIRING"}},
+    {"id":"GOLDEN_ATTRIBUTION_WRONG_MAP","type":"DISPLAY_PAIRING","input":{"content":"GOOGLE_CONTENT","surface":"NON_GOOGLE_MAP","attributionRendered":true},"expected":{"decision":"REJECT","reason":"CONTENT_MAP_MISMATCH"}},
+    {"id":"GOLDEN_PRIVACY_REJECTION","type":"REQUEST_PRIVACY","input":{"operation":"ROUTE","fields":["origin","destination","riderName"],"carrier":"body"},"expected":{"decision":"REJECT","reason":"MAPS_PRIVACY_FIELD_REJECTED","providerCallMade":false}},
+    {"id":"GOLDEN_UNSAFE_LOG_REJECTION","type":"SAFE_TELEMETRY","input":{"fields":["operationId","skuId","address"]},"expected":{"decision":"REJECT","reason":"UNSAFE_TELEMETRY_FIELD","providerCallMade":false}},
+    {"id":"GOLDEN_COST_ADMISSION","type":"COST_ADMISSION","input":{"tenantId":"syn_tenant_alpha","operation":"MATRIX","skuId":"COMPUTE_MATRIX_PRO","estimatedUnits":12,"tenantUsedUnits":249995},"expected":{"decision":"REJECT","reason":"TENANT_MONTHLY_UNIT_CEILING_EXCEEDED"}},
+    {"id":"GOLDEN_MANUAL_FALLBACK","type":"MANUAL_FALLBACK","input":{"failure":"MATRIX_UNAVAILABLE_OR_OVER_BUDGET","priorAssignment":"syn_assignment_1","hardConstraintsPassed":true},"expected":{"decision":"MANUAL_ACTION_ELIGIBLE","reason":"PRIOR_ASSIGNMENT_PRESERVED_AND_HARD_RULES_PASSED","authoritativeStateChanged":false}},
+    {"id":"GOLDEN_MARKER_UPDATES","type":"MAP_LOAD_ACCOUNTING","input":{"mapInitializations":1,"markerUpdates":500},"expected":{"billableUnits":1,"unit":"MAP_LOAD","reason":"MARKER_UPDATES_DO_NOT_RELOAD_BASE_MAP"}},
+    {"id":"GOLDEN_PROVIDER_NOT_AUTHORITY","type":"AUTHORITY","input":{"providerResult":"SYNTHETIC_ROUTE_RESULT","requestedTransition":"COMPLETE_LEG"},"expected":{"decision":"REJECT","reason":"PROVIDER_OUTPUT_NOT_DOMAIN_AUTHORITY","authoritativeStateChanged":false}}
+  ]
+}

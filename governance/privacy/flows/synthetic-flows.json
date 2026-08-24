@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "1.0.0",
+  "fixtureSeed": "kavaroutes-wp002-synthetic-flows-v1",
+  "synthetic": true,
+  "flows": [
+    {
+      "id": "FLOW_DISPATCHER_RIDER_INTAKE", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "RIDER_INTAKE", "role": "DISPATCHER",
+      "destination": "INTERNAL_TRIP_SERVICE", "fieldIds": ["rider.identity", "rider.contact", "trip.medicalContext", "trip.accommodation", "trip.notes", "route.origin.address", "route.destination.address"],
+      "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL_INTERNAL_FLOW",
+      "approvalEvidenceRef": "EVID_PLANNED_POLICY", "expectedDecision": "ALLOW_SYNTHETIC_CONTRACT", "expectedReason": "APPROVED_INTERNAL_PURPOSE"
+    },
+    {
+      "id": "FLOW_DRIVER_ASSIGNED_MANIFEST", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "ASSIGNED_SERVICE_DELIVERY", "role": "DRIVER",
+      "destination": "DRIVER_MANIFEST", "fieldIds": ["rider.identity", "rider.contact", "trip.accommodation", "route.origin.address", "route.destination.address"],
+      "relationship": { "assigned": true, "assignmentTenantId": "syn_tenant_alpha" }, "retentionClass": "RET_OFFLINE_ACK_WINDOW", "policyVersion": "privacy-synthetic-v1",
+      "approvalState": "PROVISIONAL_INTERNAL_FLOW", "approvalEvidenceRef": "EVID_PLANNED_POLICY", "expectedDecision": "ALLOW_SYNTHETIC_CONTRACT", "expectedReason": "MINIMUM_ASSIGNED_MANIFEST"
+    },
+    {
+      "id": "FLOW_DRIVER_UNASSIGNED_RIDER", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "ASSIGNED_SERVICE_DELIVERY", "role": "DRIVER",
+      "destination": "DRIVER_MANIFEST", "fieldIds": ["rider.identity"], "relationship": { "assigned": false, "assignmentTenantId": "syn_tenant_alpha" },
+      "retentionClass": "RET_OFFLINE_ACK_WINDOW", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL_INTERNAL_FLOW",
+      "approvalEvidenceRef": "EVID_PLANNED_POLICY", "expectedDecision": "DENY", "expectedReason": "DRIVER_NOT_ASSIGNED"
+    },
+    {
+      "id": "FLOW_FACILITY_RELATED_TRIP", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "FACILITY_COORDINATION", "role": "FACILITY_USER",
+      "destination": "FACILITY_PORTAL", "fieldIds": ["facility.relatedTripStatus"], "relationship": { "facilityRelated": true, "relationshipTenantId": "syn_tenant_alpha" },
+      "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL_INTERNAL_FLOW",
+      "approvalEvidenceRef": "EVID_PLANNED_POLICY", "expectedDecision": "ALLOW_SYNTHETIC_CONTRACT", "expectedReason": "FACILITY_RELATIONSHIP_CONFIRMED"
+    },
+    {
+      "id": "FLOW_FACILITY_FLEET_LOCATION", "tenantId": "syn_tenant_alpha", "subject": "DRIVER_AND_RIDER", "purpose": "FACILITY_COORDINATION", "role": "FACILITY_USER",
+      "destination": "FACILITY_PORTAL", "fieldIds": ["location.breadcrumb"], "relationship": { "facilityRelated": true, "relationshipTenantId": "syn_tenant_alpha" },
+      "retentionClass": "RET_RAW_LOCATION_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL_INTERNAL_FLOW",
+      "approvalEvidenceRef": "EVID_PLANNED_POLICY", "expectedDecision": "DENY", "expectedReason": "FACILITY_FLEET_LOCATION_PROHIBITED"
+    },
+    {
+      "id": "FLOW_BILLING_TRIP_PROOF", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "BILLING_PROOF", "role": "BILLING_USER",
+      "destination": "BILLING_WORKSPACE", "fieldIds": ["trip.internalId", "proof.timestamps", "proof.signature", "billing.amount", "payer.claimId"],
+      "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL_INTERNAL_FLOW",
+      "approvalEvidenceRef": "EVID_PLANNED_POLICY", "expectedDecision": "ALLOW_SYNTHETIC_CONTRACT", "expectedReason": "BILLING_PROOF_MINIMUM"
+    },
+    {
+      "id": "FLOW_BILLING_CONTINUOUS_BREADCRUMBS", "tenantId": "syn_tenant_alpha", "subject": "DRIVER_AND_RIDER", "purpose": "BILLING_PROOF", "role": "BILLING_USER",
+      "destination": "BILLING_WORKSPACE", "fieldIds": ["location.breadcrumb"], "retentionClass": "RET_RAW_LOCATION_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1",
+      "approvalState": "PROVISIONAL_INTERNAL_FLOW", "approvalEvidenceRef": "EVID_PLANNED_POLICY", "expectedDecision": "DENY", "expectedReason": "ADDITIONAL_LOCATION_PURPOSE_REQUIRED"
+    },
+    {
+      "id": "FLOW_SUPPORT_MASKED_DIAGNOSTICS", "tenantId": "syn_tenant_alpha", "subject": "SYSTEM", "purpose": "SUPPORT_DIAGNOSTICS", "role": "SUPPORT_USER",
+      "destination": "SUPPORT_CONSOLE", "fieldIds": ["support.maskedDiagnostic"], "retentionClass": "RET_OPERATIONAL_LOG_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1",
+      "approvalState": "PROVISIONAL_INTERNAL_FLOW", "approvalEvidenceRef": "EVID_PLANNED_POLICY", "expectedDecision": "ALLOW_SYNTHETIC_CONTRACT", "expectedReason": "MASKED_DIAGNOSTICS_ONLY"
+    },
+    {
+      "id": "FLOW_SUPPORT_BREAK_GLASS", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "BREAK_GLASS", "role": "SUPPORT_USER",
+      "destination": "SUPPORT_CONSOLE", "fieldIds": ["rider.identity", "trip.internalId"], "retentionClass": "RET_OPERATIONAL_LOG_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1",
+      "approvalState": "TIME_BOUNDED_SYNTHETIC_APPROVAL", "approvalEvidenceRef": "SYNTHETIC_APPROVAL_ALPHA",
+      "breakGlass": { "reason": "SYNTHETIC_INCIDENT_DIAGNOSIS", "actor": "SYNTHETIC_SUPPORT_ACTOR_ALPHA", "approvedBy": "SYNTHETIC_PRIVACY_ROLE_ALPHA", "expiresAt": "2026-08-24T01:00:00Z", "auditRef": "syn_audit_break_glass_alpha" },
+      "evaluationTime": "2026-08-24T00:30:00Z", "expectedDecision": "ALLOW_SYNTHETIC_CONTRACT", "expectedReason": "BREAK_GLASS_REQUIREMENTS_PRESENT"
+    },
+    {
+      "id": "FLOW_MAPS_ROUTE_GUIDANCE", "tenantId": "syn_tenant_alpha", "subject": "ROUTE_GUIDANCE", "purpose": "MAPS_ROUTE_GUIDANCE", "role": "SYSTEM_PROCESSOR",
+      "destination": "GOOGLE_MAPS_ROUTE_GUIDANCE", "fieldIds": ["route.origin.coordinates", "route.destination.coordinates", "route.waypoints.coordinates", "route.travelMode", "route.routingPreference"],
+      "retentionClass": "RET_RAW_LOCATION_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1", "approvalState": "NO_PHI_ENVELOPE_PENDING_QUALIFIED_REVIEW",
+      "approvalEvidenceRef": "EVID_PLANNED_MAPS_REVIEW", "telemetryFieldIds": ["telemetry.operationName"], "headers": ["synthetic-static-client-version"], "requestId": "syn_maps_request_alpha",
+      "expectedDecision": "ALLOW_SYNTHETIC_CONTRACT", "expectedReason": "MAPS_ROUTE_GUIDANCE_ALLOWLIST_ONLY"
+    },
+    {
+      "id": "FLOW_PUSH_OPAQUE_WAKEUP", "tenantId": "syn_tenant_alpha", "subject": "SYSTEM", "purpose": "NOTIFICATION_WAKEUP", "role": "SYSTEM_PROCESSOR",
+      "destination": "GENERIC_PUSH_PROVIDER", "fieldIds": ["notification.opaqueReference"], "retentionClass": "RET_OFFLINE_ACK_WINDOW", "policyVersion": "privacy-synthetic-v1",
+      "approvalState": "OPAQUE_REFERENCE_ONLY", "approvalEvidenceRef": "EVID_PLANNED_POLICY", "expectedDecision": "ALLOW_SYNTHETIC_CONTRACT", "expectedReason": "OPAQUE_WAKEUP_ONLY"
+    },
+    {
+      "id": "FLOW_OBSERVABILITY_ALLOWLIST", "tenantId": "syn_tenant_alpha", "subject": "SYSTEM", "purpose": "OBSERVABILITY", "role": "SYSTEM_PROCESSOR",
+      "destination": "ALLOWLISTED_OBSERVABILITY", "fieldIds": ["telemetry.operationName"], "retentionClass": "RET_OPERATIONAL_LOG_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1",
+      "approvalState": "REDACTED_METADATA_ONLY", "approvalEvidenceRef": "EVID_COLLECTED_TEST", "expectedDecision": "ALLOW_SYNTHETIC_CONTRACT", "expectedReason": "OBSERVABILITY_ALLOWLIST_ONLY"
+    },
+    {
+      "id": "FLOW_OBSERVABILITY_CANARY_REJECT", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "OBSERVABILITY", "role": "SYSTEM_PROCESSOR",
+      "destination": "ALLOWLISTED_OBSERVABILITY", "fieldIds": ["rider.identity", "route.origin.coordinates", "trip.notes"], "canaryKinds": ["name", "address", "coordinates", "free_text", "identifier", "credential", "token"],
+      "retentionClass": "RET_OPERATIONAL_LOG_30D_PROVISIONAL", "policyVersion": "privacy-synthetic-v1", "approvalState": "REDACTED_METADATA_ONLY",
+      "approvalEvidenceRef": "EVID_COLLECTED_TEST", "expectedDecision": "DENY", "expectedReason": "OBSERVABILITY_SENSITIVE_FIELD_REJECTED"
+    },
+    {
+      "id": "FLOW_PARTNER_EXPORT", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "PARTNER_EXPORT", "role": "BILLING_USER",
+      "destination": "SYNTHETIC_PARTNER_EXACT_SERVICE", "vendorId": "VENDOR_SYNTHETIC_EXECUTED_BAA_EXAMPLE", "fieldIds": ["trip.internalId", "proof.timestamps", "payer.claimId"],
+      "fieldAllowlistVersion": "partner-export-synthetic-v1", "exportedAt": "2026-08-24T00:00:00Z", "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY",
+      "policyVersion": "privacy-synthetic-v1", "approvalState": "PENDING_QUALIFIED_APPROVAL", "approvalEvidenceRef": "EVID_QUALIFIED_APPROVAL_EXAMPLE",
+      "expectedDecision": "BLOCKED", "expectedReason": "SYNTHETIC_VENDOR_NOT_PRODUCTION_APPROVED"
+    },
+    {
+      "id": "FLOW_DELETION_LEGAL_HOLD", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "RETENTION_DELETION", "role": "SYSTEM_PROCESSOR",
+      "destination": "DELETION_LEDGER", "fieldIds": ["trip.internalId"], "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1",
+      "approvalState": "PROVISIONAL", "approvalEvidenceRef": "EVID_PLANNED_POLICY", "deletion": { "legalHold": true, "tombstoneRecorded": true, "destinations": [{ "id": "authoritative", "state": "HELD" }, { "id": "search", "state": "PENDING" }, { "id": "backup", "state": "AGING" }], "completionReported": false },
+      "expectedDecision": "BLOCKED", "expectedReason": "LEGAL_HOLD_PRECEDENCE"
+    },
+    {
+      "id": "FLOW_APPLICABILITY_UNDETERMINED", "tenantId": "syn_tenant_alpha", "subject": "WORKFLOW", "purpose": "COMPLIANCE_EVALUATION", "role": "PRIVACY_OFFICIAL_ROLE",
+      "destination": "GOVERNANCE_REGISTRY", "fieldIds": ["telemetry.operationName"], "applicabilityId": "APP_RIDER_INTAKE", "retentionClass": "RET_COMPLIANCE_DOC_6Y_CAPABILITY",
+      "policyVersion": "privacy-synthetic-v1", "approvalState": "PENDING_QUALIFIED_REVIEW", "approvalEvidenceRef": "EVID_PLANNED_POLICY",
+      "expectedDecision": "BLOCKED", "expectedReason": "HIPAA_ROLE_UNDETERMINED"
+    },
+    {
+      "id": "FLOW_APPLICABILITY_QUALIFIED_EXAMPLE", "tenantId": "syn_tenant_alpha", "subject": "WORKFLOW", "purpose": "COMPLIANCE_EVALUATION", "role": "PRIVACY_OFFICIAL_ROLE",
+      "destination": "GOVERNANCE_REGISTRY", "fieldIds": ["telemetry.operationName"], "applicabilityOverride": { "status": "BUSINESS_ASSOCIATE", "jurisdiction": "SYNTHETIC_JURISDICTION", "rationale": "SYNTHETIC_QUALIFIED_EXAMPLE", "sourceId": "SRC_HHS_PRIVACY", "reviewerRole": "PRIVACY_OFFICIAL_ROLE", "effectiveDate": "2026-08-24", "approvalState": "QUALIFIED_APPROVAL_EXAMPLE", "approvalEvidenceRef": "EVID_QUALIFIED_APPROVAL_EXAMPLE" },
+      "retentionClass": "RET_COMPLIANCE_DOC_6Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "QUALIFIED_APPROVAL_EXAMPLE", "approvalEvidenceRef": "EVID_QUALIFIED_APPROVAL_EXAMPLE",
+      "expectedDecision": "ELIGIBLE_FOR_FURTHER_REVIEW", "expectedReason": "QUALIFIED_APPLICABILITY_REPRESENTED_NOT_PRODUCTION_APPROVAL"
+    },
+    {
+      "id": "FLOW_VENDOR_MISSING_BAA", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "PARTNER_EXPORT", "role": "SYSTEM_PROCESSOR",
+      "destination": "SYNTHETIC_PARTNER_EXACT_SERVICE", "vendorId": "VENDOR_SYNTHETIC_MISSING_BAA", "fieldIds": ["trip.internalId", "payer.claimId"],
+      "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "NOT_APPROVED", "approvalEvidenceRef": null,
+      "expectedDecision": "BLOCKED", "expectedReason": "EXACT_SERVICE_BAA_OR_APPROVAL_MISSING"
+    },
+    {
+      "id": "FLOW_CRITICAL_RISK_READINESS", "tenantId": "syn_tenant_alpha", "subject": "WORKFLOW", "purpose": "COMPLIANCE_EVALUATION", "role": "SECURITY_OFFICIAL_ROLE",
+      "destination": "GOVERNANCE_REGISTRY", "fieldIds": ["telemetry.operationName"], "riskIds": ["RISK_CRITICAL_UNTREATED"], "retentionClass": "RET_COMPLIANCE_DOC_6Y_CAPABILITY",
+      "policyVersion": "privacy-synthetic-v1", "approvalState": "UNACCEPTED", "approvalEvidenceRef": null, "expectedDecision": "BLOCKED", "expectedReason": "CRITICAL_RISK_UNTREATED"
+    },
+    {
+      "id": "FLOW_STALE_EVALUATION", "tenantId": "syn_tenant_alpha", "subject": "WORKFLOW", "purpose": "COMPLIANCE_EVALUATION", "role": "SECURITY_OFFICIAL_ROLE",
+      "destination": "GOVERNANCE_REGISTRY", "fieldIds": ["telemetry.operationName"], "evaluationId": "EVAL_STALE_SYNTHETIC", "materialChange": true,
+      "retentionClass": "RET_COMPLIANCE_DOC_6Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "EXPIRED", "approvalEvidenceRef": "EVID_EXPIRED_EVALUATION",
+      "expectedDecision": "BLOCKED", "expectedReason": "EVALUATION_STALE_OR_MATERIAL_CHANGE"
+    },
+    {
+      "id": "FLOW_POTENTIAL_BREACH_TRIAGE", "tenantId": "syn_tenant_alpha", "subject": "INCIDENT", "purpose": "INCIDENT_RESPONSE", "role": "PRIVACY_OFFICIAL_ROLE",
+      "destination": "GOVERNANCE_REGISTRY", "fieldIds": ["telemetry.operationName"], "incidentId": "INC_POTENTIAL_DISCLOSURE", "retentionClass": "RET_COMPLIANCE_DOC_6Y_CAPABILITY",
+      "policyVersion": "privacy-synthetic-v1", "approvalState": "OPEN_ASSESSMENT", "approvalEvidenceRef": null, "expectedDecision": "BLOCKED", "expectedReason": "QUALIFIED_BREACH_DETERMINATION_REQUIRED"
+    },
+    {
+      "id": "FLOW_MISLEADING_CERTIFICATION", "tenantId": "syn_tenant_alpha", "subject": "ASSURANCE_CLAIM", "purpose": "COMPLIANCE_EVALUATION", "role": "PRIVACY_OFFICIAL_ROLE",
+      "destination": "GOVERNANCE_REGISTRY", "fieldIds": ["telemetry.operationName"], "claim": "HIPAA_CERTIFIED", "assuranceId": "ASSURE_SOC2",
+      "retentionClass": "RET_COMPLIANCE_DOC_6Y_CAPABILITY", "policyVersion": "privacy-synthetic-v1", "approvalState": "REJECTED", "approvalEvidenceRef": null,
+      "expectedDecision": "DENY", "expectedReason": "FORBIDDEN_COMPLIANCE_OR_CERTIFICATION_CLAIM"
+    },
+    {
+      "id": "FLOW_TERMINATED_WORKER_ACCESS", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "SUPPORT_DIAGNOSTICS", "role": "SUPPORT_USER",
+      "destination": "SUPPORT_CONSOLE", "fieldIds": ["support.maskedDiagnostic"], "actor": "SYNTHETIC_TERMINATED_ACTOR_ALPHA", "retentionClass": "RET_OPERATIONAL_LOG_30D_PROVISIONAL",
+      "policyVersion": "privacy-synthetic-v1", "approvalState": "REVOKED", "approvalEvidenceRef": null, "expectedDecision": "DENY", "expectedReason": "WORKFORCE_ACCESS_REVOKED"
+    },
+    {
+      "id": "FLOW_RESTORE_VALIDATION", "tenantId": "syn_tenant_alpha", "subject": "RECOVERY", "purpose": "CONTINGENCY_RECOVERY", "role": "SECURITY_OFFICIAL_ROLE",
+      "destination": "GOVERNANCE_REGISTRY", "fieldIds": ["telemetry.operationName"], "contingencyId": "CONT_RESTORE_UNRESOLVED", "retentionClass": "RET_COMPLIANCE_DOC_6Y_CAPABILITY",
+      "policyVersion": "privacy-synthetic-v1", "approvalState": "FAILED_REQUIRES_REMEDIATION", "approvalEvidenceRef": "EVID_FAILED_RESTORE",
+      "expectedDecision": "BLOCKED", "expectedReason": "RESTORE_OR_DELETION_RECONCILIATION_INCOMPLETE"
+    },
+    {
+      "id": "FLOW_CROSS_TENANT_POLICY_GRANT", "tenantId": "syn_tenant_alpha", "subject": "RIDER", "purpose": "RIDER_INTAKE", "role": "DISPATCHER",
+      "destination": "INTERNAL_TRIP_SERVICE", "fieldIds": ["rider.identity"], "referencedTenantId": "syn_tenant_beta", "retentionClass": "RET_CONTRACT_RECORD_10Y_CAPABILITY",
+      "policyVersion": "privacy-synthetic-v1", "approvalState": "PROVISIONAL_INTERNAL_FLOW", "approvalEvidenceRef": "EVID_PLANNED_POLICY",
+      "expectedDecision": "DENY", "expectedReason": "CROSS_TENANT_REFERENCE"
+    }
+  ]
+}

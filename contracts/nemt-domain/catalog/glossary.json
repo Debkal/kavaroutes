@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "PROVISIONAL_PENDING_OPERATOR_VALIDATION",
+  "provenance": "ARQ-003",
+  "terms": [
+    {"id":"SERVICE_DATE","label":"Service date","definition":"Operator-local date for a run and its legs, paired with an explicit IANA timezone.","distinction":"Never inferred only from UTC or browser timezone."},
+    {"id":"TRIP_REQUEST","label":"Trip request","definition":"One request grouping one or more passenger legs for a service episode.","distinction":"Not a vehicle run or necessarily one billable unit."},
+    {"id":"LEG","label":"Leg","definition":"Smallest independently executable passenger movement from one origin to one destination.","distinction":"Owns timing mode, outcome, execution, and billing evaluation."},
+    {"id":"STOP_TASK","label":"Stop task","definition":"Ordered pickup, drop-off, depot, break, wait, or operational task on a run.","distinction":"Not every stop task is a passenger leg."},
+    {"id":"RUN","label":"Run","definition":"Versioned ordered vehicle duty and manifest for a service date and operating window.","distinction":"Does not own the booking."},
+    {"id":"ASSIGNMENT","label":"Assignment","definition":"Versioned binding of a leg execution segment to a run and effective resources.","distinction":"Reassignment supersedes and preserves history."},
+    {"id":"EXECUTION_SEGMENT","label":"Execution segment","definition":"Portion of a leg performed under one resource binding.","distinction":"Represents rescue or transfer without erasing prior execution."},
+    {"id":"STANDING_ORDER","label":"Standing order","definition":"Recurrence template that materializes dated trip requests.","distinction":"Template edits do not rewrite materialized instances."},
+    {"id":"WILL_CALL","label":"Will-call","definition":"Timing commitment whose pickup response clock starts after a durable readiness signal.","distinction":"Not an execution status."},
+    {"id":"MULTI_LOAD","label":"Multi-load","definition":"Overlapping onboard intervals for multiple passenger legs in one vehicle.","distinction":"Capacity and ride-time constraints apply across the interval."},
+    {"id":"COMPANION_ESCORT","label":"Companion or escort","definition":"Non-rider occupant attached to a leg who consumes declared capacity.","distinction":"Not automatically a separate billable passenger leg."},
+    {"id":"AUTHORIZATION","label":"Authorization","definition":"Payer or broker approval of eligibility, mode, service, limits, or effective dates.","distinction":"Does not prove transportation occurred."},
+    {"id":"EVIDENCE","label":"Evidence","definition":"Append-only observed fact with source, capture time, provenance, and amendment lineage.","distinction":"Cannot directly mutate operational or financial state."},
+    {"id":"DEADHEAD","label":"Deadhead","definition":"Vehicle movement outside passenger-loaded or revenue service under the applicable reporting rule.","distinction":"Separate from loaded mileage and passenger-trip counts."},
+    {"id":"BILLING_CASE","label":"Billing case","definition":"Policy evaluation for readiness, holds, charges, claim or invoice eligibility, and correction.","distinction":"Leg completion never automatically means billing-ready."},
+    {"id":"INCIDENT","label":"Incident or exception case","definition":"Auditable operational condition requiring attention, resolution, or recovery.","distinction":"Does not erase underlying leg or run history."}
+  ]
+}

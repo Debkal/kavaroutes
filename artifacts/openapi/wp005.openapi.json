@@ -1,0 +1,254 @@
+{
+  "components": {
+    "schemas": {}
+  },
+  "info": {
+    "title": "KavaRoutes WP005 platform compatibility API",
+    "version": "0.0.0-wp005"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/platform/v1/health": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "ok"
+                      ],
+                      "type": "string"
+                    },
+                    "version": {
+                      "enum": [
+                        "wp005.synthetic.v1"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "version"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/v1/readiness": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "checks": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "engine": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "engine"
+                      ],
+                      "type": "object"
+                    },
+                    "status": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "ready"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "not_ready"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "checks"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/platform/v1/synthetic-probe": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "idempotencyKey": {
+                    "pattern": "^[a-z0-9][a-z0-9_-]{2,63}$",
+                    "type": "string"
+                  },
+                  "input": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "alpha"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "bravo"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "probeId": {
+                    "pattern": "^probe_[a-z0-9]{8}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "probeId",
+                  "input",
+                  "idempotencyKey"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "operationId": {
+                      "type": "string"
+                    },
+                    "outcome": {
+                      "enum": [
+                        "accepted"
+                      ],
+                      "type": "string"
+                    },
+                    "probeId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "probeId",
+                    "outcome",
+                    "jobId",
+                    "operationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "code": {
+                      "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
+                      "type": "string"
+                    },
+                    "operationId": {
+                      "pattern": "^[a-z0-9][a-z0-9_-]{2,63}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "operationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "code": {
+                      "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
+                      "type": "string"
+                    },
+                    "operationId": {
+                      "pattern": "^[a-z0-9][a-z0-9_-]{2,63}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "operationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "description": "Synthetic compatibility surface; not a business API",
+      "name": "platform"
+    }
+  ],
+  "x-kavaroutes-websocket-routes": [
+    {
+      "contextHeader": "x-synthetic-context",
+      "maxPayloadBytes": 1024,
+      "messageSchema": "SocketNotification",
+      "path": "/platform/v1/socket-probe",
+      "purpose": "synthetic lifecycle compatibility only"
+    }
+  ]
+}

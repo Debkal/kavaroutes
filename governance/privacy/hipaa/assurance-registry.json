@@ -1,0 +1,212 @@
+{
+  "schemaVersion": "1.0.0",
+  "registryVersion": "hipaa-assurance-synthetic-v1",
+  "synthetic": true,
+  "legalDisclaimer": "Contract machinery only; no legal role, HIPAA compliance, certification, vendor approval, or production-PHI authorization is asserted.",
+  "applicability": [
+    {
+      "id": "APP_RIDER_INTAKE", "workflow": "RIDER_INTAKE", "status": "UNDETERMINED", "ruleFamilies": ["PRIVACY", "SECURITY", "BREACH_NOTIFICATION", "BAA_SUBPROCESSOR"],
+      "jurisdiction": "UNDETERMINED_LAUNCH_SCOPE", "rationale": "Customer relationship, contracts, and legal role require qualified review.",
+      "sourceIds": ["SRC_HHS_PRIVACY"], "reviewerRole": "PRIVACY_OFFICIAL_ROLE", "effectiveDate": "2026-08-24",
+      "approvalState": "PENDING_QUALIFIED_REVIEW", "approvalEvidenceRef": null, "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "APP_LIVE_LOCATION", "workflow": "ASSIGNED_SERVICE_DELIVERY", "status": "UNDETERMINED", "ruleFamilies": ["PRIVACY", "SECURITY", "LOCATION_PRIVACY"],
+      "jurisdiction": "UNDETERMINED_LAUNCH_SCOPE", "rationale": "Precise location requires independent controls even if a workflow falls outside HIPAA.",
+      "sourceIds": ["SRC_HHS_SECURITY"], "reviewerRole": "PRIVACY_OFFICIAL_ROLE", "effectiveDate": "2026-08-24",
+      "approvalState": "PENDING_QUALIFIED_REVIEW", "approvalEvidenceRef": null, "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "APP_BILLING_PROOF", "workflow": "BILLING_PROOF", "status": "UNDETERMINED", "ruleFamilies": ["PRIVACY", "SECURITY", "BREACH_NOTIFICATION", "BAA_SUBPROCESSOR"],
+      "jurisdiction": "UNDETERMINED_LAUNCH_SCOPE", "rationale": "Payer and customer contracts have not been reviewed.",
+      "sourceIds": ["SRC_HHS_PRIVACY", "SRC_HHS_BAA"], "reviewerRole": "PRIVACY_OFFICIAL_ROLE", "effectiveDate": "2026-08-24",
+      "approvalState": "PENDING_QUALIFIED_REVIEW", "approvalEvidenceRef": null, "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTRL_PRIVACY_MINIMUM_NECESSARY", "ruleFamily": "PRIVACY", "sourceIds": ["SRC_HHS_MINIMUM_NECESSARY"], "designation": "REQUIRED_IF_APPLICABLE",
+      "safeguardType": "ADMINISTRATIVE", "ownerRole": "PRIVACY_OFFICIAL_ROLE", "policyRef": "POL_MINIMUM_NECESSARY_V1",
+      "implementationRationale": "Use purpose-aware field projections and deny excess fields.", "evidenceExpectations": ["role-projection-tests", "access-review"],
+      "reviewCadence": { "value": 1, "unit": "year" }, "nextReview": "2027-08-24", "implementationState": "PLANNED",
+      "evidenceState": "PLANNED", "exceptionState": "NONE", "remediationRef": null, "approvalState": "PENDING_QUALIFIED_REVIEW",
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "CTRL_SECURITY_RISK_ANALYSIS", "ruleFamily": "SECURITY", "sourceIds": ["SRC_HHS_RISK_ANALYSIS"], "designation": "REQUIRED_IF_APPLICABLE",
+      "safeguardType": "ADMINISTRATIVE", "ownerRole": "SECURITY_OFFICIAL_ROLE", "policyRef": "POL_RISK_MANAGEMENT_V1",
+      "implementationRationale": "Maintain asset, flow, threat, vulnerability, safeguard, and residual-risk records.", "evidenceExpectations": ["risk-register", "risk-treatment-validation"],
+      "reviewCadence": { "value": 1, "unit": "year" }, "nextReview": "2027-08-24", "implementationState": "PLANNED",
+      "evidenceState": "PLANNED", "exceptionState": "OPEN", "remediationRef": "RISK_CRITICAL_UNTREATED", "approvalState": "PENDING_QUALIFIED_REVIEW",
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "CTRL_SECURITY_ACCESS", "ruleFamily": "SECURITY", "sourceIds": ["SRC_HHS_SECURITY"], "designation": "REQUIRED_IF_APPLICABLE",
+      "safeguardType": "TECHNICAL", "ownerRole": "SECURITY_OFFICIAL_ROLE", "policyRef": "POL_ACCESS_CONTROL_V1",
+      "implementationRationale": "Require unique identity, tenant scope, least privilege, expiry, and break-glass audit.", "evidenceExpectations": ["access-tests", "access-review", "break-glass-review"],
+      "reviewCadence": { "value": 3, "unit": "month" }, "nextReview": "2026-11-24", "implementationState": "PLANNED",
+      "evidenceState": "PLANNED", "exceptionState": "NONE", "remediationRef": null, "approvalState": "PENDING_QUALIFIED_REVIEW",
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "CTRL_SECURITY_AUDIT", "ruleFamily": "SECURITY", "sourceIds": ["SRC_HHS_SECURITY"], "designation": "REQUIRED_IF_APPLICABLE",
+      "safeguardType": "TECHNICAL", "ownerRole": "SECURITY_OFFICIAL_ROLE", "policyRef": "POL_AUDIT_V1",
+      "implementationRationale": "Preserve actor, purpose, result, and material-change lineage without sensitive payloads.", "evidenceExpectations": ["audit-contract-test", "access-review"],
+      "reviewCadence": { "value": 3, "unit": "month" }, "nextReview": "2026-11-24", "implementationState": "PLANNED",
+      "evidenceState": "PLANNED", "exceptionState": "NONE", "remediationRef": null, "approvalState": "PENDING_QUALIFIED_REVIEW",
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "CTRL_SECURITY_INTEGRITY", "ruleFamily": "SECURITY", "sourceIds": ["SRC_HHS_SECURITY"], "designation": "ADDRESSABLE_IF_APPLICABLE",
+      "addressableAssessment": "Implementation is required unless a documented risk assessment selects and justifies an equivalent measure; ADDRESSABLE never means optional.",
+      "safeguardType": "TECHNICAL", "ownerRole": "SECURITY_OFFICIAL_ROLE", "policyRef": "POL_INTEGRITY_V1",
+      "implementationRationale": "Version, hash, and append-only lineage protect material evidence.", "evidenceExpectations": ["integrity-test", "amendment-history"],
+      "reviewCadence": { "value": 1, "unit": "year" }, "nextReview": "2027-08-24", "implementationState": "PLANNED",
+      "evidenceState": "PLANNED", "exceptionState": "NONE", "remediationRef": null, "approvalState": "PENDING_QUALIFIED_REVIEW",
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "CTRL_SECURITY_AUTHENTICATION", "ruleFamily": "SECURITY", "sourceIds": ["SRC_HHS_SECURITY"], "designation": "REQUIRED_IF_APPLICABLE",
+      "safeguardType": "TECHNICAL", "ownerRole": "SECURITY_OFFICIAL_ROLE", "policyRef": "POL_AUTHENTICATION_V1",
+      "implementationRationale": "Authenticate people and system actors before regulated access.", "evidenceExpectations": ["authentication-tests", "session-review"],
+      "reviewCadence": { "value": 1, "unit": "year" }, "nextReview": "2027-08-24", "implementationState": "PLANNED",
+      "evidenceState": "PLANNED", "exceptionState": "NONE", "remediationRef": null, "approvalState": "PENDING_QUALIFIED_REVIEW",
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "CTRL_SECURITY_TRANSMISSION", "ruleFamily": "SECURITY", "sourceIds": ["SRC_HHS_SECURITY"], "designation": "ADDRESSABLE_IF_APPLICABLE",
+      "addressableAssessment": "Transmission protection requires documented risk assessment and suitable safeguards; omission requires qualified rationale and equivalent control.",
+      "safeguardType": "TECHNICAL", "ownerRole": "SECURITY_OFFICIAL_ROLE", "policyRef": "POL_TRANSMISSION_V1",
+      "implementationRationale": "Protect approved payloads in transit and deny unapproved egress.", "evidenceExpectations": ["transport-test", "egress-policy-test"],
+      "reviewCadence": { "value": 1, "unit": "year" }, "nextReview": "2027-08-24", "implementationState": "PLANNED",
+      "evidenceState": "PLANNED", "exceptionState": "NONE", "remediationRef": null, "approvalState": "PENDING_QUALIFIED_REVIEW",
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "CTRL_BREACH_RESPONSE", "ruleFamily": "BREACH_NOTIFICATION", "sourceIds": ["SRC_HHS_BREACH"], "designation": "REQUIRED_IF_APPLICABLE",
+      "safeguardType": "ADMINISTRATIVE", "ownerRole": "PRIVACY_OFFICIAL_ROLE", "policyRef": "POL_INCIDENT_BREACH_V1",
+      "implementationRationale": "Preserve discovery and risk-assessment facts while qualified authority decides notification.", "evidenceExpectations": ["incident-exercise", "decision-lineage"],
+      "reviewCadence": { "value": 1, "unit": "year" }, "nextReview": "2027-08-24", "implementationState": "PLANNED",
+      "evidenceState": "PLANNED", "exceptionState": "OPEN", "remediationRef": "INC_POTENTIAL_DISCLOSURE", "approvalState": "PENDING_QUALIFIED_REVIEW",
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "CTRL_BAA_EXACT_SERVICE", "ruleFamily": "BAA_SUBPROCESSOR", "sourceIds": ["SRC_HHS_BAA", "SRC_HHS_NO_SELF_CERT_BAA"], "designation": "REQUIRED_IF_APPLICABLE",
+      "safeguardType": "ADMINISTRATIVE", "ownerRole": "PRIVACY_OFFICIAL_ROLE", "policyRef": "POL_VENDOR_BAA_V1",
+      "implementationRationale": "Verify the exact legal entity, service, configuration, region, subprocessors, and executed agreement.", "evidenceExpectations": ["executed-baa-reference", "service-configuration-review", "subprocessor-register"],
+      "reviewCadence": { "value": 1, "unit": "year" }, "nextReview": "2027-08-24", "implementationState": "PLANNED",
+      "evidenceState": "PLANNED", "exceptionState": "OPEN", "remediationRef": "VENDOR_SYNTHETIC_MISSING_BAA", "approvalState": "PENDING_QUALIFIED_REVIEW",
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "CTRL_PERIODIC_EVALUATION", "ruleFamily": "SECURITY", "sourceIds": ["SRC_HHS_AUDIT_PROTOCOL", "SRC_HHS_NO_CERTIFICATION"], "designation": "REQUIRED_IF_APPLICABLE",
+      "safeguardType": "ADMINISTRATIVE", "ownerRole": "SECURITY_OFFICIAL_ROLE", "policyRef": "POL_PERIODIC_EVALUATION_V1",
+      "implementationRationale": "Perform technical and non-technical evaluation on cadence and after material change.", "evidenceExpectations": ["evaluation-record", "remediation-review"],
+      "reviewCadence": { "value": 1, "unit": "year" }, "nextReview": "2026-08-01", "implementationState": "PLANNED",
+      "evidenceState": "EXPIRED", "exceptionState": "OPEN", "remediationRef": "EVAL_STALE_SYNTHETIC", "approvalState": "PENDING_QUALIFIED_REVIEW",
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    }
+  ],
+  "evidence": [
+    { "id": "EVID_PLANNED_POLICY", "controlId": "CTRL_PRIVACY_MINIMUM_NECESSARY", "kind": "POLICY", "state": "PLANNED", "provenance": "synthetic-work-package", "versionOrHash": "planned", "custodianRole": "PRIVACY_OFFICIAL_ROLE", "collectedAt": null, "reviewedAt": null, "result": "NOT_EVALUATED", "expiresAt": null, "exceptionOrRemediationRef": null, "qualifiedApproval": false, "recordVersion": 1, "supersedes": null, "immutableHistory": true },
+    { "id": "EVID_PLANNED_MAPS_REVIEW", "controlId": "CTRL_SECURITY_TRANSMISSION", "kind": "VENDOR_POLICY", "state": "PLANNED", "provenance": "synthetic-maps-boundary-review", "versionOrHash": "planned", "custodianRole": "PRIVACY_OFFICIAL_ROLE", "collectedAt": null, "reviewedAt": null, "result": "QUALIFIED_REVIEW_REQUIRED", "expiresAt": null, "exceptionOrRemediationRef": null, "qualifiedApproval": false, "recordVersion": 1, "supersedes": null, "immutableHistory": true },
+    { "id": "EVID_PLANNED_LOCATION_POLICY", "controlId": "CTRL_PRIVACY_MINIMUM_NECESSARY", "kind": "LOCATION_POLICY", "state": "PLANNED", "provenance": "synthetic-location-policy", "versionOrHash": "planned", "custodianRole": "PRIVACY_OFFICIAL_ROLE", "collectedAt": null, "reviewedAt": null, "result": "HUMAN_POLICY_APPROVAL_REQUIRED", "expiresAt": null, "exceptionOrRemediationRef": null, "qualifiedApproval": false, "recordVersion": 1, "supersedes": null, "immutableHistory": true },
+    { "id": "EVID_COLLECTED_TEST", "controlId": "CTRL_SECURITY_ACCESS", "kind": "TEST", "state": "COLLECTED", "provenance": "synthetic-test-output", "versionOrHash": "synthetic-hash-access", "custodianRole": "SECURITY_OFFICIAL_ROLE", "collectedAt": "2026-08-24", "reviewedAt": null, "result": "PASSING_TEST_NOT_CONTROL_APPROVAL", "expiresAt": "2026-11-24", "exceptionOrRemediationRef": null, "qualifiedApproval": false, "recordVersion": 1, "supersedes": null, "immutableHistory": true },
+    { "id": "EVID_REVIEWED_TRAINING", "controlId": "CTRL_SECURITY_AUTHENTICATION", "kind": "TRAINING", "state": "REVIEWED", "provenance": "synthetic-training-register", "versionOrHash": "synthetic-hash-training", "custodianRole": "SECURITY_OFFICIAL_ROLE", "collectedAt": "2026-08-20", "reviewedAt": "2026-08-24", "result": "SYNTHETIC_REVIEWED", "expiresAt": "2027-08-24", "exceptionOrRemediationRef": null, "qualifiedApproval": false, "recordVersion": 1, "supersedes": null, "immutableHistory": true },
+    { "id": "EVID_FAILED_RESTORE", "controlId": "CTRL_SECURITY_INTEGRITY", "kind": "RECOVERY_TEST", "state": "FAILED", "provenance": "synthetic-restore-exercise", "versionOrHash": "synthetic-hash-restore", "custodianRole": "SECURITY_OFFICIAL_ROLE", "collectedAt": "2026-08-22", "reviewedAt": "2026-08-24", "result": "FAILED_UNRESOLVED_DESTINATION", "expiresAt": null, "exceptionOrRemediationRef": "CONT_RESTORE_UNRESOLVED", "qualifiedApproval": false, "recordVersion": 1, "supersedes": null, "immutableHistory": true },
+    { "id": "EVID_EXPIRED_EVALUATION", "controlId": "CTRL_PERIODIC_EVALUATION", "kind": "EVALUATION", "state": "EXPIRED", "provenance": "synthetic-evaluation", "versionOrHash": "synthetic-hash-evaluation", "custodianRole": "SECURITY_OFFICIAL_ROLE", "collectedAt": "2025-08-01", "reviewedAt": "2025-08-02", "result": "STALE", "expiresAt": "2026-08-01", "exceptionOrRemediationRef": "EVAL_STALE_SYNTHETIC", "qualifiedApproval": false, "recordVersion": 1, "supersedes": null, "immutableHistory": true },
+    { "id": "EVID_QUALIFIED_APPROVAL_EXAMPLE", "controlId": "CTRL_PRIVACY_MINIMUM_NECESSARY", "kind": "QUALIFIED_APPROVAL", "state": "QUALIFIED_APPROVAL", "provenance": "synthetic-example-only", "versionOrHash": "synthetic-opaque-approval-ref", "custodianRole": "PRIVACY_OFFICIAL_ROLE", "collectedAt": "2026-08-24", "reviewedAt": "2026-08-24", "result": "EXAMPLE_NOT_PRODUCTION_AUTHORITY", "expiresAt": "2026-08-25", "exceptionOrRemediationRef": null, "qualifiedApproval": true, "recordVersion": 1, "supersedes": null, "immutableHistory": true }
+  ],
+  "risks": [
+    {
+      "id": "RISK_CRITICAL_UNTREATED", "scope": ["synthetic-ephi-data-flow", "vendor-egress"], "threat": "Unapproved sensitive disclosure", "vulnerability": "Production enforcement not implemented",
+      "existingSafeguards": ["synthetic-contract-validation"], "likelihood": "LIKELY", "impact": "SEVERE", "inherentRisk": "CRITICAL", "residualRisk": "CRITICAL",
+      "treatment": "OPEN_REMEDIATE", "ownerRole": "SECURITY_OFFICIAL_ROLE", "dueDate": "2026-09-30", "validationEvidenceRefs": [], "acceptanceAuthorityRole": null,
+      "reassessmentTriggers": ["production-scaffold", "vendor-change", "workflow-change"], "approvalState": "UNACCEPTED", "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "RISK_SYNTHETIC_CANARY_ESCAPE", "scope": ["synthetic-observability-flow"], "threat": "Sensitive telemetry leakage", "vulnerability": "Unknown field reaches telemetry",
+      "existingSafeguards": ["allowlist", "canary-test"], "likelihood": "POSSIBLE", "impact": "MAJOR", "inherentRisk": "HIGH", "residualRisk": "MEDIUM",
+      "treatment": "MITIGATE_AND_VALIDATE", "ownerRole": "SECURITY_OFFICIAL_ROLE", "dueDate": "2026-09-30", "validationEvidenceRefs": ["EVID_COLLECTED_TEST"], "acceptanceAuthorityRole": null,
+      "reassessmentTriggers": ["telemetry-vendor-change", "new-field"], "approvalState": "PENDING_QUALIFIED_REVIEW", "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    }
+  ],
+  "vendors": [
+    {
+      "id": "VENDOR_GOOGLE_MAPS_ROUTE_GUIDANCE", "legalEntity": "Google Maps Platform", "exactService": "route-guidance-envelope-only", "dataClasses": ["RESTRICTED_LOCATION"],
+      "hipaaRole": "NO_PHI_ENVELOPE_ONLY", "purpose": "MAPS_ROUTE_GUIDANCE", "baaStatus": "NOT_APPLICABLE_TO_NO_PHI_ENVELOPE", "contractStatus": "PENDING_QUALIFIED_REVIEW",
+      "approvedConfiguration": "EXPLICIT_ALLOWLIST_ONLY", "subprocessorEvidence": "PENDING", "region": "UNDETERMINED", "retentionDeletion": "TERMS_REVIEW_REQUIRED",
+      "incidentObligations": "TERMS_REVIEW_REQUIRED", "reviewDate": "2026-08-24", "approvalEvidenceRef": "EVID_PLANNED_MAPS_REVIEW", "phiEligible": false,
+      "marketingClaims": [], "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "VENDOR_SYNTHETIC_MISSING_BAA", "legalEntity": "SYNTHETIC_VENDOR_ENTITY_ALPHA", "exactService": "SYNTHETIC_CLAIMS_FEATURE_ALPHA", "dataClasses": ["REGULATED_HEALTH"],
+      "hipaaRole": "UNDETERMINED", "purpose": "PARTNER_EXPORT", "baaStatus": "MISSING", "contractStatus": "NOT_APPROVED",
+      "approvedConfiguration": null, "subprocessorEvidence": "MISSING", "region": "UNDETERMINED", "retentionDeletion": "UNDETERMINED",
+      "incidentObligations": "UNDETERMINED", "reviewDate": "2026-08-24", "approvalEvidenceRef": null, "phiEligible": false,
+      "marketingClaims": ["HIPAA_ELIGIBLE", "ENCRYPTED", "SOC_2", "HITRUST"], "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "VENDOR_SYNTHETIC_EXECUTED_BAA_EXAMPLE", "legalEntity": "SYNTHETIC_VENDOR_ENTITY_BETA", "exactService": "SYNTHETIC_STORAGE_FEATURE_BETA", "dataClasses": ["REGULATED_HEALTH"],
+      "hipaaRole": "BUSINESS_ASSOCIATE_SUBCONTRACTOR", "purpose": "CONTINGENCY_RECOVERY", "baaStatus": "EXECUTED_SYNTHETIC_EXAMPLE", "contractStatus": "SYNTHETIC_EXAMPLE_NOT_APPROVED",
+      "approvedConfiguration": "SYNTHETIC_CONFIG_REFERENCE", "subprocessorEvidence": "SYNTHETIC_REGISTER_REFERENCE", "region": "SYNTHETIC_US_REGION",
+      "retentionDeletion": "SYNTHETIC_POLICY_REFERENCE", "incidentObligations": "SYNTHETIC_CONTRACT_REFERENCE", "reviewDate": "2026-08-24",
+      "approvalEvidenceRef": "EVID_QUALIFIED_APPROVAL_EXAMPLE", "phiEligible": false, "marketingClaims": [], "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    }
+  ],
+  "evaluations": [
+    {
+      "id": "EVAL_STALE_SYNTHETIC", "scope": ["synthetic-technical", "synthetic-nontechnical"], "methods": ["document-review", "contract-tests"],
+      "evaluator": "SYNTHETIC_EVALUATOR_ROLE", "evaluatorIndependence": "INTERNAL", "evidenceSampled": ["EVID_EXPIRED_EVALUATION"],
+      "findings": ["STALE_AFTER_CADENCE"], "remediationRefs": ["CTRL_PERIODIC_EVALUATION"], "residualRisk": "HIGH", "approvalState": "EXPIRED",
+      "evaluatedAt": "2025-08-01", "nextReview": "2026-08-01", "materialChangeTriggers": ["architecture-change", "vendor-change", "workflow-change", "material-threat-change"],
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    },
+    {
+      "id": "EVAL_CURRENT_SYNTHETIC", "scope": ["work-package-contract-only"], "methods": ["deterministic-validation"],
+      "evaluator": "SYNTHETIC_EVALUATOR_ROLE", "evaluatorIndependence": "INTERNAL", "evidenceSampled": ["EVID_COLLECTED_TEST"],
+      "findings": ["CONTRACT_TEST_ONLY_NOT_LEGAL_APPROVAL"], "remediationRefs": [], "residualRisk": "UNDETERMINED", "approvalState": "SYNTHETIC_REVIEWED",
+      "evaluatedAt": "2026-08-24", "nextReview": "2027-08-24", "materialChangeTriggers": ["architecture-change", "vendor-change", "workflow-change", "material-threat-change"],
+      "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    }
+  ],
+  "incidents": [
+    {
+      "id": "INC_POTENTIAL_DISCLOSURE", "type": "POTENTIAL_BREACH", "status": "OPEN_ASSESSMENT", "discoveredAt": "2026-08-24T00:00:00Z",
+      "containedAt": "2026-08-24T00:15:00Z", "assessmentInputs": ["nature-and-extent", "unauthorized-recipient", "acquisition-or-view", "mitigation"],
+      "notificationClock": { "start": "2026-08-24T00:00:00Z", "status": "TRACKING_ONLY_NO_AUTOMATED_DEADLINE_DECISION" },
+      "mitigation": ["synthetic-egress-disabled"], "decisionAuthorityRole": "PRIVACY_OFFICIAL_ROLE", "legalDetermination": null,
+      "customerAuthorityObligations": "PENDING_QUALIFIED_ASSESSMENT", "correctiveActions": [{ "id": "ACT_INCIDENT_REVIEW", "ownerRole": "PRIVACY_OFFICIAL_ROLE", "dueDate": "2026-08-25", "status": "OPEN" }],
+      "closureApproval": null, "auditLineage": ["syn_audit_incident_alpha"], "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    }
+  ],
+  "contingency": [
+    {
+      "id": "CONT_RESTORE_UNRESOLVED", "type": "RECOVERY_TEST", "scope": ["synthetic-backup", "deletion-tombstone-replay"], "performedAt": "2026-08-24",
+      "rpoTarget": "PROVISIONAL", "rtoTarget": "PROVISIONAL", "result": "FAILED", "restoredComponents": ["synthetic-records"],
+      "unresolvedDestinations": ["SYNTHETIC_DOWNSTREAM_ALPHA"], "deletionReconciliation": "INCOMPLETE", "evidenceRefs": ["EVID_FAILED_RESTORE"],
+      "ownerRole": "SECURITY_OFFICIAL_ROLE", "correctiveActions": [{ "id": "ACT_RESTORE_RECONCILIATION", "ownerRole": "SECURITY_OFFICIAL_ROLE", "status": "OPEN", "dueDate": "2026-09-01" }],
+      "approvalState": "FAILED_REQUIRES_REMEDIATION", "recordVersion": 1, "supersedes": null, "immutableHistory": true
+    }
+  ],
+  "workforce": {
+    "responsibilityRoles": [
+      { "id": "RESP_PRIVACY", "role": "PRIVACY_OFFICIAL_ROLE", "assignedActor": "SYNTHETIC_ROLE_PLACEHOLDER_NOT_PERSON", "approvalState": "PROVISIONAL" },
+      { "id": "RESP_SECURITY", "role": "SECURITY_OFFICIAL_ROLE", "assignedActor": "SYNTHETIC_ROLE_PLACEHOLDER_NOT_PERSON", "approvalState": "PROVISIONAL" }
+    ],
+    "training": [{ "id": "TRAIN_SYNTHETIC_ONBOARDING", "role": "SUPPORT_USER", "kind": "ONBOARDING_AND_RECURRING", "acknowledgement": "SYNTHETIC_ACK_REFERENCE", "completedAt": "2026-08-24", "nextDue": "2027-08-24", "state": "SYNTHETIC_REVIEWED" }],
+    "sanctions": [{ "id": "SANCTION_POLICY_SYNTHETIC", "policyVersion": "POL_WORKFORCE_V1", "appliesTo": "all-workforce-roles", "state": "PLANNED" }],
+    "accessReviews": [{ "id": "ACCESS_REVIEW_TERMINATED", "actor": "SYNTHETIC_TERMINATED_ACTOR_ALPHA", "role": "SUPPORT_USER", "employmentState": "TERMINATED", "accessState": "REVOKED", "reviewedAt": "2026-08-24", "reviewerRole": "SECURITY_OFFICIAL_ROLE" }],
+    "breakGlassReviews": [{ "id": "BREAK_GLASS_SYNTHETIC", "actor": "SYNTHETIC_SUPPORT_ACTOR_ALPHA", "reason": "SYNTHETIC_INCIDENT_DIAGNOSIS", "approvalRef": "SYNTHETIC_APPROVAL_ALPHA", "expiresAt": "2026-08-24T01:00:00Z", "auditRef": "syn_audit_break_glass_alpha", "reviewState": "PENDING" }],
+    "policyVersions": [
+      { "id": "POL_MINIMUM_NECESSARY_V1", "version": 1, "publishedAt": "2026-08-24", "state": "PROVISIONAL", "supersedes": null, "immutableHistory": true },
+      { "id": "POL_MINIMUM_NECESSARY_V2", "version": 2, "publishedAt": "2026-08-25", "state": "PROVISIONAL_AMENDMENT", "supersedes": "POL_MINIMUM_NECESSARY_V1", "immutableHistory": true }
+    ]
+  },
+  "assurances": [
+    { "id": "ASSURE_INTERNAL", "type": "INTERNAL_EVALUATION", "scope": "work-package-contract", "period": "2026-08-24", "assessor": "SYNTHETIC_INTERNAL_ROLE", "findings": ["CONTRACT_ONLY"], "exceptions": [], "expiresAt": "2027-08-24", "limitations": ["NOT_HHS_CERTIFICATION", "NOT_LEGAL_COMPLIANCE_DECISION", "NOT_PRODUCTION_PHI_APPROVAL", "NOT_BAA_SUBSTITUTE"], "approvalState": "SYNTHETIC" },
+    { "id": "ASSURE_INDEPENDENT", "type": "INDEPENDENT_HIPAA_ASSESSMENT", "scope": "UNPURCHASED_SYNTHETIC_PLACEHOLDER", "period": "NOT_PERFORMED", "assessor": "NOT_SELECTED", "findings": [], "exceptions": [], "expiresAt": null, "limitations": ["NOT_HHS_CERTIFICATION", "NOT_BAA_SUBSTITUTE", "NOT_AUTOMATIC_PRODUCTION_APPROVAL"], "approvalState": "NOT_PERFORMED" },
+    { "id": "ASSURE_SOC2", "type": "SOC_2", "scope": "UNPURCHASED_SYNTHETIC_PLACEHOLDER", "period": "NOT_PERFORMED", "assessor": "NOT_SELECTED", "findings": [], "exceptions": [], "expiresAt": null, "limitations": ["NOT_HIPAA_EQUIVALENCE", "NOT_BAA_SUBSTITUTE", "NOT_AUTOMATIC_PRODUCTION_APPROVAL"], "approvalState": "NOT_PERFORMED" },
+    { "id": "ASSURE_HITRUST", "type": "HITRUST", "scope": "UNPURCHASED_SYNTHETIC_PLACEHOLDER", "period": "NOT_PERFORMED", "assessor": "NOT_SELECTED", "findings": [], "exceptions": [], "expiresAt": null, "limitations": ["NOT_HHS_CERTIFICATION", "NOT_BAA_SUBSTITUTE", "NOT_AUTOMATIC_PRODUCTION_APPROVAL"], "approvalState": "NOT_PERFORMED" }
+  ]
+}

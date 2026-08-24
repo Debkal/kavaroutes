@@ -1,0 +1,30 @@
+name: kavaroutes-wp006
+services:
+  postgres:
+    image: postgis/postgis:17-3.5@sha256:624f5195b91d424dbebf018890148cc0e5a3e80db5467da8b53cc2ed2ce49216
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - track_io_timing=on
+      - -c
+      - timezone=UTC
+      - -c
+      - max_connections=120
+    environment:
+      POSTGRES_DB: kavaroutes_wp006
+      POSTGRES_USER: wp006_admin
+      POSTGRES_PASSWORD: ${WP006_POSTGRES_PASSWORD:?set WP006_POSTGRES_PASSWORD locally}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wp006_admin -d kavaroutes_wp006"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "127.0.0.1:55433:5432"
+    volumes:
+      - wp006-postgres:/var/lib/postgresql/data
+    stop_grace_period: 30s
+volumes:
+  wp006-postgres:

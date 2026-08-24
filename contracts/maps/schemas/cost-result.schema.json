@@ -1,0 +1,5 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://kavaroutes.local/contracts/maps/cost-result.schema.json","title":"KavaRoutes deterministic Maps cost result","type":"object","additionalProperties":false,
+  "required":["profileId","priceVersion","modelVersion","monthly","perTenant","perActiveVehicle","perTrip","volumes","breakdown","subscriptions"],
+  "properties":{"profileId":{"type":"string"},"priceVersion":{"type":"string"},"modelVersion":{"type":"string"},"monthly":{"type":"number","minimum":0},"perTenant":{"type":"number","minimum":0},"perActiveVehicle":{"type":"number","minimum":0},"perTrip":{"type":"number","minimum":0},"volumes":{"type":"object","additionalProperties":{"type":"number","minimum":0}},"breakdown":{"type":"object"},"subscriptions":{"type":"array"}}
+}

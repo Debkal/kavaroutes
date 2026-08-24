@@ -1,0 +1,9 @@
+{
+  "name":"@kavaroutes/maps-policy-contract",
+  "version":"1.0.0",
+  "private":true,
+  "type":"module",
+  "description":"Synthetic, offline Work Package 004 Maps policy and cost contract",
+  "scripts":{"validate":"node scripts/validate.mjs","generate":"node scripts/generate.mjs","test":"node --test test/maps.test.mjs"},
+  "engines":{"node":">=18"}
+}

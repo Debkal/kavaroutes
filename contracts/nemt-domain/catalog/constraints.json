@@ -1,0 +1,28 @@
+{
+  "schemaVersion":"1.0.0",
+  "status":"PROVISIONAL_PENDING_OPERATOR_VALIDATION",
+  "provenance":"ARQ-003",
+  "constraints":[
+    {"id":"TENANT_SCOPE","kind":"ALWAYS_HARD","scope":"all_owned_records_commands_events_and_external_mappings","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"all referenced tenant IDs must equal the command tenant","override":"NEVER"},
+    {"id":"SERVICE_TIME_CONTEXT","kind":"ALWAYS_HARD","scope":"service_instances","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"service date, IANA timezone, and unambiguous instants required","override":"NEVER"},
+    {"id":"SINGLE_ACTIVE_ASSIGNMENT","kind":"ALWAYS_HARD","scope":"leg_execution_segment","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"at most one active assignment per effective interval","override":"NEVER"},
+    {"id":"RESOURCE_INTERVAL_OVERLAP","kind":"ALWAYS_HARD","scope":"driver_and_vehicle_allocations","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"driving allocations cannot overlap unless the explicit non-driving model permits it","override":"NEVER"},
+    {"id":"EXECUTION_SEQUENCE","kind":"ALWAYS_HARD","scope":"leg_execution","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"pickup and boarding precede drop-off and completion; onboard work cannot become cancellation or no-show","override":"NEVER"},
+    {"id":"WILL_CALL_READY_CLOCK","kind":"ALWAYS_HARD","scope":"will_call","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"response time starts only at durable ready_at","override":"NEVER"},
+    {"id":"MULTI_LOAD_CAPACITY","kind":"ALWAYS_HARD","scope":"overlapping_onboard_intervals","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"sum rider, companion, escort, and equipment dimensions over each interval","override":"NEVER"},
+    {"id":"RESOURCE_SAFETY_QUALIFICATION","kind":"ALWAYS_HARD","scope":"driver_vehicle_assignment","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"active qualifications, capabilities, credentials, and safety limits required","override":"NEVER"},
+    {"id":"IDEMPOTENT_OPTIMISTIC_COMMAND","kind":"ALWAYS_HARD","scope":"commands_and_events","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"tenant-scoped idempotency key plus matching aggregate version; duplicates have one effect","override":"NEVER"},
+    {"id":"APPEND_ONLY_LINEAGE","kind":"ALWAYS_HARD","scope":"evidence_assignments_execution_segments_financial_facts","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"corrections use amendment, supersession, adjustment, reversal, or void lineage","override":"NEVER"},
+    {"id":"NON_AUTHORITATIVE_INPUTS","kind":"ALWAYS_HARD","scope":"gps_geofence_optimizer_realtime_push","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"external inputs may provide evidence, proposals, or delivery only","override":"NEVER"},
+    {"id":"FINANCIAL_ELIGIBILITY","kind":"ALWAYS_HARD","scope":"billing_case_and_financial_issue","source":"ARQ-003","effectivePolicy":"DOMAIN-1.0.0","evaluation":"performed-service charge requires eligible outcome, authorization, rate, effective policy, and required evidence","override":"NEVER"},
+    {"id":"AUTHORIZATION_POLICY","kind":"POLICY_HARD","scope":"leg_and_billing_case","source":"ARQ-003","effectivePolicy":"SYN_POLICY_AUTH_001","evaluation":"effective authorization covers service, mode, dates, and limits","override":"POLICY_DEFINED_PRIVILEGED_ONLY"},
+    {"id":"SERVICE_AREA_POLICY","kind":"POLICY_HARD","scope":"trip_leg_and_run","source":"ARQ-003","effectivePolicy":"SYN_POLICY_AREA_001","evaluation":"origin, destination, and resource fall within effective policy scope","override":"POLICY_DEFINED_PRIVILEGED_ONLY"},
+    {"id":"NO_SHOW_DOCUMENTATION_POLICY","kind":"POLICY_HARD","scope":"rider_no_show_and_charge","source":"ARQ-003","effectivePolicy":"SYN_POLICY_NOSHOW_001","evaluation":"arrival, wait, contact, and authorization evidence must satisfy effective policy","override":"POLICY_DEFINED_PRIVILEGED_ONLY"},
+    {"id":"MODE_DOCUMENTATION_POLICY","kind":"POLICY_HARD","scope":"service_mode_and_evidence","source":"ARQ-003","effectivePolicy":"SYN_POLICY_MODE_001","evaluation":"declared mode and documentation requirements pass","override":"POLICY_DEFINED_PRIVILEGED_ONLY"},
+    {"id":"MAXIMUM_RIDE_TIME","kind":"POLICY_HARD","scope":"multi_load_and_leg_execution","source":"ARQ-003","effectivePolicy":"SYN_POLICY_RIDE_TIME_001","evaluation":"projected and actual onboard interval is within effective limit","override":"POLICY_DEFINED_PRIVILEGED_ONLY"},
+    {"id":"DEADHEAD_PENALTY","kind":"SOFT","scope":"planning","source":"ARQ-003","effectivePolicy":"SYN_POLICY_OPT_001","evaluation":"penalize excess unloaded movement","override":"AUTHORIZED_WITH_AUDIT"},
+    {"id":"LATE_TOLERANCE_PENALTY","kind":"SOFT","scope":"planning_and_dispatch","source":"ARQ-003","effectivePolicy":"SYN_POLICY_LATE_001","evaluation":"score deviation from provisional service-window tolerance","override":"AUTHORIZED_WITH_AUDIT"},
+    {"id":"PREFERRED_DRIVER","kind":"SOFT","scope":"assignment","source":"ARQ-003","effectivePolicy":"SYN_POLICY_PREF_001","evaluation":"prefer continuity when hard constraints remain satisfied","override":"AUTHORIZED_WITH_AUDIT"},
+    {"id":"BALANCED_UTILIZATION","kind":"SOFT","scope":"planning","source":"ARQ-003","effectivePolicy":"SYN_POLICY_BALANCE_001","evaluation":"penalize avoidable utilization imbalance","override":"AUTHORIZED_WITH_AUDIT"}
+  ]
+}

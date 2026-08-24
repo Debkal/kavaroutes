@@ -1,0 +1,20 @@
+{
+  "schemaVersion":"1.0.0","effectiveDate":"2026-08-24","status":"DATED_RESEARCH_INPUT_NOT_PRODUCTION_APPROVAL",
+  "sources":[
+    {"id":"SRC_MAPS_GLOBAL_PRICING","title":"Google Maps Platform core services pricing list","url":"https://developers.google.com/maps/billing-and-pricing/pricing","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_MAPS_PRICING_OVERVIEW","title":"Google Maps Platform pricing overview and subscriptions","url":"https://developers.google.com/maps/billing-and-pricing/overview","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_MAPS_COST_MANAGEMENT","title":"Google Maps Platform cost management","url":"https://developers.google.com/maps/billing-and-pricing/manage-costs","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_MAPS_MONITORING","title":"Google Maps Platform monitoring","url":"https://developers.google.com/maps/reporting-and-monitoring/monitoring","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_MAPS_TERMS","title":"Google Maps Platform Terms of Service","url":"https://cloud.google.com/maps-platform/terms","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_MAPS_SERVICE_TERMS","title":"Google Maps Platform service-specific terms","url":"https://cloud.google.com/maps-platform/terms/maps-service-terms","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_MAPS_SECURITY","title":"Google Maps Platform API security guidance","url":"https://developers.google.com/maps/api-security-best-practices","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_PLACES_SESSION_PRICING","title":"Places Autocomplete session pricing","url":"https://developers.google.com/maps/documentation/places/web-service/session-pricing","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_PLACES_POLICY","title":"Places API policies, storage, and attribution","url":"https://developers.google.com/maps/documentation/places/web-service/policies","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_PLACE_ID","title":"Place ID storage and refresh guidance","url":"https://developers.google.com/maps/documentation/places/web-service/place-id","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_GEOCODING_V4","title":"Geocoding API v4 overview","url":"https://developers.google.com/maps/documentation/geocoding/geocoding-v4-overview","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_ROUTES_USAGE","title":"Routes API usage and billing","url":"https://developers.google.com/maps/documentation/routes/usage-and-billing","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_ROUTE_MATRIX","title":"Compute Route Matrix documentation","url":"https://developers.google.com/maps/documentation/routes/compute_route_matrix","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_ROUTE_FIELD_MASK","title":"Routes API field masks","url":"https://developers.google.com/maps/documentation/routes/choose_fields","accessed":"2026-08-24","authority":"Google"},
+    {"id":"SRC_OPTIMIZATION_BILLING","title":"Route Optimization usage and billing","url":"https://developers.google.com/maps/documentation/route-optimization/usage-and-billing","accessed":"2026-08-24","authority":"Google"}
+  ]
+}

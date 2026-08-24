@@ -1,0 +1,20 @@
+{
+  "schemaVersion":"1.0.0","modelVersion":"arq-004-controlled-p0-v1","fixtureSeed":"kavaroutes-wp004-cost-v1","status":"PLANNING_HYPOTHESIS_NOT_MEASURED_USAGE","workloadSource":"benchmarks/workloads/profiles/*.json","serviceDaysPerMonth":30,
+  "assumptions":{
+    "interactiveAddressSelectionsPerTrip":0.2,"autocompleteRequestsPerSelection":4,"detailsRequestsPerSuccessfulSelection":1,"successfulSelectionRate":1,
+    "serverGeocodesPerTrip":0.25,"dynamicMapLoadsPerWebUserPerServiceDay":2,"routesProPerVehiclePerServiceDay":3,"matrixProElementsPerLegPerServiceDay":0.5,
+    "optimizationShipmentsPerLegPerServiceDayP0":0,"navigationDestinationsPerLegPerServiceDayP0":0
+  },
+  "expectedControlledTotals":[
+    {"profileId":"small-pilot","monthly":105.66,"perActiveVehicle":4.23,"perTrip":0.0070},
+    {"profileId":"p0-growth","monthly":497.33,"perActiveVehicle":6.63,"perTrip":0.0111},
+    {"profileId":"enterprise-design","monthly":4097.50,"perActiveVehicle":8.20,"perTrip":0.0137},
+    {"profileId":"commercial-platform","monthly":25602.70,"perActiveVehicle":5.12,"perTrip":0.0085}
+  ],
+  "sensitivityScenarios":[
+    {"id":"CONTROLLED_P0","overrides":{}},
+    {"id":"FLEET_OPTIMIZATION_EACH_LEG","overrides":{"optimizationShipmentsPerLegPerServiceDayP0":1}},
+    {"id":"EMBEDDED_NAVIGATION_EACH_LEG","overrides":{"navigationDestinationsPerLegPerServiceDayP0":1}},
+    {"id":"DOUBLE_MATRIX_AFTER_PREFILTER","overrides":{"matrixProElementsPerLegPerServiceDay":1}}
+  ]
+}

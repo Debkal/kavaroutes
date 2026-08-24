@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "environment": "local-synthetic",
+  "profiles": [
+    {
+      "name": "dispatcher-state-changes",
+      "iterations": 10000,
+      "elapsedMs": 21.102,
+      "operationsPerSecond": 473884
+    },
+    {
+      "name": "location-burst-thin-jobs",
+      "iterations": 25000,
+      "elapsedMs": 29.192,
+      "operationsPerSecond": 856402
+    },
+    {
+      "name": "nightly-optimization-backoff",
+      "iterations": 25000,
+      "elapsedMs": 1.476,
+      "operationsPerSecond": 16937394
+    },
+    {
+      "name": "provider-outage-telemetry",
+      "iterations": 25000,
+      "elapsedMs": 5.171,
+      "operationsPerSecond": 4834832
+    }
+  ]
+}

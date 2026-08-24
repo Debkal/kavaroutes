@@ -1,0 +1,25 @@
+{
+  "schemaVersion":"1.0.0","priceVersion":"google-global-2026-08-24","effectiveDate":"2026-08-24","provider":"GOOGLE_MAPS_PLATFORM","apiVersion":"DATED_PUBLIC_SNAPSHOT","pricingRegion":"GLOBAL","currency":"USD","priceUnit":"USD_PER_1000_BILLABLE_EVENTS","sourceId":"SRC_MAPS_GLOBAL_PRICING","status":"DATED_INPUT_RECHECK_BEFORE_COMMITMENT",
+  "tierUpperBounds":[100000,500000,1000000,5000000,null],
+  "skus":[
+    {"id":"AUTOCOMPLETE_REQUESTS","category":"ESSENTIALS","billableUnit":"REQUEST","freeCap":10000,"rates":[2.83,2.27,1.70,0.85,0.21]},
+    {"id":"AUTOCOMPLETE_SESSION_USAGE","category":"ESSENTIALS","billableUnit":"SESSION_REQUEST_AFTER_TWELVE","freeCap":null,"rates":[0,0,0,0,0]},
+    {"id":"PLACE_DETAILS_ESSENTIALS","category":"ESSENTIALS","billableUnit":"REQUEST","freeCap":10000,"rates":[5,4,3,1.5,0.38]},
+    {"id":"PLACE_DETAILS_IDS_ONLY","category":"ESSENTIALS","billableUnit":"REQUEST","freeCap":null,"rates":[0,0,0,0,0]},
+    {"id":"GEOCODING","category":"ESSENTIALS","billableUnit":"REQUEST","freeCap":10000,"rates":[5,4,3,1.5,0.38]},
+    {"id":"DYNAMIC_MAPS","category":"ESSENTIALS","billableUnit":"MAP_LOAD","freeCap":10000,"rates":[7,5.6,4.2,2.1,0.53]},
+    {"id":"MAPS_SDK","category":"ESSENTIALS","billableUnit":"MAP_LOAD","freeCap":null,"rates":[0,0,0,0,0]},
+    {"id":"COMPUTE_ROUTES_ESSENTIALS","category":"ESSENTIALS","billableUnit":"REQUEST","freeCap":10000,"rates":[5,4,3,1.5,0.38]},
+    {"id":"COMPUTE_MATRIX_ESSENTIALS","category":"ESSENTIALS","billableUnit":"MATRIX_ELEMENT","freeCap":10000,"rates":[5,4,3,1.5,0.38]},
+    {"id":"COMPUTE_ROUTES_PRO","category":"PRO","billableUnit":"REQUEST","freeCap":5000,"rates":[10,8,6,3,0.75]},
+    {"id":"COMPUTE_MATRIX_PRO","category":"PRO","billableUnit":"MATRIX_ELEMENT","freeCap":5000,"rates":[10,8,6,3,0.75]},
+    {"id":"OPTIMIZATION_SINGLE_VEHICLE","category":"PRO","billableUnit":"SHIPMENT","freeCap":5000,"rates":[10,4,2,0.8,0.7]},
+    {"id":"OPTIMIZATION_FLEET","category":"ENTERPRISE","billableUnit":"SHIPMENT","freeCap":1000,"rates":[30,14,6,2.4,2.1]},
+    {"id":"NAVIGATION_REQUEST","category":"ENTERPRISE","billableUnit":"DESTINATION_OR_REQUEST","freeCap":1000,"rates":[25,20,15,8,2]}
+  ],
+  "subscriptions":[
+    {"id":"SUB_50K","monthlyPrice":100,"includedEvents":50000,"includedSkuPolicy":"PUBLIC_INCLUDED_SKU_LIST","excludedSkus":["OPTIMIZATION_FLEET","NAVIGATION_REQUEST"]},
+    {"id":"SUB_100K","monthlyPrice":275,"includedEvents":100000,"includedSkuPolicy":"PUBLIC_INCLUDED_SKU_LIST","excludedSkus":["OPTIMIZATION_FLEET","NAVIGATION_REQUEST"]},
+    {"id":"SUB_250K","monthlyPrice":1200,"includedEvents":250000,"includedSkuPolicy":"PUBLIC_INCLUDED_SKU_LIST","excludedSkus":["OPTIMIZATION_FLEET","NAVIGATION_REQUEST"]}
+  ]
+}

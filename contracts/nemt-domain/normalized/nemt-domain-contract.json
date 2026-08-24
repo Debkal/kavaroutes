@@ -1,0 +1,3152 @@
+{
+  "aggregates": {
+    "aggregates": [
+      {
+        "allowedReferences": [
+          "FACILITY_ADDRESS"
+        ],
+        "id": "RIDER",
+        "mustNotOwn": [
+          "historical_trip_snapshot",
+          "authorization_decision",
+          "billing_outcome"
+        ],
+        "owner": "Rider",
+        "owns": [
+          "current_profile",
+          "contacts",
+          "service_needs",
+          "consent_references"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [],
+        "id": "FACILITY_ADDRESS",
+        "mustNotOwn": [
+          "passenger_execution",
+          "payer_policy"
+        ],
+        "owner": "FacilityAddressDirectory",
+        "owns": [
+          "facility_record",
+          "normalized_address",
+          "address_provenance"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "RIDER",
+          "FACILITY_ADDRESS",
+          "AUTHORIZATION"
+        ],
+        "id": "TRIP_REQUEST",
+        "mustNotOwn": [
+          "run_ordering",
+          "driver_state",
+          "vehicle_state",
+          "evidence",
+          "charge"
+        ],
+        "owner": "TripRequest",
+        "owns": [
+          "intake_source",
+          "requester",
+          "dated_booking",
+          "legs",
+          "recurrence_link",
+          "booking_amendment_history"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "RIDER"
+        ],
+        "id": "AUTHORIZATION",
+        "mustNotOwn": [
+          "transportation_evidence",
+          "execution_state"
+        ],
+        "owner": "Authorization",
+        "owns": [
+          "payer_decision",
+          "covered_mode",
+          "covered_service",
+          "limits",
+          "effective_period",
+          "policy_version"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "TRIP_REQUEST",
+          "ASSIGNMENT"
+        ],
+        "id": "RUN",
+        "mustNotOwn": [
+          "original_trip_fact",
+          "rider_master",
+          "financial_outcome"
+        ],
+        "owner": "Run",
+        "owns": [
+          "service_date",
+          "timezone",
+          "ordered_stop_tasks",
+          "manifest_version",
+          "operational_locks",
+          "run_lifecycle"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "RUN",
+          "LEG_EXECUTION"
+        ],
+        "id": "ASSIGNMENT",
+        "mustNotOwn": [
+          "optimizer_proposal",
+          "destructive_prior_binding_overwrite"
+        ],
+        "owner": "Assignment",
+        "owns": [
+          "segment_run_binding",
+          "resource_binding",
+          "acknowledgement",
+          "effective_interval",
+          "version",
+          "supersession_history"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "TRIP_REQUEST",
+          "ASSIGNMENT",
+          "EVIDENCE_RECORD"
+        ],
+        "id": "LEG_EXECUTION",
+        "mustNotOwn": [
+          "invoice_state",
+          "mutable_evidence_replacement"
+        ],
+        "owner": "LegExecution",
+        "owns": [
+          "leg_progression",
+          "execution_segments",
+          "outcome",
+          "actor_device_sequence"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "LEG_EXECUTION"
+        ],
+        "id": "EVIDENCE_RECORD",
+        "mustNotOwn": [
+          "direct_billing_transition",
+          "direct_execution_transition"
+        ],
+        "owner": "EvidenceRecord",
+        "owns": [
+          "observations",
+          "source",
+          "capture_time",
+          "record_time",
+          "provenance",
+          "amendments",
+          "verification_state"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "RUN",
+          "ASSIGNMENT"
+        ],
+        "id": "LOCATION_STREAM",
+        "mustNotOwn": [
+          "booking_truth",
+          "authoritative_arrival",
+          "authoritative_completion"
+        ],
+        "owner": "LocationStream",
+        "owns": [
+          "current_position",
+          "governed_breadcrumb_batches",
+          "batch_deduplication"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "LEG_EXECUTION",
+          "EVIDENCE_RECORD",
+          "AUTHORIZATION",
+          "INVOICE_CLAIM"
+        ],
+        "id": "BILLING_CASE",
+        "mustNotOwn": [
+          "execution_rewrite",
+          "issued_fact_rewrite"
+        ],
+        "owner": "BillingCase",
+        "owns": [
+          "readiness_evaluation",
+          "holds",
+          "charge_candidates",
+          "policy_rate_provenance",
+          "financial_links"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "BILLING_CASE"
+        ],
+        "id": "INVOICE_CLAIM",
+        "mustNotOwn": [
+          "mutable_operational_trip_data",
+          "issued_fact_overwrite"
+        ],
+        "owner": "InvoiceClaim",
+        "owns": [
+          "issued_submitted_snapshot",
+          "adjustment_history",
+          "status_history"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "TRIP_REQUEST",
+          "AUTHORIZATION",
+          "BILLING_CASE"
+        ],
+        "id": "INTEGRATION_RECEIPT",
+        "mustNotOwn": [
+          "cross_tenant_identity",
+          "business_state_authority"
+        ],
+        "owner": "IntegrationReceipt",
+        "owns": [
+          "external_identity_mapping",
+          "source_version",
+          "payload_fingerprint",
+          "idempotency",
+          "reconciliation_result"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      },
+      {
+        "allowedReferences": [
+          "RIDER",
+          "FACILITY_ADDRESS",
+          "TRIP_REQUEST",
+          "AUTHORIZATION",
+          "RUN",
+          "ASSIGNMENT",
+          "LEG_EXECUTION",
+          "EVIDENCE_RECORD",
+          "LOCATION_STREAM",
+          "BILLING_CASE",
+          "INVOICE_CLAIM",
+          "INTEGRATION_RECEIPT"
+        ],
+        "id": "AUDIT_EVENT",
+        "mustNotOwn": [
+          "telemetry_substitute",
+          "domain_state"
+        ],
+        "owner": "AuditEvent",
+        "owns": [
+          "actor",
+          "purpose",
+          "command",
+          "decision",
+          "before_after_references",
+          "material_change_trail"
+        ],
+        "provenance": "ARQ-003",
+        "tenantScope": "TENANT_REQUIRED"
+      }
+    ],
+    "provenance": "ARQ-003",
+    "schemaVersion": "1.0.0",
+    "status": "PROVISIONAL_PENDING_OPERATOR_VALIDATION"
+  },
+  "catalog": {
+    "commandEnvelope": {
+      "duplicateResult": "DUPLICATE_NO_EFFECT",
+      "required": [
+        "commandId",
+        "tenantId",
+        "aggregateType",
+        "aggregateId",
+        "expectedAggregateVersion",
+        "idempotencyKey",
+        "actorType",
+        "actorId",
+        "occurredAt",
+        "source",
+        "correlationId",
+        "causationId",
+        "schemaVersion",
+        "classificationIds",
+        "policyVersion"
+      ],
+      "stateConflict": "VERSION_CONFLICT",
+      "tenantMismatch": "TENANT_MISMATCH"
+    },
+    "commands": [
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "TripDraftCreated",
+        "id": "CreateTripDraft"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "LegAdded",
+        "id": "AddLeg"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "LegAmended",
+        "id": "AmendLeg"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "TripSubmitted",
+        "id": "SubmitTrip"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "TripAccepted",
+        "id": "AcceptTrip"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "TripRejected",
+        "id": "RejectTrip"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "TripWithdrawn",
+        "id": "WithdrawTrip"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "TripCancelled",
+        "id": "CancelTrip"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "TripClosed",
+        "id": "CloseTrip"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "StandingOrderCreated",
+        "id": "CreateStandingOrder"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "INTAKE",
+        "event": "TripsMaterialized",
+        "id": "MaterializeTrips"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "RunCreated",
+        "id": "CreateRun"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "RunPlanned",
+        "id": "PlanRun"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "LegPlacedOnRun",
+        "id": "PlaceLegOnRun"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "RunStopsReordered",
+        "id": "ReorderRunStops"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "LegRemovedFromRun",
+        "id": "RemoveLegFromRun"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "RunPublished",
+        "id": "PublishRun"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "RunLocked",
+        "id": "LockRun"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "RunUnlocked",
+        "id": "UnlockRun"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "PLANNING",
+        "event": "WillCallMarkedReady",
+        "id": "MarkWillCallReady"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "PLANNING",
+        "event": null,
+        "id": "StartResponseClock"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "PLANNING",
+        "event": "WillCallConsumed",
+        "id": "ConsumeWillCall"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "PLANNING",
+        "event": "WillCallCancelled",
+        "id": "CancelWillCall"
+      },
+      {
+        "aggregate": "TRIP_REQUEST",
+        "area": "PLANNING",
+        "event": "WillCallExpired",
+        "id": "ExpireWillCall"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "OptimizationProposalAccepted",
+        "id": "AcceptOptimizationProposal"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "RunCancelled",
+        "id": "CancelRun"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "RunSuspended",
+        "id": "SuspendRun"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "PLANNING",
+        "event": "RunResumed",
+        "id": "ResumeRun"
+      },
+      {
+        "aggregate": "ASSIGNMENT",
+        "area": "ASSIGNMENT",
+        "event": "LegAssigned",
+        "id": "AssignLeg"
+      },
+      {
+        "aggregate": "ASSIGNMENT",
+        "area": "ASSIGNMENT",
+        "event": "AssignmentDispatched",
+        "id": "DispatchAssignment"
+      },
+      {
+        "aggregate": "ASSIGNMENT",
+        "area": "ASSIGNMENT",
+        "event": "AssignmentAcknowledged",
+        "id": "AcknowledgeAssignment"
+      },
+      {
+        "aggregate": "ASSIGNMENT",
+        "area": "ASSIGNMENT",
+        "event": "AssignmentRejected",
+        "id": "RejectAssignment"
+      },
+      {
+        "aggregate": "ASSIGNMENT",
+        "area": "ASSIGNMENT",
+        "event": "AssignmentActivated",
+        "id": "ActivateAssignment"
+      },
+      {
+        "aggregate": "ASSIGNMENT",
+        "area": "ASSIGNMENT",
+        "event": "AssignmentCompleted",
+        "id": "CompleteAssignment"
+      },
+      {
+        "aggregate": "ASSIGNMENT",
+        "area": "ASSIGNMENT",
+        "event": "AssignmentExpired",
+        "id": "ExpireAssignment"
+      },
+      {
+        "aggregate": "ASSIGNMENT",
+        "area": "ASSIGNMENT",
+        "event": "AssignmentSuperseded",
+        "id": "ReassignLeg"
+      },
+      {
+        "aggregate": "ASSIGNMENT",
+        "area": "ASSIGNMENT",
+        "event": null,
+        "id": "ReplaceAssignment"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "ASSIGNMENT",
+        "event": "RunResourceReplaced",
+        "id": "ReplaceRunResource"
+      },
+      {
+        "aggregate": "ASSIGNMENT",
+        "area": "ASSIGNMENT",
+        "event": "AssignmentRevoked",
+        "id": "RevokeAssignment"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "EXECUTION",
+        "event": "RunStarted",
+        "id": "BeginRun"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "DriverMarkedEnRoute",
+        "id": "MarkEnRoute"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "PickupArrivalRecorded",
+        "id": "ArrivePickup"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "ContactAttemptRecorded",
+        "id": "RecordContactAttempt"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "RiderBoarded",
+        "id": "BoardRider"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "DropoffArrivalRecorded",
+        "id": "ArriveDropoff"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "LegCompleted",
+        "id": "CompleteLeg"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "LegCancelled",
+        "id": "CancelLeg"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "RiderNoShowRecorded",
+        "id": "MarkRiderNoShow"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "ProviderNoShowRecorded",
+        "id": "ReportProviderNoShow"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "IncidentReported",
+        "id": "ReportIncident"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "LegInterrupted",
+        "id": "InterruptLeg"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "LegTransferred",
+        "id": "TransferLeg"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "LegResumed",
+        "id": "ResumeLeg"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": "LegFailed",
+        "id": "FailLeg"
+      },
+      {
+        "aggregate": "LEG_EXECUTION",
+        "area": "EXECUTION",
+        "event": null,
+        "id": "ApplyGeofenceArrival"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "EXECUTION",
+        "event": "RunCompleted",
+        "id": "CompleteRun"
+      },
+      {
+        "aggregate": "RUN",
+        "area": "EXECUTION",
+        "event": "RunAborted",
+        "id": "AbortRun"
+      },
+      {
+        "aggregate": "LOCATION_STREAM",
+        "area": "EVIDENCE_LOCATION",
+        "event": "LocationBatchRecorded",
+        "id": "RecordLocationBatch"
+      },
+      {
+        "aggregate": "EVIDENCE_RECORD",
+        "area": "EVIDENCE_LOCATION",
+        "event": "SignatureCaptured",
+        "id": "CaptureSignature"
+      },
+      {
+        "aggregate": "EVIDENCE_RECORD",
+        "area": "EVIDENCE_LOCATION",
+        "event": "MileageRecorded",
+        "id": "RecordMileage"
+      },
+      {
+        "aggregate": "EVIDENCE_RECORD",
+        "area": "EVIDENCE_LOCATION",
+        "event": "EvidenceAttached",
+        "id": "AttachEvidence"
+      },
+      {
+        "aggregate": "EVIDENCE_RECORD",
+        "area": "EVIDENCE_LOCATION",
+        "event": "EvidenceReadyForReview",
+        "id": "SubmitEvidenceReview"
+      },
+      {
+        "aggregate": "EVIDENCE_RECORD",
+        "area": "EVIDENCE_LOCATION",
+        "event": "EvidenceCorrectionRequested",
+        "id": "RequestEvidenceCorrection"
+      },
+      {
+        "aggregate": "EVIDENCE_RECORD",
+        "area": "EVIDENCE_LOCATION",
+        "event": "EvidenceAmended",
+        "id": "AmendEvidence"
+      },
+      {
+        "aggregate": "EVIDENCE_RECORD",
+        "area": "EVIDENCE_LOCATION",
+        "event": null,
+        "id": "OverwriteEvidence"
+      },
+      {
+        "aggregate": "EVIDENCE_RECORD",
+        "area": "EVIDENCE_LOCATION",
+        "event": "EvidenceVerified",
+        "id": "VerifyEvidence"
+      },
+      {
+        "aggregate": "EVIDENCE_RECORD",
+        "area": "EVIDENCE_LOCATION",
+        "event": "EvidenceRequirementWaived",
+        "id": "WaiveEvidenceRequirement"
+      },
+      {
+        "aggregate": "BILLING_CASE",
+        "area": "BILLING",
+        "event": "BillingReadinessEvaluated",
+        "id": "EvaluateBillingReadiness"
+      },
+      {
+        "aggregate": "BILLING_CASE",
+        "area": "BILLING",
+        "event": "BillingHoldPlaced",
+        "id": "PlaceBillingHold"
+      },
+      {
+        "aggregate": "BILLING_CASE",
+        "area": "BILLING",
+        "event": "BillingHoldReleased",
+        "id": "ReleaseBillingHold"
+      },
+      {
+        "aggregate": "BILLING_CASE",
+        "area": "BILLING",
+        "event": "ChargeCreated",
+        "id": "CreateCharge"
+      },
+      {
+        "aggregate": "BILLING_CASE",
+        "area": "BILLING",
+        "event": "ClaimCreated",
+        "id": "CreateClaim"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "BILLING",
+        "event": "InvoiceDrafted",
+        "id": "DraftInvoice"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "BILLING",
+        "event": "InvoiceFinalized",
+        "id": "FinalizeInvoice"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "BILLING",
+        "event": "InvoiceIssued",
+        "id": "IssueInvoice"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "BILLING",
+        "event": "PaymentRecorded",
+        "id": "RecordPartialPayment"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "BILLING",
+        "event": "PaymentRecorded",
+        "id": "RecordPayment"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "BILLING",
+        "event": "InvoiceAdjusted",
+        "id": "AdjustInvoice"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "BILLING",
+        "event": "InvoiceVoided",
+        "id": "VoidInvoice"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "BILLING",
+        "event": null,
+        "id": "EditInvoice"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "CLAIM",
+        "event": "ClaimValidated",
+        "id": "ValidateClaim"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "CLAIM",
+        "event": "ClaimSubmitted",
+        "id": "SubmitClaim"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "CLAIM",
+        "event": "ClaimAcknowledged",
+        "id": "AcknowledgeClaim"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "CLAIM",
+        "event": "ClaimRejected",
+        "id": "RejectClaim"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "CLAIM",
+        "event": "ClaimPaid",
+        "id": "RecordClaimPayment"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "CLAIM",
+        "event": "ClaimPartiallyPaid",
+        "id": "RecordClaimPartialPayment"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "CLAIM",
+        "event": "ClaimDenied",
+        "id": "DenyClaim"
+      },
+      {
+        "aggregate": "INVOICE_CLAIM",
+        "area": "CLAIM",
+        "event": null,
+        "id": "EditClaim"
+      }
+    ],
+    "eventEnvelope": {
+      "consumerDeduplicationKey": "eventId",
+      "consumerTenantScopeRequired": true,
+      "forbiddenSensitiveCarriers": [
+        "topicName",
+        "routingKey",
+        "metricLabel",
+        "eventId",
+        "correlationId",
+        "transportHeader"
+      ],
+      "operationalWhenRelevant": [
+        "serviceDate",
+        "timezone"
+      ],
+      "outboxAtomicWithDomainMutation": true,
+      "required": [
+        "eventId",
+        "tenantId",
+        "aggregateType",
+        "aggregateId",
+        "aggregateVersion",
+        "eventType",
+        "schemaVersion",
+        "occurredAt",
+        "recordedAt",
+        "actorType",
+        "actorId",
+        "commandId",
+        "idempotencyKey",
+        "correlationId",
+        "causationId",
+        "source",
+        "classificationIds",
+        "policyVersion"
+      ]
+    },
+    "forbiddenGenericCommands": [
+      "SetStatus",
+      "PatchStatus",
+      "UpdateStatus"
+    ],
+    "provenance": "ARQ-003",
+    "schemaVersion": "1.0.0",
+    "status": "PROVISIONAL_PENDING_OPERATOR_VALIDATION"
+  },
+  "constraints": {
+    "constraints": [
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "all referenced tenant IDs must equal the command tenant",
+        "id": "TENANT_SCOPE",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "all_owned_records_commands_events_and_external_mappings",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "service date, IANA timezone, and unambiguous instants required",
+        "id": "SERVICE_TIME_CONTEXT",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "service_instances",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "at most one active assignment per effective interval",
+        "id": "SINGLE_ACTIVE_ASSIGNMENT",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "leg_execution_segment",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "driving allocations cannot overlap unless the explicit non-driving model permits it",
+        "id": "RESOURCE_INTERVAL_OVERLAP",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "driver_and_vehicle_allocations",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "pickup and boarding precede drop-off and completion; onboard work cannot become cancellation or no-show",
+        "id": "EXECUTION_SEQUENCE",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "leg_execution",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "response time starts only at durable ready_at",
+        "id": "WILL_CALL_READY_CLOCK",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "will_call",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "sum rider, companion, escort, and equipment dimensions over each interval",
+        "id": "MULTI_LOAD_CAPACITY",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "overlapping_onboard_intervals",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "active qualifications, capabilities, credentials, and safety limits required",
+        "id": "RESOURCE_SAFETY_QUALIFICATION",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "driver_vehicle_assignment",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "tenant-scoped idempotency key plus matching aggregate version; duplicates have one effect",
+        "id": "IDEMPOTENT_OPTIMISTIC_COMMAND",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "commands_and_events",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "corrections use amendment, supersession, adjustment, reversal, or void lineage",
+        "id": "APPEND_ONLY_LINEAGE",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "evidence_assignments_execution_segments_financial_facts",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "external inputs may provide evidence, proposals, or delivery only",
+        "id": "NON_AUTHORITATIVE_INPUTS",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "gps_geofence_optimizer_realtime_push",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "DOMAIN-1.0.0",
+        "evaluation": "performed-service charge requires eligible outcome, authorization, rate, effective policy, and required evidence",
+        "id": "FINANCIAL_ELIGIBILITY",
+        "kind": "ALWAYS_HARD",
+        "override": "NEVER",
+        "scope": "billing_case_and_financial_issue",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "SYN_POLICY_AUTH_001",
+        "evaluation": "effective authorization covers service, mode, dates, and limits",
+        "id": "AUTHORIZATION_POLICY",
+        "kind": "POLICY_HARD",
+        "override": "POLICY_DEFINED_PRIVILEGED_ONLY",
+        "scope": "leg_and_billing_case",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "SYN_POLICY_AREA_001",
+        "evaluation": "origin, destination, and resource fall within effective policy scope",
+        "id": "SERVICE_AREA_POLICY",
+        "kind": "POLICY_HARD",
+        "override": "POLICY_DEFINED_PRIVILEGED_ONLY",
+        "scope": "trip_leg_and_run",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "SYN_POLICY_NOSHOW_001",
+        "evaluation": "arrival, wait, contact, and authorization evidence must satisfy effective policy",
+        "id": "NO_SHOW_DOCUMENTATION_POLICY",
+        "kind": "POLICY_HARD",
+        "override": "POLICY_DEFINED_PRIVILEGED_ONLY",
+        "scope": "rider_no_show_and_charge",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "SYN_POLICY_MODE_001",
+        "evaluation": "declared mode and documentation requirements pass",
+        "id": "MODE_DOCUMENTATION_POLICY",
+        "kind": "POLICY_HARD",
+        "override": "POLICY_DEFINED_PRIVILEGED_ONLY",
+        "scope": "service_mode_and_evidence",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "SYN_POLICY_RIDE_TIME_001",
+        "evaluation": "projected and actual onboard interval is within effective limit",
+        "id": "MAXIMUM_RIDE_TIME",
+        "kind": "POLICY_HARD",
+        "override": "POLICY_DEFINED_PRIVILEGED_ONLY",
+        "scope": "multi_load_and_leg_execution",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "SYN_POLICY_OPT_001",
+        "evaluation": "penalize excess unloaded movement",
+        "id": "DEADHEAD_PENALTY",
+        "kind": "SOFT",
+        "override": "AUTHORIZED_WITH_AUDIT",
+        "scope": "planning",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "SYN_POLICY_LATE_001",
+        "evaluation": "score deviation from provisional service-window tolerance",
+        "id": "LATE_TOLERANCE_PENALTY",
+        "kind": "SOFT",
+        "override": "AUTHORIZED_WITH_AUDIT",
+        "scope": "planning_and_dispatch",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "SYN_POLICY_PREF_001",
+        "evaluation": "prefer continuity when hard constraints remain satisfied",
+        "id": "PREFERRED_DRIVER",
+        "kind": "SOFT",
+        "override": "AUTHORIZED_WITH_AUDIT",
+        "scope": "assignment",
+        "source": "ARQ-003"
+      },
+      {
+        "effectivePolicy": "SYN_POLICY_BALANCE_001",
+        "evaluation": "penalize avoidable utilization imbalance",
+        "id": "BALANCED_UTILIZATION",
+        "kind": "SOFT",
+        "override": "AUTHORIZED_WITH_AUDIT",
+        "scope": "planning",
+        "source": "ARQ-003"
+      }
+    ],
+    "provenance": "ARQ-003",
+    "schemaVersion": "1.0.0",
+    "status": "PROVISIONAL_PENDING_OPERATOR_VALIDATION"
+  },
+  "contractType": "kavaroutes.synthetic-nemt-domain",
+  "digest": "d9de151d57eacb9b75275edf6f54ec3f054facd8e6c355bf46c4a5c8f52a3ee5",
+  "glossary": {
+    "provenance": "ARQ-003",
+    "schemaVersion": "1.0.0",
+    "status": "PROVISIONAL_PENDING_OPERATOR_VALIDATION",
+    "terms": [
+      {
+        "definition": "Operator-local date for a run and its legs, paired with an explicit IANA timezone.",
+        "distinction": "Never inferred only from UTC or browser timezone.",
+        "id": "SERVICE_DATE",
+        "label": "Service date"
+      },
+      {
+        "definition": "One request grouping one or more passenger legs for a service episode.",
+        "distinction": "Not a vehicle run or necessarily one billable unit.",
+        "id": "TRIP_REQUEST",
+        "label": "Trip request"
+      },
+      {
+        "definition": "Smallest independently executable passenger movement from one origin to one destination.",
+        "distinction": "Owns timing mode, outcome, execution, and billing evaluation.",
+        "id": "LEG",
+        "label": "Leg"
+      },
+      {
+        "definition": "Ordered pickup, drop-off, depot, break, wait, or operational task on a run.",
+        "distinction": "Not every stop task is a passenger leg.",
+        "id": "STOP_TASK",
+        "label": "Stop task"
+      },
+      {
+        "definition": "Versioned ordered vehicle duty and manifest for a service date and operating window.",
+        "distinction": "Does not own the booking.",
+        "id": "RUN",
+        "label": "Run"
+      },
+      {
+        "definition": "Versioned binding of a leg execution segment to a run and effective resources.",
+        "distinction": "Reassignment supersedes and preserves history.",
+        "id": "ASSIGNMENT",
+        "label": "Assignment"
+      },
+      {
+        "definition": "Portion of a leg performed under one resource binding.",
+        "distinction": "Represents rescue or transfer without erasing prior execution.",
+        "id": "EXECUTION_SEGMENT",
+        "label": "Execution segment"
+      },
+      {
+        "definition": "Recurrence template that materializes dated trip requests.",
+        "distinction": "Template edits do not rewrite materialized instances.",
+        "id": "STANDING_ORDER",
+        "label": "Standing order"
+      },
+      {
+        "definition": "Timing commitment whose pickup response clock starts after a durable readiness signal.",
+        "distinction": "Not an execution status.",
+        "id": "WILL_CALL",
+        "label": "Will-call"
+      },
+      {
+        "definition": "Overlapping onboard intervals for multiple passenger legs in one vehicle.",
+        "distinction": "Capacity and ride-time constraints apply across the interval.",
+        "id": "MULTI_LOAD",
+        "label": "Multi-load"
+      },
+      {
+        "definition": "Non-rider occupant attached to a leg who consumes declared capacity.",
+        "distinction": "Not automatically a separate billable passenger leg.",
+        "id": "COMPANION_ESCORT",
+        "label": "Companion or escort"
+      },
+      {
+        "definition": "Payer or broker approval of eligibility, mode, service, limits, or effective dates.",
+        "distinction": "Does not prove transportation occurred.",
+        "id": "AUTHORIZATION",
+        "label": "Authorization"
+      },
+      {
+        "definition": "Append-only observed fact with source, capture time, provenance, and amendment lineage.",
+        "distinction": "Cannot directly mutate operational or financial state.",
+        "id": "EVIDENCE",
+        "label": "Evidence"
+      },
+      {
+        "definition": "Vehicle movement outside passenger-loaded or revenue service under the applicable reporting rule.",
+        "distinction": "Separate from loaded mileage and passenger-trip counts.",
+        "id": "DEADHEAD",
+        "label": "Deadhead"
+      },
+      {
+        "definition": "Policy evaluation for readiness, holds, charges, claim or invoice eligibility, and correction.",
+        "distinction": "Leg completion never automatically means billing-ready.",
+        "id": "BILLING_CASE",
+        "label": "Billing case"
+      },
+      {
+        "definition": "Auditable operational condition requiring attention, resolution, or recovery.",
+        "distinction": "Does not erase underlying leg or run history.",
+        "id": "INCIDENT",
+        "label": "Incident or exception case"
+      }
+    ]
+  },
+  "limitations": [
+    "NO_PRODUCTION_SCHEMA_APPROVAL",
+    "NO_UNIVERSAL_NEMT_CLAIM",
+    "NO_PAYER_RULE_APPROVAL",
+    "NO_LEGAL_OR_COMPLIANCE_ADVICE",
+    "NO_PRODUCTION_SCAFFOLD"
+  ],
+  "machines": {
+    "machines": [
+      {
+        "defaultRejection": "TRIP_INTAKE_TRANSITION_NOT_DECLARED",
+        "explicitProhibitions": [
+          {
+            "command": "AcceptTrip",
+            "from": "DRAFT",
+            "id": "TRIP_NO_DIRECT_DRAFT_ACCEPT",
+            "reason": "TRIP_MUST_BE_SUBMITTED"
+          },
+          {
+            "command": "AmendLeg",
+            "from": "CLOSED",
+            "id": "TRIP_TERMINAL_IMMUTABLE",
+            "reason": "TRIP_TERMINAL_STATE"
+          }
+        ],
+        "id": "TRIP_INTAKE",
+        "ownerAggregate": "TRIP_REQUEST",
+        "states": [
+          {
+            "id": "DRAFT",
+            "terminal": false
+          },
+          {
+            "id": "SUBMITTED",
+            "terminal": false
+          },
+          {
+            "id": "ACCEPTED",
+            "terminal": false
+          },
+          {
+            "id": "REJECTED",
+            "terminal": true
+          },
+          {
+            "id": "WITHDRAWN",
+            "terminal": true
+          },
+          {
+            "id": "CANCELLED",
+            "terminal": true
+          },
+          {
+            "id": "CLOSED",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "command": "SubmitTrip",
+            "event": "TripSubmitted",
+            "from": "DRAFT",
+            "guard": "trip_has_required_legs",
+            "id": "TRIP_DRAFT_SUBMIT",
+            "to": "SUBMITTED"
+          },
+          {
+            "command": "AcceptTrip",
+            "event": "TripAccepted",
+            "from": "SUBMITTED",
+            "guard": "intake_validation_passed",
+            "id": "TRIP_SUBMITTED_ACCEPT",
+            "to": "ACCEPTED"
+          },
+          {
+            "command": "RejectTrip",
+            "event": "TripRejected",
+            "from": "SUBMITTED",
+            "guard": "rejection_reason_present",
+            "id": "TRIP_SUBMITTED_REJECT",
+            "to": "REJECTED"
+          },
+          {
+            "command": "WithdrawTrip",
+            "event": "TripWithdrawn",
+            "from": "SUBMITTED",
+            "guard": "withdrawal_authorized",
+            "id": "TRIP_SUBMITTED_WITHDRAW",
+            "to": "WITHDRAWN"
+          },
+          {
+            "command": "CancelTrip",
+            "event": "TripCancelled",
+            "from": "ACCEPTED",
+            "guard": "all_legs_receive_disposition",
+            "id": "TRIP_ACCEPTED_CANCEL",
+            "to": "CANCELLED"
+          },
+          {
+            "command": "CloseTrip",
+            "event": "TripClosed",
+            "from": "ACCEPTED",
+            "guard": "all_required_legs_terminal",
+            "id": "TRIP_ACCEPTED_CLOSE",
+            "to": "CLOSED"
+          }
+        ]
+      },
+      {
+        "defaultRejection": "LEG_TIMING_TRANSITION_NOT_DECLARED",
+        "explicitProhibitions": [
+          {
+            "command": "StartResponseClock",
+            "from": "WAITING_FOR_READY",
+            "id": "WILL_CALL_NO_CLOCK_BEFORE_READY",
+            "reason": "READY_AT_REQUIRED"
+          },
+          {
+            "command": "MarkWillCallReady",
+            "from": "READY",
+            "id": "WILL_CALL_DUPLICATE_READY",
+            "reason": "DUPLICATE_NO_EFFECT"
+          },
+          {
+            "command": "MarkWillCallReady",
+            "from": "CANCELLED",
+            "id": "WILL_CALL_READY_AFTER_CANCEL",
+            "reason": "WILL_CALL_TERMINAL"
+          }
+        ],
+        "id": "LEG_TIMING_WILL_CALL",
+        "ownerAggregate": "TRIP_REQUEST",
+        "states": [
+          {
+            "id": "SCHEDULED_WINDOW",
+            "terminal": true
+          },
+          {
+            "id": "APPOINTMENT_DERIVED",
+            "terminal": true
+          },
+          {
+            "id": "WAITING_FOR_READY",
+            "terminal": false
+          },
+          {
+            "id": "READY",
+            "terminal": false
+          },
+          {
+            "id": "CONSUMED",
+            "terminal": true
+          },
+          {
+            "id": "CANCELLED",
+            "terminal": true
+          },
+          {
+            "id": "EXPIRED",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "command": "MarkWillCallReady",
+            "event": "WillCallMarkedReady",
+            "from": "WAITING_FOR_READY",
+            "guard": "durable_ready_at_present",
+            "id": "WILL_CALL_MARK_READY",
+            "to": "READY"
+          },
+          {
+            "command": "ConsumeWillCall",
+            "event": "WillCallConsumed",
+            "from": "READY",
+            "guard": "pickup_execution_started",
+            "id": "WILL_CALL_CONSUME",
+            "to": "CONSUMED"
+          },
+          {
+            "command": "CancelWillCall",
+            "event": "WillCallCancelled",
+            "from": "WAITING_FOR_READY",
+            "guard": "cancellation_authorized",
+            "id": "WILL_CALL_CANCEL_WAITING",
+            "to": "CANCELLED"
+          },
+          {
+            "command": "CancelWillCall",
+            "event": "WillCallCancelled",
+            "from": "READY",
+            "guard": "cancellation_authorized",
+            "id": "WILL_CALL_CANCEL_READY",
+            "to": "CANCELLED"
+          },
+          {
+            "command": "ExpireWillCall",
+            "event": "WillCallExpired",
+            "from": "WAITING_FOR_READY",
+            "guard": "effective_policy_expiry_reached",
+            "id": "WILL_CALL_EXPIRE_WAITING",
+            "to": "EXPIRED"
+          },
+          {
+            "command": "ExpireWillCall",
+            "event": "WillCallExpired",
+            "from": "READY",
+            "guard": "effective_policy_expiry_reached",
+            "id": "WILL_CALL_EXPIRE_READY",
+            "to": "EXPIRED"
+          }
+        ]
+      },
+      {
+        "defaultRejection": "LEG_EXECUTION_TRANSITION_NOT_DECLARED",
+        "explicitProhibitions": [
+          {
+            "command": "ArriveDropoff",
+            "from": "ARRIVED_PICKUP",
+            "id": "LEG_NO_DROPOFF_BEFORE_BOARDING",
+            "reason": "PICKUP_AND_BOARDING_REQUIRED"
+          },
+          {
+            "command": "CompleteLeg",
+            "from": "ARRIVED_PICKUP",
+            "id": "LEG_NO_COMPLETE_BEFORE_BOARDING",
+            "reason": "BOARDING_REQUIRED"
+          },
+          {
+            "command": "CancelLeg",
+            "from": "ONBOARD",
+            "id": "LEG_NO_CANCEL_ONBOARD",
+            "reason": "ONBOARD_REQUIRES_INTERRUPTION_RECOVERY"
+          },
+          {
+            "command": "MarkRiderNoShow",
+            "from": "ONBOARD",
+            "id": "LEG_NO_SHOW_ONBOARD",
+            "reason": "ONBOARD_REQUIRES_INTERRUPTION_RECOVERY"
+          },
+          {
+            "command": "ApplyGeofenceArrival",
+            "from": "EN_ROUTE_PICKUP",
+            "id": "GPS_NOT_AUTHORITATIVE",
+            "reason": "EVIDENCE_CANNOT_ASSERT_EXECUTION_STATE"
+          }
+        ],
+        "id": "LEG_EXECUTION",
+        "ownerAggregate": "LEG_EXECUTION",
+        "states": [
+          {
+            "id": "PLANNED",
+            "terminal": false
+          },
+          {
+            "id": "DISPATCHED",
+            "terminal": false
+          },
+          {
+            "id": "EN_ROUTE_PICKUP",
+            "terminal": false
+          },
+          {
+            "id": "ARRIVED_PICKUP",
+            "terminal": false
+          },
+          {
+            "id": "ONBOARD",
+            "terminal": false
+          },
+          {
+            "id": "INTERRUPTED",
+            "terminal": false
+          },
+          {
+            "id": "ARRIVED_DROPOFF",
+            "terminal": false
+          },
+          {
+            "id": "COMPLETED",
+            "terminal": true
+          },
+          {
+            "id": "CANCELLED",
+            "terminal": true
+          },
+          {
+            "id": "RIDER_NO_SHOW",
+            "terminal": true
+          },
+          {
+            "id": "PROVIDER_NO_SHOW",
+            "terminal": true
+          },
+          {
+            "id": "FAILED",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "command": "DispatchAssignment",
+            "event": "AssignmentDispatched",
+            "from": "PLANNED",
+            "guard": "active_assignment_exists",
+            "id": "LEG_PLAN_DISPATCH",
+            "to": "DISPATCHED"
+          },
+          {
+            "command": "MarkEnRoute",
+            "event": "DriverMarkedEnRoute",
+            "from": "DISPATCHED",
+            "guard": "actor_controls_active_assignment",
+            "id": "LEG_DISPATCH_EN_ROUTE",
+            "to": "EN_ROUTE_PICKUP"
+          },
+          {
+            "command": "ArrivePickup",
+            "event": "PickupArrivalRecorded",
+            "from": "EN_ROUTE_PICKUP",
+            "guard": "explicit_authorized_command",
+            "id": "LEG_EN_ROUTE_ARRIVE_PICKUP",
+            "to": "ARRIVED_PICKUP"
+          },
+          {
+            "command": "BoardRider",
+            "event": "RiderBoarded",
+            "from": "ARRIVED_PICKUP",
+            "guard": "boarding_requirements_pass",
+            "id": "LEG_PICKUP_BOARD",
+            "to": "ONBOARD"
+          },
+          {
+            "command": "ArriveDropoff",
+            "event": "DropoffArrivalRecorded",
+            "from": "ONBOARD",
+            "guard": "pickup_precedes_dropoff",
+            "id": "LEG_ONBOARD_ARRIVE_DROPOFF",
+            "to": "ARRIVED_DROPOFF"
+          },
+          {
+            "command": "CompleteLeg",
+            "event": "LegCompleted",
+            "from": "ARRIVED_DROPOFF",
+            "guard": "boarding_and_completion_evidence_present",
+            "id": "LEG_DROPOFF_COMPLETE",
+            "to": "COMPLETED"
+          },
+          {
+            "command": "CancelLeg",
+            "event": "LegCancelled",
+            "from": "PLANNED",
+            "guard": "pre_boarding_disposition_authorized",
+            "id": "LEG_PLAN_CANCEL",
+            "to": "CANCELLED"
+          },
+          {
+            "command": "CancelLeg",
+            "event": "LegCancelled",
+            "from": "DISPATCHED",
+            "guard": "pre_boarding_disposition_authorized",
+            "id": "LEG_DISPATCH_CANCEL",
+            "to": "CANCELLED"
+          },
+          {
+            "command": "MarkRiderNoShow",
+            "event": "RiderNoShowRecorded",
+            "from": "ARRIVED_PICKUP",
+            "guard": "effective_no_show_evidence_policy_passed",
+            "id": "LEG_PICKUP_RIDER_NO_SHOW",
+            "to": "RIDER_NO_SHOW"
+          },
+          {
+            "command": "ReportProviderNoShow",
+            "event": "ProviderNoShowRecorded",
+            "from": "ARRIVED_PICKUP",
+            "guard": "provider_no_show_evidence_present",
+            "id": "LEG_PICKUP_PROVIDER_NO_SHOW",
+            "to": "PROVIDER_NO_SHOW"
+          },
+          {
+            "command": "InterruptLeg",
+            "event": "LegInterrupted",
+            "from": "ONBOARD",
+            "guard": "incident_and_recovery_case_present",
+            "id": "LEG_ONBOARD_INTERRUPT",
+            "to": "INTERRUPTED"
+          },
+          {
+            "command": "TransferLeg",
+            "event": "LegTransferred",
+            "from": "INTERRUPTED",
+            "guard": "new_segment_and_custody_recorded",
+            "id": "LEG_INTERRUPTED_TRANSFER",
+            "to": "ONBOARD"
+          },
+          {
+            "command": "ResumeLeg",
+            "event": "LegResumed",
+            "from": "INTERRUPTED",
+            "guard": "resource_binding_valid",
+            "id": "LEG_INTERRUPTED_RESUME",
+            "to": "ONBOARD"
+          },
+          {
+            "command": "ArriveDropoff",
+            "event": "DropoffArrivalRecorded",
+            "from": "INTERRUPTED",
+            "guard": "safe_recovery_dropoff_recorded",
+            "id": "LEG_INTERRUPTED_DROPOFF",
+            "to": "ARRIVED_DROPOFF"
+          },
+          {
+            "command": "FailLeg",
+            "event": "LegFailed",
+            "from": "INTERRUPTED",
+            "guard": "recovery_disposition_recorded",
+            "id": "LEG_INTERRUPTED_FAIL",
+            "to": "FAILED"
+          }
+        ]
+      },
+      {
+        "defaultRejection": "RUN_TRANSITION_NOT_DECLARED",
+        "explicitProhibitions": [
+          {
+            "command": "AbortRun",
+            "from": "IN_PROGRESS",
+            "id": "RUN_NO_ABORT_WITHOUT_RECOVERY",
+            "reason": "SUSPEND_AND_RECOVERY_REQUIRED"
+          },
+          {
+            "command": "ReorderRunStops",
+            "from": "COMPLETED",
+            "id": "RUN_NO_REWRITE_COMPLETED",
+            "reason": "RUN_TERMINAL_STATE"
+          }
+        ],
+        "id": "RUN_LIFECYCLE",
+        "ownerAggregate": "RUN",
+        "states": [
+          {
+            "id": "DRAFT",
+            "terminal": false
+          },
+          {
+            "id": "PLANNED",
+            "terminal": false
+          },
+          {
+            "id": "PUBLISHED",
+            "terminal": false
+          },
+          {
+            "id": "IN_PROGRESS",
+            "terminal": false
+          },
+          {
+            "id": "SUSPENDED",
+            "terminal": false
+          },
+          {
+            "id": "COMPLETED",
+            "terminal": true
+          },
+          {
+            "id": "CANCELLED",
+            "terminal": true
+          },
+          {
+            "id": "ABORTED",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "command": "PlanRun",
+            "event": "RunPlanned",
+            "from": "DRAFT",
+            "guard": "stop_tasks_valid",
+            "id": "RUN_DRAFT_PLAN",
+            "to": "PLANNED"
+          },
+          {
+            "command": "PublishRun",
+            "event": "RunPublished",
+            "from": "PLANNED",
+            "guard": "manifest_feasible",
+            "id": "RUN_PLAN_PUBLISH",
+            "to": "PUBLISHED"
+          },
+          {
+            "command": "BeginRun",
+            "event": "RunStarted",
+            "from": "PUBLISHED",
+            "guard": "effective_resources_qualified",
+            "id": "RUN_PUBLISH_BEGIN",
+            "to": "IN_PROGRESS"
+          },
+          {
+            "command": "CompleteRun",
+            "event": "RunCompleted",
+            "from": "IN_PROGRESS",
+            "guard": "all_legs_dispositioned",
+            "id": "RUN_PROGRESS_COMPLETE",
+            "to": "COMPLETED"
+          },
+          {
+            "command": "SuspendRun",
+            "event": "RunSuspended",
+            "from": "IN_PROGRESS",
+            "guard": "incident_present",
+            "id": "RUN_PROGRESS_SUSPEND",
+            "to": "SUSPENDED"
+          },
+          {
+            "command": "ResumeRun",
+            "event": "RunResumed",
+            "from": "SUSPENDED",
+            "guard": "recovery_requirements_pass",
+            "id": "RUN_SUSPENDED_RESUME",
+            "to": "IN_PROGRESS"
+          },
+          {
+            "command": "AbortRun",
+            "event": "RunAborted",
+            "from": "SUSPENDED",
+            "guard": "unfinished_legs_have_recovery_disposition",
+            "id": "RUN_SUSPENDED_ABORT",
+            "to": "ABORTED"
+          },
+          {
+            "command": "CancelRun",
+            "event": "RunCancelled",
+            "from": "DRAFT",
+            "guard": "affected_legs_dispositioned",
+            "id": "RUN_DRAFT_CANCEL",
+            "to": "CANCELLED"
+          },
+          {
+            "command": "CancelRun",
+            "event": "RunCancelled",
+            "from": "PLANNED",
+            "guard": "affected_legs_dispositioned",
+            "id": "RUN_PLANNED_CANCEL",
+            "to": "CANCELLED"
+          },
+          {
+            "command": "CancelRun",
+            "event": "RunCancelled",
+            "from": "PUBLISHED",
+            "guard": "affected_legs_dispositioned",
+            "id": "RUN_PUBLISHED_CANCEL",
+            "to": "CANCELLED"
+          }
+        ]
+      },
+      {
+        "defaultRejection": "ASSIGNMENT_TRANSITION_NOT_DECLARED",
+        "explicitProhibitions": [
+          {
+            "command": "ActivateAssignment",
+            "from": "ACTIVE",
+            "id": "ASSIGNMENT_NO_SECOND_ACTIVE",
+            "reason": "ACTIVE_ASSIGNMENT_ALREADY_EXISTS"
+          },
+          {
+            "command": "ReplaceAssignment",
+            "from": "ACTIVE",
+            "id": "ASSIGNMENT_NO_DESTRUCTIVE_REPLACE",
+            "reason": "SUPERSESSION_REQUIRED"
+          }
+        ],
+        "id": "ASSIGNMENT_LIFECYCLE",
+        "ownerAggregate": "ASSIGNMENT",
+        "states": [
+          {
+            "id": "PENDING_ACK",
+            "terminal": false
+          },
+          {
+            "id": "ACKNOWLEDGED",
+            "terminal": false
+          },
+          {
+            "id": "ACTIVE",
+            "terminal": false
+          },
+          {
+            "id": "COMPLETED",
+            "terminal": true
+          },
+          {
+            "id": "REJECTED",
+            "terminal": true
+          },
+          {
+            "id": "REVOKED",
+            "terminal": true
+          },
+          {
+            "id": "SUPERSEDED",
+            "terminal": true
+          },
+          {
+            "id": "EXPIRED",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "command": "AcknowledgeAssignment",
+            "event": "AssignmentAcknowledged",
+            "from": "PENDING_ACK",
+            "guard": "receipt_matches_binding_version",
+            "id": "ASSIGNMENT_ACK",
+            "to": "ACKNOWLEDGED"
+          },
+          {
+            "command": "RejectAssignment",
+            "event": "AssignmentRejected",
+            "from": "PENDING_ACK",
+            "guard": "rejection_reason_present",
+            "id": "ASSIGNMENT_REJECT",
+            "to": "REJECTED"
+          },
+          {
+            "command": "ActivateAssignment",
+            "event": "AssignmentActivated",
+            "from": "ACKNOWLEDGED",
+            "guard": "single_active_binding_and_resources_feasible",
+            "id": "ASSIGNMENT_ACTIVATE",
+            "to": "ACTIVE"
+          },
+          {
+            "command": "CompleteAssignment",
+            "event": "AssignmentCompleted",
+            "from": "ACTIVE",
+            "guard": "execution_segment_terminal",
+            "id": "ASSIGNMENT_COMPLETE",
+            "to": "COMPLETED"
+          },
+          {
+            "command": "RevokeAssignment",
+            "event": "AssignmentRevoked",
+            "from": "PENDING_ACK",
+            "guard": "revocation_authorized",
+            "id": "ASSIGNMENT_REVOKE_PENDING",
+            "to": "REVOKED"
+          },
+          {
+            "command": "RevokeAssignment",
+            "event": "AssignmentRevoked",
+            "from": "ACKNOWLEDGED",
+            "guard": "revocation_authorized",
+            "id": "ASSIGNMENT_REVOKE_ACK",
+            "to": "REVOKED"
+          },
+          {
+            "command": "ReassignLeg",
+            "event": "AssignmentSuperseded",
+            "from": "ACTIVE",
+            "guard": "atomic_new_binding_and_optimistic_version",
+            "id": "ASSIGNMENT_SUPERSEDE_ACTIVE",
+            "to": "SUPERSEDED"
+          },
+          {
+            "command": "ExpireAssignment",
+            "event": "AssignmentExpired",
+            "from": "PENDING_ACK",
+            "guard": "ack_deadline_elapsed",
+            "id": "ASSIGNMENT_EXPIRE_PENDING",
+            "to": "EXPIRED"
+          }
+        ]
+      },
+      {
+        "defaultRejection": "EVIDENCE_TRANSITION_NOT_DECLARED",
+        "explicitProhibitions": [
+          {
+            "command": "OverwriteEvidence",
+            "from": "NEEDS_CORRECTION",
+            "id": "EVIDENCE_NO_OVERWRITE",
+            "reason": "APPEND_ONLY_AMENDMENT_REQUIRED"
+          }
+        ],
+        "id": "EVIDENCE_REVIEW",
+        "ownerAggregate": "EVIDENCE_RECORD",
+        "states": [
+          {
+            "id": "OPEN",
+            "terminal": false
+          },
+          {
+            "id": "READY_FOR_REVIEW",
+            "terminal": false
+          },
+          {
+            "id": "VERIFIED",
+            "terminal": true
+          },
+          {
+            "id": "NEEDS_CORRECTION",
+            "terminal": false
+          },
+          {
+            "id": "WAIVED",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "command": "SubmitEvidenceReview",
+            "event": "EvidenceReadyForReview",
+            "from": "OPEN",
+            "guard": "required_observations_attached",
+            "id": "EVIDENCE_SUBMIT_REVIEW",
+            "to": "READY_FOR_REVIEW"
+          },
+          {
+            "command": "VerifyEvidence",
+            "event": "EvidenceVerified",
+            "from": "READY_FOR_REVIEW",
+            "guard": "qualified_review_passed",
+            "id": "EVIDENCE_VERIFY",
+            "to": "VERIFIED"
+          },
+          {
+            "command": "RequestEvidenceCorrection",
+            "event": "EvidenceCorrectionRequested",
+            "from": "READY_FOR_REVIEW",
+            "guard": "finding_recorded",
+            "id": "EVIDENCE_REQUEST_CORRECTION",
+            "to": "NEEDS_CORRECTION"
+          },
+          {
+            "command": "AmendEvidence",
+            "event": "EvidenceAmended",
+            "from": "NEEDS_CORRECTION",
+            "guard": "append_only_amendment_links_original",
+            "id": "EVIDENCE_AMEND",
+            "to": "READY_FOR_REVIEW"
+          },
+          {
+            "command": "WaiveEvidenceRequirement",
+            "event": "EvidenceRequirementWaived",
+            "from": "READY_FOR_REVIEW",
+            "guard": "authorized_policy_reason_present",
+            "id": "EVIDENCE_WAIVE",
+            "to": "WAIVED"
+          }
+        ]
+      },
+      {
+        "defaultRejection": "BILLING_TRANSITION_NOT_DECLARED",
+        "explicitProhibitions": [
+          {
+            "command": "CompleteLeg",
+            "from": "NOT_READY",
+            "id": "BILLING_NO_COMPLETION_SHORTCUT",
+            "reason": "EXECUTION_CANNOT_ASSERT_BILLING_READY"
+          },
+          {
+            "command": "CreateCharge",
+            "from": "NOT_READY",
+            "id": "BILLING_NO_UNSUPPORTED_NO_SHOW_CHARGE",
+            "reason": "EFFECTIVE_COMPENSATION_POLICY_REQUIRED"
+          }
+        ],
+        "id": "BILLING_CASE",
+        "ownerAggregate": "BILLING_CASE",
+        "states": [
+          {
+            "id": "NOT_READY",
+            "terminal": false
+          },
+          {
+            "id": "HOLD",
+            "terminal": false
+          },
+          {
+            "id": "READY",
+            "terminal": false
+          },
+          {
+            "id": "CLAIMED",
+            "terminal": true
+          },
+          {
+            "id": "INVOICED",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "command": "EvaluateBillingReadiness",
+            "event": "BillingReadinessEvaluated",
+            "from": "NOT_READY",
+            "guard": "eligible_outcome_authorization_rate_policy_and_evidence_pass",
+            "id": "BILLING_EVALUATE_READY",
+            "to": "READY"
+          },
+          {
+            "command": "PlaceBillingHold",
+            "event": "BillingHoldPlaced",
+            "from": "NOT_READY",
+            "guard": "hold_reason_present",
+            "id": "BILLING_PLACE_HOLD_NOT_READY",
+            "to": "HOLD"
+          },
+          {
+            "command": "PlaceBillingHold",
+            "event": "BillingHoldPlaced",
+            "from": "READY",
+            "guard": "hold_reason_present",
+            "id": "BILLING_PLACE_HOLD_READY",
+            "to": "HOLD"
+          },
+          {
+            "command": "ReleaseBillingHold",
+            "event": "BillingHoldReleased",
+            "from": "HOLD",
+            "guard": "readiness_re_evaluation_passed",
+            "id": "BILLING_RELEASE_HOLD",
+            "to": "READY"
+          },
+          {
+            "command": "CreateClaim",
+            "event": "ClaimCreated",
+            "from": "READY",
+            "guard": "claim_snapshot_created",
+            "id": "BILLING_READY_CLAIM",
+            "to": "CLAIMED"
+          },
+          {
+            "command": "DraftInvoice",
+            "event": "InvoiceDrafted",
+            "from": "READY",
+            "guard": "invoice_snapshot_created",
+            "id": "BILLING_READY_INVOICE",
+            "to": "INVOICED"
+          }
+        ]
+      },
+      {
+        "defaultRejection": "INVOICE_TRANSITION_NOT_DECLARED",
+        "explicitProhibitions": [
+          {
+            "command": "EditInvoice",
+            "from": "ISSUED",
+            "id": "INVOICE_NO_ISSUED_OVERWRITE",
+            "reason": "ADJUSTMENT_OR_VOID_REQUIRED"
+          },
+          {
+            "command": "EditInvoice",
+            "from": "PAID",
+            "id": "INVOICE_NO_PAID_OVERWRITE",
+            "reason": "ADJUSTMENT_REQUIRED"
+          }
+        ],
+        "id": "INVOICE_LIFECYCLE",
+        "ownerAggregate": "INVOICE_CLAIM",
+        "states": [
+          {
+            "id": "DRAFT",
+            "terminal": false
+          },
+          {
+            "id": "FINALIZED",
+            "terminal": false
+          },
+          {
+            "id": "ISSUED",
+            "terminal": false
+          },
+          {
+            "id": "PARTIALLY_PAID",
+            "terminal": false
+          },
+          {
+            "id": "PAID",
+            "terminal": true
+          },
+          {
+            "id": "VOID",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "command": "FinalizeInvoice",
+            "event": "InvoiceFinalized",
+            "from": "DRAFT",
+            "guard": "invoice_validation_passed",
+            "id": "INVOICE_FINALIZE",
+            "to": "FINALIZED"
+          },
+          {
+            "command": "IssueInvoice",
+            "event": "InvoiceIssued",
+            "from": "FINALIZED",
+            "guard": "immutable_issue_snapshot_created",
+            "id": "INVOICE_ISSUE",
+            "to": "ISSUED"
+          },
+          {
+            "command": "RecordPartialPayment",
+            "event": "PaymentRecorded",
+            "from": "ISSUED",
+            "guard": "payment_reference_present",
+            "id": "INVOICE_PARTIAL_PAYMENT",
+            "to": "PARTIALLY_PAID"
+          },
+          {
+            "command": "RecordPayment",
+            "event": "PaymentRecorded",
+            "from": "ISSUED",
+            "guard": "balance_reconciles",
+            "id": "INVOICE_FULL_PAYMENT",
+            "to": "PAID"
+          },
+          {
+            "command": "RecordPayment",
+            "event": "PaymentRecorded",
+            "from": "PARTIALLY_PAID",
+            "guard": "balance_reconciles",
+            "id": "INVOICE_FINAL_PAYMENT",
+            "to": "PAID"
+          },
+          {
+            "command": "VoidInvoice",
+            "event": "InvoiceVoided",
+            "from": "DRAFT",
+            "guard": "void_reason_present",
+            "id": "INVOICE_VOID_DRAFT",
+            "to": "VOID"
+          },
+          {
+            "command": "VoidInvoice",
+            "event": "InvoiceVoided",
+            "from": "FINALIZED",
+            "guard": "void_reason_present",
+            "id": "INVOICE_VOID_FINALIZED",
+            "to": "VOID"
+          }
+        ]
+      },
+      {
+        "defaultRejection": "CLAIM_TRANSITION_NOT_DECLARED",
+        "explicitProhibitions": [
+          {
+            "command": "SubmitClaim",
+            "from": "REJECTED",
+            "id": "CLAIM_NO_REOPEN_REJECTED",
+            "reason": "CORRECTED_CLAIM_REVISION_REQUIRED"
+          },
+          {
+            "command": "EditClaim",
+            "from": "DENIED",
+            "id": "CLAIM_NO_REWRITE_DENIED",
+            "reason": "CORRECTED_CLAIM_REVISION_REQUIRED"
+          }
+        ],
+        "id": "CLAIM_LIFECYCLE",
+        "ownerAggregate": "INVOICE_CLAIM",
+        "states": [
+          {
+            "id": "DRAFT",
+            "terminal": false
+          },
+          {
+            "id": "VALIDATED",
+            "terminal": false
+          },
+          {
+            "id": "SUBMITTED",
+            "terminal": false
+          },
+          {
+            "id": "ACKNOWLEDGED",
+            "terminal": false
+          },
+          {
+            "id": "REJECTED",
+            "terminal": true
+          },
+          {
+            "id": "PAID",
+            "terminal": true
+          },
+          {
+            "id": "PARTIALLY_PAID",
+            "terminal": true
+          },
+          {
+            "id": "DENIED",
+            "terminal": true
+          }
+        ],
+        "transitions": [
+          {
+            "command": "ValidateClaim",
+            "event": "ClaimValidated",
+            "from": "DRAFT",
+            "guard": "claim_policy_validation_passed",
+            "id": "CLAIM_VALIDATE",
+            "to": "VALIDATED"
+          },
+          {
+            "command": "SubmitClaim",
+            "event": "ClaimSubmitted",
+            "from": "VALIDATED",
+            "guard": "immutable_submission_snapshot_created",
+            "id": "CLAIM_SUBMIT",
+            "to": "SUBMITTED"
+          },
+          {
+            "command": "AcknowledgeClaim",
+            "event": "ClaimAcknowledged",
+            "from": "SUBMITTED",
+            "guard": "external_receipt_reconciled",
+            "id": "CLAIM_ACK",
+            "to": "ACKNOWLEDGED"
+          },
+          {
+            "command": "RejectClaim",
+            "event": "ClaimRejected",
+            "from": "SUBMITTED",
+            "guard": "rejection_reason_recorded",
+            "id": "CLAIM_REJECT",
+            "to": "REJECTED"
+          },
+          {
+            "command": "RecordClaimPayment",
+            "event": "ClaimPaid",
+            "from": "ACKNOWLEDGED",
+            "guard": "payment_reconciled",
+            "id": "CLAIM_PAID",
+            "to": "PAID"
+          },
+          {
+            "command": "RecordClaimPartialPayment",
+            "event": "ClaimPartiallyPaid",
+            "from": "ACKNOWLEDGED",
+            "guard": "payment_reconciled",
+            "id": "CLAIM_PARTIAL",
+            "to": "PARTIALLY_PAID"
+          },
+          {
+            "command": "DenyClaim",
+            "event": "ClaimDenied",
+            "from": "ACKNOWLEDGED",
+            "guard": "denial_reason_recorded",
+            "id": "CLAIM_DENY",
+            "to": "DENIED"
+          }
+        ]
+      }
+    ],
+    "provenance": "ARQ-003",
+    "schemaVersion": "1.0.0",
+    "status": "PROVISIONAL_PENDING_OPERATOR_VALIDATION"
+  },
+  "operationalStatus": "PROVISIONAL_PENDING_REAL_NEMT_OPERATOR_VALIDATION",
+  "policies": {
+    "customerSpecificBranches": false,
+    "fixtures": [
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_WAIT_001",
+        "provenance": "ARQ-003 policy-variation example",
+        "scope": "synthetic_no_show_evaluation",
+        "topic": "WAIT_DURATION",
+        "value": {
+          "amount": 15,
+          "unit": "minute"
+        }
+      },
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_LATE_001",
+        "provenance": "ARQ-003 policy-variation example",
+        "scope": "synthetic_dispatch_scoring",
+        "topic": "LATE_TOLERANCE",
+        "value": {
+          "amount": 10,
+          "unit": "minute"
+        }
+      },
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_NOSHOW_001",
+        "provenance": "ARQ-003 and payer-variation finding",
+        "scope": "synthetic_default_deny",
+        "topic": "NO_SHOW_COMPENSATION",
+        "value": {
+          "distinctChargeRequired": true,
+          "eligible": false
+        }
+      },
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_DOC_001",
+        "provenance": "ARQ-003 policy-variation example",
+        "scope": "synthetic_no_show_evaluation",
+        "topic": "DOCUMENTATION",
+        "value": {
+          "requiredKinds": [
+            "SYNTHETIC_ARRIVAL",
+            "SYNTHETIC_WAIT",
+            "SYNTHETIC_CONTACT",
+            "SYNTHETIC_AUTHORIZATION"
+          ]
+        }
+      },
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_MODE_001",
+        "provenance": "ARQ-003 policy-variation example",
+        "scope": "synthetic_service",
+        "topic": "MODE",
+        "value": {
+          "allowedModes": [
+            "SYNTHETIC_STANDARD",
+            "SYNTHETIC_ACCESSIBLE"
+          ]
+        }
+      },
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_AREA_001",
+        "provenance": "ARQ-003 policy-variation example",
+        "scope": "synthetic_service",
+        "topic": "SERVICE_AREA",
+        "value": {
+          "zoneIds": [
+            "SYN_ZONE_ALPHA"
+          ]
+        }
+      },
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_AUTH_001",
+        "provenance": "ARQ-003 policy-variation example",
+        "scope": "synthetic_service",
+        "topic": "AUTHORIZATION",
+        "value": {
+          "required": true,
+          "syntheticAuthorizationId": "syn_auth_alpha"
+        }
+      },
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_RIDE_TIME_001",
+        "provenance": "ARQ-003 policy-variation example",
+        "scope": "synthetic_multi_load",
+        "topic": "MAXIMUM_RIDE_TIME",
+        "value": {
+          "amount": 90,
+          "unit": "minute"
+        }
+      },
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_OPT_001",
+        "provenance": "ARQ-003 policy-variation example",
+        "scope": "synthetic_planning_score",
+        "topic": "DEADHEAD",
+        "value": {
+          "weight": 1
+        }
+      },
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_PREF_001",
+        "provenance": "ARQ-003 policy-variation example",
+        "scope": "synthetic_planning_score",
+        "topic": "PREFERRED_DRIVER",
+        "value": {
+          "weight": 1
+        }
+      },
+      {
+        "approval": "NOT_PRODUCTION_APPROVED",
+        "effectiveFrom": "2026-08-24",
+        "id": "SYN_POLICY_BALANCE_001",
+        "provenance": "ARQ-003 policy-variation example",
+        "scope": "synthetic_planning_score",
+        "topic": "BALANCED_UTILIZATION",
+        "value": {
+          "weight": 1
+        }
+      }
+    ],
+    "provenance": "ARQ-003_SYNTHETIC_FIXTURE_ONLY",
+    "schemaVersion": "1.0.0",
+    "status": "PROVISIONAL_PENDING_OPERATOR_AND_QUALIFIED_REVIEW"
+  },
+  "scenarios": {
+    "fixtureSeed": "kavaroutes-wp003-synthetic-v1",
+    "provenance": "ARQ-003",
+    "scenarios": [
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "ACCEPT",
+            "reason": "IMPORT_FIRST_DELIVERY_APPLIED"
+          },
+          {
+            "decision": "NO_EFFECT",
+            "reason": "DUPLICATE_NO_EFFECT"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "CALLBACK_FIRST_DELIVERY_APPLIED"
+          },
+          {
+            "decision": "NO_EFFECT",
+            "reason": "DUPLICATE_NO_EFFECT"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "COMMAND_FIRST_DELIVERY_APPLIED"
+          },
+          {
+            "decision": "NO_EFFECT",
+            "reason": "DUPLICATE_NO_EFFECT"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "LOCATION_BATCH_FIRST_DELIVERY_APPLIED"
+          },
+          {
+            "decision": "NO_EFFECT",
+            "reason": "DUPLICATE_NO_EFFECT"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "OFFLINE_REPLAY_FIRST_DELIVERY_APPLIED"
+          },
+          {
+            "decision": "NO_EFFECT",
+            "reason": "DUPLICATE_NO_EFFECT"
+          }
+        ],
+        "caseType": "DUPLICATE_DELIVERY",
+        "commandSequence": [
+          "CreateTripDraft",
+          "CreateTripDraft",
+          "AmendLeg",
+          "AmendLeg",
+          "AcknowledgeAssignment",
+          "AcknowledgeAssignment",
+          "RecordLocationBatch",
+          "RecordLocationBatch",
+          "MarkEnRoute",
+          "MarkEnRoute"
+        ],
+        "emittedEvents": [
+          "TripDraftCreated",
+          "LegAmended",
+          "AssignmentAcknowledged",
+          "LocationBatchRecorded",
+          "DriverMarkedEnRoute"
+        ],
+        "finalState": {
+          "businessEffects": 5,
+          "deduplicatedEffects": 5,
+          "version": 8
+        },
+        "financialConsequence": "NONE",
+        "humanAttention": "NONE",
+        "id": "GOLDEN_01_DUPLICATE_DELIVERY",
+        "initialState": {
+          "aggregate": "INTEGRATION_RECEIPT",
+          "processedKeys": [],
+          "tenantId": "syn_tenant_alpha",
+          "version": 3
+        },
+        "inputs": {
+          "deliveriesPerKind": 2,
+          "deliveryKinds": [
+            "IMPORT",
+            "CALLBACK",
+            "COMMAND",
+            "LOCATION_BATCH",
+            "DRIVER_OFFLINE_REPLAY"
+          ],
+          "sameIdempotencyKeyWithinKind": true
+        },
+        "retryBehavior": "SAFE_DEDUPLICATION_BY_TENANT_CHANNEL_AND_KEY"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "ACCEPT",
+            "reason": "VERSION_MATCH"
+          },
+          {
+            "decision": "REJECT",
+            "reason": "VERSION_CONFLICT"
+          }
+        ],
+        "caseType": "CONCURRENT_DISPATCH",
+        "commandSequence": [
+          "ReassignLeg",
+          "ReassignLeg"
+        ],
+        "emittedEvents": [
+          "AssignmentSuperseded"
+        ],
+        "finalState": {
+          "activeAssignmentId": "syn_assignment_first",
+          "superseded": [
+            "syn_assignment_old"
+          ],
+          "version": 8
+        },
+        "financialConsequence": "NONE",
+        "humanAttention": "SECOND_DISPATCHER_REFRESH_REQUIRED",
+        "id": "GOLDEN_02_CONCURRENT_DISPATCH",
+        "initialState": {
+          "activeAssignmentId": "syn_assignment_old",
+          "aggregate": "ASSIGNMENT",
+          "tenantId": "syn_tenant_alpha",
+          "version": 7
+        },
+        "inputs": {
+          "firstExpectedVersion": 7,
+          "secondExpectedVersion": 7
+        },
+        "retryBehavior": "RETRY_REQUIRES_NEW_VERSION_AND_REVIEW"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "REJECT",
+            "reason": "STALE_EXTERNAL_VERSION_AND_AUTHORITY_CONFLICT"
+          }
+        ],
+        "caseType": "BROKER_LOCAL_CONFLICT",
+        "commandSequence": [
+          "AmendLeg"
+        ],
+        "emittedEvents": [],
+        "finalState": {
+          "exception": "AUTHORITY_REVIEW",
+          "version": 5
+        },
+        "financialConsequence": "BILLING_HOLD",
+        "humanAttention": "BROKER_LOCAL_AUTHORITY_REVIEW_REQUIRED",
+        "id": "GOLDEN_03_BROKER_LOCAL_CONFLICT",
+        "initialState": {
+          "aggregate": "TRIP_REQUEST",
+          "lastAuthority": "LOCAL_AUTHORIZED",
+          "tenantId": "syn_tenant_alpha",
+          "version": 5
+        },
+        "inputs": {
+          "authorityResolved": false,
+          "brokerSourceVersion": 4,
+          "localVersion": 5
+        },
+        "retryBehavior": "NO_AUTOMATIC_RETRY_UNTIL_RECONCILED"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "ACCEPT",
+            "reason": "FUTURE_TEMPLATE_VERSION_CREATED"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "ONLY_NEW_INSTANCES_USE_NEW_VERSION"
+          }
+        ],
+        "caseType": "STANDING_ORDER_EDIT",
+        "commandSequence": [
+          "AmendLeg",
+          "MaterializeTrips"
+        ],
+        "emittedEvents": [
+          "LegAmended",
+          "TripsMaterialized"
+        ],
+        "finalState": {
+          "existingTripVersions": [
+            2,
+            2
+          ],
+          "futureTripVersion": 3,
+          "templateVersion": 3
+        },
+        "financialConsequence": "EXISTING_CASES_UNCHANGED",
+        "humanAttention": "EXISTING_DISPATCHED_TRIPS_REQUIRE_SEPARATE_IMPACT_REVIEW",
+        "id": "GOLDEN_04_STANDING_ORDER_EDIT",
+        "initialState": {
+          "aggregate": "TRIP_REQUEST",
+          "materializedTripIds": [
+            "syn_trip_day_1",
+            "syn_trip_day_2"
+          ],
+          "templateVersion": 2
+        },
+        "inputs": {
+          "materializedCount": 2,
+          "newTemplateVersion": 3
+        },
+        "retryBehavior": "MATERIALIZATION_KEYS_DEDUPLICATE_BY_TEMPLATE_AND_SERVICE_DATE"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "QUEUE",
+            "reason": "SEQUENCE_GAP"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "NEXT_SEQUENCE_APPLIED"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "BUFFERED_SEQUENCE_APPLIED"
+          },
+          {
+            "decision": "NO_EFFECT",
+            "reason": "DUPLICATE_NO_EFFECT"
+          }
+        ],
+        "caseType": "OFFLINE_OUT_OF_ORDER",
+        "commandSequence": [
+          "ArrivePickup",
+          "MarkEnRoute",
+          "ArrivePickup"
+        ],
+        "emittedEvents": [
+          "DriverMarkedEnRoute",
+          "PickupArrivalRecorded"
+        ],
+        "finalState": {
+          "lastDeviceSequence": 22,
+          "state": "ARRIVED_PICKUP",
+          "version": 4
+        },
+        "financialConsequence": "NONE",
+        "humanAttention": "NONE",
+        "id": "GOLDEN_05_OFFLINE_OUT_OF_ORDER",
+        "initialState": {
+          "aggregate": "LEG_EXECUTION",
+          "lastDeviceSequence": 20,
+          "state": "DISPATCHED",
+          "version": 2
+        },
+        "inputs": {
+          "commands": [
+            "ArrivePickup",
+            "MarkEnRoute",
+            "ArrivePickup"
+          ],
+          "receivedSequences": [
+            22,
+            21,
+            22
+          ]
+        },
+        "retryBehavior": "BUFFER_CONTIGUOUS_SEQUENCE_AND_DEDUPLICATE"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "ACCEPT",
+            "reason": "READY_AT_RECORDED"
+          },
+          {
+            "decision": "NO_EFFECT",
+            "reason": "DUPLICATE_NO_EFFECT"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "CANCELLATION_AUTHORIZED"
+          },
+          {
+            "decision": "REJECT",
+            "reason": "WILL_CALL_TERMINAL"
+          }
+        ],
+        "caseType": "DUPLICATE_WILL_CALL",
+        "commandSequence": [
+          "MarkWillCallReady",
+          "MarkWillCallReady",
+          "CancelWillCall",
+          "MarkWillCallReady"
+        ],
+        "emittedEvents": [
+          "WillCallMarkedReady",
+          "WillCallCancelled"
+        ],
+        "finalState": {
+          "readyAt": "2026-08-24T15:00:00Z",
+          "version": 10,
+          "willCallState": "CANCELLED"
+        },
+        "financialConsequence": "REQUIRES_CANCELLATION_POLICY_EVALUATION",
+        "humanAttention": "NONE",
+        "id": "GOLDEN_06_DUPLICATE_WILL_CALL",
+        "initialState": {
+          "aggregate": "TRIP_REQUEST",
+          "version": 8,
+          "willCallState": "WAITING_FOR_READY"
+        },
+        "inputs": {
+          "readyAt": "2026-08-24T15:00:00Z",
+          "signalAfterCancellation": true,
+          "signals": 2
+        },
+        "retryBehavior": "READY_SIGNAL_IDEMPOTENT_BY_LEG_AND_SOURCE_KEY"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "REJECT",
+            "reason": "ONBOARD_REQUIRES_INTERRUPTION_RECOVERY"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "INCIDENT_AND_RECOVERY_OPENED"
+          }
+        ],
+        "caseType": "POST_BOARDING_CANCELLATION",
+        "commandSequence": [
+          "CancelLeg",
+          "InterruptLeg"
+        ],
+        "emittedEvents": [
+          "LegInterrupted"
+        ],
+        "finalState": {
+          "state": "INTERRUPTED",
+          "version": 13
+        },
+        "financialConsequence": "BILLING_HOLD_PENDING_OUTCOME",
+        "humanAttention": "RECOVERY_DISPOSITION_REQUIRED",
+        "id": "GOLDEN_07_POST_BOARDING_CANCELLATION",
+        "initialState": {
+          "aggregate": "LEG_EXECUTION",
+          "state": "ONBOARD",
+          "version": 12
+        },
+        "inputs": {
+          "onboard": true,
+          "requestedOutcome": "CANCELLED"
+        },
+        "retryBehavior": "REJECTED_CANCEL_REMAINS_NO_EFFECT"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "REJECT",
+            "reason": "NO_SHOW_EVIDENCE_POLICY_FAILED"
+          }
+        ],
+        "caseType": "UNSUPPORTED_NO_SHOW",
+        "commandSequence": [
+          "MarkRiderNoShow"
+        ],
+        "emittedEvents": [],
+        "finalState": {
+          "state": "ARRIVED_PICKUP",
+          "version": 6
+        },
+        "financialConsequence": "NO_CHARGE_AND_BILLING_HOLD",
+        "humanAttention": "DISPATCHER_OR_BROKER_REVIEW_REQUIRED",
+        "id": "GOLDEN_08_UNSUPPORTED_NO_SHOW",
+        "initialState": {
+          "aggregate": "LEG_EXECUTION",
+          "state": "ARRIVED_PICKUP",
+          "version": 6
+        },
+        "inputs": {
+          "arrivalEvidence": true,
+          "authorizationEvidence": false,
+          "contactEvidence": false,
+          "waitEvidence": false
+        },
+        "retryBehavior": "RETRY_ONLY_WITH_NEW_APPEND_ONLY_EVIDENCE_AND_VERSION"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "ACCEPT",
+            "reason": "INCIDENT_RECORDED"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "EXECUTION_INTERRUPTED"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "ASSIGNMENT_SUPERSEDED_WITH_NEW_SEGMENT"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "CUSTODY_TRANSFER_RECORDED"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "SEGMENTED_EXECUTION_COMPLETED"
+          }
+        ],
+        "caseType": "ONBOARD_BREAKDOWN_TRANSFER",
+        "commandSequence": [
+          "ReportIncident",
+          "InterruptLeg",
+          "ReassignLeg",
+          "TransferLeg",
+          "CompleteLeg"
+        ],
+        "emittedEvents": [
+          "IncidentReported",
+          "LegInterrupted",
+          "AssignmentSuperseded",
+          "LegTransferred",
+          "LegCompleted"
+        ],
+        "finalState": {
+          "segmentIds": [
+            "syn_segment_1",
+            "syn_segment_2"
+          ],
+          "state": "COMPLETED",
+          "version": 18
+        },
+        "financialConsequence": "READINESS_REEVALUATION_REQUIRED",
+        "humanAttention": "INCIDENT_REVIEW_REQUIRED",
+        "id": "GOLDEN_09_ONBOARD_BREAKDOWN_TRANSFER",
+        "initialState": {
+          "aggregate": "LEG_EXECUTION",
+          "segmentIds": [
+            "syn_segment_1"
+          ],
+          "state": "ONBOARD",
+          "version": 14
+        },
+        "inputs": {
+          "custodyRecorded": true,
+          "incident": true,
+          "rescueQualified": true
+        },
+        "retryBehavior": "EACH_COMMAND_DEDUPLICATES_INDEPENDENTLY"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "REJECT",
+            "reason": "INTERVAL_CAPACITY_OR_RIDE_TIME_CONFLICT"
+          }
+        ],
+        "caseType": "MULTI_LOAD_CONFLICT",
+        "commandSequence": [
+          "ReassignLeg"
+        ],
+        "emittedEvents": [],
+        "finalState": {
+          "activeAssignmentUnchanged": true,
+          "version": 11
+        },
+        "financialConsequence": "NONE",
+        "humanAttention": "ALTERNATE_RESOURCE_REQUIRED",
+        "id": "GOLDEN_10_MULTI_LOAD_CONFLICT",
+        "initialState": {
+          "activeLoad": {
+            "seated": 2,
+            "wheelchair": 1
+          },
+          "aggregate": "ASSIGNMENT",
+          "capacity": {
+            "seated": 2,
+            "wheelchair": 1
+          },
+          "version": 11
+        },
+        "inputs": {
+          "candidateLoad": {
+            "seated": 1,
+            "wheelchair": 0
+          },
+          "intervalOverlap": true,
+          "maximumRideTimeExceeded": true
+        },
+        "retryBehavior": "RETRY_REQUIRES_NEW_FEASIBLE_PLAN"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "REJECT",
+            "reason": "RESOURCE_SAFETY_QUALIFICATION_FAILED"
+          },
+          {
+            "decision": "QUEUE",
+            "reason": "QUALIFIED_REPLACEMENT_REQUIRED"
+          }
+        ],
+        "caseType": "MID_RUN_DISQUALIFICATION",
+        "commandSequence": [
+          "BeginRun",
+          "ReplaceRunResource"
+        ],
+        "emittedEvents": [],
+        "finalState": {
+          "exception": "RESOURCE_DISQUALIFIED",
+          "state": "PUBLISHED",
+          "version": 9
+        },
+        "financialConsequence": "NONE",
+        "humanAttention": "DISPATCH_REPLACEMENT_REQUIRED",
+        "id": "GOLDEN_11_MID_RUN_DISQUALIFICATION",
+        "initialState": {
+          "aggregate": "RUN",
+          "state": "PUBLISHED",
+          "unfinishedLegs": 3,
+          "version": 9
+        },
+        "inputs": {
+          "credentialActive": false,
+          "onboardLegs": 0
+        },
+        "retryBehavior": "RETRY_AFTER_NEW_RESOURCE_AND_VERSION_CHECK"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "ACCEPT",
+            "reason": "OUTBOUND_NO_SHOW_RECORDED"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "RETURN_WILL_CALL_EXPIRED"
+          },
+          {
+            "decision": "REJECT",
+            "reason": "LINKED_LEG_DISPOSITION_REVIEW_REQUIRED"
+          }
+        ],
+        "caseType": "PARTIAL_ROUND_TRIP",
+        "commandSequence": [
+          "MarkRiderNoShow",
+          "ExpireWillCall",
+          "CloseTrip"
+        ],
+        "emittedEvents": [
+          "RiderNoShowRecorded",
+          "WillCallExpired"
+        ],
+        "finalState": {
+          "outbound": "RIDER_NO_SHOW",
+          "return": "EXPIRED",
+          "trip": "ACCEPTED"
+        },
+        "financialConsequence": "SEPARATE_LEG_POLICY_EVALUATIONS_AND_TRIP_HOLD",
+        "humanAttention": "RETURN_DISPOSITION_AND_POLICY_REVIEW_REQUIRED",
+        "id": "GOLDEN_12_PARTIAL_ROUND_TRIP",
+        "initialState": {
+          "aggregate": "TRIP_REQUEST",
+          "outbound": "ARRIVED_PICKUP",
+          "return": "WAITING_FOR_READY",
+          "version": 16
+        },
+        "inputs": {
+          "outboundNoShowEvidencePassed": true,
+          "returnResolved": false,
+          "willCallExpired": true
+        },
+        "retryBehavior": "TERMINAL_LEG_SIGNALS_DEDUPLICATE"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "ACCEPT",
+            "reason": "EXPLICIT_SERVICE_TIME_CONTEXT"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "UTC_SEQUENCE_VALID"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "SERVICE_DATE_PRESERVED"
+          }
+        ],
+        "caseType": "DST_OVERNIGHT",
+        "commandSequence": [
+          "PublishRun",
+          "BeginRun",
+          "CompleteRun"
+        ],
+        "emittedEvents": [
+          "RunPublished",
+          "RunStarted",
+          "RunCompleted"
+        ],
+        "finalState": {
+          "serviceDate": "2026-11-01",
+          "state": "COMPLETED",
+          "timezone": "America/Los_Angeles"
+        },
+        "financialConsequence": "SERVICE_DATE_REMAINS_OPERATOR_LOCAL",
+        "humanAttention": "NONE",
+        "id": "GOLDEN_13_DST_OVERNIGHT",
+        "initialState": {
+          "aggregate": "RUN",
+          "serviceDate": "2026-11-01",
+          "state": "PLANNED",
+          "timezone": "America/Los_Angeles"
+        },
+        "inputs": {
+          "crossesMidnight": true,
+          "facilityTimezone": "America/Denver",
+          "lateClose": true,
+          "utcInstantsUnambiguous": true
+        },
+        "retryBehavior": "VERSIONS_AND_INSTANTS_REMAIN_UNAMBIGUOUS"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "ACCEPT",
+            "reason": "AUTHORITATIVE_COMMAND_CONTINUES_WITHOUT_VENDOR"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "AUTHORITATIVE_COMMAND_CONTINUES_WITHOUT_VENDOR"
+          }
+        ],
+        "caseType": "VENDOR_OUTAGE",
+        "commandSequence": [
+          "ArrivePickup",
+          "BoardRider"
+        ],
+        "emittedEvents": [
+          "PickupArrivalRecorded",
+          "RiderBoarded"
+        ],
+        "finalState": {
+          "authoritativeStateAvailable": true,
+          "legState": "ONBOARD"
+        },
+        "financialConsequence": "NONE_UNLESS_EVIDENCE_POLICY_LATER_FAILS",
+        "humanAttention": "DEGRADED_DELIVERY_AND_ROUTE_GUIDANCE_ALERT",
+        "id": "GOLDEN_14_VENDOR_OUTAGE",
+        "initialState": {
+          "aggregate": "RUN",
+          "authoritativeStateAvailable": true,
+          "state": "IN_PROGRESS",
+          "version": 21
+        },
+        "inputs": {
+          "mapsAvailable": false,
+          "matrixAvailable": false,
+          "pushAvailable": false,
+          "realtimeAvailable": false
+        },
+        "retryBehavior": "OUTBOX_AND_CLIENT_RESYNC_AFTER_RECOVERY"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "ACCEPT",
+            "reason": "APPEND_ONLY_EVIDENCE_AMENDMENT"
+          },
+          {
+            "decision": "REJECT",
+            "reason": "ADJUSTMENT_OR_VOID_REQUIRED"
+          },
+          {
+            "decision": "ACCEPT",
+            "reason": "LINKED_FINANCIAL_ADJUSTMENT_CREATED"
+          }
+        ],
+        "caseType": "POST_ISSUE_CORRECTION",
+        "commandSequence": [
+          "AmendEvidence",
+          "EditInvoice",
+          "AdjustInvoice"
+        ],
+        "emittedEvents": [
+          "EvidenceAmended",
+          "InvoiceAdjusted"
+        ],
+        "finalState": {
+          "adjustmentCount": 1,
+          "evidenceVersion": 3,
+          "invoiceState": "ISSUED",
+          "invoiceVersion": 4
+        },
+        "financialConsequence": "ORIGINAL_ISSUE_PRESERVED_WITH_ADJUSTMENT",
+        "humanAttention": "BILLING_REVIEW_REQUIRED",
+        "id": "GOLDEN_15_POST_ISSUE_CORRECTION",
+        "initialState": {
+          "aggregate": "INVOICE_CLAIM",
+          "evidenceVersion": 2,
+          "invoiceState": "ISSUED",
+          "invoiceVersion": 4
+        },
+        "inputs": {
+          "evidenceCorrection": true,
+          "financialCorrection": true,
+          "overwriteRequested": true
+        },
+        "retryBehavior": "AMENDMENT_AND_ADJUSTMENT_KEYS_DEDUPLICATE"
+      },
+      {
+        "acceptedRejectedResults": [
+          {
+            "decision": "REJECT",
+            "reason": "TENANT_MISMATCH"
+          }
+        ],
+        "caseType": "TENANT_MISMATCH",
+        "commandSequence": [
+          "AmendLeg"
+        ],
+        "emittedEvents": [],
+        "finalState": {
+          "businessEffects": 0,
+          "version": 2
+        },
+        "financialConsequence": "NONE",
+        "humanAttention": "SECURITY_REVIEW_AND_AUDIT_REQUIRED",
+        "id": "GOLDEN_16_TENANT_MISMATCH",
+        "initialState": {
+          "aggregate": "INTEGRATION_RECEIPT",
+          "tenantId": "syn_tenant_alpha",
+          "version": 2
+        },
+        "inputs": {
+          "commandTenantId": "syn_tenant_alpha",
+          "eventTenantId": "syn_tenant_beta",
+          "referenceTenantId": "syn_tenant_beta"
+        },
+        "retryBehavior": "NEVER_RETRY_CROSS_TENANT_PAYLOAD"
+      }
+    ],
+    "schemaVersion": "1.0.0",
+    "status": "PROVISIONAL_PENDING_OPERATOR_VALIDATION"
+  },
+  "schemaVersion": "1.0.0",
+  "synthetic": true
+}

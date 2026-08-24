@@ -1,0 +1,3679 @@
+{
+  "admission": {
+    "admissionControlIsHardCap": true,
+    "budgetAlertsAreHardCaps": false,
+    "crossTenantLedgerPolicy": "REJECT",
+    "ledgerFields": [
+      "tenantId",
+      "operationId",
+      "skuId",
+      "billableUnit",
+      "estimatedUnits",
+      "admittedUnits",
+      "actualUnits",
+      "priceVersion",
+      "requestFingerprint",
+      "recordedAt"
+    ],
+    "operations": [
+      {
+        "allowedSkus": [
+          "AUTOCOMPLETE_REQUESTS",
+          "AUTOCOMPLETE_SESSION_USAGE"
+        ],
+        "criticality": "CRITICAL",
+        "id": "ADDRESS_AUTOCOMPLETE",
+        "priority": "INTERACTIVE",
+        "projectDailyQuotaCeiling": 100000,
+        "retry": {
+          "backoff": "BOUNDED_EXPONENTIAL_JITTER",
+          "honorRetryAfter": true,
+          "maxAttempts": 2
+        },
+        "tenantMonthlyUnitCeiling": 50000,
+        "tokenBucket": {
+          "capacity": 20,
+          "refillPerSecond": 5
+        }
+      },
+      {
+        "allowedSkus": [
+          "PLACE_DETAILS_ESSENTIALS",
+          "PLACE_DETAILS_IDS_ONLY"
+        ],
+        "criticality": "CRITICAL",
+        "id": "ADDRESS_SELECTION",
+        "priority": "INTERACTIVE",
+        "projectDailyQuotaCeiling": 50000,
+        "retry": {
+          "backoff": "BOUNDED_EXPONENTIAL_JITTER",
+          "honorRetryAfter": true,
+          "maxAttempts": 2
+        },
+        "tenantMonthlyUnitCeiling": 20000,
+        "tokenBucket": {
+          "capacity": 10,
+          "refillPerSecond": 3
+        }
+      },
+      {
+        "allowedSkus": [
+          "GEOCODING"
+        ],
+        "criticality": "CRITICAL_WHEN_USER_WAITING",
+        "id": "GEOCODE",
+        "priority": "BACKGROUND_OR_INTERACTIVE",
+        "projectDailyQuotaCeiling": 50000,
+        "retry": {
+          "backoff": "BOUNDED_EXPONENTIAL_JITTER",
+          "honorRetryAfter": true,
+          "maxAttempts": 3
+        },
+        "tenantMonthlyUnitCeiling": 30000,
+        "tokenBucket": {
+          "capacity": 10,
+          "refillPerSecond": 2
+        }
+      },
+      {
+        "allowedSkus": [
+          "COMPUTE_ROUTES_ESSENTIALS",
+          "COMPUTE_ROUTES_PRO"
+        ],
+        "criticality": "CRITICAL_NEAR_SERVICE",
+        "id": "ROUTE",
+        "priority": "LIVE_ETA_OR_PLANNING",
+        "projectDailyQuotaCeiling": 100000,
+        "retry": {
+          "backoff": "BOUNDED_EXPONENTIAL_JITTER",
+          "honorRetryAfter": true,
+          "maxAttempts": 2
+        },
+        "tenantMonthlyUnitCeiling": 50000,
+        "tokenBucket": {
+          "capacity": 20,
+          "refillPerSecond": 5
+        }
+      },
+      {
+        "allowedSkus": [
+          "COMPUTE_MATRIX_ESSENTIALS",
+          "COMPUTE_MATRIX_PRO"
+        ],
+        "criticality": "SHEDDABLE_BEFORE_MANUAL_DISPATCH",
+        "id": "MATRIX",
+        "priority": "CANDIDATE_SCORING",
+        "projectDailyQuotaCeiling": 1000000,
+        "retry": {
+          "backoff": "BOUNDED_EXPONENTIAL_JITTER",
+          "honorRetryAfter": true,
+          "maxAttempts": 1
+        },
+        "tenantMonthlyUnitCeiling": 250000,
+        "tokenBucket": {
+          "capacity": 625,
+          "refillPerSecond": 50
+        }
+      },
+      {
+        "allowedSkus": [
+          "OPTIMIZATION_SINGLE_VEHICLE",
+          "OPTIMIZATION_FLEET"
+        ],
+        "criticality": "SHEDDABLE_FIRST",
+        "id": "OPTIMIZE",
+        "priority": "SHADOW_BACKGROUND",
+        "projectDailyQuotaCeiling": 100000,
+        "retry": {
+          "backoff": "BOUNDED_EXPONENTIAL_JITTER",
+          "honorRetryAfter": true,
+          "maxAttempts": 1
+        },
+        "tenantMonthlyUnitCeiling": 50000,
+        "tokenBucket": {
+          "capacity": 100,
+          "refillPerSecond": 1
+        }
+      }
+    ],
+    "policyVersion": "maps-admission-v1",
+    "priceVersion": "google-global-2026-08-24",
+    "reconciliation": {
+      "internalUnitsToProviderBilling": "DAILY",
+      "priceListReview": "MONTHLY",
+      "tierEscalationAction": "STOP_UNLESS_PRE_ADMITTED",
+      "unknownSkuAction": "STOP_PATH_AND_HUMAN_REVIEW"
+    },
+    "schemaVersion": "1.0.0",
+    "sheddingOrder": [
+      "SHADOW_OPTIMIZATION",
+      "BULK_REFRESH",
+      "BACKGROUND_RECOMPUTATION",
+      "MATRIX_AUTOMATION",
+      "LIVE_CRITICAL_OPERATION_LAST"
+    ],
+    "status": "SYNTHETIC_LIMITS_NOT_PRODUCTION_APPROVED",
+    "unknownSkuPolicy": "REJECT_AND_REQUIRE_HUMAN_REVIEW"
+  },
+  "capabilities": {
+    "apiVersion": "ARQ-004_SELECTED_VERSIONS",
+    "capabilities": [
+      {
+        "billableUnit": "REQUEST_OR_SESSION_USAGE",
+        "decision": "SELECTED",
+        "fieldEscalation": "DETAILS_TERMINATION_DETERMINES_SESSION_ACCOUNTING",
+        "id": "PLACES_AUTOCOMPLETE_NEW",
+        "phase": "P0",
+        "productionGate": "ACCOUNT_BILLING_CREDENTIAL_PRIVACY_REVIEW",
+        "skus": [
+          "AUTOCOMPLETE_REQUESTS",
+          "AUTOCOMPLETE_SESSION_USAGE"
+        ],
+        "sourceIds": [
+          "SRC_PLACES_SESSION_PRICING",
+          "SRC_PLACES_POLICY"
+        ]
+      },
+      {
+        "billableUnit": "REQUEST",
+        "decision": "SELECTED",
+        "fieldEscalation": "ONLY_ID_ADDRESS_LOCATION_VIEWPORT; ADVANCED_FIELDS_FORBIDDEN",
+        "id": "PLACE_DETAILS_ESSENTIALS",
+        "phase": "P0",
+        "productionGate": "ACCOUNT_BILLING_CREDENTIAL_PRIVACY_REVIEW",
+        "skus": [
+          "PLACE_DETAILS_ESSENTIALS",
+          "PLACE_DETAILS_IDS_ONLY"
+        ],
+        "sourceIds": [
+          "SRC_PLACES_POLICY",
+          "SRC_PLACE_ID"
+        ]
+      },
+      {
+        "billableUnit": "REQUEST",
+        "decision": "SELECTED",
+        "fieldEscalation": "STRUCTURED_ADDRESS_AND_MINIMAL_MASK_ONLY",
+        "id": "GEOCODING_V4",
+        "phase": "P0",
+        "productionGate": "SERVER_CREDENTIAL_AND_PRIVACY_REVIEW",
+        "skus": [
+          "GEOCODING"
+        ],
+        "sourceIds": [
+          "SRC_GEOCODING_V4"
+        ]
+      },
+      {
+        "billableUnit": "MAP_LOAD",
+        "decision": "SELECTED",
+        "fieldEscalation": "MARKER_UPDATES_MUST_NOT_TRIGGER_MAP_LOAD",
+        "id": "DYNAMIC_MAPS",
+        "phase": "P0",
+        "productionGate": "WEB_CREDENTIAL_ATTRIBUTION_AND_ORIGIN_APPROVAL",
+        "skus": [
+          "DYNAMIC_MAPS"
+        ],
+        "sourceIds": [
+          "SRC_MAPS_GLOBAL_PRICING",
+          "SRC_PLACES_POLICY"
+        ]
+      },
+      {
+        "billableUnit": "MAP_LOAD",
+        "decision": "SELECTED_CONDITIONAL",
+        "fieldEscalation": "NO_DOMAIN_AUTHORITY",
+        "id": "NATIVE_MAPS_SDK",
+        "phase": "P0_WHEN_MOBILE_MAP_NEEDED",
+        "productionGate": "APP_CREDENTIAL_STORE_PRIVACY_APPROVAL",
+        "skus": [
+          "MAPS_SDK"
+        ],
+        "sourceIds": [
+          "SRC_MAPS_GLOBAL_PRICING",
+          "SRC_MAPS_SECURITY"
+        ]
+      },
+      {
+        "billableUnit": "REQUEST",
+        "decision": "SELECTED",
+        "fieldEscalation": "TRAFFIC_AWARE_OR_TRAFFIC_AWARE_OPTIMAL_IS_PRO; UNKNOWN_OR_ENTERPRISE_FIELD_REJECTED",
+        "id": "COMPUTE_ROUTES",
+        "phase": "P0",
+        "productionGate": "PAID_ARQ_013_AND_PRIVACY_REVIEW",
+        "skus": [
+          "COMPUTE_ROUTES_ESSENTIALS",
+          "COMPUTE_ROUTES_PRO"
+        ],
+        "sourceIds": [
+          "SRC_ROUTES_USAGE",
+          "SRC_ROUTE_FIELD_MASK"
+        ]
+      },
+      {
+        "billableUnit": "MATRIX_ELEMENT",
+        "decision": "SELECTED",
+        "fieldEscalation": "ORIGINS_X_DESTINATIONS; TRAFFIC_AWARE_IS_PRO; OPTIMAL_LIMIT_100_ELEMENTS",
+        "id": "COMPUTE_ROUTE_MATRIX",
+        "phase": "P0_PREFILTERED",
+        "productionGate": "PAID_ARQ_013_AND_BUDGET_APPROVAL",
+        "skus": [
+          "COMPUTE_MATRIX_ESSENTIALS",
+          "COMPUTE_MATRIX_PRO"
+        ],
+        "sourceIds": [
+          "SRC_ROUTES_USAGE",
+          "SRC_ROUTE_MATRIX",
+          "SRC_ROUTE_FIELD_MASK"
+        ]
+      },
+      {
+        "billableUnit": "SHIPMENT",
+        "decision": "SELECTED_FOR_SHADOW_ONLY",
+        "fieldEscalation": "EXACTLY_ONE_VEHICLE",
+        "id": "ROUTE_OPTIMIZATION_SINGLE",
+        "phase": "P1_SHADOW",
+        "productionGate": "PAID_ARQ_014_AND_HUMAN_APPROVAL",
+        "skus": [
+          "OPTIMIZATION_SINGLE_VEHICLE"
+        ],
+        "sourceIds": [
+          "SRC_OPTIMIZATION_BILLING"
+        ]
+      },
+      {
+        "billableUnit": "SHIPMENT",
+        "decision": "SELECTED_FOR_SHADOW_ONLY",
+        "fieldEscalation": "TWO_OR_MORE_VEHICLES",
+        "id": "ROUTE_OPTIMIZATION_FLEET",
+        "phase": "P1_SHADOW",
+        "productionGate": "PAID_ARQ_014_AND_HUMAN_APPROVAL",
+        "skus": [
+          "OPTIMIZATION_FLEET"
+        ],
+        "sourceIds": [
+          "SRC_OPTIMIZATION_BILLING"
+        ]
+      },
+      {
+        "billableUnit": "DESTINATION_OR_REQUEST",
+        "decision": "EXTERNAL_APP_HANDOFF_FOR_P0",
+        "fieldEscalation": "EMBEDDED_NAVIGATION_NOT_P0",
+        "id": "NAVIGATION",
+        "phase": "DEFERRED",
+        "productionGate": "SEPARATE_ECONOMIC_DEVICE_AND_STORE_APPROVAL",
+        "skus": [
+          "NAVIGATION_REQUEST"
+        ],
+        "sourceIds": [
+          "SRC_MAPS_GLOBAL_PRICING"
+        ]
+      }
+    ],
+    "deferred": [
+      "ADDRESS_VALIDATION",
+      "FLEET_ENGINE",
+      "ROADS",
+      "NEARBY_SEARCH",
+      "TEXT_SEARCH",
+      "REVIEWS",
+      "PHOTOS",
+      "ADVANCED_PLACES_FIELDS"
+    ],
+    "effectiveDate": "2026-08-24",
+    "provider": "GOOGLE_MAPS_PLATFORM",
+    "schemaVersion": "1.0.0",
+    "status": "DECISION_READY_NOT_PRODUCTION_APPROVED"
+  },
+  "contractType": "kavaroutes.synthetic-maps-policy-cost",
+  "controlledCosts": [
+    {
+      "breakdown": {
+        "AUTOCOMPLETE_REQUESTS": {
+          "billableUnit": "REQUEST",
+          "cost": 5.66,
+          "units": 12000
+        },
+        "COMPUTE_MATRIX_PRO": {
+          "billableUnit": "MATRIX_ELEMENT",
+          "cost": 100,
+          "units": 15000
+        },
+        "COMPUTE_ROUTES_PRO": {
+          "billableUnit": "REQUEST",
+          "cost": 0,
+          "units": 2250
+        },
+        "DYNAMIC_MAPS": {
+          "billableUnit": "MAP_LOAD",
+          "cost": 0,
+          "units": 600
+        },
+        "GEOCODING": {
+          "billableUnit": "REQUEST",
+          "cost": 0,
+          "units": 3750
+        },
+        "NAVIGATION_REQUEST": {
+          "billableUnit": "DESTINATION_OR_REQUEST",
+          "cost": 0,
+          "units": 0
+        },
+        "OPTIMIZATION_FLEET": {
+          "billableUnit": "SHIPMENT",
+          "cost": 0,
+          "units": 0
+        },
+        "PLACE_DETAILS_ESSENTIALS": {
+          "billableUnit": "REQUEST",
+          "cost": 0,
+          "units": 3000
+        }
+      },
+      "modelVersion": "arq-004-controlled-p0-v1",
+      "monthly": 105.66,
+      "perActiveVehicle": 4.23,
+      "perTenant": 105.66,
+      "perTrip": 0.007,
+      "priceVersion": "google-global-2026-08-24",
+      "profileId": "small-pilot",
+      "subscriptions": [
+        {
+          "deltaFromPayAsYouGo": -5.66,
+          "eligibleByEventCap": true,
+          "id": "SUB_50K",
+          "includedEvents": 50000,
+          "modeledIncludedUsage": 36600,
+          "monthlyPrice": 100
+        },
+        {
+          "deltaFromPayAsYouGo": 169.34,
+          "eligibleByEventCap": true,
+          "id": "SUB_100K",
+          "includedEvents": 100000,
+          "modeledIncludedUsage": 36600,
+          "monthlyPrice": 275
+        },
+        {
+          "deltaFromPayAsYouGo": 1094.34,
+          "eligibleByEventCap": true,
+          "id": "SUB_250K",
+          "includedEvents": 250000,
+          "modeledIncludedUsage": 36600,
+          "monthlyPrice": 1200
+        }
+      ],
+      "volumes": {
+        "AUTOCOMPLETE_REQUESTS": 12000,
+        "COMPUTE_MATRIX_PRO": 15000,
+        "COMPUTE_ROUTES_PRO": 2250,
+        "DYNAMIC_MAPS": 600,
+        "GEOCODING": 3750,
+        "NAVIGATION_REQUEST": 0,
+        "OPTIMIZATION_FLEET": 0,
+        "PLACE_DETAILS_ESSENTIALS": 3000
+      }
+    },
+    {
+      "breakdown": {
+        "AUTOCOMPLETE_REQUESTS": {
+          "billableUnit": "REQUEST",
+          "cost": 73.58,
+          "units": 36000
+        },
+        "COMPUTE_MATRIX_PRO": {
+          "billableUnit": "MATRIX_ELEMENT",
+          "cost": 400,
+          "units": 45000
+        },
+        "COMPUTE_ROUTES_PRO": {
+          "billableUnit": "REQUEST",
+          "cost": 17.5,
+          "units": 6750
+        },
+        "DYNAMIC_MAPS": {
+          "billableUnit": "MAP_LOAD",
+          "cost": 0,
+          "units": 1500
+        },
+        "GEOCODING": {
+          "billableUnit": "REQUEST",
+          "cost": 6.25,
+          "units": 11250
+        },
+        "NAVIGATION_REQUEST": {
+          "billableUnit": "DESTINATION_OR_REQUEST",
+          "cost": 0,
+          "units": 0
+        },
+        "OPTIMIZATION_FLEET": {
+          "billableUnit": "SHIPMENT",
+          "cost": 0,
+          "units": 0
+        },
+        "PLACE_DETAILS_ESSENTIALS": {
+          "billableUnit": "REQUEST",
+          "cost": 0,
+          "units": 9000
+        }
+      },
+      "modelVersion": "arq-004-controlled-p0-v1",
+      "monthly": 497.33,
+      "perActiveVehicle": 6.63,
+      "perTenant": 497.33,
+      "perTrip": 0.0111,
+      "priceVersion": "google-global-2026-08-24",
+      "profileId": "p0-growth",
+      "subscriptions": [
+        {
+          "deltaFromPayAsYouGo": -397.33,
+          "eligibleByEventCap": false,
+          "id": "SUB_50K",
+          "includedEvents": 50000,
+          "modeledIncludedUsage": 109500,
+          "monthlyPrice": 100
+        },
+        {
+          "deltaFromPayAsYouGo": -222.33,
+          "eligibleByEventCap": false,
+          "id": "SUB_100K",
+          "includedEvents": 100000,
+          "modeledIncludedUsage": 109500,
+          "monthlyPrice": 275
+        },
+        {
+          "deltaFromPayAsYouGo": 702.67,
+          "eligibleByEventCap": true,
+          "id": "SUB_250K",
+          "includedEvents": 250000,
+          "modeledIncludedUsage": 109500,
+          "monthlyPrice": 1200
+        }
+      ],
+      "volumes": {
+        "AUTOCOMPLETE_REQUESTS": 36000,
+        "COMPUTE_MATRIX_PRO": 45000,
+        "COMPUTE_ROUTES_PRO": 6750,
+        "DYNAMIC_MAPS": 1500,
+        "GEOCODING": 11250,
+        "NAVIGATION_REQUEST": 0,
+        "OPTIMIZATION_FLEET": 0,
+        "PLACE_DETAILS_ESSENTIALS": 9000
+      }
+    },
+    {
+      "breakdown": {
+        "AUTOCOMPLETE_REQUESTS": {
+          "billableUnit": "REQUEST",
+          "cost": 572.5,
+          "units": 240000
+        },
+        "COMPUTE_MATRIX_PRO": {
+          "billableUnit": "MATRIX_ELEMENT",
+          "cost": 2550,
+          "units": 300000
+        },
+        "COMPUTE_ROUTES_PRO": {
+          "billableUnit": "REQUEST",
+          "cost": 400,
+          "units": 45000
+        },
+        "DYNAMIC_MAPS": {
+          "billableUnit": "MAP_LOAD",
+          "cost": 0,
+          "units": 6000
+        },
+        "GEOCODING": {
+          "billableUnit": "REQUEST",
+          "cost": 325,
+          "units": 75000
+        },
+        "NAVIGATION_REQUEST": {
+          "billableUnit": "DESTINATION_OR_REQUEST",
+          "cost": 0,
+          "units": 0
+        },
+        "OPTIMIZATION_FLEET": {
+          "billableUnit": "SHIPMENT",
+          "cost": 0,
+          "units": 0
+        },
+        "PLACE_DETAILS_ESSENTIALS": {
+          "billableUnit": "REQUEST",
+          "cost": 250,
+          "units": 60000
+        }
+      },
+      "modelVersion": "arq-004-controlled-p0-v1",
+      "monthly": 4097.5,
+      "perActiveVehicle": 8.2,
+      "perTenant": 4097.5,
+      "perTrip": 0.0137,
+      "priceVersion": "google-global-2026-08-24",
+      "profileId": "enterprise-design",
+      "subscriptions": [
+        {
+          "deltaFromPayAsYouGo": -3997.5,
+          "eligibleByEventCap": false,
+          "id": "SUB_50K",
+          "includedEvents": 50000,
+          "modeledIncludedUsage": 726000,
+          "monthlyPrice": 100
+        },
+        {
+          "deltaFromPayAsYouGo": -3822.5,
+          "eligibleByEventCap": false,
+          "id": "SUB_100K",
+          "includedEvents": 100000,
+          "modeledIncludedUsage": 726000,
+          "monthlyPrice": 275
+        },
+        {
+          "deltaFromPayAsYouGo": -2897.5,
+          "eligibleByEventCap": false,
+          "id": "SUB_250K",
+          "includedEvents": 250000,
+          "modeledIncludedUsage": 726000,
+          "monthlyPrice": 1200
+        }
+      ],
+      "volumes": {
+        "AUTOCOMPLETE_REQUESTS": 240000,
+        "COMPUTE_MATRIX_PRO": 300000,
+        "COMPUTE_ROUTES_PRO": 45000,
+        "DYNAMIC_MAPS": 6000,
+        "GEOCODING": 75000,
+        "NAVIGATION_REQUEST": 0,
+        "OPTIMIZATION_FLEET": 0,
+        "PLACE_DETAILS_ESSENTIALS": 60000
+      }
+    },
+    {
+      "breakdown": {
+        "AUTOCOMPLETE_REQUESTS": {
+          "billableUnit": "REQUEST",
+          "cost": 3202.7,
+          "units": 2400000
+        },
+        "COMPUTE_MATRIX_PRO": {
+          "billableUnit": "MATRIX_ELEMENT",
+          "cost": 13150,
+          "units": 3000000
+        },
+        "COMPUTE_ROUTES_PRO": {
+          "billableUnit": "REQUEST",
+          "cost": 3750,
+          "units": 450000
+        },
+        "DYNAMIC_MAPS": {
+          "billableUnit": "MAP_LOAD",
+          "cost": 350,
+          "units": 60000
+        },
+        "GEOCODING": {
+          "billableUnit": "REQUEST",
+          "cost": 2800,
+          "units": 750000
+        },
+        "NAVIGATION_REQUEST": {
+          "billableUnit": "DESTINATION_OR_REQUEST",
+          "cost": 0,
+          "units": 0
+        },
+        "OPTIMIZATION_FLEET": {
+          "billableUnit": "SHIPMENT",
+          "cost": 0,
+          "units": 0
+        },
+        "PLACE_DETAILS_ESSENTIALS": {
+          "billableUnit": "REQUEST",
+          "cost": 2350,
+          "units": 600000
+        }
+      },
+      "modelVersion": "arq-004-controlled-p0-v1",
+      "monthly": 25602.7,
+      "perActiveVehicle": 5.12,
+      "perTenant": 256.03,
+      "perTrip": 0.0085,
+      "priceVersion": "google-global-2026-08-24",
+      "profileId": "commercial-platform",
+      "subscriptions": [
+        {
+          "deltaFromPayAsYouGo": -25502.7,
+          "eligibleByEventCap": false,
+          "id": "SUB_50K",
+          "includedEvents": 50000,
+          "modeledIncludedUsage": 7260000,
+          "monthlyPrice": 100
+        },
+        {
+          "deltaFromPayAsYouGo": -25327.7,
+          "eligibleByEventCap": false,
+          "id": "SUB_100K",
+          "includedEvents": 100000,
+          "modeledIncludedUsage": 7260000,
+          "monthlyPrice": 275
+        },
+        {
+          "deltaFromPayAsYouGo": -24402.7,
+          "eligibleByEventCap": false,
+          "id": "SUB_250K",
+          "includedEvents": 250000,
+          "modeledIncludedUsage": 7260000,
+          "monthlyPrice": 1200
+        }
+      ],
+      "volumes": {
+        "AUTOCOMPLETE_REQUESTS": 2400000,
+        "COMPUTE_MATRIX_PRO": 3000000,
+        "COMPUTE_ROUTES_PRO": 450000,
+        "DYNAMIC_MAPS": 60000,
+        "GEOCODING": 750000,
+        "NAVIGATION_REQUEST": 0,
+        "OPTIMIZATION_FLEET": 0,
+        "PLACE_DETAILS_ESSENTIALS": 600000
+      }
+    }
+  ],
+  "costModel": {
+    "assumptions": {
+      "autocompleteRequestsPerSelection": 4,
+      "detailsRequestsPerSuccessfulSelection": 1,
+      "dynamicMapLoadsPerWebUserPerServiceDay": 2,
+      "interactiveAddressSelectionsPerTrip": 0.2,
+      "matrixProElementsPerLegPerServiceDay": 0.5,
+      "navigationDestinationsPerLegPerServiceDayP0": 0,
+      "optimizationShipmentsPerLegPerServiceDayP0": 0,
+      "routesProPerVehiclePerServiceDay": 3,
+      "serverGeocodesPerTrip": 0.25,
+      "successfulSelectionRate": 1
+    },
+    "expectedControlledTotals": [
+      {
+        "monthly": 105.66,
+        "perActiveVehicle": 4.23,
+        "perTrip": 0.007,
+        "profileId": "small-pilot"
+      },
+      {
+        "monthly": 497.33,
+        "perActiveVehicle": 6.63,
+        "perTrip": 0.0111,
+        "profileId": "p0-growth"
+      },
+      {
+        "monthly": 4097.5,
+        "perActiveVehicle": 8.2,
+        "perTrip": 0.0137,
+        "profileId": "enterprise-design"
+      },
+      {
+        "monthly": 25602.7,
+        "perActiveVehicle": 5.12,
+        "perTrip": 0.0085,
+        "profileId": "commercial-platform"
+      }
+    ],
+    "fixtureSeed": "kavaroutes-wp004-cost-v1",
+    "modelVersion": "arq-004-controlled-p0-v1",
+    "schemaVersion": "1.0.0",
+    "sensitivityScenarios": [
+      {
+        "id": "CONTROLLED_P0",
+        "overrides": {}
+      },
+      {
+        "id": "FLEET_OPTIMIZATION_EACH_LEG",
+        "overrides": {
+          "optimizationShipmentsPerLegPerServiceDayP0": 1
+        }
+      },
+      {
+        "id": "EMBEDDED_NAVIGATION_EACH_LEG",
+        "overrides": {
+          "navigationDestinationsPerLegPerServiceDayP0": 1
+        }
+      },
+      {
+        "id": "DOUBLE_MATRIX_AFTER_PREFILTER",
+        "overrides": {
+          "matrixProElementsPerLegPerServiceDay": 1
+        }
+      }
+    ],
+    "serviceDaysPerMonth": 30,
+    "status": "PLANNING_HYPOTHESIS_NOT_MEASURED_USAGE",
+    "workloadSource": "benchmarks/workloads/profiles/*.json"
+  },
+  "credentialValuesPresent": false,
+  "credentials": {
+    "credentialClasses": [
+      {
+        "apiRestriction": "EXPLICIT_ALLOWLIST",
+        "applicationRestriction": "HTTP_REFERRER",
+        "approvedOriginPlaceholder": "https://dev.<approved-subdomain>.kavaroutes.com",
+        "client": "WEB",
+        "credentialType": "API_KEY_METADATA_ONLY",
+        "environment": "DEVELOPMENT",
+        "humanApprovalState": "REQUIRED",
+        "id": "DEV_WEB",
+        "oauthPreference": "NOT_APPLICABLE",
+        "rotationState": "NOT_PROVISIONED"
+      },
+      {
+        "apiRestriction": "EXPLICIT_ALLOWLIST",
+        "applicationRestriction": "SERVER_IP_WHEN_ARCHITECTURE_PERMITS",
+        "approvedOriginPlaceholder": "SERVER_ONLY",
+        "client": "SERVER",
+        "credentialType": "OAUTH_OR_SERVER_KEY_METADATA_ONLY",
+        "environment": "DEVELOPMENT",
+        "humanApprovalState": "REQUIRED",
+        "id": "DEV_SERVER",
+        "oauthPreference": "PREFERRED_WHERE_SUPPORTED",
+        "rotationState": "NOT_PROVISIONED"
+      },
+      {
+        "apiRestriction": "EXPLICIT_ALLOWLIST",
+        "applicationRestriction": "HTTP_REFERRER",
+        "approvedOriginPlaceholder": "https://<approved-subdomain>.kavaroutes.com",
+        "client": "WEB",
+        "credentialType": "API_KEY_METADATA_ONLY",
+        "environment": "PRODUCTION",
+        "humanApprovalState": "REQUIRED",
+        "id": "PROD_WEB",
+        "oauthPreference": "NOT_APPLICABLE",
+        "rotationState": "NOT_PROVISIONED"
+      },
+      {
+        "apiRestriction": "ANDROID_MAPS_ONLY",
+        "applicationRestriction": "PACKAGE_AND_SIGNING_CERTIFICATE",
+        "approvedOriginPlaceholder": "APP_ID_PENDING_HUMAN_GATE",
+        "client": "ANDROID",
+        "credentialType": "API_KEY_METADATA_ONLY",
+        "environment": "PRODUCTION",
+        "humanApprovalState": "REQUIRED",
+        "id": "PROD_ANDROID",
+        "oauthPreference": "NOT_APPLICABLE",
+        "rotationState": "NOT_PROVISIONED"
+      },
+      {
+        "apiRestriction": "IOS_MAPS_ONLY",
+        "applicationRestriction": "BUNDLE_ID",
+        "approvedOriginPlaceholder": "BUNDLE_ID_PENDING_HUMAN_GATE",
+        "client": "IOS",
+        "credentialType": "API_KEY_METADATA_ONLY",
+        "environment": "PRODUCTION",
+        "humanApprovalState": "REQUIRED",
+        "id": "PROD_IOS",
+        "oauthPreference": "NOT_APPLICABLE",
+        "rotationState": "NOT_PROVISIONED"
+      },
+      {
+        "apiRestriction": "EXPLICIT_SERVER_API_ALLOWLIST",
+        "applicationRestriction": "SERVER_IP_WHEN_ARCHITECTURE_PERMITS",
+        "approvedOriginPlaceholder": "SERVER_ONLY",
+        "client": "SERVER",
+        "credentialType": "OAUTH_OR_SERVER_KEY_METADATA_ONLY",
+        "environment": "PRODUCTION",
+        "humanApprovalState": "REQUIRED",
+        "id": "PROD_SERVER",
+        "oauthPreference": "PREFERRED_WHERE_SUPPORTED",
+        "rotationState": "NOT_PROVISIONED"
+      }
+    ],
+    "credentialValuesPresent": false,
+    "policyVersion": "maps-credential-topology-v1",
+    "schemaVersion": "1.0.0",
+    "separationRules": [
+      "DEVELOPMENT_PRODUCTION_PROJECT_SEPARATION",
+      "CLIENT_SERVER_PROJECT_OR_QUOTA_SEPARATION",
+      "DISTINCT_WEB_ANDROID_IOS_SERVER_CREDENTIAL_CLASSES",
+      "API_AND_APPLICATION_RESTRICTIONS_REQUIRED",
+      "SERVER_CREDENTIAL_NEVER_IN_CLIENT",
+      "UNUSED_APIS_DISABLED"
+    ],
+    "sourceIds": [
+      "SRC_MAPS_SECURITY"
+    ],
+    "status": "SECRET_FREE_METADATA_HUMAN_GATE_CLOSED"
+  },
+  "degradation": {
+    "fixtureSeed": "kavaroutes-wp004-degradation-v1",
+    "scenarios": [
+      {
+        "authoritativeState": "UNCHANGED",
+        "automation": "MANUAL_VERIFICATION_OR_DEFERRAL",
+        "expectedReason": "ADDRESS_UNVERIFIED_PROVIDER_UNAVAILABLE",
+        "failure": "ADDRESS_SERVICE_UNAVAILABLE",
+        "humanAttention": "OPERATIONAL_IF_BLOCKING",
+        "id": "DEGRADE_ADDRESS_UNAVAILABLE",
+        "providerCall": "ATTEMPT_FAILED_OR_NOT_MADE",
+        "stalePolicy": "NO_COORDINATE_INVENTION"
+      },
+      {
+        "authoritativeState": "UNCHANGED",
+        "automation": "MANUAL_DISPATCH_ALLOWED_AFTER_HARD_RULES",
+        "expectedReason": "ROUTE_PROJECTION_UNAVAILABLE",
+        "failure": "ROUTE_UNAVAILABLE",
+        "humanAttention": "OPERATIONAL_IF_BLOCKING",
+        "id": "DEGRADE_ROUTE_UNAVAILABLE",
+        "providerCall": "FAILED",
+        "stalePolicy": "TIMESTAMP_AND_LABEL_STALE_OR_UNAVAILABLE"
+      },
+      {
+        "authoritativeState": "PRIOR_ASSIGNMENT_PRESERVED",
+        "automation": "STOPPED",
+        "expectedReason": "AUTOMATIC_SCORING_STOPPED",
+        "failure": "MATRIX_UNAVAILABLE_OR_OVER_BUDGET",
+        "humanAttention": "MANUAL_HARD_CONSTRAINT_VALIDATION",
+        "id": "DEGRADE_MATRIX_BUDGET",
+        "providerCall": "NO_FURTHER_CALL",
+        "stalePolicy": "NO_STALE_SCORE_APPLICATION"
+      },
+      {
+        "authoritativeState": "UNCHANGED",
+        "automation": "STOPPED",
+        "expectedReason": "OPTIMIZATION_PLAN_NOT_APPLIED",
+        "failure": "OPTIMIZER_UNAVAILABLE_OR_INFEASIBLE",
+        "humanAttention": "MANUAL_PLANNING",
+        "id": "DEGRADE_OPTIMIZER",
+        "providerCall": "FAILED_OR_INFEASIBLE",
+        "stalePolicy": "NO_PARTIAL_OR_PRIOR_PLAN_APPLICATION"
+      },
+      {
+        "authoritativeState": "BOARD_LIST_COMMANDS_REMAIN_AVAILABLE",
+        "automation": "CORE_COMMANDS_CONTINUE",
+        "expectedReason": "MAP_ENHANCEMENT_UNAVAILABLE",
+        "failure": "DYNAMIC_MAP_UNAVAILABLE",
+        "humanAttention": "NONE_UNLESS_PROLONGED",
+        "id": "DEGRADE_DYNAMIC_MAP",
+        "providerCall": "FAILED",
+        "stalePolicy": "NO_MAP_DERIVED_AUTHORITY"
+      },
+      {
+        "authoritativeState": "UNCHANGED",
+        "automation": "SHED_LOW_PRIORITY_FIRST",
+        "expectedReason": "BOUNDED_RETRY_AND_SHEDDING",
+        "failure": "RATE_LIMIT_OR_QUOTA",
+        "humanAttention": "ALERT_AND_QUOTA_REVIEW_WITHOUT_AUTO_EXPANSION",
+        "id": "DEGRADE_RATE_QUOTA",
+        "providerCall": "BOUNDED_RETRY_ONLY",
+        "stalePolicy": "NO_RETRY_STORM"
+      },
+      {
+        "authoritativeState": "UNCHANGED",
+        "automation": "STOPPED",
+        "expectedReason": "MAPS_PRIVACY_FIELD_REJECTED",
+        "failure": "PRIVACY_POLICY_REJECTION",
+        "humanAttention": "CORRECT_REQUEST_NO_BYPASS",
+        "id": "DEGRADE_PRIVACY",
+        "providerCall": "NOT_MADE",
+        "stalePolicy": "LOG_FIELD_IDS_AND_POLICY_ONLY_NO_VALUES"
+      },
+      {
+        "authoritativeState": "UNCHANGED",
+        "automation": "AFFECTED_PATH_STOPPED",
+        "expectedReason": "PROVIDER_PATH_DISABLED",
+        "failure": "CREDENTIAL_ABUSE_OR_UNKNOWN_SKU",
+        "humanAttention": "REQUIRED_BEFORE_ROTATION_QUOTA_OR_BILLING_EXPANSION",
+        "id": "DEGRADE_CREDENTIAL_SKU",
+        "providerCall": "NOT_MADE_OR_DISABLED",
+        "stalePolicy": "NO_UNKNOWN_SKU_ADMISSION"
+      }
+    ],
+    "schemaVersion": "1.0.0",
+    "status": "SYNTHETIC"
+  },
+  "digest": "9d5d27efc6e22d2d1ac19d9325aa145ddac96e75c13eb7c4aa6ee9493442373b",
+  "effectiveDate": "2026-08-24",
+  "golden": {
+    "examples": [
+      {
+        "expected": {
+          "autocompleteRequestUnits": 4,
+          "detailsUnits": 1,
+          "reason": "SUCCESS_WITHIN_FIRST_TWELVE",
+          "sessionUsageUnits": 0
+        },
+        "id": "GOLDEN_AUTOCOMPLETE_SUCCESS",
+        "input": {
+          "requests": 4,
+          "terminatedWithDetailsEssentials": true
+        },
+        "type": "AUTOCOMPLETE_ACCOUNTING"
+      },
+      {
+        "expected": {
+          "autocompleteRequestUnits": 12,
+          "detailsUnits": 1,
+          "reason": "SUCCESS_AFTER_TWELVE",
+          "sessionUsageUnits": 2
+        },
+        "id": "GOLDEN_AUTOCOMPLETE_LONG_SUCCESS",
+        "input": {
+          "requests": 14,
+          "terminatedWithDetailsEssentials": true
+        },
+        "type": "AUTOCOMPLETE_ACCOUNTING"
+      },
+      {
+        "expected": {
+          "autocompleteRequestUnits": 14,
+          "detailsUnits": 0,
+          "reason": "ABANDONED_ALL_REQUESTS_BILLABLE",
+          "sessionUsageUnits": 0
+        },
+        "id": "GOLDEN_AUTOCOMPLETE_ABANDONED",
+        "input": {
+          "requests": 14,
+          "terminatedWithDetailsEssentials": false
+        },
+        "type": "AUTOCOMPLETE_ACCOUNTING"
+      },
+      {
+        "expected": {
+          "billableUnits": 12,
+          "reason": "ORIGINS_TIMES_DESTINATIONS",
+          "unit": "MATRIX_ELEMENT"
+        },
+        "id": "GOLDEN_MATRIX_ELEMENTS",
+        "input": {
+          "destinations": 4,
+          "origins": 3
+        },
+        "type": "MATRIX_ACCOUNTING"
+      },
+      {
+        "expected": {
+          "billableUnits": 10,
+          "reason": "TWO_OR_MORE_VEHICLES_FLEET_SKU",
+          "skuId": "OPTIMIZATION_FLEET",
+          "unit": "SHIPMENT"
+        },
+        "id": "GOLDEN_FLEET_SHIPMENTS",
+        "input": {
+          "shipments": 10,
+          "vehicles": 3
+        },
+        "type": "OPTIMIZATION_ACCOUNTING"
+      },
+      {
+        "expected": {
+          "billableUnits": 10,
+          "reason": "ONE_VEHICLE_SINGLE_SKU",
+          "skuId": "OPTIMIZATION_SINGLE_VEHICLE",
+          "unit": "SHIPMENT"
+        },
+        "id": "GOLDEN_SINGLE_SHIPMENTS",
+        "input": {
+          "shipments": 10,
+          "vehicles": 1
+        },
+        "type": "OPTIMIZATION_ACCOUNTING"
+      },
+      {
+        "expected": {
+          "decision": "ALLOW_SYNTHETIC_CONTRACT",
+          "reason": "TRAFFIC_FEATURE_SELECTS_PRO",
+          "skuId": "COMPUTE_ROUTES_PRO"
+        },
+        "id": "GOLDEN_TRAFFIC_TIER",
+        "input": {
+          "fieldMask": [
+            "routes.distanceMeters",
+            "routes.duration"
+          ],
+          "operation": "ROUTE",
+          "routingPreference": "TRAFFIC_AWARE"
+        },
+        "type": "FIELD_TIER"
+      },
+      {
+        "expected": {
+          "decision": "REJECT",
+          "reason": "WILDCARD_FIELD_MASK_FORBIDDEN",
+          "skuId": null
+        },
+        "id": "GOLDEN_WILDCARD_MASK",
+        "input": {
+          "fieldMask": [
+            "*"
+          ],
+          "operation": "ROUTE",
+          "routingPreference": "TRAFFIC_UNAWARE"
+        },
+        "type": "FIELD_TIER"
+      },
+      {
+        "expected": {
+          "decision": "REJECT",
+          "deleteCustomerAddress": false,
+          "deleteKavaRoutesEvidence": false,
+          "reason": "PROVIDER_CONTENT_EXPIRED"
+        },
+        "id": "GOLDEN_CACHE_EXPIRED",
+        "input": {
+          "evaluationAt": "2026-08-01T00:00:01Z",
+          "maxAgeDays": 30,
+          "obtainedAt": "2026-07-01T00:00:00Z"
+        },
+        "type": "CACHE_EXPIRY"
+      },
+      {
+        "expected": {
+          "decision": "ALLOW",
+          "reason": "VALID_GOOGLE_MAP_PAIRING"
+        },
+        "id": "GOLDEN_ATTRIBUTION_GOOGLE_MAP",
+        "input": {
+          "attributionRendered": true,
+          "content": "GOOGLE_CONTENT",
+          "surface": "GOOGLE_MAP"
+        },
+        "type": "DISPLAY_PAIRING"
+      },
+      {
+        "expected": {
+          "decision": "REJECT",
+          "reason": "CONTENT_MAP_MISMATCH"
+        },
+        "id": "GOLDEN_ATTRIBUTION_WRONG_MAP",
+        "input": {
+          "attributionRendered": true,
+          "content": "GOOGLE_CONTENT",
+          "surface": "NON_GOOGLE_MAP"
+        },
+        "type": "DISPLAY_PAIRING"
+      },
+      {
+        "expected": {
+          "decision": "REJECT",
+          "providerCallMade": false,
+          "reason": "MAPS_PRIVACY_FIELD_REJECTED"
+        },
+        "id": "GOLDEN_PRIVACY_REJECTION",
+        "input": {
+          "carrier": "body",
+          "fields": [
+            "origin",
+            "destination",
+            "riderName"
+          ],
+          "operation": "ROUTE"
+        },
+        "type": "REQUEST_PRIVACY"
+      },
+      {
+        "expected": {
+          "decision": "REJECT",
+          "providerCallMade": false,
+          "reason": "UNSAFE_TELEMETRY_FIELD"
+        },
+        "id": "GOLDEN_UNSAFE_LOG_REJECTION",
+        "input": {
+          "fields": [
+            "operationId",
+            "skuId",
+            "address"
+          ]
+        },
+        "type": "SAFE_TELEMETRY"
+      },
+      {
+        "expected": {
+          "decision": "REJECT",
+          "reason": "TENANT_MONTHLY_UNIT_CEILING_EXCEEDED"
+        },
+        "id": "GOLDEN_COST_ADMISSION",
+        "input": {
+          "estimatedUnits": 12,
+          "operation": "MATRIX",
+          "skuId": "COMPUTE_MATRIX_PRO",
+          "tenantId": "syn_tenant_alpha",
+          "tenantUsedUnits": 249995
+        },
+        "type": "COST_ADMISSION"
+      },
+      {
+        "expected": {
+          "authoritativeStateChanged": false,
+          "decision": "MANUAL_ACTION_ELIGIBLE",
+          "reason": "PRIOR_ASSIGNMENT_PRESERVED_AND_HARD_RULES_PASSED"
+        },
+        "id": "GOLDEN_MANUAL_FALLBACK",
+        "input": {
+          "failure": "MATRIX_UNAVAILABLE_OR_OVER_BUDGET",
+          "hardConstraintsPassed": true,
+          "priorAssignment": "syn_assignment_1"
+        },
+        "type": "MANUAL_FALLBACK"
+      },
+      {
+        "expected": {
+          "billableUnits": 1,
+          "reason": "MARKER_UPDATES_DO_NOT_RELOAD_BASE_MAP",
+          "unit": "MAP_LOAD"
+        },
+        "id": "GOLDEN_MARKER_UPDATES",
+        "input": {
+          "mapInitializations": 1,
+          "markerUpdates": 500
+        },
+        "type": "MAP_LOAD_ACCOUNTING"
+      },
+      {
+        "expected": {
+          "authoritativeStateChanged": false,
+          "decision": "REJECT",
+          "reason": "PROVIDER_OUTPUT_NOT_DOMAIN_AUTHORITY"
+        },
+        "id": "GOLDEN_PROVIDER_NOT_AUTHORITY",
+        "input": {
+          "providerResult": "SYNTHETIC_ROUTE_RESULT",
+          "requestedTransition": "COMPLETE_LEG"
+        },
+        "type": "AUTHORITY"
+      }
+    ],
+    "fixtureSeed": "kavaroutes-wp004-golden-v1",
+    "schemaVersion": "1.0.0",
+    "status": "SYNTHETIC_NO_REAL_ADDRESS_OR_LOCATION"
+  },
+  "limitations": [
+    "DATED_PRICES_RECHECK_REQUIRED",
+    "NO_GOOGLE_APPROVAL",
+    "NO_LEGAL_OR_HIPAA_SUITABILITY_CLAIM",
+    "NO_ACCURACY_LATENCY_AVAILABILITY_PROOF",
+    "NO_PRODUCTION_READINESS",
+    "NO_PROVIDER_API_CALL_OR_CREDENTIAL"
+  ],
+  "manifests": {
+    "domainAggregateSerialization": "FORBIDDEN",
+    "manifestVersion": "maps-request-policy-v1",
+    "manifests": [
+      {
+        "allowedFields": [
+          "operation",
+          "apiVersion",
+          "addressInput",
+          "sessionToken",
+          "language",
+          "region",
+          "locationBias",
+          "locationRestriction",
+          "fieldMask"
+        ],
+        "allowedSkus": [
+          "AUTOCOMPLETE_REQUESTS",
+          "AUTOCOMPLETE_SESSION_USAGE"
+        ],
+        "fieldMask": [
+          "suggestions.placePrediction.placeId",
+          "suggestions.placePrediction.text"
+        ],
+        "operation": "ADDRESS_AUTOCOMPLETE",
+        "requiredFields": [
+          "operation",
+          "apiVersion",
+          "addressInput",
+          "sessionToken",
+          "fieldMask"
+        ],
+        "resultFields": [
+          "placeId",
+          "displayText"
+        ],
+        "safeFailureCode": "MAPS_AUTOCOMPLETE_REJECTED"
+      },
+      {
+        "allowedFields": [
+          "operation",
+          "apiVersion",
+          "placeId",
+          "sessionToken",
+          "language",
+          "region",
+          "fieldMask"
+        ],
+        "allowedSkus": [
+          "PLACE_DETAILS_ESSENTIALS",
+          "PLACE_DETAILS_IDS_ONLY"
+        ],
+        "fieldMask": [
+          "id",
+          "formattedAddress",
+          "location",
+          "viewport"
+        ],
+        "operation": "ADDRESS_SELECTION",
+        "requiredFields": [
+          "operation",
+          "apiVersion",
+          "placeId",
+          "sessionToken",
+          "fieldMask"
+        ],
+        "resultFields": [
+          "placeId",
+          "formattedAddress",
+          "location",
+          "viewport"
+        ],
+        "safeFailureCode": "MAPS_DETAILS_REJECTED"
+      },
+      {
+        "allowedFields": [
+          "operation",
+          "apiVersion",
+          "structuredAddress",
+          "language",
+          "region",
+          "fieldMask"
+        ],
+        "allowedSkus": [
+          "GEOCODING"
+        ],
+        "fieldMask": [
+          "results.placeId",
+          "results.formattedAddress",
+          "results.location",
+          "results.viewport"
+        ],
+        "operation": "GEOCODE",
+        "requiredFields": [
+          "operation",
+          "apiVersion",
+          "structuredAddress",
+          "fieldMask"
+        ],
+        "resultFields": [
+          "placeId",
+          "formattedAddress",
+          "location",
+          "viewport"
+        ],
+        "safeFailureCode": "MAPS_GEOCODE_REJECTED"
+      },
+      {
+        "allowedFields": [
+          "operation",
+          "apiVersion",
+          "origin",
+          "destination",
+          "waypoints",
+          "travelMode",
+          "departureTime",
+          "routingPreference",
+          "routeModifiers",
+          "language",
+          "region",
+          "fieldMask"
+        ],
+        "allowedSkus": [
+          "COMPUTE_ROUTES_ESSENTIALS",
+          "COMPUTE_ROUTES_PRO"
+        ],
+        "fieldMask": [
+          "routes.distanceMeters",
+          "routes.duration",
+          "routes.polyline.encodedPolyline",
+          "routes.viewport",
+          "routes.warnings"
+        ],
+        "operation": "ROUTE",
+        "requiredFields": [
+          "operation",
+          "apiVersion",
+          "origin",
+          "destination",
+          "travelMode",
+          "fieldMask"
+        ],
+        "resultFields": [
+          "distanceMeters",
+          "duration",
+          "polyline",
+          "viewport",
+          "warnings",
+          "obtainedAt"
+        ],
+        "safeFailureCode": "MAPS_ROUTE_REJECTED"
+      },
+      {
+        "allowedFields": [
+          "operation",
+          "apiVersion",
+          "origins",
+          "destinations",
+          "travelMode",
+          "departureTime",
+          "routingPreference",
+          "routeModifiers",
+          "language",
+          "region",
+          "fieldMask"
+        ],
+        "allowedSkus": [
+          "COMPUTE_MATRIX_ESSENTIALS",
+          "COMPUTE_MATRIX_PRO"
+        ],
+        "fieldMask": [
+          "originIndex",
+          "destinationIndex",
+          "status",
+          "distanceMeters",
+          "duration",
+          "condition"
+        ],
+        "operation": "MATRIX",
+        "requiredFields": [
+          "operation",
+          "apiVersion",
+          "origins",
+          "destinations",
+          "travelMode",
+          "fieldMask"
+        ],
+        "resultFields": [
+          "originIndex",
+          "destinationIndex",
+          "status",
+          "distanceMeters",
+          "duration",
+          "condition",
+          "obtainedAt"
+        ],
+        "safeFailureCode": "MAPS_MATRIX_REJECTED"
+      },
+      {
+        "allowedFields": [
+          "operation",
+          "apiVersion",
+          "shipments",
+          "vehicles",
+          "globalStartTime",
+          "globalEndTime",
+          "nonIdentityConstraints",
+          "fieldMask"
+        ],
+        "allowedSkus": [
+          "OPTIMIZATION_SINGLE_VEHICLE",
+          "OPTIMIZATION_FLEET"
+        ],
+        "fieldMask": [
+          "routes.vehicleIndex",
+          "routes.visits",
+          "routes.transitions",
+          "skippedShipments",
+          "validationErrors"
+        ],
+        "operation": "OPTIMIZE",
+        "requiredFields": [
+          "operation",
+          "apiVersion",
+          "shipments",
+          "vehicles",
+          "fieldMask"
+        ],
+        "resultFields": [
+          "advisoryPlan",
+          "skippedShipments",
+          "validationErrors",
+          "obtainedAt"
+        ],
+        "safeFailureCode": "MAPS_OPTIMIZATION_REJECTED"
+      }
+    ],
+    "prohibitedCarriers": [
+      "url",
+      "header",
+      "requestId",
+      "correlationId",
+      "log",
+      "cacheKey",
+      "metricLabel",
+      "errorMessage"
+    ],
+    "prohibitedFields": [
+      "riderName",
+      "driverName",
+      "patientName",
+      "phone",
+      "email",
+      "birthDate",
+      "appointmentPurpose",
+      "medicalPurpose",
+      "diagnosis",
+      "facilityType",
+      "memberId",
+      "medicaidId",
+      "payerId",
+      "claimId",
+      "accommodationNarrative",
+      "mobilityNarrative",
+      "notes",
+      "freeText",
+      "signature",
+      "billingData",
+      "tenantId",
+      "riderId",
+      "tripId",
+      "legId",
+      "runId",
+      "assignmentId",
+      "driverId",
+      "vehicleId",
+      "label",
+      "customMetadata",
+      "domainAggregate"
+    ],
+    "safeTelemetryFields": [
+      "operationId",
+      "skuId",
+      "billableUnits",
+      "latencyMs",
+      "resultClass",
+      "requestFingerprint",
+      "policyDecision",
+      "policyVersion"
+    ],
+    "schemaVersion": "1.0.0",
+    "sourcePolicy": "ARQ-002_MAPS_ROUTE_GUIDANCE",
+    "status": "SYNTHETIC_NOT_PRODUCTION_APPROVED",
+    "unknownFieldPolicy": "REJECT_BEFORE_EGRESS"
+  },
+  "priceVersion": "google-global-2026-08-24",
+  "pricing": {
+    "apiVersion": "DATED_PUBLIC_SNAPSHOT",
+    "currency": "USD",
+    "effectiveDate": "2026-08-24",
+    "priceUnit": "USD_PER_1000_BILLABLE_EVENTS",
+    "priceVersion": "google-global-2026-08-24",
+    "pricingRegion": "GLOBAL",
+    "provider": "GOOGLE_MAPS_PLATFORM",
+    "schemaVersion": "1.0.0",
+    "skus": [
+      {
+        "billableUnit": "REQUEST",
+        "category": "ESSENTIALS",
+        "freeCap": 10000,
+        "id": "AUTOCOMPLETE_REQUESTS",
+        "rates": [
+          2.83,
+          2.27,
+          1.7,
+          0.85,
+          0.21
+        ]
+      },
+      {
+        "billableUnit": "SESSION_REQUEST_AFTER_TWELVE",
+        "category": "ESSENTIALS",
+        "freeCap": null,
+        "id": "AUTOCOMPLETE_SESSION_USAGE",
+        "rates": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "billableUnit": "REQUEST",
+        "category": "ESSENTIALS",
+        "freeCap": 10000,
+        "id": "PLACE_DETAILS_ESSENTIALS",
+        "rates": [
+          5,
+          4,
+          3,
+          1.5,
+          0.38
+        ]
+      },
+      {
+        "billableUnit": "REQUEST",
+        "category": "ESSENTIALS",
+        "freeCap": null,
+        "id": "PLACE_DETAILS_IDS_ONLY",
+        "rates": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "billableUnit": "REQUEST",
+        "category": "ESSENTIALS",
+        "freeCap": 10000,
+        "id": "GEOCODING",
+        "rates": [
+          5,
+          4,
+          3,
+          1.5,
+          0.38
+        ]
+      },
+      {
+        "billableUnit": "MAP_LOAD",
+        "category": "ESSENTIALS",
+        "freeCap": 10000,
+        "id": "DYNAMIC_MAPS",
+        "rates": [
+          7,
+          5.6,
+          4.2,
+          2.1,
+          0.53
+        ]
+      },
+      {
+        "billableUnit": "MAP_LOAD",
+        "category": "ESSENTIALS",
+        "freeCap": null,
+        "id": "MAPS_SDK",
+        "rates": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "billableUnit": "REQUEST",
+        "category": "ESSENTIALS",
+        "freeCap": 10000,
+        "id": "COMPUTE_ROUTES_ESSENTIALS",
+        "rates": [
+          5,
+          4,
+          3,
+          1.5,
+          0.38
+        ]
+      },
+      {
+        "billableUnit": "MATRIX_ELEMENT",
+        "category": "ESSENTIALS",
+        "freeCap": 10000,
+        "id": "COMPUTE_MATRIX_ESSENTIALS",
+        "rates": [
+          5,
+          4,
+          3,
+          1.5,
+          0.38
+        ]
+      },
+      {
+        "billableUnit": "REQUEST",
+        "category": "PRO",
+        "freeCap": 5000,
+        "id": "COMPUTE_ROUTES_PRO",
+        "rates": [
+          10,
+          8,
+          6,
+          3,
+          0.75
+        ]
+      },
+      {
+        "billableUnit": "MATRIX_ELEMENT",
+        "category": "PRO",
+        "freeCap": 5000,
+        "id": "COMPUTE_MATRIX_PRO",
+        "rates": [
+          10,
+          8,
+          6,
+          3,
+          0.75
+        ]
+      },
+      {
+        "billableUnit": "SHIPMENT",
+        "category": "PRO",
+        "freeCap": 5000,
+        "id": "OPTIMIZATION_SINGLE_VEHICLE",
+        "rates": [
+          10,
+          4,
+          2,
+          0.8,
+          0.7
+        ]
+      },
+      {
+        "billableUnit": "SHIPMENT",
+        "category": "ENTERPRISE",
+        "freeCap": 1000,
+        "id": "OPTIMIZATION_FLEET",
+        "rates": [
+          30,
+          14,
+          6,
+          2.4,
+          2.1
+        ]
+      },
+      {
+        "billableUnit": "DESTINATION_OR_REQUEST",
+        "category": "ENTERPRISE",
+        "freeCap": 1000,
+        "id": "NAVIGATION_REQUEST",
+        "rates": [
+          25,
+          20,
+          15,
+          8,
+          2
+        ]
+      }
+    ],
+    "sourceId": "SRC_MAPS_GLOBAL_PRICING",
+    "status": "DATED_INPUT_RECHECK_BEFORE_COMMITMENT",
+    "subscriptions": [
+      {
+        "excludedSkus": [
+          "OPTIMIZATION_FLEET",
+          "NAVIGATION_REQUEST"
+        ],
+        "id": "SUB_50K",
+        "includedEvents": 50000,
+        "includedSkuPolicy": "PUBLIC_INCLUDED_SKU_LIST",
+        "monthlyPrice": 100
+      },
+      {
+        "excludedSkus": [
+          "OPTIMIZATION_FLEET",
+          "NAVIGATION_REQUEST"
+        ],
+        "id": "SUB_100K",
+        "includedEvents": 100000,
+        "includedSkuPolicy": "PUBLIC_INCLUDED_SKU_LIST",
+        "monthlyPrice": 275
+      },
+      {
+        "excludedSkus": [
+          "OPTIMIZATION_FLEET",
+          "NAVIGATION_REQUEST"
+        ],
+        "id": "SUB_250K",
+        "includedEvents": 250000,
+        "includedSkuPolicy": "PUBLIC_INCLUDED_SKU_LIST",
+        "monthlyPrice": 1200
+      }
+    ],
+    "tierUpperBounds": [
+      100000,
+      500000,
+      1000000,
+      5000000,
+      null
+    ]
+  },
+  "providerApiCallsMade": 0,
+  "schemaVersion": "1.0.0",
+  "sensitivities": [
+    {
+      "id": "CONTROLLED_P0",
+      "profiles": [
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 5.66,
+              "units": 12000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 100,
+              "units": 15000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 2250
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 600
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 3750
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 3000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 105.66,
+          "perActiveVehicle": 4.23,
+          "perTenant": 105.66,
+          "perTrip": 0.007,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "small-pilot",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -5.66,
+              "eligibleByEventCap": true,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 36600,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": 169.34,
+              "eligibleByEventCap": true,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 36600,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": 1094.34,
+              "eligibleByEventCap": true,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 36600,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 12000,
+            "COMPUTE_MATRIX_PRO": 15000,
+            "COMPUTE_ROUTES_PRO": 2250,
+            "DYNAMIC_MAPS": 600,
+            "GEOCODING": 3750,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 3000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 73.58,
+              "units": 36000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 400,
+              "units": 45000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 17.5,
+              "units": 6750
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 1500
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 6.25,
+              "units": 11250
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 9000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 497.33,
+          "perActiveVehicle": 6.63,
+          "perTenant": 497.33,
+          "perTrip": 0.0111,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "p0-growth",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -397.33,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 109500,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -222.33,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 109500,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": 702.67,
+              "eligibleByEventCap": true,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 109500,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 36000,
+            "COMPUTE_MATRIX_PRO": 45000,
+            "COMPUTE_ROUTES_PRO": 6750,
+            "DYNAMIC_MAPS": 1500,
+            "GEOCODING": 11250,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 9000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 572.5,
+              "units": 240000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 2550,
+              "units": 300000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 400,
+              "units": 45000
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 6000
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 325,
+              "units": 75000
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 250,
+              "units": 60000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 4097.5,
+          "perActiveVehicle": 8.2,
+          "perTenant": 4097.5,
+          "perTrip": 0.0137,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "enterprise-design",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -3997.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 726000,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -3822.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 726000,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": -2897.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 726000,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 240000,
+            "COMPUTE_MATRIX_PRO": 300000,
+            "COMPUTE_ROUTES_PRO": 45000,
+            "DYNAMIC_MAPS": 6000,
+            "GEOCODING": 75000,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 60000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 3202.7,
+              "units": 2400000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 13150,
+              "units": 3000000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 3750,
+              "units": 450000
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 350,
+              "units": 60000
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 2800,
+              "units": 750000
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 2350,
+              "units": 600000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 25602.7,
+          "perActiveVehicle": 5.12,
+          "perTenant": 256.03,
+          "perTrip": 0.0085,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "commercial-platform",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -25502.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 7260000,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -25327.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 7260000,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": -24402.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 7260000,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 2400000,
+            "COMPUTE_MATRIX_PRO": 3000000,
+            "COMPUTE_ROUTES_PRO": 450000,
+            "DYNAMIC_MAPS": 60000,
+            "GEOCODING": 750000,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 600000
+          }
+        }
+      ]
+    },
+    {
+      "id": "FLEET_OPTIMIZATION_EACH_LEG",
+      "profiles": [
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 5.66,
+              "units": 12000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 100,
+              "units": 15000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 2250
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 600
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 3750
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 870,
+              "units": 30000
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 3000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 975.66,
+          "perActiveVehicle": 39.03,
+          "perTenant": 975.66,
+          "perTrip": 0.065,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "small-pilot",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -875.66,
+              "eligibleByEventCap": true,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 36600,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -700.66,
+              "eligibleByEventCap": true,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 36600,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": 224.34,
+              "eligibleByEventCap": true,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 36600,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 12000,
+            "COMPUTE_MATRIX_PRO": 15000,
+            "COMPUTE_ROUTES_PRO": 2250,
+            "DYNAMIC_MAPS": 600,
+            "GEOCODING": 3750,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 30000,
+            "PLACE_DETAILS_ESSENTIALS": 3000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 73.58,
+              "units": 36000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 400,
+              "units": 45000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 17.5,
+              "units": 6750
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 1500
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 6.25,
+              "units": 11250
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 2670,
+              "units": 90000
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 9000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 3167.33,
+          "perActiveVehicle": 42.23,
+          "perTenant": 3167.33,
+          "perTrip": 0.0704,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "p0-growth",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -3067.33,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 109500,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -2892.33,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 109500,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": -1967.33,
+              "eligibleByEventCap": true,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 109500,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 36000,
+            "COMPUTE_MATRIX_PRO": 45000,
+            "COMPUTE_ROUTES_PRO": 6750,
+            "DYNAMIC_MAPS": 1500,
+            "GEOCODING": 11250,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 90000,
+            "PLACE_DETAILS_ESSENTIALS": 9000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 572.5,
+              "units": 240000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 2550,
+              "units": 300000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 400,
+              "units": 45000
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 6000
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 325,
+              "units": 75000
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 9170,
+              "units": 600000
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 250,
+              "units": 60000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 13267.5,
+          "perActiveVehicle": 26.54,
+          "perTenant": 13267.5,
+          "perTrip": 0.0442,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "enterprise-design",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -13167.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 726000,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -12992.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 726000,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": -12067.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 726000,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 240000,
+            "COMPUTE_MATRIX_PRO": 300000,
+            "COMPUTE_ROUTES_PRO": 45000,
+            "DYNAMIC_MAPS": 6000,
+            "GEOCODING": 75000,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 600000,
+            "PLACE_DETAILS_ESSENTIALS": 60000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 3202.7,
+              "units": 2400000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 13150,
+              "units": 3000000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 3750,
+              "units": 450000
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 350,
+              "units": 60000
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 2800,
+              "units": 750000
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 23270,
+              "units": 6000000
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 2350,
+              "units": 600000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 48872.7,
+          "perActiveVehicle": 9.77,
+          "perTenant": 488.73,
+          "perTrip": 0.0163,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "commercial-platform",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -48772.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 7260000,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -48597.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 7260000,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": -47672.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 7260000,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 2400000,
+            "COMPUTE_MATRIX_PRO": 3000000,
+            "COMPUTE_ROUTES_PRO": 450000,
+            "DYNAMIC_MAPS": 60000,
+            "GEOCODING": 750000,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 6000000,
+            "PLACE_DETAILS_ESSENTIALS": 600000
+          }
+        }
+      ]
+    },
+    {
+      "id": "EMBEDDED_NAVIGATION_EACH_LEG",
+      "profiles": [
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 5.66,
+              "units": 12000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 100,
+              "units": 15000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 2250
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 600
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 3750
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 725,
+              "units": 30000
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 3000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 830.66,
+          "perActiveVehicle": 33.23,
+          "perTenant": 830.66,
+          "perTrip": 0.0554,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "small-pilot",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -730.66,
+              "eligibleByEventCap": true,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 36600,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -555.66,
+              "eligibleByEventCap": true,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 36600,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": 369.34,
+              "eligibleByEventCap": true,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 36600,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 12000,
+            "COMPUTE_MATRIX_PRO": 15000,
+            "COMPUTE_ROUTES_PRO": 2250,
+            "DYNAMIC_MAPS": 600,
+            "GEOCODING": 3750,
+            "NAVIGATION_REQUEST": 30000,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 3000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 73.58,
+              "units": 36000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 400,
+              "units": 45000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 17.5,
+              "units": 6750
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 1500
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 6.25,
+              "units": 11250
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 2225,
+              "units": 90000
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 9000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 2722.33,
+          "perActiveVehicle": 36.3,
+          "perTenant": 2722.33,
+          "perTrip": 0.0605,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "p0-growth",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -2622.33,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 109500,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -2447.33,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 109500,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": -1522.33,
+              "eligibleByEventCap": true,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 109500,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 36000,
+            "COMPUTE_MATRIX_PRO": 45000,
+            "COMPUTE_ROUTES_PRO": 6750,
+            "DYNAMIC_MAPS": 1500,
+            "GEOCODING": 11250,
+            "NAVIGATION_REQUEST": 90000,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 9000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 572.5,
+              "units": 240000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 2550,
+              "units": 300000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 400,
+              "units": 45000
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 6000
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 325,
+              "units": 75000
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 11975,
+              "units": 600000
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 250,
+              "units": 60000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 16072.5,
+          "perActiveVehicle": 32.15,
+          "perTenant": 16072.5,
+          "perTrip": 0.0536,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "enterprise-design",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -15972.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 726000,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -15797.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 726000,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": -14872.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 726000,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 240000,
+            "COMPUTE_MATRIX_PRO": 300000,
+            "COMPUTE_ROUTES_PRO": 45000,
+            "DYNAMIC_MAPS": 6000,
+            "GEOCODING": 75000,
+            "NAVIGATION_REQUEST": 600000,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 60000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 3202.7,
+              "units": 2400000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 13150,
+              "units": 3000000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 3750,
+              "units": 450000
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 350,
+              "units": 60000
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 2800,
+              "units": 750000
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 51975,
+              "units": 6000000
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 2350,
+              "units": 600000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 77577.7,
+          "perActiveVehicle": 15.52,
+          "perTenant": 775.78,
+          "perTrip": 0.0259,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "commercial-platform",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -77477.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 7260000,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -77302.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 7260000,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": -76377.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 7260000,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 2400000,
+            "COMPUTE_MATRIX_PRO": 3000000,
+            "COMPUTE_ROUTES_PRO": 450000,
+            "DYNAMIC_MAPS": 60000,
+            "GEOCODING": 750000,
+            "NAVIGATION_REQUEST": 6000000,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 600000
+          }
+        }
+      ]
+    },
+    {
+      "id": "DOUBLE_MATRIX_AFTER_PREFILTER",
+      "profiles": [
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 5.66,
+              "units": 12000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 250,
+              "units": 30000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 2250
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 600
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 3750
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 3000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 255.66,
+          "perActiveVehicle": 10.23,
+          "perTenant": 255.66,
+          "perTrip": 0.017,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "small-pilot",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -155.66,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 51600,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": 19.34,
+              "eligibleByEventCap": true,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 51600,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": 944.34,
+              "eligibleByEventCap": true,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 51600,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 12000,
+            "COMPUTE_MATRIX_PRO": 30000,
+            "COMPUTE_ROUTES_PRO": 2250,
+            "DYNAMIC_MAPS": 600,
+            "GEOCODING": 3750,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 3000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 73.58,
+              "units": 36000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 850,
+              "units": 90000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 17.5,
+              "units": 6750
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 1500
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 6.25,
+              "units": 11250
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 0,
+              "units": 9000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 947.33,
+          "perActiveVehicle": 12.63,
+          "perTenant": 947.33,
+          "perTrip": 0.0211,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "p0-growth",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -847.33,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 154500,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -672.33,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 154500,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": 252.67,
+              "eligibleByEventCap": true,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 154500,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 36000,
+            "COMPUTE_MATRIX_PRO": 90000,
+            "COMPUTE_ROUTES_PRO": 6750,
+            "DYNAMIC_MAPS": 1500,
+            "GEOCODING": 11250,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 9000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 572.5,
+              "units": 240000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 4750,
+              "units": 600000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 400,
+              "units": 45000
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 0,
+              "units": 6000
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 325,
+              "units": 75000
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 250,
+              "units": 60000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 6297.5,
+          "perActiveVehicle": 12.6,
+          "perTenant": 6297.5,
+          "perTrip": 0.021,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "enterprise-design",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -6197.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 1026000,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -6022.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 1026000,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": -5097.5,
+              "eligibleByEventCap": false,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 1026000,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 240000,
+            "COMPUTE_MATRIX_PRO": 600000,
+            "COMPUTE_ROUTES_PRO": 45000,
+            "DYNAMIC_MAPS": 6000,
+            "GEOCODING": 75000,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 60000
+          }
+        },
+        {
+          "breakdown": {
+            "AUTOCOMPLETE_REQUESTS": {
+              "billableUnit": "REQUEST",
+              "cost": 3202.7,
+              "units": 2400000
+            },
+            "COMPUTE_MATRIX_PRO": {
+              "billableUnit": "MATRIX_ELEMENT",
+              "cost": 19900,
+              "units": 6000000
+            },
+            "COMPUTE_ROUTES_PRO": {
+              "billableUnit": "REQUEST",
+              "cost": 3750,
+              "units": 450000
+            },
+            "DYNAMIC_MAPS": {
+              "billableUnit": "MAP_LOAD",
+              "cost": 350,
+              "units": 60000
+            },
+            "GEOCODING": {
+              "billableUnit": "REQUEST",
+              "cost": 2800,
+              "units": 750000
+            },
+            "NAVIGATION_REQUEST": {
+              "billableUnit": "DESTINATION_OR_REQUEST",
+              "cost": 0,
+              "units": 0
+            },
+            "OPTIMIZATION_FLEET": {
+              "billableUnit": "SHIPMENT",
+              "cost": 0,
+              "units": 0
+            },
+            "PLACE_DETAILS_ESSENTIALS": {
+              "billableUnit": "REQUEST",
+              "cost": 2350,
+              "units": 600000
+            }
+          },
+          "modelVersion": "arq-004-controlled-p0-v1",
+          "monthly": 32352.7,
+          "perActiveVehicle": 6.47,
+          "perTenant": 323.53,
+          "perTrip": 0.0108,
+          "priceVersion": "google-global-2026-08-24",
+          "profileId": "commercial-platform",
+          "subscriptions": [
+            {
+              "deltaFromPayAsYouGo": -32252.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_50K",
+              "includedEvents": 50000,
+              "modeledIncludedUsage": 10260000,
+              "monthlyPrice": 100
+            },
+            {
+              "deltaFromPayAsYouGo": -32077.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_100K",
+              "includedEvents": 100000,
+              "modeledIncludedUsage": 10260000,
+              "monthlyPrice": 275
+            },
+            {
+              "deltaFromPayAsYouGo": -31152.7,
+              "eligibleByEventCap": false,
+              "id": "SUB_250K",
+              "includedEvents": 250000,
+              "modeledIncludedUsage": 10260000,
+              "monthlyPrice": 1200
+            }
+          ],
+          "volumes": {
+            "AUTOCOMPLETE_REQUESTS": 2400000,
+            "COMPUTE_MATRIX_PRO": 6000000,
+            "COMPUTE_ROUTES_PRO": 450000,
+            "DYNAMIC_MAPS": 60000,
+            "GEOCODING": 750000,
+            "NAVIGATION_REQUEST": 0,
+            "OPTIMIZATION_FLEET": 0,
+            "PLACE_DETAILS_ESSENTIALS": 600000
+          }
+        }
+      ]
+    }
+  ],
+  "sources": {
+    "effectiveDate": "2026-08-24",
+    "schemaVersion": "1.0.0",
+    "sources": [
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_MAPS_GLOBAL_PRICING",
+        "title": "Google Maps Platform core services pricing list",
+        "url": "https://developers.google.com/maps/billing-and-pricing/pricing"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_MAPS_PRICING_OVERVIEW",
+        "title": "Google Maps Platform pricing overview and subscriptions",
+        "url": "https://developers.google.com/maps/billing-and-pricing/overview"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_MAPS_COST_MANAGEMENT",
+        "title": "Google Maps Platform cost management",
+        "url": "https://developers.google.com/maps/billing-and-pricing/manage-costs"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_MAPS_MONITORING",
+        "title": "Google Maps Platform monitoring",
+        "url": "https://developers.google.com/maps/reporting-and-monitoring/monitoring"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_MAPS_TERMS",
+        "title": "Google Maps Platform Terms of Service",
+        "url": "https://cloud.google.com/maps-platform/terms"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_MAPS_SERVICE_TERMS",
+        "title": "Google Maps Platform service-specific terms",
+        "url": "https://cloud.google.com/maps-platform/terms/maps-service-terms"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_MAPS_SECURITY",
+        "title": "Google Maps Platform API security guidance",
+        "url": "https://developers.google.com/maps/api-security-best-practices"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_PLACES_SESSION_PRICING",
+        "title": "Places Autocomplete session pricing",
+        "url": "https://developers.google.com/maps/documentation/places/web-service/session-pricing"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_PLACES_POLICY",
+        "title": "Places API policies, storage, and attribution",
+        "url": "https://developers.google.com/maps/documentation/places/web-service/policies"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_PLACE_ID",
+        "title": "Place ID storage and refresh guidance",
+        "url": "https://developers.google.com/maps/documentation/places/web-service/place-id"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_GEOCODING_V4",
+        "title": "Geocoding API v4 overview",
+        "url": "https://developers.google.com/maps/documentation/geocoding/geocoding-v4-overview"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_ROUTES_USAGE",
+        "title": "Routes API usage and billing",
+        "url": "https://developers.google.com/maps/documentation/routes/usage-and-billing"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_ROUTE_MATRIX",
+        "title": "Compute Route Matrix documentation",
+        "url": "https://developers.google.com/maps/documentation/routes/compute_route_matrix"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_ROUTE_FIELD_MASK",
+        "title": "Routes API field masks",
+        "url": "https://developers.google.com/maps/documentation/routes/choose_fields"
+      },
+      {
+        "accessed": "2026-08-24",
+        "authority": "Google",
+        "id": "SRC_OPTIMIZATION_BILLING",
+        "title": "Route Optimization usage and billing",
+        "url": "https://developers.google.com/maps/documentation/route-optimization/usage-and-billing"
+      }
+    ],
+    "status": "DATED_RESEARCH_INPUT_NOT_PRODUCTION_APPROVAL"
+  },
+  "storage": {
+    "authorityRules": [
+      "PROVIDER_OUTPUT_CANNOT_TRANSITION_EXECUTION",
+      "PROVIDER_OUTPUT_CANNOT_VALIDATE_ASSIGNMENT",
+      "PROVIDER_OUTPUT_CANNOT_ASSERT_SERVICE_COMPLETION",
+      "PROVIDER_OUTPUT_CANNOT_ESTABLISH_BILLABLE_MILEAGE",
+      "OPTIMIZER_OUTPUT_IS_ADVISORY_AND_REQUIRES_KAVAROUTES_COMMAND"
+    ],
+    "displayRules": [
+      {
+        "attribution": "REQUIRED",
+        "content": "GOOGLE_CONTENT",
+        "decision": "ALLOW_IF_RENDERED",
+        "surface": "GOOGLE_MAP"
+      },
+      {
+        "attribution": "REQUIRED",
+        "content": "GOOGLE_CONTENT",
+        "decision": "ALLOW_IF_TERMS_PERMIT_AND_RENDERED",
+        "surface": "NO_MAP"
+      },
+      {
+        "attribution": "INSUFFICIENT",
+        "content": "GOOGLE_CONTENT",
+        "decision": "REJECT_CONTENT_MAP_MISMATCH",
+        "surface": "NON_GOOGLE_MAP"
+      }
+    ],
+    "effectiveDate": "2026-08-24",
+    "forbiddenUses": [
+      "PREFETCH_OR_BULK_DOWNLOAD",
+      "SCRAPE",
+      "REHOST",
+      "INDEPENDENT_LOCATION_DIRECTORY",
+      "AI_TRAINING_OR_TESTING",
+      "MIX_WITH_NON_GOOGLE_MAP"
+    ],
+    "policyVersion": "maps-storage-display-v1",
+    "records": [
+      {
+        "deleteWithExpiredProviderCache": false,
+        "fields": [
+          "customerSuppliedText",
+          "source",
+          "recordedAt"
+        ],
+        "id": "CUSTOMER_ADDRESS",
+        "owner": "KAVAROUTES",
+        "providerContent": false,
+        "retention": "KAVAROUTES_APPROVED_POLICY"
+      },
+      {
+        "deleteWithExpiredProviderCache": false,
+        "fields": [
+          "provider",
+          "placeId",
+          "obtainedAt",
+          "lastRefreshAt",
+          "refreshDueAt"
+        ],
+        "id": "PROVIDER_REFERENCE",
+        "owner": "PROVIDER_REFERENCE",
+        "providerContent": true,
+        "refreshAfter": {
+          "unit": "month",
+          "value": 12
+        },
+        "retention": "PLACE_ID_INDEFINITE"
+      },
+      {
+        "deleteWithExpiredProviderCache": true,
+        "fields": [
+          "provider",
+          "sourceOperation",
+          "contentKind",
+          "obtainedAt",
+          "expiresAt",
+          "termsVersion",
+          "refreshState",
+          "contentFingerprint"
+        ],
+        "id": "LICENSED_PROVIDER_CACHE",
+        "maxAge": {
+          "unit": "day",
+          "value": 30
+        },
+        "owner": "LICENSED_PROVIDER_CONTENT",
+        "providerContent": true,
+        "retention": "MAX_30_DAYS_DEFAULT"
+      },
+      {
+        "deleteWithExpiredProviderCache": false,
+        "fields": [
+          "provider",
+          "sourceOperation",
+          "displaySurface",
+          "attributionRequired",
+          "attributionRendered",
+          "termsVersion"
+        ],
+        "id": "ATTRIBUTION_PROVENANCE",
+        "owner": "DISPLAY_POLICY",
+        "providerContent": false,
+        "retention": "WITH_ASSOCIATED_DISPLAY_OR_RECORD"
+      },
+      {
+        "deleteWithExpiredProviderCache": false,
+        "fields": [
+          "termsVersion",
+          "priceVersion",
+          "effectiveDate",
+          "sourceIds",
+          "reviewState"
+        ],
+        "id": "TERMS_PRICING_VERSION",
+        "owner": "POLICY_REGISTRY",
+        "providerContent": false,
+        "retention": "APPEND_ONLY_POLICY_HISTORY"
+      },
+      {
+        "deleteWithExpiredProviderCache": false,
+        "fields": [
+          "evidenceId",
+          "source",
+          "captureTime",
+          "amendmentLineage",
+          "verificationState"
+        ],
+        "id": "KAVAROUTES_EVIDENCE",
+        "owner": "KAVAROUTES",
+        "providerContent": false,
+        "retention": "KAVAROUTES_APPROVED_EVIDENCE_POLICY"
+      }
+    ],
+    "schemaVersion": "1.0.0",
+    "sourceIds": [
+      "SRC_MAPS_SERVICE_TERMS",
+      "SRC_PLACES_POLICY",
+      "SRC_PLACE_ID"
+    ],
+    "status": "DATED_DEFAULT_PENDING_QUALIFIED_REVIEW"
+  },
+  "synthetic": true,
+  "workloadProfiles": [
+    {
+      "approval": "provisional",
+      "dimensions": {
+        "activeVehicles": {
+          "unit": "vehicle",
+          "value": 25
+        },
+        "apiRate": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "request/second",
+          "value": 25
+        },
+        "driverSessions": {
+          "unit": "concurrent_session",
+          "value": 30
+        },
+        "importRows": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "row/burst",
+          "value": 2500
+        },
+        "legs": {
+          "unit": "leg/service_day",
+          "value": 1000
+        },
+        "locationRate": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "sample/second",
+          "value": 5
+        },
+        "outboundFanout": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "delivery/second",
+          "value": 250
+        },
+        "realtimeConnections": {
+          "unit": "connection",
+          "value": 100
+        },
+        "retainedLocationSamples": {
+          "unit": "sample/service_day",
+          "value": 60000
+        },
+        "tenants": {
+          "unit": "tenant",
+          "value": 1
+        },
+        "trips": {
+          "unit": "trip/service_day",
+          "value": 500
+        },
+        "webUsers": {
+          "unit": "concurrent_user",
+          "value": 10
+        }
+      },
+      "id": "small-pilot",
+      "seed": "kavaroutes-wp001-small-pilot-v1"
+    },
+    {
+      "approval": "provisional",
+      "dimensions": {
+        "activeVehicles": {
+          "unit": "vehicle",
+          "value": 75
+        },
+        "apiRate": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "request/second",
+          "value": 100
+        },
+        "driverSessions": {
+          "unit": "concurrent_session",
+          "value": 100
+        },
+        "importRows": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "row/burst",
+          "value": 10000
+        },
+        "legs": {
+          "unit": "leg/service_day",
+          "value": 3000
+        },
+        "locationRate": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "sample/second",
+          "value": 15
+        },
+        "outboundFanout": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "delivery/second",
+          "value": 1000
+        },
+        "realtimeConnections": {
+          "unit": "connection",
+          "value": 250
+        },
+        "retainedLocationSamples": {
+          "unit": "sample/service_day",
+          "value": 180000
+        },
+        "tenants": {
+          "unit": "tenant",
+          "value": 1
+        },
+        "trips": {
+          "unit": "trip/service_day",
+          "value": 1500
+        },
+        "webUsers": {
+          "unit": "concurrent_user",
+          "value": 25
+        }
+      },
+      "id": "p0-growth",
+      "seed": "kavaroutes-wp001-p0-growth-v1"
+    },
+    {
+      "approval": "provisional",
+      "dimensions": {
+        "activeVehicles": {
+          "unit": "vehicle",
+          "value": 500
+        },
+        "apiRate": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "request/second",
+          "value": 500
+        },
+        "driverSessions": {
+          "unit": "concurrent_session",
+          "value": 650
+        },
+        "importRows": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "row/burst",
+          "value": 100000
+        },
+        "legs": {
+          "unit": "leg/service_day",
+          "value": 20000
+        },
+        "locationRate": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "sample/second",
+          "value": 100
+        },
+        "outboundFanout": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "delivery/second",
+          "value": 5000
+        },
+        "realtimeConnections": {
+          "unit": "connection",
+          "value": 1500
+        },
+        "retainedLocationSamples": {
+          "unit": "sample/service_day",
+          "value": 1200000
+        },
+        "tenants": {
+          "unit": "tenant",
+          "value": 1
+        },
+        "trips": {
+          "unit": "trip/service_day",
+          "value": 10000
+        },
+        "webUsers": {
+          "unit": "concurrent_user",
+          "value": 100
+        }
+      },
+      "id": "enterprise-design",
+      "seed": "kavaroutes-wp001-enterprise-design-v1"
+    },
+    {
+      "approval": "provisional",
+      "dimensions": {
+        "activeVehicles": {
+          "unit": "vehicle",
+          "value": 5000
+        },
+        "apiRate": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "request/second",
+          "value": 1000
+        },
+        "driverSessions": {
+          "unit": "concurrent_session",
+          "value": 6000
+        },
+        "importRows": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "row/burst",
+          "value": 250000
+        },
+        "legs": {
+          "unit": "leg/service_day",
+          "value": 200000
+        },
+        "locationRate": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "sample/second",
+          "value": 1000
+        },
+        "outboundFanout": {
+          "peakDuration": {
+            "unit": "minute",
+            "value": 15
+          },
+          "unit": "delivery/second",
+          "value": 20000
+        },
+        "realtimeConnections": {
+          "unit": "connection",
+          "value": 10000
+        },
+        "retainedLocationSamples": {
+          "unit": "sample/service_day",
+          "value": 12000000
+        },
+        "tenants": {
+          "unit": "tenant",
+          "value": 100
+        },
+        "trips": {
+          "unit": "trip/service_day",
+          "value": 100000
+        },
+        "webUsers": {
+          "unit": "concurrent_user",
+          "value": 1000
+        }
+      },
+      "id": "commercial-platform",
+      "seed": "kavaroutes-wp001-commercial-platform-v1"
+    }
+  ]
+}

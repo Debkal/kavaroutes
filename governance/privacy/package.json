@@ -1,0 +1,14 @@
+{
+  "name": "@kavaroutes/privacy-assurance-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Synthetic provider-neutral privacy and HIPAA assurance contracts for Work Package 002",
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "validate": "node scripts/validate.mjs",
+    "test": "node test/privacy.test.mjs",
+    "verify": "node scripts/generate.mjs && node scripts/validate.mjs && node test/privacy.test.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

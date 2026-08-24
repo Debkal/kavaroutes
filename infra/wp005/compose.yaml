@@ -1,0 +1,44 @@
+name: kavaroutes-wp005
+services:
+  postgres:
+    image: postgis/postgis:17-3.5@sha256:624f5195b91d424dbebf018890148cc0e5a3e80db5467da8b53cc2ed2ce49216
+    environment:
+      POSTGRES_DB: kavaroutes_wp005
+      POSTGRES_USER: wp005
+      POSTGRES_PASSWORD: ${WP005_POSTGRES_PASSWORD:?set WP005_POSTGRES_PASSWORD locally}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wp005 -d kavaroutes_wp005"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - wp005-postgres:/var/lib/postgresql/data
+    stop_grace_period: 20s
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/wp005/api.Dockerfile
+    environment:
+      PORT: "3000"
+    read_only: true
+    tmpfs: ["/tmp"]
+    user: node
+    depends_on:
+      postgres: { condition: service_healthy }
+    stop_grace_period: 10s
+  worker:
+    build:
+      context: ../..
+      dockerfile: infra/wp005/worker.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://wp005:${WP005_POSTGRES_PASSWORD}@postgres:5432/kavaroutes_wp005
+    read_only: true
+    tmpfs: ["/tmp"]
+    user: node
+    depends_on:
+      postgres: { condition: service_healthy }
+    stop_grace_period: 10s
+volumes:
+  wp005-postgres:

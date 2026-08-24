@@ -1,0 +1,19 @@
+{
+  "schemaVersion":"1.0.0",
+  "status":"PROVISIONAL_PENDING_OPERATOR_AND_QUALIFIED_REVIEW",
+  "provenance":"ARQ-003_SYNTHETIC_FIXTURE_ONLY",
+  "customerSpecificBranches":false,
+  "fixtures":[
+    {"id":"SYN_POLICY_WAIT_001","topic":"WAIT_DURATION","value":{"amount":15,"unit":"minute"},"scope":"synthetic_no_show_evaluation","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 policy-variation example"},
+    {"id":"SYN_POLICY_LATE_001","topic":"LATE_TOLERANCE","value":{"amount":10,"unit":"minute"},"scope":"synthetic_dispatch_scoring","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 policy-variation example"},
+    {"id":"SYN_POLICY_NOSHOW_001","topic":"NO_SHOW_COMPENSATION","value":{"eligible":false,"distinctChargeRequired":true},"scope":"synthetic_default_deny","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 and payer-variation finding"},
+    {"id":"SYN_POLICY_DOC_001","topic":"DOCUMENTATION","value":{"requiredKinds":["SYNTHETIC_ARRIVAL","SYNTHETIC_WAIT","SYNTHETIC_CONTACT","SYNTHETIC_AUTHORIZATION"]},"scope":"synthetic_no_show_evaluation","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 policy-variation example"},
+    {"id":"SYN_POLICY_MODE_001","topic":"MODE","value":{"allowedModes":["SYNTHETIC_STANDARD","SYNTHETIC_ACCESSIBLE"]},"scope":"synthetic_service","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 policy-variation example"},
+    {"id":"SYN_POLICY_AREA_001","topic":"SERVICE_AREA","value":{"zoneIds":["SYN_ZONE_ALPHA"]},"scope":"synthetic_service","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 policy-variation example"},
+    {"id":"SYN_POLICY_AUTH_001","topic":"AUTHORIZATION","value":{"required":true,"syntheticAuthorizationId":"syn_auth_alpha"},"scope":"synthetic_service","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 policy-variation example"},
+    {"id":"SYN_POLICY_RIDE_TIME_001","topic":"MAXIMUM_RIDE_TIME","value":{"amount":90,"unit":"minute"},"scope":"synthetic_multi_load","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 policy-variation example"},
+    {"id":"SYN_POLICY_OPT_001","topic":"DEADHEAD","value":{"weight":1},"scope":"synthetic_planning_score","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 policy-variation example"},
+    {"id":"SYN_POLICY_PREF_001","topic":"PREFERRED_DRIVER","value":{"weight":1},"scope":"synthetic_planning_score","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 policy-variation example"},
+    {"id":"SYN_POLICY_BALANCE_001","topic":"BALANCED_UTILIZATION","value":{"weight":1},"scope":"synthetic_planning_score","effectiveFrom":"2026-08-24","approval":"NOT_PRODUCTION_APPROVED","provenance":"ARQ-003 policy-variation example"}
+  ]
+}

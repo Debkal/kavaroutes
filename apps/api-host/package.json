@@ -1,0 +1,20 @@
+{
+  "name": "@kavaroutes/api-host",
+  "version": "0.0.0-wp007",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": { ".": "./dist/index.js", "./logging": "./dist/logging.js", "./telemetry": "./dist/telemetry.js" },
+  "dependencies": {
+    "@kavaroutes/api-contracts": "0.0.0-wp007",
+    "@fastify/swagger": "9.8.1",
+    "@fastify/type-provider-typebox": "6.1.0",
+    "@fastify/websocket": "11.3.0",
+    "@kavaroutes/platform-engine": "0.0.0-wp005",
+    "@kavaroutes/shared-kernel": "0.0.0-wp005",
+    "@kavaroutes/transport-schemas": "0.0.0-wp005",
+    "@opentelemetry/sdk-node": "0.221.0",
+    "fastify": "5.12.1",
+    "pino": "10.3.1"
+  }
+}

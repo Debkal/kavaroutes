@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "rootDir": "src", "outDir": "dist", "tsBuildInfoFile": "dist/.tsbuildinfo" },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/api-contracts" },
+    { "path": "../../packages/shared-kernel" },
+    { "path": "../../packages/platform-engine" },
+    { "path": "../../packages/transport-schemas" }
+  ]
+}

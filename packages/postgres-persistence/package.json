@@ -1,0 +1,19 @@
+{
+  "name": "@kavaroutes/postgres-persistence",
+  "version": "0.0.0-wp006",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./schema": "./dist/schema.js",
+    "./repositories": "./dist/repositories.js"
+  },
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@kavaroutes/platform-engine": "0.0.0-wp005",
+    "@kavaroutes/shared-kernel": "0.0.0-wp005",
+    "drizzle-orm": "0.45.2",
+    "pg": "8.23.0"
+  }
+}

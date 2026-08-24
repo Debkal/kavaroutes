@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kavaroutes.local/schemas/privacy-flow.schema.json",
+  "title": "KavaRoutes synthetic privacy flow",
+  "type": "object",
+  "required": ["id", "tenantId", "subject", "purpose", "role", "destination", "fieldIds", "retentionClass", "policyVersion", "approvalState", "expectedDecision", "expectedReason"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^FLOW_[A-Z0-9_]+$" },
+    "tenantId": { "type": "string", "pattern": "^syn_tenant_" },
+    "subject": { "type": "string", "minLength": 1 },
+    "purpose": { "type": "string", "minLength": 1 },
+    "role": { "type": "string", "minLength": 1 },
+    "destination": { "type": "string", "minLength": 1 },
+    "fieldIds": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "retentionClass": { "type": "string", "minLength": 1 },
+    "policyVersion": { "type": "string", "minLength": 1 },
+    "approvalState": { "type": "string", "minLength": 1 },
+    "approvalEvidenceRef": { "type": ["string", "null"] },
+    "expectedDecision": { "enum": ["ALLOW_SYNTHETIC_CONTRACT", "DENY", "BLOCKED", "ELIGIBLE_FOR_FURTHER_REVIEW"] },
+    "expectedReason": { "type": "string", "minLength": 1 }
+  }
+}

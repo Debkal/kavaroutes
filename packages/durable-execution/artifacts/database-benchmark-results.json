@@ -1,0 +1,148 @@
+{
+  "format": 1,
+  "environment": "local-synthetic-scaled-samples",
+  "productionCapacityClaim": false,
+  "limitation": "Configured ARQ-001 envelopes are recorded; execution uses bounded samples and does not prove enterprise/commercial production capacity or SLA.",
+  "profiles": [
+    {
+      "profileId": "small-pilot",
+      "configured": {
+        "tenants": 1,
+        "tripsPerServiceDay": 500,
+        "locationSamplesPerSecond": 5,
+        "outboundFanoutPerSecond": 250
+      },
+      "executedSample": {
+        "apiMutations": 10,
+        "readyIntents": 250,
+        "publishedIntents": 100,
+        "locationSamples": 300
+      },
+      "apiTransactionP95Ms": 43.634,
+      "claimBatchMs": 129.771,
+      "publishP50Ms": 49.593,
+      "publishP95Ms": 74.235,
+      "publishP99Ms": 74.881,
+      "healthyPublishedWithinFiveSecondsRatio": 1,
+      "recoveryDrainMs": 75.254,
+      "readyDepthAfterSample": 161,
+      "oldestReadyAgeSeconds": 31,
+      "oldestAgeAlertTriggered": true,
+      "queueAmplificationPerApiMutation": 2,
+      "locationSignalAmplification": 0.0033333333333333335,
+      "database": {
+        "blocksRead": 26,
+        "blocksHit": 190300,
+        "tempBytes": 0,
+        "transactionsCommitted": 48,
+        "deliveryBytes": 327680,
+        "connections": 12
+      }
+    },
+    {
+      "profileId": "p0-growth",
+      "configured": {
+        "tenants": 1,
+        "tripsPerServiceDay": 1500,
+        "locationSamplesPerSecond": 15,
+        "outboundFanoutPerSecond": 1000
+      },
+      "executedSample": {
+        "apiMutations": 10,
+        "readyIntents": 1000,
+        "publishedIntents": 100,
+        "locationSamples": 900
+      },
+      "apiTransactionP95Ms": 40.365,
+      "claimBatchMs": 56.296,
+      "publishP50Ms": 32.865,
+      "publishP95Ms": 54.601,
+      "publishP99Ms": 56.012,
+      "healthyPublishedWithinFiveSecondsRatio": 1,
+      "recoveryDrainMs": 56.181,
+      "readyDepthAfterSample": 911,
+      "oldestReadyAgeSeconds": 31,
+      "oldestAgeAlertTriggered": true,
+      "queueAmplificationPerApiMutation": 2,
+      "locationSignalAmplification": 0.0011111111111111111,
+      "database": {
+        "blocksRead": 26,
+        "blocksHit": 190300,
+        "tempBytes": 0,
+        "transactionsCommitted": 48,
+        "deliveryBytes": 999424,
+        "connections": 12
+      }
+    },
+    {
+      "profileId": "enterprise-design",
+      "configured": {
+        "tenants": 1,
+        "tripsPerServiceDay": 10000,
+        "locationSamplesPerSecond": 100,
+        "outboundFanoutPerSecond": 5000
+      },
+      "executedSample": {
+        "apiMutations": 10,
+        "readyIntents": 2000,
+        "publishedIntents": 100,
+        "locationSamples": 6000
+      },
+      "apiTransactionP95Ms": 40.035,
+      "claimBatchMs": 59.443,
+      "publishP50Ms": 31.936,
+      "publishP95Ms": 55.858,
+      "publishP99Ms": 56.561,
+      "healthyPublishedWithinFiveSecondsRatio": 1,
+      "recoveryDrainMs": 56.737,
+      "readyDepthAfterSample": 1911,
+      "oldestReadyAgeSeconds": 31,
+      "oldestAgeAlertTriggered": true,
+      "queueAmplificationPerApiMutation": 2,
+      "locationSignalAmplification": 0.00016666666666666666,
+      "database": {
+        "blocksRead": 26,
+        "blocksHit": 271833,
+        "tempBytes": 0,
+        "transactionsCommitted": 285,
+        "deliveryBytes": 2080768,
+        "connections": 12
+      }
+    },
+    {
+      "profileId": "commercial-platform",
+      "configured": {
+        "tenants": 100,
+        "tripsPerServiceDay": 100000,
+        "locationSamplesPerSecond": 1000,
+        "outboundFanoutPerSecond": 20000
+      },
+      "executedSample": {
+        "apiMutations": 10,
+        "readyIntents": 2000,
+        "publishedIntents": 100,
+        "locationSamples": 60000
+      },
+      "apiTransactionP95Ms": 40.606,
+      "claimBatchMs": 58.625,
+      "publishP50Ms": 32.953,
+      "publishP95Ms": 52.582,
+      "publishP99Ms": 56.14,
+      "healthyPublishedWithinFiveSecondsRatio": 1,
+      "recoveryDrainMs": 56.414,
+      "readyDepthAfterSample": 1911,
+      "oldestReadyAgeSeconds": 31,
+      "oldestAgeAlertTriggered": true,
+      "queueAmplificationPerApiMutation": 2,
+      "locationSignalAmplification": 0.000016666666666666667,
+      "database": {
+        "blocksRead": 26,
+        "blocksHit": 271833,
+        "tempBytes": 0,
+        "transactionsCommitted": 285,
+        "deliveryBytes": 3153920,
+        "connections": 12
+      }
+    }
+  ]
+}

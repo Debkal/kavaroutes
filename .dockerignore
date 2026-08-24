@@ -1,0 +1,11 @@
+.git
+.tooling
+artifacts
+benchmarks
+contracts
+governance
+node_modules
+test
+*.md
+*.log
+.env*
