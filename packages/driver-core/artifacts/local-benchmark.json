@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "scope": "local-fake-not-native-capacity",
+  "generatedAt": "2026-08-26T15:52:15.277Z",
+  "offlineHours": 12,
+  "intervalSeconds": 15,
+  "samples": 2880,
+  "batches": 6,
+  "maximumBatchItems": 500,
+  "maximumBatchBytes": 100681,
+  "serializedBytes": 578802,
+  "generationMs": 3.3651430000000033,
+  "batchingMs": 2.373053999999996,
+  "fakeTransactionalPersistMs": 0.6248159999999956,
+  "duplicates": 0,
+  "gaps": 0,
+  "physicalDeviceEvidence": false,
+  "freshnessMeasured": false,
+  "batteryMeasured": false,
+  "productionCapacityClaim": false,
+  "completionBlockedBy": "HIG-006"
+}

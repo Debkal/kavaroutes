@@ -6,6 +6,7 @@
     { "path": "../../packages/api-contracts" },
     { "path": "../../packages/shared-kernel" },
     { "path": "../../packages/platform-engine" },
-    { "path": "../../packages/transport-schemas" }
+    { "path": "../../packages/transport-schemas" },
+    { "path": "../../packages/realtime" }
   ]
 }

@@ -1,0 +1,36 @@
+{
+  "format": 1,
+  "workPackage": "010",
+  "result": "PASS_DEVELOPMENT_APK_CREATED",
+  "artifact": "builds/client/android/kavaroutes-driver-android.apk",
+  "artifactName": "kavaroutes-driver-android.apk",
+  "bytes": 148835470,
+  "sha256": "ef812259edcdb7ce5e075ad6d66f52e8638238b9215af211294713708fe2298a",
+  "packageName": "com.kavaroutes.driver.synthetic",
+  "versionName": "0.0.0-wp010",
+  "minimumAndroidApi": 29,
+  "targetAndroidApi": 36,
+  "permissions": [
+    "android.permission.ACCESS_BACKGROUND_LOCATION",
+    "android.permission.ACCESS_COARSE_LOCATION",
+    "android.permission.ACCESS_FINE_LOCATION",
+    "android.permission.ACCESS_NETWORK_STATE",
+    "android.permission.ACCESS_WIFI_STATE",
+    "android.permission.DETECT_SCREEN_CAPTURE",
+    "android.permission.FOREGROUND_SERVICE",
+    "android.permission.FOREGROUND_SERVICE_LOCATION",
+    "android.permission.INTERNET",
+    "com.kavaroutes.driver.synthetic.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+  ],
+  "sourceDigest": "5be29b24408d1185a29e0a6a0e75f78057007e3e3e23187097aa61db16ecbf5a",
+  "signing": {
+    "kind": "generated Android debug certificate",
+    "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+    "production": false
+  },
+  "zipAligned": true,
+  "externalUpload": false,
+  "physicalInstallExecuted": false,
+  "adbAccessExecuted": false,
+  "permittedUse": "approved synthetic non-PHI WP010 physical-device feasibility only"
+}

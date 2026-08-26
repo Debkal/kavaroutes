@@ -1,0 +1,175 @@
+{
+  "format": 1,
+  "scope": "local-synthetic-not-production-capacity",
+  "generatedAt": "2026-08-26T00:55:20.041Z",
+  "runtime": {
+    "node": "v24.19.0",
+    "cpuCount": 8,
+    "platform": "linux",
+    "architecture": "x64"
+  },
+  "profiles": [
+    {
+      "connections": 40,
+      "peakConnections": 40,
+      "upgradeMs": {
+        "p50": 0.466,
+        "p95": 1.168,
+        "p99": 4.427
+      },
+      "fanoutMs": {
+        "p50": 11.887332000000015,
+        "p95": 11.887332000000015,
+        "p99": 11.887332000000015
+      },
+      "reconnectToLiveMs": {
+        "p50": 0.336,
+        "p95": 0.44,
+        "p99": 0.44
+      },
+      "batches": 40,
+      "messages": 120,
+      "bytes": 101660,
+      "heapDeltaBytes": 17248576,
+      "bytesPerConnection": 431214.4,
+      "cpuUserMs": 61.477,
+      "cpuSystemMs": 5.484,
+      "unauthorizedFrames": 0,
+      "resets": 0,
+      "drops": 0,
+      "authorizationCache": "not-used-fail-closed-generation-source",
+      "objectives": {
+        "fanoutUnderOneSecond": true,
+        "recoveryUnderTenSeconds": true
+      }
+    },
+    {
+      "connections": 125,
+      "peakConnections": 125,
+      "upgradeMs": {
+        "p50": 0.262,
+        "p95": 0.453,
+        "p99": 0.513
+      },
+      "fanoutMs": {
+        "p50": 24.401842999999985,
+        "p95": 24.401842999999985,
+        "p99": 24.401842999999985
+      },
+      "reconnectToLiveMs": {
+        "p50": 0.249,
+        "p95": 0.491,
+        "p99": 2.764
+      },
+      "batches": 125,
+      "messages": 375,
+      "bytes": 317905,
+      "heapDeltaBytes": 0,
+      "bytesPerConnection": 0,
+      "cpuUserMs": 98.814,
+      "cpuSystemMs": 1.133,
+      "unauthorizedFrames": 0,
+      "resets": 0,
+      "drops": 0,
+      "authorizationCache": "not-used-fail-closed-generation-source",
+      "objectives": {
+        "fanoutUnderOneSecond": true,
+        "recoveryUnderTenSeconds": true
+      }
+    },
+    {
+      "connections": 750,
+      "peakConnections": 750,
+      "upgradeMs": {
+        "p50": 0.237,
+        "p95": 0.381,
+        "p99": 0.471
+      },
+      "fanoutMs": {
+        "p50": 116.71053499999994,
+        "p95": 116.71053499999994,
+        "p99": 116.71053499999994
+      },
+      "reconnectToLiveMs": {
+        "p50": 0.196,
+        "p95": 0.268,
+        "p99": 0.318
+      },
+      "batches": 750,
+      "messages": 2250,
+      "bytes": 1908530,
+      "heapDeltaBytes": 57410664,
+      "bytesPerConnection": 76547.6,
+      "cpuUserMs": 382.853,
+      "cpuSystemMs": 35.423,
+      "unauthorizedFrames": 0,
+      "resets": 0,
+      "drops": 0,
+      "authorizationCache": "not-used-fail-closed-generation-source",
+      "objectives": {
+        "fanoutUnderOneSecond": true,
+        "recoveryUnderTenSeconds": true
+      }
+    }
+  ],
+  "enterpriseLocationAndFanout": {
+    "acceptedSamples": 100,
+    "durableChanges": 25,
+    "coalescedSamples": 75,
+    "coalescingRatio": 0.75,
+    "selectedShards": 16,
+    "candidates": [
+      {
+        "shards": 4,
+        "minimum": 240,
+        "maximum": 261,
+        "maximumToMean": 1.044
+      },
+      {
+        "shards": 8,
+        "minimum": 115,
+        "maximum": 139,
+        "maximumToMean": 1.112
+      },
+      {
+        "shards": 16,
+        "minimum": 52,
+        "maximum": 81,
+        "maximumToMean": 1.296
+      },
+      {
+        "shards": 32,
+        "minimum": 21,
+        "maximum": 45,
+        "maximumToMean": 1.44
+      }
+    ],
+    "processingAndReplayMs": 5.1841810000000805,
+    "freshnessP95Ms": 5.1841810000000805,
+    "staleThresholdMs": 60000,
+    "objectives": {
+      "freshnessUnder15Seconds": true,
+      "staleBy60Seconds": true
+    }
+  },
+  "reconnectStormPercent": 25,
+  "noisyTenant": {
+    "executed": true,
+    "noisyCommittedChanges": 500,
+    "protectedCommittedChanges": 1,
+    "protectedDelivered": 1,
+    "boundedNoisyDelivery": 100,
+    "crossTenantChanges": 0,
+    "latencyMs": 4.949380000000019,
+    "pass": true
+  },
+  "eventLoopDelayMs": {
+    "p95": 11.362,
+    "p99": 11.362
+  },
+  "commercialQualification": {
+    "built": true,
+    "executed": false,
+    "reason": "Set WP009_COMMERCIAL_QUALIFICATION=1 only on a credible dedicated local environment."
+  }
+}

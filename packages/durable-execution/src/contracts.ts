@@ -7,7 +7,7 @@ export type OutboxRoute = typeof OUTBOX_ROUTES[number];
 
 export const JOB_TYPES: Readonly<Record<OutboxRoute, readonly string[]>> = Object.freeze({
   projection: ["kr.projection.trip.v1"],
-  "realtime-signal": ["kr.realtime-signal.trip.v1"],
+  "realtime-signal": ["kr.realtime-signal.trip.v1", "kr.realtime-signal.location.v1"],
   integration: ["kr.integration.partner.v1"],
   notification: ["kr.notification.dispatch.v1"],
   maps: ["kr.maps.route.v1"],

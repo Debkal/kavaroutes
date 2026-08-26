@@ -1,0 +1,3148 @@
+{
+  "catalog": {
+    "clientFrames": [
+      "subscription.subscribe",
+      "subscription.unsubscribe",
+      "subscription.ack"
+    ],
+    "closeCodes": {
+      "GOING_AWAY": {
+        "code": 1001,
+        "reason": "GOING_AWAY"
+      },
+      "INTERNAL": {
+        "code": 1011,
+        "reason": "INTERNAL_ERROR"
+      },
+      "INVALID": {
+        "code": 1007,
+        "reason": "INVALID_PAYLOAD"
+      },
+      "NORMAL": {
+        "code": 1000,
+        "reason": "NORMAL"
+      },
+      "POLICY": {
+        "code": 1008,
+        "reason": "POLICY_VIOLATION"
+      },
+      "PROTOCOL": {
+        "code": 1002,
+        "reason": "PROTOCOL_ERROR"
+      },
+      "RESTART": {
+        "code": 1012,
+        "reason": "SERVICE_RESTART"
+      },
+      "RETRY": {
+        "code": 1013,
+        "reason": "TRY_AGAIN_LATER"
+      },
+      "TOO_LARGE": {
+        "code": 1009,
+        "reason": "FRAME_TOO_LARGE"
+      },
+      "UNSUPPORTED": {
+        "code": 1003,
+        "reason": "UNSUPPORTED_FRAME"
+      }
+    },
+    "compatibility": [
+      {
+        "policy": "realtime.policy.v1",
+        "projection": "realtime.projection.v1",
+        "protocol": "kavaroutes.realtime.v1",
+        "schema": "realtime.schema.v1",
+        "status": "CURRENT"
+      }
+    ],
+    "examples": {
+      "error": {
+        "code": "FRAME_INVALID",
+        "type": "protocol.error"
+      },
+      "subscribe": {
+        "messageId": "message:synthetic:001",
+        "organizationId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "purpose": "DISPATCH_CONTROL",
+        "scope": {
+          "scopeReference": "dispatch:synthetic:2026-08-25",
+          "serviceDate": "2026-08-25",
+          "streamKind": "DISPATCH_DAY"
+        },
+        "subscriptionId": "subscription:synthetic:001",
+        "type": "subscription.subscribe"
+      }
+    },
+    "ianaRegistered": false,
+    "limits": {
+      "authorizationBackstopMilliseconds": 30000,
+      "deadPeerGraceMilliseconds": 75000,
+      "heartbeatMilliseconds": 30000,
+      "locationReplayMilliseconds": 900000,
+      "materialReplayMilliseconds": 86400000,
+      "maximumChangesPerBatch": 100,
+      "maximumConnectionsPerPrincipal": 8,
+      "maximumInboundBytes": 65536,
+      "maximumJsonDepth": 16,
+      "maximumOutboundBatchBytes": 262144,
+      "maximumQueuedBytes": 1048576,
+      "maximumQueuedFrames": 256,
+      "maximumStringLength": 4096,
+      "maximumSubscriptionsPerConnection": 16,
+      "pollMilliseconds": 1000,
+      "reconnectCapMilliseconds": 30000,
+      "reconnectFloorMilliseconds": 250
+    },
+    "privateProtocol": true,
+    "protocol": "kavaroutes.realtime.v1",
+    "serverFrames": [
+      "connection.ready",
+      "change.batch",
+      "subscription.live",
+      "subscription.reset-required",
+      "subscription.revoked",
+      "server.draining",
+      "protocol.error"
+    ]
+  },
+  "format": 1,
+  "schemas": {
+    "RealtimeAckFrame": {
+      "$id": "RealtimeAckFrame",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "maxLength": 8197,
+          "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+          "type": "string"
+        },
+        "messageId": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "subscriptionId": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "type": {
+          "const": "subscription.ack",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "messageId",
+        "subscriptionId",
+        "cursor"
+      ],
+      "type": "object"
+    },
+    "RealtimeChange": {
+      "$id": "RealtimeChange",
+      "additionalProperties": false,
+      "properties": {
+        "committedAt": {
+          "format": "date-time",
+          "maxLength": 35,
+          "type": "string"
+        },
+        "delta": {
+          "$id": "RealtimeDelta",
+          "anyOf": [
+            {
+              "$id": "RealtimeInvalidationDelta",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "RESOURCE_INVALIDATED",
+                  "type": "string"
+                },
+                "resourceKind": {
+                  "anyOf": [
+                    {
+                      "const": "trip",
+                      "type": "string"
+                    },
+                    {
+                      "const": "run",
+                      "type": "string"
+                    },
+                    {
+                      "const": "assignment",
+                      "type": "string"
+                    },
+                    {
+                      "const": "manifest",
+                      "type": "string"
+                    },
+                    {
+                      "const": "facility-trip",
+                      "type": "string"
+                    },
+                    {
+                      "const": "operation",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "resourceReference": {
+                  "maxLength": 128,
+                  "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "kind",
+                "resourceKind",
+                "resourceReference",
+                "resourceVersion"
+              ],
+              "type": "object"
+            },
+            {
+              "$id": "RealtimeDispatcherControlDelta",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "DISPATCH_CONTROL",
+                  "type": "string"
+                },
+                "lifecycle": {
+                  "anyOf": [
+                    {
+                      "const": "SCHEDULED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "DISPATCHED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "IN_PROGRESS",
+                      "type": "string"
+                    },
+                    {
+                      "const": "COMPLETED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "CANCELLED",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "resourceVersion": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "tripReference": {
+                  "maxLength": 128,
+                  "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "tripReference",
+                "lifecycle",
+                "resourceVersion"
+              ],
+              "type": "object"
+            },
+            {
+              "$id": "RealtimeDriverManifestDelta",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "DRIVER_MANIFEST",
+                  "type": "string"
+                },
+                "lifecycle": {
+                  "anyOf": [
+                    {
+                      "const": "ASSIGNED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "UPDATED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "REMOVED",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "manifestReference": {
+                  "maxLength": 128,
+                  "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "serviceDate": {
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "manifestReference",
+                "serviceDate",
+                "lifecycle",
+                "resourceVersion"
+              ],
+              "type": "object"
+            },
+            {
+              "$id": "RealtimeFacilityDelta",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "FACILITY_COORDINATION",
+                  "type": "string"
+                },
+                "lifecycle": {
+                  "anyOf": [
+                    {
+                      "const": "PLANNED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "EN_ROUTE",
+                      "type": "string"
+                    },
+                    {
+                      "const": "ARRIVED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "DEPARTED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "CANCELLED",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "resourceVersion": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "tripReference": {
+                  "maxLength": 128,
+                  "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "tripReference",
+                "lifecycle",
+                "resourceVersion"
+              ],
+              "type": "object"
+            },
+            {
+              "$id": "RealtimeOperationDelta",
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "const": "OPERATION_PROGRESS",
+                  "type": "string"
+                },
+                "lifecycle": {
+                  "anyOf": [
+                    {
+                      "const": "QUEUED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "RUNNING",
+                      "type": "string"
+                    },
+                    {
+                      "const": "SUCCEEDED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "FAILED",
+                      "type": "string"
+                    },
+                    {
+                      "const": "CANCELLED",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "operationReference": {
+                  "maxLength": 128,
+                  "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                  "type": "string"
+                },
+                "resourceVersion": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "kind",
+                "operationReference",
+                "lifecycle",
+                "resourceVersion"
+              ],
+              "type": "object"
+            },
+            {
+              "$id": "RealtimeCurrentPositionDelta",
+              "additionalProperties": false,
+              "properties": {
+                "accuracyMeters": {
+                  "maximum": 10000,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                "capturedAt": {
+                  "format": "date-time",
+                  "maxLength": 35,
+                  "type": "string"
+                },
+                "driverReference": {
+                  "maxLength": 128,
+                  "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                  "type": "string"
+                },
+                "kind": {
+                  "const": "CURRENT_POSITION",
+                  "type": "string"
+                },
+                "latitude": {
+                  "maximum": 90,
+                  "minimum": -90,
+                  "type": "number"
+                },
+                "longitude": {
+                  "maximum": 180,
+                  "minimum": -180,
+                  "type": "number"
+                },
+                "resourceVersion": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "kind",
+                "driverReference",
+                "latitude",
+                "longitude",
+                "accuracyMeters",
+                "capturedAt",
+                "resourceVersion"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        "epoch": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "schemaVersion": {
+          "const": "realtime.schema.v1",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "streamId": {
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "streamId",
+        "epoch",
+        "sequence",
+        "schemaVersion",
+        "committedAt",
+        "delta"
+      ],
+      "type": "object"
+    },
+    "RealtimeChangeBatchFrame": {
+      "$id": "RealtimeChangeBatchFrame",
+      "additionalProperties": false,
+      "properties": {
+        "changes": {
+          "items": {
+            "$id": "RealtimeChange",
+            "additionalProperties": false,
+            "properties": {
+              "committedAt": {
+                "format": "date-time",
+                "maxLength": 35,
+                "type": "string"
+              },
+              "delta": {
+                "$id": "RealtimeDelta",
+                "anyOf": [
+                  {
+                    "$id": "RealtimeInvalidationDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "RESOURCE_INVALIDATED",
+                        "type": "string"
+                      },
+                      "resourceKind": {
+                        "anyOf": [
+                          {
+                            "const": "trip",
+                            "type": "string"
+                          },
+                          {
+                            "const": "run",
+                            "type": "string"
+                          },
+                          {
+                            "const": "assignment",
+                            "type": "string"
+                          },
+                          {
+                            "const": "manifest",
+                            "type": "string"
+                          },
+                          {
+                            "const": "facility-trip",
+                            "type": "string"
+                          },
+                          {
+                            "const": "operation",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "resourceReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "resourceKind",
+                      "resourceReference",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "$id": "RealtimeDispatcherControlDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "DISPATCH_CONTROL",
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "anyOf": [
+                          {
+                            "const": "SCHEDULED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "DISPATCHED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "IN_PROGRESS",
+                            "type": "string"
+                          },
+                          {
+                            "const": "COMPLETED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "CANCELLED",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "tripReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "tripReference",
+                      "lifecycle",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "$id": "RealtimeDriverManifestDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "DRIVER_MANIFEST",
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "anyOf": [
+                          {
+                            "const": "ASSIGNED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "UPDATED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "REMOVED",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "manifestReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "serviceDate": {
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "manifestReference",
+                      "serviceDate",
+                      "lifecycle",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "$id": "RealtimeFacilityDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "FACILITY_COORDINATION",
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "anyOf": [
+                          {
+                            "const": "PLANNED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "EN_ROUTE",
+                            "type": "string"
+                          },
+                          {
+                            "const": "ARRIVED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "DEPARTED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "CANCELLED",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "tripReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "tripReference",
+                      "lifecycle",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "$id": "RealtimeOperationDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "OPERATION_PROGRESS",
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "anyOf": [
+                          {
+                            "const": "QUEUED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "RUNNING",
+                            "type": "string"
+                          },
+                          {
+                            "const": "SUCCEEDED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "FAILED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "CANCELLED",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "operationReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "operationReference",
+                      "lifecycle",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "$id": "RealtimeCurrentPositionDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "accuracyMeters": {
+                        "maximum": 10000,
+                        "minimum": 0,
+                        "type": "number"
+                      },
+                      "capturedAt": {
+                        "format": "date-time",
+                        "maxLength": 35,
+                        "type": "string"
+                      },
+                      "driverReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "CURRENT_POSITION",
+                        "type": "string"
+                      },
+                      "latitude": {
+                        "maximum": 90,
+                        "minimum": -90,
+                        "type": "number"
+                      },
+                      "longitude": {
+                        "maximum": 180,
+                        "minimum": -180,
+                        "type": "number"
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "driverReference",
+                      "latitude",
+                      "longitude",
+                      "accuracyMeters",
+                      "capturedAt",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "epoch": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "schemaVersion": {
+                "const": "realtime.schema.v1",
+                "type": "string"
+              },
+              "sequence": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "streamId": {
+                "maxLength": 36,
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "streamId",
+              "epoch",
+              "sequence",
+              "schemaVersion",
+              "committedAt",
+              "delta"
+            ],
+            "type": "object"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "type": "array"
+        },
+        "cursor": {
+          "maxLength": 8197,
+          "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+          "type": "string"
+        },
+        "subscriptionId": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "type": {
+          "const": "change.batch",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "subscriptionId",
+        "cursor",
+        "changes"
+      ],
+      "type": "object"
+    },
+    "RealtimeChangeQueryRequest": {
+      "$id": "RealtimeChangeQueryRequest",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "maxLength": 8197,
+          "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+          "type": "string"
+        },
+        "limit": {
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "purpose": {
+          "$id": "RealtimeSubscriptionPurpose",
+          "anyOf": [
+            {
+              "const": "DISPATCH_CONTROL",
+              "type": "string"
+            },
+            {
+              "const": "DRIVER_MANIFEST",
+              "type": "string"
+            },
+            {
+              "const": "FACILITY_COORDINATION",
+              "type": "string"
+            },
+            {
+              "const": "OPERATION_PROGRESS",
+              "type": "string"
+            },
+            {
+              "const": "DISPATCH_CURRENT_POSITION",
+              "type": "string"
+            }
+          ]
+        },
+        "scope": {
+          "$id": "RealtimeNormalizedScope",
+          "additionalProperties": false,
+          "properties": {
+            "scopeReference": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "serviceDate": {
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "type": "string"
+            },
+            "shard": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "streamKind": {
+              "$id": "RealtimeStreamKind",
+              "anyOf": [
+                {
+                  "const": "DISPATCH_DAY",
+                  "type": "string"
+                },
+                {
+                  "const": "DRIVER_MANIFEST",
+                  "type": "string"
+                },
+                {
+                  "const": "FACILITY_DAY",
+                  "type": "string"
+                },
+                {
+                  "const": "OPERATION",
+                  "type": "string"
+                },
+                {
+                  "const": "CURRENT_POSITION",
+                  "type": "string"
+                }
+              ]
+            },
+            "subjectReference": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "streamKind",
+            "scopeReference"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "purpose",
+        "scope",
+        "cursor"
+      ],
+      "type": "object"
+    },
+    "RealtimeChangeQueryResponse": {
+      "$id": "RealtimeChangeQueryResponse",
+      "additionalProperties": false,
+      "properties": {
+        "changes": {
+          "items": {
+            "$id": "RealtimeChange",
+            "additionalProperties": false,
+            "properties": {
+              "committedAt": {
+                "format": "date-time",
+                "maxLength": 35,
+                "type": "string"
+              },
+              "delta": {
+                "$id": "RealtimeDelta",
+                "anyOf": [
+                  {
+                    "$id": "RealtimeInvalidationDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "RESOURCE_INVALIDATED",
+                        "type": "string"
+                      },
+                      "resourceKind": {
+                        "anyOf": [
+                          {
+                            "const": "trip",
+                            "type": "string"
+                          },
+                          {
+                            "const": "run",
+                            "type": "string"
+                          },
+                          {
+                            "const": "assignment",
+                            "type": "string"
+                          },
+                          {
+                            "const": "manifest",
+                            "type": "string"
+                          },
+                          {
+                            "const": "facility-trip",
+                            "type": "string"
+                          },
+                          {
+                            "const": "operation",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "resourceReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "resourceKind",
+                      "resourceReference",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "$id": "RealtimeDispatcherControlDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "DISPATCH_CONTROL",
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "anyOf": [
+                          {
+                            "const": "SCHEDULED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "DISPATCHED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "IN_PROGRESS",
+                            "type": "string"
+                          },
+                          {
+                            "const": "COMPLETED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "CANCELLED",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "tripReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "tripReference",
+                      "lifecycle",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "$id": "RealtimeDriverManifestDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "DRIVER_MANIFEST",
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "anyOf": [
+                          {
+                            "const": "ASSIGNED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "UPDATED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "REMOVED",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "manifestReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "serviceDate": {
+                        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "manifestReference",
+                      "serviceDate",
+                      "lifecycle",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "$id": "RealtimeFacilityDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "FACILITY_COORDINATION",
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "anyOf": [
+                          {
+                            "const": "PLANNED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "EN_ROUTE",
+                            "type": "string"
+                          },
+                          {
+                            "const": "ARRIVED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "DEPARTED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "CANCELLED",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "tripReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "tripReference",
+                      "lifecycle",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "$id": "RealtimeOperationDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "OPERATION_PROGRESS",
+                        "type": "string"
+                      },
+                      "lifecycle": {
+                        "anyOf": [
+                          {
+                            "const": "QUEUED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "RUNNING",
+                            "type": "string"
+                          },
+                          {
+                            "const": "SUCCEEDED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "FAILED",
+                            "type": "string"
+                          },
+                          {
+                            "const": "CANCELLED",
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      "operationReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "operationReference",
+                      "lifecycle",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "$id": "RealtimeCurrentPositionDelta",
+                    "additionalProperties": false,
+                    "properties": {
+                      "accuracyMeters": {
+                        "maximum": 10000,
+                        "minimum": 0,
+                        "type": "number"
+                      },
+                      "capturedAt": {
+                        "format": "date-time",
+                        "maxLength": 35,
+                        "type": "string"
+                      },
+                      "driverReference": {
+                        "maxLength": 128,
+                        "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "CURRENT_POSITION",
+                        "type": "string"
+                      },
+                      "latitude": {
+                        "maximum": 90,
+                        "minimum": -90,
+                        "type": "number"
+                      },
+                      "longitude": {
+                        "maximum": 180,
+                        "minimum": -180,
+                        "type": "number"
+                      },
+                      "resourceVersion": {
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "driverReference",
+                      "latitude",
+                      "longitude",
+                      "accuracyMeters",
+                      "capturedAt",
+                      "resourceVersion"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "epoch": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "schemaVersion": {
+                "const": "realtime.schema.v1",
+                "type": "string"
+              },
+              "sequence": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "streamId": {
+                "maxLength": 36,
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "streamId",
+              "epoch",
+              "sequence",
+              "schemaVersion",
+              "committedAt",
+              "delta"
+            ],
+            "type": "object"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "cursor": {
+          "maxLength": 8197,
+          "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+          "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "const": "REPLAY",
+              "type": "string"
+            },
+            {
+              "const": "RESET_REQUIRED",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "outcome",
+        "changes"
+      ],
+      "type": "object"
+    },
+    "RealtimeClientFrame": {
+      "$id": "RealtimeClientFrame",
+      "anyOf": [
+        {
+          "$id": "RealtimeSubscribeFrame",
+          "additionalProperties": false,
+          "properties": {
+            "cursor": {
+              "maxLength": 8197,
+              "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+              "type": "string"
+            },
+            "messageId": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "organizationId": {
+              "maxLength": 36,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            "purpose": {
+              "$id": "RealtimeSubscriptionPurpose",
+              "anyOf": [
+                {
+                  "const": "DISPATCH_CONTROL",
+                  "type": "string"
+                },
+                {
+                  "const": "DRIVER_MANIFEST",
+                  "type": "string"
+                },
+                {
+                  "const": "FACILITY_COORDINATION",
+                  "type": "string"
+                },
+                {
+                  "const": "OPERATION_PROGRESS",
+                  "type": "string"
+                },
+                {
+                  "const": "DISPATCH_CURRENT_POSITION",
+                  "type": "string"
+                }
+              ]
+            },
+            "scope": {
+              "$id": "RealtimeNormalizedScope",
+              "additionalProperties": false,
+              "properties": {
+                "scopeReference": {
+                  "maxLength": 128,
+                  "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                  "type": "string"
+                },
+                "serviceDate": {
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                  "type": "string"
+                },
+                "shard": {
+                  "maximum": 255,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "streamKind": {
+                  "$id": "RealtimeStreamKind",
+                  "anyOf": [
+                    {
+                      "const": "DISPATCH_DAY",
+                      "type": "string"
+                    },
+                    {
+                      "const": "DRIVER_MANIFEST",
+                      "type": "string"
+                    },
+                    {
+                      "const": "FACILITY_DAY",
+                      "type": "string"
+                    },
+                    {
+                      "const": "OPERATION",
+                      "type": "string"
+                    },
+                    {
+                      "const": "CURRENT_POSITION",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "subjectReference": {
+                  "maxLength": 128,
+                  "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "streamKind",
+                "scopeReference"
+              ],
+              "type": "object"
+            },
+            "subscriptionId": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "type": {
+              "const": "subscription.subscribe",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "messageId",
+            "subscriptionId",
+            "organizationId",
+            "purpose",
+            "scope"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeUnsubscribeFrame",
+          "additionalProperties": false,
+          "properties": {
+            "messageId": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "subscriptionId": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "type": {
+              "const": "subscription.unsubscribe",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "messageId",
+            "subscriptionId"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeAckFrame",
+          "additionalProperties": false,
+          "properties": {
+            "cursor": {
+              "maxLength": 8197,
+              "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+              "type": "string"
+            },
+            "messageId": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "subscriptionId": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "type": {
+              "const": "subscription.ack",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "messageId",
+            "subscriptionId",
+            "cursor"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RealtimeConnectionReadyFrame": {
+      "$id": "RealtimeConnectionReadyFrame",
+      "additionalProperties": false,
+      "properties": {
+        "connectionId": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "deadPeerGraceMilliseconds": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "heartbeatMilliseconds": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "limits": {
+          "additionalProperties": false,
+          "properties": {
+            "maximumChangesPerBatch": {
+              "type": "integer"
+            },
+            "maximumInboundBytes": {
+              "type": "integer"
+            },
+            "maximumOutboundBatchBytes": {
+              "type": "integer"
+            },
+            "maximumSubscriptions": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "maximumInboundBytes",
+            "maximumOutboundBatchBytes",
+            "maximumChangesPerBatch",
+            "maximumSubscriptions"
+          ],
+          "type": "object"
+        },
+        "protocol": {
+          "const": "kavaroutes.realtime.v1",
+          "type": "string"
+        },
+        "type": {
+          "const": "connection.ready",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "protocol",
+        "connectionId",
+        "heartbeatMilliseconds",
+        "deadPeerGraceMilliseconds",
+        "limits"
+      ],
+      "type": "object"
+    },
+    "RealtimeCurrentPositionDelta": {
+      "$id": "RealtimeCurrentPositionDelta",
+      "additionalProperties": false,
+      "properties": {
+        "accuracyMeters": {
+          "maximum": 10000,
+          "minimum": 0,
+          "type": "number"
+        },
+        "capturedAt": {
+          "format": "date-time",
+          "maxLength": 35,
+          "type": "string"
+        },
+        "driverReference": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "kind": {
+          "const": "CURRENT_POSITION",
+          "type": "string"
+        },
+        "latitude": {
+          "maximum": 90,
+          "minimum": -90,
+          "type": "number"
+        },
+        "longitude": {
+          "maximum": 180,
+          "minimum": -180,
+          "type": "number"
+        },
+        "resourceVersion": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "driverReference",
+        "latitude",
+        "longitude",
+        "accuracyMeters",
+        "capturedAt",
+        "resourceVersion"
+      ],
+      "type": "object"
+    },
+    "RealtimeDelta": {
+      "$id": "RealtimeDelta",
+      "anyOf": [
+        {
+          "$id": "RealtimeInvalidationDelta",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "RESOURCE_INVALIDATED",
+              "type": "string"
+            },
+            "resourceKind": {
+              "anyOf": [
+                {
+                  "const": "trip",
+                  "type": "string"
+                },
+                {
+                  "const": "run",
+                  "type": "string"
+                },
+                {
+                  "const": "assignment",
+                  "type": "string"
+                },
+                {
+                  "const": "manifest",
+                  "type": "string"
+                },
+                {
+                  "const": "facility-trip",
+                  "type": "string"
+                },
+                {
+                  "const": "operation",
+                  "type": "string"
+                }
+              ]
+            },
+            "resourceReference": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "resourceVersion": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "resourceKind",
+            "resourceReference",
+            "resourceVersion"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeDispatcherControlDelta",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "DISPATCH_CONTROL",
+              "type": "string"
+            },
+            "lifecycle": {
+              "anyOf": [
+                {
+                  "const": "SCHEDULED",
+                  "type": "string"
+                },
+                {
+                  "const": "DISPATCHED",
+                  "type": "string"
+                },
+                {
+                  "const": "IN_PROGRESS",
+                  "type": "string"
+                },
+                {
+                  "const": "COMPLETED",
+                  "type": "string"
+                },
+                {
+                  "const": "CANCELLED",
+                  "type": "string"
+                }
+              ]
+            },
+            "resourceVersion": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "tripReference": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "tripReference",
+            "lifecycle",
+            "resourceVersion"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeDriverManifestDelta",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "DRIVER_MANIFEST",
+              "type": "string"
+            },
+            "lifecycle": {
+              "anyOf": [
+                {
+                  "const": "ASSIGNED",
+                  "type": "string"
+                },
+                {
+                  "const": "UPDATED",
+                  "type": "string"
+                },
+                {
+                  "const": "REMOVED",
+                  "type": "string"
+                }
+              ]
+            },
+            "manifestReference": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "resourceVersion": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "serviceDate": {
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "manifestReference",
+            "serviceDate",
+            "lifecycle",
+            "resourceVersion"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeFacilityDelta",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "FACILITY_COORDINATION",
+              "type": "string"
+            },
+            "lifecycle": {
+              "anyOf": [
+                {
+                  "const": "PLANNED",
+                  "type": "string"
+                },
+                {
+                  "const": "EN_ROUTE",
+                  "type": "string"
+                },
+                {
+                  "const": "ARRIVED",
+                  "type": "string"
+                },
+                {
+                  "const": "DEPARTED",
+                  "type": "string"
+                },
+                {
+                  "const": "CANCELLED",
+                  "type": "string"
+                }
+              ]
+            },
+            "resourceVersion": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "tripReference": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "tripReference",
+            "lifecycle",
+            "resourceVersion"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeOperationDelta",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "OPERATION_PROGRESS",
+              "type": "string"
+            },
+            "lifecycle": {
+              "anyOf": [
+                {
+                  "const": "QUEUED",
+                  "type": "string"
+                },
+                {
+                  "const": "RUNNING",
+                  "type": "string"
+                },
+                {
+                  "const": "SUCCEEDED",
+                  "type": "string"
+                },
+                {
+                  "const": "FAILED",
+                  "type": "string"
+                },
+                {
+                  "const": "CANCELLED",
+                  "type": "string"
+                }
+              ]
+            },
+            "operationReference": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "resourceVersion": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "operationReference",
+            "lifecycle",
+            "resourceVersion"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeCurrentPositionDelta",
+          "additionalProperties": false,
+          "properties": {
+            "accuracyMeters": {
+              "maximum": 10000,
+              "minimum": 0,
+              "type": "number"
+            },
+            "capturedAt": {
+              "format": "date-time",
+              "maxLength": 35,
+              "type": "string"
+            },
+            "driverReference": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "kind": {
+              "const": "CURRENT_POSITION",
+              "type": "string"
+            },
+            "latitude": {
+              "maximum": 90,
+              "minimum": -90,
+              "type": "number"
+            },
+            "longitude": {
+              "maximum": 180,
+              "minimum": -180,
+              "type": "number"
+            },
+            "resourceVersion": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "driverReference",
+            "latitude",
+            "longitude",
+            "accuracyMeters",
+            "capturedAt",
+            "resourceVersion"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RealtimeDispatcherControlDelta": {
+      "$id": "RealtimeDispatcherControlDelta",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "DISPATCH_CONTROL",
+          "type": "string"
+        },
+        "lifecycle": {
+          "anyOf": [
+            {
+              "const": "SCHEDULED",
+              "type": "string"
+            },
+            {
+              "const": "DISPATCHED",
+              "type": "string"
+            },
+            {
+              "const": "IN_PROGRESS",
+              "type": "string"
+            },
+            {
+              "const": "COMPLETED",
+              "type": "string"
+            },
+            {
+              "const": "CANCELLED",
+              "type": "string"
+            }
+          ]
+        },
+        "resourceVersion": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "tripReference": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "tripReference",
+        "lifecycle",
+        "resourceVersion"
+      ],
+      "type": "object"
+    },
+    "RealtimeDriverManifestDelta": {
+      "$id": "RealtimeDriverManifestDelta",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "DRIVER_MANIFEST",
+          "type": "string"
+        },
+        "lifecycle": {
+          "anyOf": [
+            {
+              "const": "ASSIGNED",
+              "type": "string"
+            },
+            {
+              "const": "UPDATED",
+              "type": "string"
+            },
+            {
+              "const": "REMOVED",
+              "type": "string"
+            }
+          ]
+        },
+        "manifestReference": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "resourceVersion": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "serviceDate": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "manifestReference",
+        "serviceDate",
+        "lifecycle",
+        "resourceVersion"
+      ],
+      "type": "object"
+    },
+    "RealtimeFacilityDelta": {
+      "$id": "RealtimeFacilityDelta",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "FACILITY_COORDINATION",
+          "type": "string"
+        },
+        "lifecycle": {
+          "anyOf": [
+            {
+              "const": "PLANNED",
+              "type": "string"
+            },
+            {
+              "const": "EN_ROUTE",
+              "type": "string"
+            },
+            {
+              "const": "ARRIVED",
+              "type": "string"
+            },
+            {
+              "const": "DEPARTED",
+              "type": "string"
+            },
+            {
+              "const": "CANCELLED",
+              "type": "string"
+            }
+          ]
+        },
+        "resourceVersion": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "tripReference": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "tripReference",
+        "lifecycle",
+        "resourceVersion"
+      ],
+      "type": "object"
+    },
+    "RealtimeInvalidationDelta": {
+      "$id": "RealtimeInvalidationDelta",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "RESOURCE_INVALIDATED",
+          "type": "string"
+        },
+        "resourceKind": {
+          "anyOf": [
+            {
+              "const": "trip",
+              "type": "string"
+            },
+            {
+              "const": "run",
+              "type": "string"
+            },
+            {
+              "const": "assignment",
+              "type": "string"
+            },
+            {
+              "const": "manifest",
+              "type": "string"
+            },
+            {
+              "const": "facility-trip",
+              "type": "string"
+            },
+            {
+              "const": "operation",
+              "type": "string"
+            }
+          ]
+        },
+        "resourceReference": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "resourceVersion": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "resourceKind",
+        "resourceReference",
+        "resourceVersion"
+      ],
+      "type": "object"
+    },
+    "RealtimeNormalizedScope": {
+      "$id": "RealtimeNormalizedScope",
+      "additionalProperties": false,
+      "properties": {
+        "scopeReference": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "serviceDate": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "type": "string"
+        },
+        "shard": {
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "streamKind": {
+          "$id": "RealtimeStreamKind",
+          "anyOf": [
+            {
+              "const": "DISPATCH_DAY",
+              "type": "string"
+            },
+            {
+              "const": "DRIVER_MANIFEST",
+              "type": "string"
+            },
+            {
+              "const": "FACILITY_DAY",
+              "type": "string"
+            },
+            {
+              "const": "OPERATION",
+              "type": "string"
+            },
+            {
+              "const": "CURRENT_POSITION",
+              "type": "string"
+            }
+          ]
+        },
+        "subjectReference": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "streamKind",
+        "scopeReference"
+      ],
+      "type": "object"
+    },
+    "RealtimeOperationDelta": {
+      "$id": "RealtimeOperationDelta",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "OPERATION_PROGRESS",
+          "type": "string"
+        },
+        "lifecycle": {
+          "anyOf": [
+            {
+              "const": "QUEUED",
+              "type": "string"
+            },
+            {
+              "const": "RUNNING",
+              "type": "string"
+            },
+            {
+              "const": "SUCCEEDED",
+              "type": "string"
+            },
+            {
+              "const": "FAILED",
+              "type": "string"
+            },
+            {
+              "const": "CANCELLED",
+              "type": "string"
+            }
+          ]
+        },
+        "operationReference": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "resourceVersion": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "operationReference",
+        "lifecycle",
+        "resourceVersion"
+      ],
+      "type": "object"
+    },
+    "RealtimeProtocolErrorFrame": {
+      "$id": "RealtimeProtocolErrorFrame",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "anyOf": [
+            {
+              "const": "FRAME_INVALID",
+              "type": "string"
+            },
+            {
+              "const": "FRAME_TOO_LARGE",
+              "type": "string"
+            },
+            {
+              "const": "RATE_LIMITED",
+              "type": "string"
+            },
+            {
+              "const": "SUBSCRIPTION_LIMIT",
+              "type": "string"
+            },
+            {
+              "const": "AUTHORIZATION_DENIED",
+              "type": "string"
+            },
+            {
+              "const": "CURSOR_INVALID",
+              "type": "string"
+            },
+            {
+              "const": "SLOW_CONSUMER",
+              "type": "string"
+            },
+            {
+              "const": "INTERNAL_ERROR",
+              "type": "string"
+            }
+          ]
+        },
+        "type": {
+          "const": "protocol.error",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "code"
+      ],
+      "type": "object"
+    },
+    "RealtimeServerDrainingFrame": {
+      "$id": "RealtimeServerDrainingFrame",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "const": "SERVER_DRAINING",
+          "type": "string"
+        },
+        "type": {
+          "const": "server.draining",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "code"
+      ],
+      "type": "object"
+    },
+    "RealtimeServerFrame": {
+      "$id": "RealtimeServerFrame",
+      "anyOf": [
+        {
+          "$id": "RealtimeConnectionReadyFrame",
+          "additionalProperties": false,
+          "properties": {
+            "connectionId": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "deadPeerGraceMilliseconds": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "heartbeatMilliseconds": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "limits": {
+              "additionalProperties": false,
+              "properties": {
+                "maximumChangesPerBatch": {
+                  "type": "integer"
+                },
+                "maximumInboundBytes": {
+                  "type": "integer"
+                },
+                "maximumOutboundBatchBytes": {
+                  "type": "integer"
+                },
+                "maximumSubscriptions": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "maximumInboundBytes",
+                "maximumOutboundBatchBytes",
+                "maximumChangesPerBatch",
+                "maximumSubscriptions"
+              ],
+              "type": "object"
+            },
+            "protocol": {
+              "const": "kavaroutes.realtime.v1",
+              "type": "string"
+            },
+            "type": {
+              "const": "connection.ready",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "protocol",
+            "connectionId",
+            "heartbeatMilliseconds",
+            "deadPeerGraceMilliseconds",
+            "limits"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeChangeBatchFrame",
+          "additionalProperties": false,
+          "properties": {
+            "changes": {
+              "items": {
+                "$id": "RealtimeChange",
+                "additionalProperties": false,
+                "properties": {
+                  "committedAt": {
+                    "format": "date-time",
+                    "maxLength": 35,
+                    "type": "string"
+                  },
+                  "delta": {
+                    "$id": "RealtimeDelta",
+                    "anyOf": [
+                      {
+                        "$id": "RealtimeInvalidationDelta",
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "RESOURCE_INVALIDATED",
+                            "type": "string"
+                          },
+                          "resourceKind": {
+                            "anyOf": [
+                              {
+                                "const": "trip",
+                                "type": "string"
+                              },
+                              {
+                                "const": "run",
+                                "type": "string"
+                              },
+                              {
+                                "const": "assignment",
+                                "type": "string"
+                              },
+                              {
+                                "const": "manifest",
+                                "type": "string"
+                              },
+                              {
+                                "const": "facility-trip",
+                                "type": "string"
+                              },
+                              {
+                                "const": "operation",
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "resourceReference": {
+                            "maxLength": 128,
+                            "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                            "type": "string"
+                          },
+                          "resourceVersion": {
+                            "minimum": 1,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "resourceKind",
+                          "resourceReference",
+                          "resourceVersion"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "$id": "RealtimeDispatcherControlDelta",
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "DISPATCH_CONTROL",
+                            "type": "string"
+                          },
+                          "lifecycle": {
+                            "anyOf": [
+                              {
+                                "const": "SCHEDULED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "DISPATCHED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "IN_PROGRESS",
+                                "type": "string"
+                              },
+                              {
+                                "const": "COMPLETED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "CANCELLED",
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "resourceVersion": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "tripReference": {
+                            "maxLength": 128,
+                            "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "tripReference",
+                          "lifecycle",
+                          "resourceVersion"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "$id": "RealtimeDriverManifestDelta",
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "DRIVER_MANIFEST",
+                            "type": "string"
+                          },
+                          "lifecycle": {
+                            "anyOf": [
+                              {
+                                "const": "ASSIGNED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "UPDATED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "REMOVED",
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "manifestReference": {
+                            "maxLength": 128,
+                            "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                            "type": "string"
+                          },
+                          "resourceVersion": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "serviceDate": {
+                            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "manifestReference",
+                          "serviceDate",
+                          "lifecycle",
+                          "resourceVersion"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "$id": "RealtimeFacilityDelta",
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "FACILITY_COORDINATION",
+                            "type": "string"
+                          },
+                          "lifecycle": {
+                            "anyOf": [
+                              {
+                                "const": "PLANNED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "EN_ROUTE",
+                                "type": "string"
+                              },
+                              {
+                                "const": "ARRIVED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "DEPARTED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "CANCELLED",
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "resourceVersion": {
+                            "minimum": 1,
+                            "type": "integer"
+                          },
+                          "tripReference": {
+                            "maxLength": 128,
+                            "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "tripReference",
+                          "lifecycle",
+                          "resourceVersion"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "$id": "RealtimeOperationDelta",
+                        "additionalProperties": false,
+                        "properties": {
+                          "kind": {
+                            "const": "OPERATION_PROGRESS",
+                            "type": "string"
+                          },
+                          "lifecycle": {
+                            "anyOf": [
+                              {
+                                "const": "QUEUED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "RUNNING",
+                                "type": "string"
+                              },
+                              {
+                                "const": "SUCCEEDED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "FAILED",
+                                "type": "string"
+                              },
+                              {
+                                "const": "CANCELLED",
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "operationReference": {
+                            "maxLength": 128,
+                            "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                            "type": "string"
+                          },
+                          "resourceVersion": {
+                            "minimum": 1,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "operationReference",
+                          "lifecycle",
+                          "resourceVersion"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "$id": "RealtimeCurrentPositionDelta",
+                        "additionalProperties": false,
+                        "properties": {
+                          "accuracyMeters": {
+                            "maximum": 10000,
+                            "minimum": 0,
+                            "type": "number"
+                          },
+                          "capturedAt": {
+                            "format": "date-time",
+                            "maxLength": 35,
+                            "type": "string"
+                          },
+                          "driverReference": {
+                            "maxLength": 128,
+                            "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+                            "type": "string"
+                          },
+                          "kind": {
+                            "const": "CURRENT_POSITION",
+                            "type": "string"
+                          },
+                          "latitude": {
+                            "maximum": 90,
+                            "minimum": -90,
+                            "type": "number"
+                          },
+                          "longitude": {
+                            "maximum": 180,
+                            "minimum": -180,
+                            "type": "number"
+                          },
+                          "resourceVersion": {
+                            "minimum": 1,
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "driverReference",
+                          "latitude",
+                          "longitude",
+                          "accuracyMeters",
+                          "capturedAt",
+                          "resourceVersion"
+                        ],
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "epoch": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "schemaVersion": {
+                    "const": "realtime.schema.v1",
+                    "type": "string"
+                  },
+                  "sequence": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "streamId": {
+                    "maxLength": 36,
+                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "streamId",
+                  "epoch",
+                  "sequence",
+                  "schemaVersion",
+                  "committedAt",
+                  "delta"
+                ],
+                "type": "object"
+              },
+              "maxItems": 100,
+              "minItems": 1,
+              "type": "array"
+            },
+            "cursor": {
+              "maxLength": 8197,
+              "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+              "type": "string"
+            },
+            "subscriptionId": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "type": {
+              "const": "change.batch",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "subscriptionId",
+            "cursor",
+            "changes"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeSubscriptionStateFrame",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "anyOf": [
+                {
+                  "const": "LIVE",
+                  "type": "string"
+                },
+                {
+                  "const": "RESET_REQUIRED",
+                  "type": "string"
+                },
+                {
+                  "const": "AUTHORIZATION_REVOKED",
+                  "type": "string"
+                }
+              ]
+            },
+            "cursor": {
+              "maxLength": 8197,
+              "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+              "type": "string"
+            },
+            "subscriptionId": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "type": {
+              "anyOf": [
+                {
+                  "const": "subscription.live",
+                  "type": "string"
+                },
+                {
+                  "const": "subscription.reset-required",
+                  "type": "string"
+                },
+                {
+                  "const": "subscription.revoked",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "subscriptionId",
+            "code"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeServerDrainingFrame",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "const": "SERVER_DRAINING",
+              "type": "string"
+            },
+            "type": {
+              "const": "server.draining",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "code"
+          ],
+          "type": "object"
+        },
+        {
+          "$id": "RealtimeProtocolErrorFrame",
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "anyOf": [
+                {
+                  "const": "FRAME_INVALID",
+                  "type": "string"
+                },
+                {
+                  "const": "FRAME_TOO_LARGE",
+                  "type": "string"
+                },
+                {
+                  "const": "RATE_LIMITED",
+                  "type": "string"
+                },
+                {
+                  "const": "SUBSCRIPTION_LIMIT",
+                  "type": "string"
+                },
+                {
+                  "const": "AUTHORIZATION_DENIED",
+                  "type": "string"
+                },
+                {
+                  "const": "CURSOR_INVALID",
+                  "type": "string"
+                },
+                {
+                  "const": "SLOW_CONSUMER",
+                  "type": "string"
+                },
+                {
+                  "const": "INTERNAL_ERROR",
+                  "type": "string"
+                }
+              ]
+            },
+            "type": {
+              "const": "protocol.error",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "code"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "RealtimeSnapshot": {
+      "$id": "RealtimeSnapshot",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "maxLength": 8197,
+          "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+          "type": "string"
+        },
+        "etag": {
+          "pattern": "^\"rt1[.][A-Za-z0-9_-]{32,64}\"$",
+          "type": "string"
+        },
+        "projection": {
+          "patternProperties": {
+            "^[a-z][a-z0-9:_-]{2,127}$": {}
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "projection",
+        "etag",
+        "cursor"
+      ],
+      "type": "object"
+    },
+    "RealtimeStreamKind": {
+      "$id": "RealtimeStreamKind",
+      "anyOf": [
+        {
+          "const": "DISPATCH_DAY",
+          "type": "string"
+        },
+        {
+          "const": "DRIVER_MANIFEST",
+          "type": "string"
+        },
+        {
+          "const": "FACILITY_DAY",
+          "type": "string"
+        },
+        {
+          "const": "OPERATION",
+          "type": "string"
+        },
+        {
+          "const": "CURRENT_POSITION",
+          "type": "string"
+        }
+      ]
+    },
+    "RealtimeSubscribeFrame": {
+      "$id": "RealtimeSubscribeFrame",
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "maxLength": 8197,
+          "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+          "type": "string"
+        },
+        "messageId": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "organizationId": {
+          "maxLength": 36,
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+          "type": "string"
+        },
+        "purpose": {
+          "$id": "RealtimeSubscriptionPurpose",
+          "anyOf": [
+            {
+              "const": "DISPATCH_CONTROL",
+              "type": "string"
+            },
+            {
+              "const": "DRIVER_MANIFEST",
+              "type": "string"
+            },
+            {
+              "const": "FACILITY_COORDINATION",
+              "type": "string"
+            },
+            {
+              "const": "OPERATION_PROGRESS",
+              "type": "string"
+            },
+            {
+              "const": "DISPATCH_CURRENT_POSITION",
+              "type": "string"
+            }
+          ]
+        },
+        "scope": {
+          "$id": "RealtimeNormalizedScope",
+          "additionalProperties": false,
+          "properties": {
+            "scopeReference": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            },
+            "serviceDate": {
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "type": "string"
+            },
+            "shard": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "streamKind": {
+              "$id": "RealtimeStreamKind",
+              "anyOf": [
+                {
+                  "const": "DISPATCH_DAY",
+                  "type": "string"
+                },
+                {
+                  "const": "DRIVER_MANIFEST",
+                  "type": "string"
+                },
+                {
+                  "const": "FACILITY_DAY",
+                  "type": "string"
+                },
+                {
+                  "const": "OPERATION",
+                  "type": "string"
+                },
+                {
+                  "const": "CURRENT_POSITION",
+                  "type": "string"
+                }
+              ]
+            },
+            "subjectReference": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+              "type": "string"
+            }
+          },
+          "required": [
+            "streamKind",
+            "scopeReference"
+          ],
+          "type": "object"
+        },
+        "subscriptionId": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "type": {
+          "const": "subscription.subscribe",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "messageId",
+        "subscriptionId",
+        "organizationId",
+        "purpose",
+        "scope"
+      ],
+      "type": "object"
+    },
+    "RealtimeSubscriptionPurpose": {
+      "$id": "RealtimeSubscriptionPurpose",
+      "anyOf": [
+        {
+          "const": "DISPATCH_CONTROL",
+          "type": "string"
+        },
+        {
+          "const": "DRIVER_MANIFEST",
+          "type": "string"
+        },
+        {
+          "const": "FACILITY_COORDINATION",
+          "type": "string"
+        },
+        {
+          "const": "OPERATION_PROGRESS",
+          "type": "string"
+        },
+        {
+          "const": "DISPATCH_CURRENT_POSITION",
+          "type": "string"
+        }
+      ]
+    },
+    "RealtimeSubscriptionStateFrame": {
+      "$id": "RealtimeSubscriptionStateFrame",
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "anyOf": [
+            {
+              "const": "LIVE",
+              "type": "string"
+            },
+            {
+              "const": "RESET_REQUIRED",
+              "type": "string"
+            },
+            {
+              "const": "AUTHORIZATION_REVOKED",
+              "type": "string"
+            }
+          ]
+        },
+        "cursor": {
+          "maxLength": 8197,
+          "pattern": "^rtc1[.][A-Za-z0-9_-]{48,8192}$",
+          "type": "string"
+        },
+        "subscriptionId": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "const": "subscription.live",
+              "type": "string"
+            },
+            {
+              "const": "subscription.reset-required",
+              "type": "string"
+            },
+            {
+              "const": "subscription.revoked",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "subscriptionId",
+        "code"
+      ],
+      "type": "object"
+    },
+    "RealtimeUnsubscribeFrame": {
+      "$id": "RealtimeUnsubscribeFrame",
+      "additionalProperties": false,
+      "properties": {
+        "messageId": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "subscriptionId": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9:_-]{2,127}$",
+          "type": "string"
+        },
+        "type": {
+          "const": "subscription.unsubscribe",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "messageId",
+        "subscriptionId"
+      ],
+      "type": "object"
+    }
+  },
+  "sha256": "8adc3f19b63e914c1073bbc006d204b5e0733dc7c018f80ada09e985ff789e49"
+}

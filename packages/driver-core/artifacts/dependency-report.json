@@ -1,0 +1,178 @@
+{
+  "format": 1,
+  "result": "PASS",
+  "exactPins": true,
+  "packageCount": 23,
+  "packages": [
+    {
+      "name": "@testing-library/react-native",
+      "version": "14.0.1",
+      "license": "MIT",
+      "repository": "https://www.github.com/callstack/react-native-testing-library.git",
+      "nativeCompatibility": "javascript-or-test-only"
+    },
+    {
+      "name": "@types/react",
+      "version": "19.2.18",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "nativeCompatibility": "javascript-or-test-only"
+    },
+    {
+      "name": "expo",
+      "version": "57.0.16",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-build-properties",
+      "version": "57.0.14",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-crypto",
+      "version": "57.0.2",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-dev-client",
+      "version": "57.0.15",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-doctor",
+      "version": "1.20.3",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-location",
+      "version": "57.0.13",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-network",
+      "version": "57.0.1",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-router",
+      "version": "57.0.16",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-screen-capture",
+      "version": "57.0.2",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-secure-store",
+      "version": "57.0.1",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-sqlite",
+      "version": "57.0.1",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-task-manager",
+      "version": "57.0.13",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "jest",
+      "version": "29.7.0",
+      "license": "MIT",
+      "repository": "https://github.com/jestjs/jest.git",
+      "nativeCompatibility": "javascript-or-test-only"
+    },
+    {
+      "name": "jest-expo",
+      "version": "57.0.4",
+      "license": "MIT",
+      "repository": "git://github.com/expo/expo.git",
+      "nativeCompatibility": "javascript-or-test-only"
+    },
+    {
+      "name": "react",
+      "version": "19.2.3",
+      "license": "MIT",
+      "repository": "https://github.com/facebook/react.git",
+      "nativeCompatibility": "javascript-or-test-only"
+    },
+    {
+      "name": "react-native",
+      "version": "0.86.2",
+      "license": "MIT",
+      "repository": "git+https://github.com/react/react-native.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "react-native-reanimated",
+      "version": "4.5.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/software-mansion/react-native-reanimated.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "react-native-safe-area-context",
+      "version": "5.7.0",
+      "license": "MIT",
+      "repository": "https://github.com/AppAndFlow/react-native-safe-area-context.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "react-native-screens",
+      "version": "4.26.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/software-mansion/react-native-screens.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "react-native-worklets",
+      "version": "0.10.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/software-mansion/react-native-reanimated.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "react-test-renderer",
+      "version": "19.2.3",
+      "license": "MIT",
+      "repository": "https://github.com/facebook/react.git",
+      "nativeCompatibility": "javascript-or-test-only"
+    }
+  ],
+  "maintenanceReview": "Expo Doctor 21/21 and deterministic SDK 57 CNG",
+  "advisoryReview": "npm audit is a separate mandatory zero-finding gate",
+  "installScripts": [
+    {
+      "name": "protobufjs",
+      "version": "7.6.5",
+      "status": "previously-reviewed-not-executed"
+    }
+  ]
+}

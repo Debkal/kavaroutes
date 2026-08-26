@@ -8,7 +8,10 @@
     { "path": "packages/postgres-persistence" },
     { "path": "packages/api-contracts" },
     { "path": "packages/durable-execution" },
+    { "path": "packages/realtime" },
+    { "path": "packages/driver-core" },
     { "path": "apps/api-host" },
-    { "path": "apps/worker-host" }
+    { "path": "apps/worker-host" },
+    { "path": "apps/driver" }
   ]
 }

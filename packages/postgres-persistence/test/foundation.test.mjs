@@ -36,7 +36,7 @@ test("clean replay, WP005 upgrade replay, and migration replay are deterministic
     const client = await pool.connect();
     try {
       await applyMigrations(client);
-      assert.equal((await client.query("SELECT count(*)::int AS count FROM public.kavaroutes_schema_migration")).rows[0].count, 7);
+      assert.equal((await client.query("SELECT count(*)::int AS count FROM public.kavaroutes_schema_migration")).rows[0].count, 8);
       assert.equal((await client.query("SELECT platform.assert_tenant_boundaries() AS result")).rowCount, 1);
     } finally { client.release(); }
   }, async (pool) => {

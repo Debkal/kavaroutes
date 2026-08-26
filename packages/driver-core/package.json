@@ -1,0 +1,17 @@
+{
+  "name": "@kavaroutes/driver-core",
+  "version": "0.0.0-wp010",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./migrations": "./dist/migrations.js"
+  },
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@kavaroutes/api-contracts": "0.0.0-wp007",
+    "@kavaroutes/realtime": "0.0.0-wp009",
+    "typebox": "1.3.7"
+  }
+}

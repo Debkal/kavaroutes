@@ -1,0 +1,16 @@
+{
+  "format": 1,
+  "result": "PASS",
+  "schemas": 7,
+  "migrations": 1,
+  "sourceFiles": 48,
+  "expo": "57.0.16",
+  "reactNative": "0.86.2",
+  "react": "19.2.3",
+  "newArchitectureMandatoryBySdk57": true,
+  "hermesMandatoryBySdk57": true,
+  "sqlCipherConfigured": true,
+  "routeSurfaces": 10,
+  "physicalDeviceEvidence": false,
+  "completionBlockedBy": "HIG-006"
+}

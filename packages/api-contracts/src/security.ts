@@ -16,7 +16,7 @@ export const syntheticIds = Object.freeze({
 
 export type Capability =
   | "profile:read" | "riders:read" | "riders:write" | "trips:read" | "trips:write" | "trips:command"
-  | "dispatch:read" | "dispatch:command" | "fleet:read" | "fleet:command" | "driver:manifest:read"
+  | "dispatch:read" | "dispatch:command" | "dispatch:location:read" | "fleet:read" | "fleet:command" | "driver:manifest:read"
   | "driver:execute" | "driver:location:write" | "facility:trip-status:read" | "facility:coordinate"
   | "billing:read" | "billing:command" | "integrations:read" | "integrations:write" | "audit:read";
 export type Purpose = "RIDER_INTAKE" | "ASSIGNED_SERVICE_DELIVERY" | "FACILITY_COORDINATION" | "BILLING_PROOF" | "SUPPORT_DIAGNOSTICS" | "PARTNER_EXPORT";
@@ -32,7 +32,7 @@ export interface SyntheticPrincipal {
   readonly subjectId?: string;
 }
 
-const allDispatcherCapabilities: readonly Capability[] = ["profile:read", "riders:read", "riders:write", "trips:read", "trips:write", "trips:command", "dispatch:read", "dispatch:command", "fleet:read", "fleet:command"];
+const allDispatcherCapabilities: readonly Capability[] = ["profile:read", "riders:read", "riders:write", "trips:read", "trips:write", "trips:command", "dispatch:read", "dispatch:command", "dispatch:location:read", "fleet:read", "fleet:command"];
 const fixture = (input: Omit<SyntheticPrincipal, "capabilities" | "purposes" | "branchScopes" | "fleetScopes"> & { capabilities: readonly Capability[]; purposes: readonly Purpose[]; branchScopes?: readonly string[]; fleetScopes?: readonly string[] }): SyntheticPrincipal => Object.freeze({
   ...input,
   capabilities: new Set(input.capabilities), purposes: new Set(input.purposes),

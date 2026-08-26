@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import type { Pool, PoolClient } from "pg";
 import { auditEvents, idempotencyRecords, organizations, runs } from "./schema.js";
 
-export type RuntimeRole = "kavaroutes_api" | "kavaroutes_worker" | "kavaroutes_import" | "kavaroutes_outbox_publisher" | "kavaroutes_outbox_consumer";
+export type RuntimeRole = "kavaroutes_api" | "kavaroutes_worker" | "kavaroutes_import" | "kavaroutes_outbox_publisher" | "kavaroutes_outbox_consumer" | "kavaroutes_realtime";
 
 export class PersistenceConflict extends Error {
   readonly kind: "stale-version" | "duplicate" | "resource-overlap" | "relationship" | "tenant" | "idempotency-mismatch" | "idempotency-in-progress" | "idempotency-expired";

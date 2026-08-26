@@ -53,8 +53,8 @@
   },
   "counts": {
     "direct": 16,
-    "transitivePackageEntries": 154,
-    "totalPackageEntries": 170,
+    "transitivePackageEntries": 157,
+    "totalPackageEntries": 173,
     "installScriptPackages": 1
   },
   "direct": [
@@ -262,10 +262,26 @@
       "optional": false
     },
     {
+      "name": "@kavaroutes/api-contracts",
+      "license": "UNKNOWN",
+      "integrity": null,
+      "resolved": "packages/api-contracts",
+      "hasInstallScript": false,
+      "optional": false
+    },
+    {
       "name": "@kavaroutes/api-host",
       "license": "UNKNOWN",
       "integrity": null,
       "resolved": "apps/api-host",
+      "hasInstallScript": false,
+      "optional": false
+    },
+    {
+      "name": "@kavaroutes/durable-execution",
+      "license": "UNKNOWN",
+      "integrity": null,
+      "resolved": "packages/durable-execution",
       "hasInstallScript": false,
       "optional": false
     },
@@ -290,6 +306,14 @@
       "license": "UNKNOWN",
       "integrity": null,
       "resolved": "packages/postgres-persistence",
+      "hasInstallScript": false,
+      "optional": false
+    },
+    {
+      "name": "@kavaroutes/realtime",
+      "license": "UNKNOWN",
+      "integrity": null,
+      "resolved": "packages/realtime",
       "hasInstallScript": false,
       "optional": false
     },

@@ -1,6 +1,6 @@
 {
   "name": "kavaroutes",
-  "version": "0.0.0-wp008",
+  "version": "0.0.0-wp010",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
@@ -44,7 +44,29 @@
     "wp008:snapshot": "node packages/durable-execution/scripts/verify-schema-snapshot.mjs",
     "wp008:benchmark": "node packages/durable-execution/scripts/benchmark.mjs",
     "wp008:benchmark:database": "node packages/durable-execution/scripts/benchmark.database.mjs",
-    "wp008:verify": "npm run build && npm run wp006:lint && npm run wp008:catalog && npm run wp008:lint && npm run wp008:test && npm run wp008:test:database && npm run wp008:snapshot && npm run wp008:benchmark && npm run wp008:benchmark:database"
+    "wp008:verify": "npm run build && npm run wp006:lint && npm run wp008:catalog && npm run wp008:lint && npm run wp008:test && npm run wp008:test:database && npm run wp008:snapshot && npm run wp008:benchmark && npm run wp008:benchmark:database",
+    "wp009:catalog": "node packages/realtime/scripts/generate-catalog.mjs",
+    "wp009:openapi": "node packages/realtime/scripts/generate-openapi.mjs",
+    "wp009:lint": "node packages/realtime/scripts/lint.mjs",
+    "wp009:test": "node --test --test-concurrency=1 packages/realtime/test/contracts.test.mjs packages/realtime/test/gateway.test.mjs packages/realtime/test/fastify.test.mjs",
+    "wp009:test:database": "node --test --test-concurrency=1 packages/realtime/test/postgres.integration.test.mjs",
+    "wp009:snapshot": "node packages/realtime/scripts/verify-schema-snapshot.mjs",
+    "wp009:benchmark": "node packages/realtime/scripts/benchmark.mjs",
+    "wp009:verify": "npm run build && npm run wp006:lint && npm run wp009:catalog && npm run wp009:openapi && npm run wp009:lint && npm run wp009:test && npm run wp009:test:database && npm run wp009:snapshot && npm run wp009:benchmark && npm test && npm run wp006:test && npm run wp007:test && npm run wp007:test:database && npm run wp008:test && npm run wp008:test:database"
+    ,"wp010:lint": "node packages/driver-core/scripts/lint.mjs"
+    ,"wp010:test": "node --test --test-concurrency=1 packages/driver-core/test/*.test.mjs"
+    ,"wp010:test:ui": "npm run test --workspace=@kavaroutes/driver"
+    ,"wp010:config": "npm run config --workspace=@kavaroutes/driver"
+    ,"wp010:doctor": "npm run doctor --workspace=@kavaroutes/driver"
+    ,"wp010:prebuild": "node packages/driver-core/scripts/prebuild-check.mjs"
+    ,"wp010:bundle": "npm run bundle:android --workspace=@kavaroutes/driver"
+    ,"kavaroutes:android": "node packages/driver-core/scripts/build-android-apk.mjs"
+    ,"kavaroutes:ios:prepare": "node packages/driver-core/scripts/prepare-ios-bundle.mjs"
+    ,"wp010:benchmark": "node packages/driver-core/scripts/benchmark.mjs"
+    ,"wp010:dependencies": "node packages/driver-core/scripts/dependency-report.mjs"
+    ,"wp010:audit": "npm audit --audit-level=moderate"
+    ,"wp010:report": "node packages/driver-core/scripts/generate-report.mjs"
+    ,"wp010:verify:local": "npm run build && npm run wp010:lint && npm run wp010:test && npm run wp010:test:ui && npm run wp010:config && npm run wp010:doctor && npm run wp010:prebuild && npm run wp010:bundle && npm run wp010:benchmark && npm run wp010:dependencies && npm run wp010:audit && npm run wp010:report && npm test && npm run wp007:test && npm run wp009:test"
   },
   "dependencies": {
     "@fastify/swagger": "9.8.1",
@@ -65,5 +87,15 @@
     "@types/pg": "8.23.1",
     "@types/ws": "8.18.1",
     "typescript": "6.0.3"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "5.7.0",
+    "react-native-screens": "4.26.0",
+    "react-native-worklets": "0.10.1",
+    "uuid": "11.1.1"
   }
 }

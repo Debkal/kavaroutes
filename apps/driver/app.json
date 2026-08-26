@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "KavaRoutes Driver Feasibility",
+    "slug": "kavaroutes-driver-local",
+    "version": "0.0.0-wp010",
+    "runtimeVersion": "0.0.0-wp010",
+    "scheme": "kavaroutes-driver-local",
+    "orientation": "default",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kavaroutes.driver.synthetic",
+      "infoPlist": { "UIFileSharingEnabled": false, "LSSupportsOpeningDocumentsInPlace": false }
+    },
+    "android": {
+      "package": "com.kavaroutes.driver.synthetic",
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.VIBRATE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-build-properties", { "android": { "compileSdkVersion": 36, "targetSdkVersion": 36, "minSdkVersion": 29 }, "ios": { "deploymentTarget": "16.4" } }],
+      ["expo-sqlite", { "enableFTS": false, "useSQLCipher": true }],
+      ["expo-secure-store", { "configureAndroidBackup": false, "faceIDPermission": "KavaRoutes WP010 does not use Face ID." }],
+      ["expo-location", {
+        "locationWhenInUsePermission": "Allow KavaRoutes Driver to record synthetic route position while an approved test shift is active.",
+        "locationAlwaysAndWhenInUsePermission": "Allow KavaRoutes Driver to record synthetic route position during an approved active test shift, including in the background.",
+        "isIosBackgroundLocationEnabled": true,
+        "isAndroidBackgroundLocationEnabled": true,
+        "isAndroidForegroundServiceEnabled": true
+      }]
+    ],
+    "experiments": { "typedRoutes": false },
+    "extra": { "environment": "synthetic-local", "otaEnabled": false, "publicListener": false }
+  }
+}

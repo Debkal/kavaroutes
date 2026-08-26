@@ -230,6 +230,7 @@ export const allSchemas: readonly TSchema[] = Object.freeze([
 export type TripCreateRequest = Static<typeof TripCreateRequestSchema>;
 export type DispatcherTrip = Static<typeof DispatcherTripSchema>;
 export type CancelTripRequest = Static<typeof CancelTripRequestSchema>;
+export type DriverManifest = Static<typeof DriverManifestSchema>;
 export type DriverActionBatch = Static<typeof DriverActionBatchSchema>;
 export type LocationBatch = Static<typeof LocationBatchSchema>;
 export type BatchReceipt = Static<typeof BatchReceiptSchema>;

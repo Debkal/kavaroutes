@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "protocol": "kavaroutes.realtime.v1",
+  "schemas": 24,
+  "clientFrames": 3,
+  "serverFrames": 7,
+  "closeCodes": 10,
+  "maximumInboundBytes": 65536,
+  "maximumOutboundBatchBytes": 262144,
+  "result": "PASS"
+}

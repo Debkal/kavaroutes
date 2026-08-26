@@ -1,0 +1,88 @@
+{
+  "format": 1,
+  "workPackage": "010",
+  "decision": "BLOCKED_PENDING_HIG_006",
+  "localPhase": "PASS",
+  "evidenceDigest": "0a4762f3bba2a3da797842e73a484e81b06b19b157e2b4fb2858625927c934b3",
+  "evidenceDigestInputs": [
+    "local-lint-report.json",
+    "native-config-report.json",
+    "stable fields from local-benchmark.json",
+    "dependency-report.json"
+  ],
+  "framework": {
+    "expo": "57.0.16",
+    "reactNative": "0.86.2",
+    "react": "19.2.3",
+    "newArchitecture": true,
+    "hermes": true
+  },
+  "localEvidence": {
+    "closedSchemas": 7,
+    "localMigrations": 1,
+    "routeSurfaces": 10,
+    "deterministicNativeConfigDigest": "f9a94b28216c438defadc72384c9d4d697a7bed177f7956f3a561aa1e8b72644",
+    "androidBundle": "PASS",
+    "androidHermesBundleBytes": 3381587,
+    "offlineHours": 12,
+    "offlineSamples": 2880,
+    "batches": 6,
+    "vulnerabilities": 0
+  },
+  "preparedArtifacts": {
+    "androidDevelopmentApk": {
+      "result": "PASS_DEVELOPMENT_APK_CREATED",
+      "artifact": "builds/client/android/kavaroutes-driver-android.apk",
+      "bytes": 148835470,
+      "sha256": "ef812259edcdb7ce5e075ad6d66f52e8638238b9215af211294713708fe2298a",
+      "sourceDigest": "5be29b24408d1185a29e0a6a0e75f78057007e3e3e23187097aa61db16ecbf5a",
+      "signing": "generated Android debug certificate",
+      "physicalInstallExecuted": false
+    },
+    "iosHermesBundle": {
+      "result": "PASS_IOS_HERMES_BUNDLE_CREATED",
+      "artifact": "builds/client/ios/kavaroutes-driver-ios-hermes.hbc",
+      "bytes": 3078152,
+      "sha256": "c7fb226ff832c5498fb98cb97d8fbd660db5f05e8eb9927aba29af132a6f0aa0",
+      "generatedXcodeProject": "apps/driver/ios/KavaRoutesDriverFeasibility.xcodeproj",
+      "cngProjectPrepared": true,
+      "developmentStatus": "DEFERRED_PENDING_MACOS_XCODE",
+      "installableBinary": false,
+      "xcodeBuildExecuted": false
+    }
+  },
+  "evidenceDigestExcludes": [
+    "benchmark.generatedAt",
+    "benchmark.generationMs",
+    "benchmark.batchingMs",
+    "benchmark.fakeTransactionalPersistMs"
+  ],
+  "platformDecisions": {
+    "android": "DEVELOPMENT_APK_READY_PHYSICAL_EVIDENCE_PENDING",
+    "ios": "DEFERRED_PENDING_MACOS_XCODE",
+    "reactNative": "CONDITIONAL_LOCAL_LANE_PASSES"
+  },
+  "requiredPhysicalEvidence": {
+    "currentIphone": true,
+    "currentStockAndroid": true,
+    "aggressiveOemAndroid": true,
+    "oldestSupportedAvailable": true,
+    "continuousShiftHoursPerDevice": 8,
+    "iosDevelopmentDeferred": true,
+    "movingFreshnessP95SecondsMaximum": 15,
+    "staleSecondsMaximum": 60,
+    "attributableBatteryPercentagePointsPerHourMaximum": 2,
+    "talkBack": true,
+    "voiceOver": true
+  },
+  "prohibitedClaims": [
+    "production Driver",
+    "background reliability",
+    "battery feasibility",
+    "platform go",
+    "PHI readiness",
+    "store readiness",
+    "commercial device support"
+  ],
+  "nextGate": "HIG-006"
+}

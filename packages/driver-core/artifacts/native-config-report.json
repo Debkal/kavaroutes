@@ -1,0 +1,21 @@
+{
+  "format": 1,
+  "result": "PASS",
+  "generatedTwice": true,
+  "deterministic": true,
+  "files": 26,
+  "digest": "f9a94b28216c438defadc72384c9d4d697a7bed177f7956f3a561aa1e8b72644",
+  "platform": [
+    "android",
+    "ios"
+  ],
+  "compileTargetSdk": 36,
+  "minimumAndroid": 29,
+  "minimumIos": "16.4",
+  "newArchitecture": true,
+  "hermes": true,
+  "sqlCipher": true,
+  "normalization": "Xcode 24-character project object identifiers only",
+  "physicalBuildExecuted": false,
+  "completionBlockedBy": "HIG-006"
+}

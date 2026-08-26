@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "workPackage": "010",
+  "result": "PASS_IOS_HERMES_BUNDLE_CREATED",
+  "artifact": "builds/client/ios/kavaroutes-driver-ios-hermes.hbc",
+  "bytes": 3078152,
+  "sha256": "c7fb226ff832c5498fb98cb97d8fbd660db5f05e8eb9927aba29af132a6f0aa0",
+  "bundleIdentifier": "com.kavaroutes.driver.synthetic",
+  "minimumIos": "16.4",
+  "generatedXcodeProject": "apps/driver/ios/KavaRoutesDriverFeasibility.xcodeproj",
+  "cngProjectPrepared": true,
+  "developmentStatus": "DEFERRED_PENDING_MACOS_XCODE",
+  "installableBinary": false,
+  "xcodeBuildExecuted": false,
+  "podInstallExecuted": false,
+  "simulatorExecuted": false,
+  "physicalDeviceExecuted": false,
+  "externalUpload": false,
+  "nextRequirement": "iOS development resumes only when the human provides a macOS/Xcode test host"
+}

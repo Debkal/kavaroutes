@@ -12,7 +12,7 @@ async function walk(directory) {
     if (["dist", "node_modules"].includes(entry.name)) continue;
     const target = path.join(directory, entry.name);
     if (entry.isDirectory()) await walk(target);
-    else if (entry.name.endsWith(".ts")) sourceFiles.push(target);
+    else if (/\.tsx?$/.test(entry.name)) sourceFiles.push(target);
   }
 }
 
@@ -44,6 +44,12 @@ for (const file of sourceFiles) {
   }
   if (!relative.startsWith("apps/") && /process\.env/.test(text)) {
     violations.push(`${relative}: environment read outside composition host`);
+  }
+  if (relative.startsWith("apps/driver/") || relative.startsWith("packages/driver-core/")) {
+    for (const specifier of imports) {
+      if (/fastify|drizzle|pg-boss|postgres-persistence|durable-execution/.test(specifier)) violations.push(`${relative}: server-only Driver import ${specifier}`);
+    }
+    if (/AsyncStorage|redux-persist|@googlemaps|firebase|process\.env/.test(text)) violations.push(`${relative}: prohibited Driver platform dependency`);
   }
   if (/import\s*\(/.test(text) && !["apps/api-host/src/main.ts", "apps/worker-host/src/main.ts"].includes(relative)) {
     violations.push(`${relative}: unreviewed dynamic import`);

@@ -4,9 +4,10 @@
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
-  "exports": { ".": "./dist/index.js", "./logging": "./dist/logging.js", "./telemetry": "./dist/telemetry.js" },
+  "exports": { ".": "./dist/index.js", "./logging": "./dist/logging.js", "./realtime": "./dist/realtime.js", "./telemetry": "./dist/telemetry.js" },
   "dependencies": {
     "@kavaroutes/api-contracts": "0.0.0-wp007",
+    "@kavaroutes/realtime": "0.0.0-wp009",
     "@fastify/swagger": "9.8.1",
     "@fastify/type-provider-typebox": "6.1.0",
     "@fastify/websocket": "11.3.0",
