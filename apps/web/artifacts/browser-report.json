@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T23:19:39.364Z",
+  "result": "PASS",
+  "runner": "Playwright 1.62.1 official noble container",
+  "tests": 30,
+  "engines": [
+    "Chromium 151",
+    "Firefox 153",
+    "WebKit 26.5"
+  ],
+  "viewports": [
+    "1440x900",
+    "1280x720",
+    "1024x768",
+    "390x844",
+    "1920x1080"
+  ],
+  "accessibility": "axe-core automation, keyboard focus, command dialog, and document reflow checks passed; branded Safari and assistive-technology UAT not claimed"
+}

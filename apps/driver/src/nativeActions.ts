@@ -1,7 +1,7 @@
 import { Linking, Platform } from "react-native";
 import * as Location from "expo-location";
 import type { SQLiteDatabase } from "expo-sqlite";
-import { DEFAULT_SAMPLING_POLICY, handoffNavigation, type DriverLocationSample } from "@kavaroutes/driver-core";
+import { DEFAULT_SAMPLING_POLICY, handoffNavigation, type DriverLocationSample, type VehicleMotionState, updateVehicleMotion } from "@kavaroutes/driver-core";
 import { createActionFingerprint, createEvidenceDigest, createPolicyDigest } from "./crypto";
 import { configureBackgroundLocation, DRIVER_LOCATION_TASK } from "./background-location";
 import { openNativeDriverStore, wipeNativeDriverStore } from "./storage/nativeStore";
@@ -228,9 +228,28 @@ export async function evaluateReturnLocation(): Promise<"PASS" | "OUTSIDE" | "ST
   } catch { return "UNAVAILABLE"; }
 }
 
-export function openSyntheticNavigation() {
-  return handoffNavigation({ canOpen: (url) => Linking.canOpenURL(url), open: (url) => Linking.openURL(url) },
-    { kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" }, Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "other");
+const SYNTHETIC_STOP_COORDINATES = Object.freeze([
+  { kind: "COORDINATE", latitude: 34.053691, longitude: -118.242766 },
+  { kind: "COORDINATE", latitude: 34.050233, longitude: -118.255999 },
+  { kind: "COORDINATE", latitude: 34.056219, longitude: -118.236502 },
+  { kind: "COORDINATE", latitude: 34.055345, longitude: -118.249845 },
+] as const);
+
+export async function openSyntheticNavigation(stopIndex = 0) {
+  const destination = SYNTHETIC_STOP_COORDINATES[stopIndex];
+  if (!destination) throw new Error("DIRECTIONS_STOP_UNAVAILABLE");
+  const outcome = await handoffNavigation({ open: (url) => Linking.openURL(url) }, destination,
+    Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "other");
+  if (outcome === "UNAVAILABLE") throw new Error(Platform.OS === "ios" ? "Apple Maps could not be opened." : "Google Maps could not be opened.");
+  return outcome;
+}
+
+export async function watchSyntheticVehicleMotion(initial: VehicleMotionState, onChange: (state: VehicleMotionState) => void): Promise<{ remove(): void }> {
+  let motion = initial;
+  return Location.watchPositionAsync({ accuracy: Location.Accuracy.High, timeInterval: 3_000, distanceInterval: 2 }, (location) => {
+    const next = updateVehicleMotion(motion, { speedMetersPerSecond: location.coords.speed, accuracyMeters: location.coords.accuracy });
+    if (next.moving !== motion.moving || next.stationaryConfirmations !== motion.stationaryConfirmations) { motion = next; onChange(next); }
+  });
 }
 
 export function openApplicationSettings() { return Linking.openSettings(); }

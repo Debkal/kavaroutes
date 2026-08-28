@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T23:19:10.766Z",
+  "result": "PASS",
+  "exactPins": true,
+  "directPackageCount": 19,
+  "repositoryResolvedPackageEntries": 1129,
+  "packages": [
+    {
+      "name": "@axe-core/playwright",
+      "version": "4.13.0",
+      "license": "MPL-2.0",
+      "repository": "https://github.com/dequelabs/axe-core-npm.git"
+    },
+    {
+      "name": "@kavaroutes/api-contracts",
+      "version": "0.0.0-wp007",
+      "license": "UNLICENSED",
+      "repository": null
+    },
+    {
+      "name": "@kavaroutes/realtime",
+      "version": "0.0.0-wp009",
+      "license": "UNLICENSED",
+      "repository": null
+    },
+    {
+      "name": "@playwright/test",
+      "version": "1.62.1",
+      "license": "Apache-2.0",
+      "repository": "git+https://github.com/microsoft/playwright.git"
+    },
+    {
+      "name": "@tanstack/react-query",
+      "version": "5.102.8",
+      "license": "MIT",
+      "repository": "git+https://github.com/TanStack/query.git"
+    },
+    {
+      "name": "@testing-library/jest-dom",
+      "version": "6.9.1",
+      "license": "MIT",
+      "repository": "https://github.com/testing-library/jest-dom"
+    },
+    {
+      "name": "@testing-library/react",
+      "version": "16.3.3",
+      "license": "MIT",
+      "repository": "https://github.com/testing-library/react-testing-library"
+    },
+    {
+      "name": "@testing-library/user-event",
+      "version": "14.6.6",
+      "license": "MIT",
+      "repository": "https://github.com/testing-library/user-event"
+    },
+    {
+      "name": "@types/react",
+      "version": "19.2.18",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+    },
+    {
+      "name": "@types/react-dom",
+      "version": "19.2.5",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git"
+    },
+    {
+      "name": "@vitejs/plugin-react",
+      "version": "6.1.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/vitejs/vite-plugin-react.git"
+    },
+    {
+      "name": "axe-core",
+      "version": "4.13.0",
+      "license": "MPL-2.0",
+      "repository": "https://github.com/dequelabs/axe-core.git"
+    },
+    {
+      "name": "jsdom",
+      "version": "30.0.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/jsdom/jsdom.git"
+    },
+    {
+      "name": "react",
+      "version": "19.2.3",
+      "license": "MIT",
+      "repository": "https://github.com/facebook/react.git"
+    },
+    {
+      "name": "react-aria-components",
+      "version": "1.20.0",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/adobe/react-spectrum"
+    },
+    {
+      "name": "react-dom",
+      "version": "19.2.3",
+      "license": "MIT",
+      "repository": "https://github.com/facebook/react.git"
+    },
+    {
+      "name": "react-router",
+      "version": "7.18.3",
+      "license": "MIT",
+      "repository": "https://github.com/remix-run/react-router"
+    },
+    {
+      "name": "vite",
+      "version": "8.2.2",
+      "license": "MIT",
+      "repository": "git+https://github.com/vitejs/vite.git"
+    },
+    {
+      "name": "vitest",
+      "version": "4.1.11",
+      "license": "MIT",
+      "repository": "git+https://github.com/vitest-dev/vitest.git"
+    }
+  ],
+  "maintenance": "Review monthly, on security advisories, and before changing framework/browser baselines.",
+  "advisories": "npm audit is a separate mandatory gate",
+  "installScripts": [
+    {
+      "name": "fsevents",
+      "version": "2.3.3",
+      "execution": "blocked unless explicitly reviewed through npm allow-scripts"
+    },
+    {
+      "name": "playwright/node_modules/fsevents",
+      "version": "2.3.2",
+      "execution": "blocked unless explicitly reviewed through npm allow-scripts"
+    },
+    {
+      "name": "protobufjs",
+      "version": "7.6.5",
+      "execution": "blocked unless explicitly reviewed through npm allow-scripts"
+    }
+  ]
+}

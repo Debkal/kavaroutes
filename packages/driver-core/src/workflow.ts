@@ -270,6 +270,7 @@ export function applyWorkflowCommand(state: SyntheticWorkflow, command: Workflow
     case "ADVANCE_STOP": {
       if (!["READY", "ITINERARY_ACTIVE"].includes(state.phase)) fail("PRECHECK_REQUIRED");
       const pickup = state.currentNode < 2;
+      if (state.stopStep === "NAVIGATE") return receipt(state, { phase: "ITINERARY_ACTIVE", stopStep: pickup ? "SIGNATURE_REQUIRED" : "DROPOFF_EVIDENCE_REQUIRED" }, pickup ? "driver.stop.pickup_confirmed" : "driver.stop.dropoff_confirmed");
       const next: Record<StopStep, StopStep> = { NAVIGATE: "ARRIVED", ARRIVED: pickup ? "VERIFY_RIDER" : "UNLOAD_AND_ASSIST", VERIFY_RIDER: "BOARD_AND_SECURE",
         BOARD_AND_SECURE: "SIGNATURE_REQUIRED", SIGNATURE_REQUIRED: "START_TRANSPORT", START_TRANSPORT: "UNLOAD_AND_ASSIST",
         UNLOAD_AND_ASSIST: "DROPOFF_EVIDENCE_REQUIRED", DROPOFF_EVIDENCE_REQUIRED: "COMPLETE_LEG", COMPLETE_LEG: "COMPLETE", COMPLETE: "COMPLETE" };
@@ -296,7 +297,7 @@ export function applyWorkflowCommand(state: SyntheticWorkflow, command: Workflow
         phase: "ITINERARY_ACTIVE",
         currentNode: lastNode ? state.currentNode : state.currentNode + 1,
         stopStep: lastNode ? "COMPLETE" : "NAVIGATE",
-        moving: !lastNode,
+        moving: false,
         stopException: "NONE",
         evidenceByNode: { ...state.evidenceByNode, [nodeKey]: command.evidence },
         supersededEvidenceIds: previous ? [...state.supersededEvidenceIds, previous.evidenceId] : state.supersededEvidenceIds,
@@ -349,7 +350,7 @@ export function applyWorkflowCommand(state: SyntheticWorkflow, command: Workflow
 }
 
 export function actionLabel(step: StopStep, nodeKind: "PICKUP" | "DROPOFF" = "PICKUP"): string {
-  return ({ NAVIGATE: "I am en route", ARRIVED: `I have arrived at ${nodeKind === "PICKUP" ? "pickup" : "drop-off"}`, VERIFY_RIDER: "Verify the rider", BOARD_AND_SECURE: "Rider and equipment are secure",
+  return ({ NAVIGATE: `Confirm ${nodeKind === "PICKUP" ? "pickup" : "drop-off"}`, ARRIVED: `I have arrived at ${nodeKind === "PICKUP" ? "pickup" : "drop-off"}`, VERIFY_RIDER: "Verify the rider", BOARD_AND_SECURE: "Rider and equipment are secure",
     SIGNATURE_REQUIRED: "Collect pickup signature", START_TRANSPORT: "Start transporting", UNLOAD_AND_ASSIST: "Rider safely unloaded",
     DROPOFF_EVIDENCE_REQUIRED: "Collect drop-off signature", COMPLETE_LEG: "Complete this leg", COMPLETE: "Leg complete" })[step];
 }

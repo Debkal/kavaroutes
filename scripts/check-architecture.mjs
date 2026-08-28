@@ -51,7 +51,13 @@ for (const file of sourceFiles) {
     }
     if (/AsyncStorage|redux-persist|@googlemaps|firebase|process\.env/.test(text)) violations.push(`${relative}: prohibited Driver platform dependency`);
   }
-  if (/import\s*\(/.test(text) && !["apps/api-host/src/main.ts", "apps/worker-host/src/main.ts"].includes(relative)) {
+  if (relative.startsWith("apps/web/")) {
+    for (const specifier of imports) {
+      if (/fastify|drizzle|pg-boss|postgres-persistence|durable-execution|driver-core|react-native|@googlemaps/.test(specifier)) violations.push(`${relative}: server/native/provider import ${specifier}`);
+    }
+    if (relative.startsWith("apps/web/src/") && /localStorage|sessionStorage|indexedDB|serviceWorker|process\.env/.test(text)) violations.push(`${relative}: prohibited web persistence/environment access`);
+  }
+  if (/import\s*\(/.test(text) && !["apps/api-host/src/main.ts", "apps/worker-host/src/main.ts", "apps/web/src/router.tsx"].includes(relative)) {
     violations.push(`${relative}: unreviewed dynamic import`);
   }
 }

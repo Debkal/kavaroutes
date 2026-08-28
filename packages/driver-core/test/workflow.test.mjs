@@ -20,12 +20,12 @@ test("revised workflow completes one connected shift and never skips evidence", 
   state = applyWorkflowCommand(state, { type: "CONFIRM_VEHICLE" }); assert.equal(state.phase, "PRECHECK_REQUIRED"); state = noDefects(state);
   state = applyWorkflowCommand(state, { type: "COMPLETE_PRECHECK", odometer: 10420, fuelLevel: "FULL" });
   for (let node = 0; node < 4; node++) {
-    const pickup = node < 2; const stepsToEvidence = pickup ? 4 : 3;
-    for (let count = 0; count < stepsToEvidence; count++) state = applyWorkflowCommand(state, { type: "ADVANCE_STOP" });
+    const pickup = node < 2;
+    state = applyWorkflowCommand(state, { type: "ADVANCE_STOP" });
     assert.equal(state.stopStep, pickup ? "SIGNATURE_REQUIRED" : "DROPOFF_EVIDENCE_REQUIRED");
     assert.throws(() => applyWorkflowCommand(state, { type: "ADVANCE_STOP" }), pickup ? /PICKUP_EVIDENCE_REQUIRED/ : /DROPOFF_EVIDENCE_REQUIRED/);
     state = applyWorkflowCommand(state, { type: "SAVE_SIGNATURE", evidence: signature(state, pickup ? "PICKUP_ATTESTATION" : "DROPOFF_ATTESTATION", `evd_syntheticnode000${node}`) });
-    if (node < 3) { assert.equal(state.currentNode, node + 1); assert.equal(state.stopStep, "NAVIGATE"); assert.equal(state.moving, true); state = applyWorkflowCommand(state, { type: "SET_MOVING", moving: false }); }
+    if (node < 3) { assert.equal(state.currentNode, node + 1); assert.equal(state.stopStep, "NAVIGATE"); assert.equal(state.moving, false); }
   }
   assert.equal(Object.keys(state.evidenceByNode).length, 4); assert.equal(state.stopStep, "COMPLETE");
   state = applyWorkflowCommand(state, { type: "BEGIN_RETURN" }); state = noDefects(state, "POST");

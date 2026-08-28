@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T23:19:02.230Z",
+  "conditions": "Playwright Chromium 151, 1440x900, local loopback, synthetic 500-trip source with 200-row semantic page",
+  "coldRouteLoadMilliseconds": 202.39952299999993,
+  "warmRouteLoadMilliseconds": 58.516264999999976,
+  "filterP50Milliseconds": 26.51355199999989,
+  "filterP95Milliseconds": 98.79300799999987,
+  "selectMilliseconds": 52.44193599999994,
+  "domElements": 2715,
+  "renderedRows": 200,
+  "renderedMarkers": 25,
+  "longTasks": [],
+  "heapBytes": 18200000,
+  "horizontalOverflow": false,
+  "longTaskCount": 0,
+  "maximumLongTaskMilliseconds": 0,
+  "assets": [
+    {
+      "name": "dispatch-route-DjtsYEbm.js",
+      "bytes": 91867
+    },
+    {
+      "name": "facility-route-Dy5lM2BR.js",
+      "bytes": 1813
+    },
+    {
+      "name": "forbidden-route-BvWmKsm_.js",
+      "bytes": 376
+    },
+    {
+      "name": "index-DD5AufRe.css",
+      "bytes": 8485
+    },
+    {
+      "name": "index-Wmve-efR.js",
+      "bytes": 316130
+    },
+    {
+      "name": "query-keys-DfviAdae.js",
+      "bytes": 8364
+    },
+    {
+      "name": "session-expired-route-XN-bWam5.js",
+      "bytes": 383
+    }
+  ],
+  "finalProjectionDigest": "341a9e3b3d8ba0e68f98b53ef0e03b4c00dabf69660c7c1d080580655243d9b5",
+  "limitations": [
+    "Browser resource evidence renders a bounded 200-row semantic page from the 500-trip small profile",
+    "1,500/10,000-trip state transforms are measured separately by workload-report.json",
+    "Local evidence is not production Core Web Vitals or enterprise capacity"
+  ]
+}

@@ -1,13 +1,16 @@
 import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
+import { useState } from "react";
 import { actionLabel } from "@kavaroutes/driver-core";
 import { FeasibilityScreen } from "../src/components/FeasibilityScreen";
 import { PrimaryButton } from "../src/components/PrimaryButton";
 import { StatusCard } from "../src/components/StatusCard";
+import { openSyntheticNavigation } from "../src/nativeActions";
 import { useWorkflow } from "../src/workflow-context";
 
 export default function ShiftHomeScreen() {
   const router = useRouter(); const { state, ready, error, startShift, dispatch } = useWorkflow();
+  const [directionsMessage, setDirectionsMessage] = useState("");
   const nodes = [
     { label: "P1 · Pickup", time: "8:00–8:15 AM", rider: "Synthetic Rider A", place: "Demo Civic Center" },
     { label: "P2 · Pickup", time: "8:12–8:27 AM", rider: "Synthetic Rider B", place: "Demo Public Library" },
@@ -21,6 +24,12 @@ export default function ShiftHomeScreen() {
     if (next.phase === "POLICY_RESOLVED") next = await dispatch({ type: "CONFIRM_VEHICLE" });
     if (next.phase === "PRECHECK_OFFERED") await dispatch({ type: "SKIP_PRECHECK", reason: "OPTIONAL_CONTROL_SKIPPED" });
     router.replace("/");
+  };
+  const directions = async () => { try { await openSyntheticNavigation(state.currentNode); setDirectionsMessage(""); } catch (cause) { setDirectionsMessage(cause instanceof Error ? cause.message : "Directions could not be opened."); } };
+  const confirmStop = async () => {
+    if (state.stopStep === "SIGNATURE_REQUIRED" || state.stopStep === "DROPOFF_EVIDENCE_REQUIRED") { router.push("/signature"); return; }
+    if (state.stopStep === "NAVIGATE") { await dispatch({ type: "ADVANCE_STOP" }); router.push("/signature"); return; }
+    router.push(`/stop/ref_synthetic_stop_${String(state.currentNode + 1).padStart(4, "0")}` as never);
   };
   if (!ready) return <FeasibilityScreen title="Opening your shift" summary="Loading protected test data from this phone." />;
   if (state.phase === "SIGNED_OUT") return <FeasibilityScreen title="Ready for your day?" summary="This candidate uses made-up riders, stops, and receipts. Starting the shift is intentional and also starts visible location sharing.">
@@ -53,7 +62,9 @@ export default function ShiftHomeScreen() {
     <StatusCard title="Run TEST-204 · Synthetic Van 12" status="2 riders · 4 stops · 63 min · 22 mi"><Text>First pickup 8:00 AM · last drop-off 9:03 AM</Text></StatusCard>
     <StatusCard title="Tracking and updates" status={smallBusiness ? `${state.tracking === "TRACKING" ? "Location on" : state.tracking} · ${state.eventOutbox.length} saved update${state.eventOutbox.length === 1 ? "" : "s"}` : `${state.tracking === "TRACKING" ? "Location sharing on" : state.tracking} · ${state.eventOutbox.length} updates waiting · ${state.syncState.replaceAll("_", " ")}`}>{!smallBusiness ? <Text>{state.lastReceipt}</Text> : null}</StatusCard>
     <StatusCard title="Current / next stop" status={`${node.label} · ${node.time}`}><Text>{node.rider} · {state.currentNode === 0 ? "1 companion" : "no companions"}</Text><Text>{state.currentNode % 2 === 0 ? "Wheelchair · lift · securement" : "Door-to-door assistance"}</Text><Text>{node.place}</Text><Text>Grouped load · rider {state.currentNode % 2 + 1} of 2</Text></StatusCard>
-    <PrimaryButton label={actionLabel(state.stopStep, nodeKind)} disabled={state.moving && !["NAVIGATE", "UNLOAD_AND_ASSIST"].includes(state.stopStep)} onPress={() => state.stopStep === "SIGNATURE_REQUIRED" || state.stopStep === "DROPOFF_EVIDENCE_REQUIRED" ? router.push("/signature") : router.push(`/stop/ref_synthetic_stop_${String(state.currentNode + 1).padStart(4, "0")}` as never)} />
+    <PrimaryButton label="Open directions" busyLabel="Opening directions…" onPress={directions} />
+    {directionsMessage ? <StatusCard title="Directions" status={directionsMessage} /> : null}
+    <PrimaryButton label={actionLabel(state.stopStep, nodeKind)} disabled={state.moving} onPress={confirmStop} />
     {!state.moving ? <View style={{ gap: 12 }}><PrimaryButton label={smallBusiness ? "See all today's stops" : "Review full itinerary"} onPress={() => router.push("/manifest")} />{state.effectivePolicy?.routeChange.mode !== "DISABLED" ? <PrimaryButton label={smallBusiness ? "Change the stop order" : "Propose a route change"} onPress={() => router.push("/proposal")} /> : <StatusCard title="Route changes" status="Disabled by assigned policy"><Text>The Driver cannot weaken or switch this setting.</Text></StatusCard>}{!smallBusiness ? <PrimaryButton label="Check pending updates" onPress={() => router.push("/sync")} /> : null}</View> : <StatusCard title="Vehicle moving" status="Park to use route tools"><Text>Directions and emergency stop remain available.</Text></StatusCard>}
     <PrimaryButton label="Emergency: stop location sharing" onPress={() => dispatch({ type: "EMERGENCY_STOP", reason: "SAFETY" })} />
   </FeasibilityScreen>;

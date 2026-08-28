@@ -4,7 +4,7 @@ import { Value } from "typebox/value";
 import { createMemoryClientProjection } from "@kavaroutes/realtime";
 import { buildAppleMapsUrl, buildGoogleDirectionsUrl, canonicalActionFingerprintInput, classifyActionResponse, createDeterministicEncryptedStoreFake, createDriverRecoveryClient, createDriverSync, createLocationBatches,
   DEFAULT_SAMPLING_POLICY, driverSchemas, DRIVER_MIGRATIONS, normalizeLocation, resolveTrackingState, safeDriverTelemetry,
-  handoffNavigation, toWp007ActionBatch, toWp007LocationBatch } from "../dist/index.js";
+  handoffNavigation, toWp007ActionBatch, toWp007LocationBatch, updateVehicleMotion } from "../dist/index.js";
 
 const action = Object.freeze({ actionId: "33333333-3333-4333-8333-333333333331", idempotencyKey: "idem_synthetic_0000000001",
   fingerprint: "a".repeat(64), resourceReference: "33333333-3333-4333-8333-333333333332", expectedVersion: 1,
@@ -80,6 +80,13 @@ test("tracking states report permission, approximate, pause, stop, stale, and li
   assert.equal(resolveTrackingState({ ...base, stopped: true }), "STOPPED_BY_DRIVER");
   assert.equal(resolveTrackingState({ ...base, lastSampleAt: new Date("2026-08-25T11:58:00.000Z") }), "STALE");
   assert.equal(resolveTrackingState({ ...base, revoked: true }), "REVOKED");
+  let motion = { moving: false, stationaryConfirmations: 0 };
+  motion = updateVehicleMotion(motion, { speedMetersPerSecond: 2.1, accuracyMeters: 8 }); assert.equal(motion.moving, true);
+  motion = updateVehicleMotion(motion, { speedMetersPerSecond: 0.2, accuracyMeters: 8 }); assert.equal(motion.moving, true);
+  motion = updateVehicleMotion(motion, { speedMetersPerSecond: 0.1, accuracyMeters: 8 }); assert.equal(motion.moving, true);
+  motion = updateVehicleMotion(motion, { speedMetersPerSecond: 0, accuracyMeters: 8 }); assert.equal(motion.moving, false);
+  assert.deepEqual(updateVehicleMotion({ moving: true, stationaryConfirmations: 2 }, { speedMetersPerSecond: null, accuracyMeters: 8 }), { moving: true, stationaryConfirmations: 0 });
+  assert.equal(updateVehicleMotion({ moving: false, stationaryConfirmations: 0 }, { speedMetersPerSecond: 10, accuracyMeters: 100 }).moving, false);
 });
 
 test("navigation is allowlisted, follows the device OS, and telemetry rejects identity, coordinates, and raw URLs", async () => {
@@ -87,12 +94,12 @@ test("navigation is allowlisted, follows the device OS, and telemetry rejects id
   assert.equal(url.origin, "https://www.google.com"); assert.equal(url.searchParams.get("api"), "1"); assert.equal(url.searchParams.get("travelmode"), "driving"); assert.equal(url.searchParams.has("origin"), false);
   assert.throws(() => buildGoogleDirectionsUrl({ kind: "SYNTHETIC_ADDRESS", value: "Patient Jane oncology appointment" }), /NAVIGATION_ADDRESS_INVALID/);
   assert.equal(new URL(buildAppleMapsUrl({ kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" })).origin, "https://maps.apple.com");
-  const opened = []; const port = { async canOpen() { return true; }, async open(candidate) { opened.push(candidate); } };
+  const opened = []; const port = { async open(candidate) { opened.push(candidate); } };
   assert.equal(await handoffNavigation(port, { kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" }, "android"), "OPENED_GOOGLE");
   assert.equal(new URL(opened.at(-1)).origin, "https://www.google.com");
   assert.equal(await handoffNavigation(port, { kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" }, "ios"), "OPENED_APPLE");
   assert.equal(new URL(opened.at(-1)).origin, "https://maps.apple.com");
-  assert.equal(await handoffNavigation({ async canOpen() { return false; }, async open() { throw new Error("must not open"); } }, { kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" }, "ios"), "UNAVAILABLE");
+  assert.equal(await handoffNavigation({ async open() { throw new Error("unavailable"); } }, { kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" }, "ios"), "UNAVAILABLE");
   assert.deepEqual(safeDriverTelemetry({ metric: "driver_sync", outcome: "success", state: "LIVE" }), { metric: "driver_sync", outcome: "success", state: "LIVE" });
   for (const prohibited of ["tenantId", "driverId", "latitude", "rawUrl", "cursor", "token"]) assert.throws(() => safeDriverTelemetry({ metric: "driver_sync", outcome: "failure", [prohibited]: "synthetic" }), /PROHIBITED/);
 });

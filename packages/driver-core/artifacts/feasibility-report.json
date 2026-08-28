@@ -23,7 +23,7 @@
     "routeSurfaces": 9,
     "deterministicNativeConfigDigest": "7d7eebf5cbff503b88ce8d61634e09afa2df24c10f88743174d68070e6ceefaa",
     "androidBundle": "PASS",
-    "androidHermesBundleBytes": 3729218,
+    "androidHermesBundleBytes": 3736132,
     "offlineHours": 12,
     "offlineSamples": 2880,
     "batches": 6,
@@ -33,9 +33,9 @@
     "androidDevelopmentApk": {
       "result": "PASS_DEVELOPMENT_APK_CREATED",
       "artifact": "builds/client/android/kavaroutes-driver-android.apk",
-      "bytes": 179049941,
-      "sha256": "dab8b9032d160d9a6691ca02930d64ae61c61fd5759f7575c0feae48356a77c0",
-      "sourceDigest": "10f189e00092e755b5a611faef7c3504e65cee4a6a6924f46bca4697fc5a80f4",
+      "bytes": 179056025,
+      "sha256": "5fb3b3fd901aaab0ec1c65b5a7e4fb79f005890da38d3409ccd9ba667aad9709",
+      "sourceDigest": "2e265e6fcb841b94c818b26e01c985a87719d3d98ed9f0d3428b18ddfff72203",
       "signing": "generated Android debug certificate",
       "physicalInstallExecuted": false
     },

@@ -1,5 +1,17 @@
 import type { DriverLocationSample, SamplingPolicy, TrackingState } from "./contracts.js";
 
+export interface VehicleMotionState { readonly moving: boolean; readonly stationaryConfirmations: number }
+
+export function updateVehicleMotion(state: VehicleMotionState, sample: { readonly speedMetersPerSecond: number | null; readonly accuracyMeters: number | null }): VehicleMotionState {
+  const speed = sample.speedMetersPerSecond; const accuracy = sample.accuracyMeters;
+  if (speed === null || accuracy === null || !Number.isFinite(speed) || !Number.isFinite(accuracy) || speed < 0 || accuracy > 50)
+    return Object.freeze({ ...state, stationaryConfirmations: 0 });
+  if (speed >= 2) return Object.freeze({ moving: true, stationaryConfirmations: 0 });
+  if (speed > 0.5) return Object.freeze({ ...state, stationaryConfirmations: 0 });
+  const stationaryConfirmations = Math.min(3, state.stationaryConfirmations + 1);
+  return Object.freeze({ moving: state.moving && stationaryConfirmations < 3, stationaryConfirmations });
+}
+
 export function resolveTrackingState(input: { readonly configured: boolean; readonly foreground: string; readonly background: string; readonly precise: boolean;
   readonly active: boolean; readonly stopped: boolean; readonly systemPaused: boolean; readonly revoked: boolean; readonly lastSampleAt?: Date; readonly now: Date;
   readonly policy: SamplingPolicy }): TrackingState {

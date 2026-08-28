@@ -8,7 +8,8 @@
     ".": "./dist/index.js",
     "./schemas": "./dist/schemas.js",
     "./protocol": "./dist/protocol.js",
-    "./security": "./dist/security.js"
+    "./security": "./dist/security.js",
+    "./client-web": "./dist/client-web.generated.js"
   },
   "types": "./dist/index.d.ts",
   "dependencies": {

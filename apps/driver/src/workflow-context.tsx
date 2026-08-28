@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { applyWorkflowCommand, createSyntheticWorkflow, type SyntheticWorkflow, type WorkflowCommand } from "@kavaroutes/driver-core";
-import { loadSyntheticWorkflow, resetSyntheticWorkflow, saveSyntheticWorkflow, startSyntheticTracking, stopSyntheticTracking, trackingStatus } from "./nativeActions";
+import { loadSyntheticWorkflow, resetSyntheticWorkflow, saveSyntheticWorkflow, startSyntheticTracking, stopSyntheticTracking, trackingStatus, watchSyntheticVehicleMotion } from "./nativeActions";
 import { requestSyntheticShiftStartReceipt } from "./synthetic-server";
 
 interface WorkflowContextValue {
@@ -28,6 +28,19 @@ export function WorkflowProvider({ children }: { readonly children: ReactNode })
     } else if (loaded.tracking === "TRACKING") await trackingStatus();
     stateRef.current = recovered; setState(recovered); setReady(true);
   }).catch((cause: unknown) => { setError(cause instanceof Error ? cause.message : "Unable to open protected test data"); setReady(true); }); }, []);
+  useEffect(() => {
+    if (!ready || state.tracking !== "TRACKING") return;
+    let active = true; let write = Promise.resolve();
+    const subscription = watchSyntheticVehicleMotion({ moving: stateRef.current.moving, stationaryConfirmations: 0 }, (motion) => {
+      if (!active || motion.moving === stateRef.current.moving) return;
+      write = write.then(async () => {
+        if (!active || motion.moving === stateRef.current.moving) return;
+        const current = applyWorkflowCommand(stateRef.current, { type: "SET_MOVING", moving: motion.moving });
+        await saveSyntheticWorkflow(current); stateRef.current = current; setState(current);
+      }).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Could not update vehicle motion"));
+    }).catch((cause: unknown) => { if (active) setError(cause instanceof Error ? cause.message : "Could not detect vehicle motion"); return null; });
+    return () => { active = false; void subscription.then((value) => value?.remove()); };
+  }, [ready, state.tracking]);
   const dispatch = async (command: WorkflowCommand) => {
     const current = applyWorkflowCommand(stateRef.current, command);
     if (command.type === "EMERGENCY_STOP") await stopSyntheticTracking();

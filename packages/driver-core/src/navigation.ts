@@ -26,13 +26,13 @@ export function buildAppleMapsUrl(destination: NavigationDestination): string {
 }
 
 export async function handoffNavigation(
-  port: { canOpen(url: string): Promise<boolean>; open(url: string): Promise<void> },
+  port: { open(url: string): Promise<void> },
   destination: NavigationDestination,
   platform: NavigationPlatform = "other",
 ): Promise<"OPENED_GOOGLE" | "OPENED_APPLE" | "UNAVAILABLE"> {
   const url = platform === "ios" ? buildAppleMapsUrl(destination) : buildGoogleDirectionsUrl(destination);
-  if (await port.canOpen(url)) { await port.open(url); return platform === "ios" ? "OPENED_APPLE" : "OPENED_GOOGLE"; }
-  return "UNAVAILABLE";
+  try { await port.open(url); return platform === "ios" ? "OPENED_APPLE" : "OPENED_GOOGLE"; }
+  catch { return "UNAVAILABLE"; }
 }
 
 export function safeNavigationTelemetry(outcome: "OPENED_GOOGLE" | "OPENED_APPLE" | "UNAVAILABLE" | "REJECTED") {

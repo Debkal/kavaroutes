@@ -13,6 +13,7 @@ const roles: readonly SignerRole[] = ["RIDER", "GUARDIAN_OR_AUTHORIZED_REPRESENT
 export default function SignatureScreen() {
   const router = useRouter(); const { state, dispatch } = useWorkflow(); const [points, setPoints] = useState<readonly Point[]>([]); const pointsRef = useRef<readonly Point[]>([]);
   const [role, setRole] = useState<SignerRole>("RIDER"); const [unableReason, setUnableReason] = useState<"DECLINED" | "PHYSICALLY_UNABLE" | "NO_AUTHORIZED_SIGNER">("PHYSICALLY_UNABLE"); const [witness, setWitness] = useState(""); const [message, setMessage] = useState("");
+  const signerRoles = state.effectivePolicy?.commercialTier === "SMALL_BUSINESS" ? (["RIDER", "DRIVER"] as const) : roles;
   const add = (point: Point) => { const next = [...pointsRef.current, point].slice(-600); pointsRef.current = next; setPoints(next); };
   const pan = useMemo(() => PanResponder.create({ onStartShouldSetPanResponder: () => true, onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: (event) => add({ x: event.nativeEvent.locationX, y: event.nativeEvent.locationY }),
@@ -36,7 +37,7 @@ export default function SignatureScreen() {
   if (state.moving) return <FeasibilityScreen title="Signature unavailable while moving" summary="Park safely before handing the device to a signer." />;
   return <FeasibilityScreen title="Signature attestation" summary="Only this made-up stop is visible while the signer has the phone. A signature is an attestation artifact, not biometric identity proof or server acceptance.">
     <StatusCard title="For this event only" status={`${state.currentNode < 2 ? "P" : "D"}${state.currentNode % 2 + 1} ${state.currentNode < 2 ? "pickup" : "drop-off"}`}><Text>{state.currentNode % 2 === 0 ? "Synthetic Rider A" : "Synthetic Rider B"}</Text></StatusCard>
-    <Text style={styles.label}>Signer role</Text>{roles.map((value) => <PrimaryButton key={value} label={value.replaceAll("_", " ")} disabled={role === value} onPress={() => setRole(value)} />)}
+    <Text style={styles.label}>Who is signing?</Text>{signerRoles.map((value) => <PrimaryButton key={value} label={value === "RIDER" ? "Rider signs" : value === "DRIVER" ? "Driver signs" : value.replaceAll("_", " ")} disabled={role === value} onPress={() => setRole(value)} />)}
     {role === "RIDER_UNABLE_TO_SIGN" ? <><Text style={styles.label}>Closed reason</Text>{(["DECLINED", "PHYSICALLY_UNABLE", "NO_AUTHORIZED_SIGNER"] as const).map((value) => <PrimaryButton key={value} label={value.replaceAll("_", " ")} disabled={unableReason === value} onPress={() => setUnableReason(value)} />)}<TextInput accessibilityLabel="Driver or witness attestation" placeholder="Type synthetic witness initials" value={witness} onChangeText={setWitness} style={styles.input} /></> : <>
       <Text style={styles.label}>Draw inside the box</Text><View accessible accessibilityRole="adjustable" accessibilityLabel="Signature drawing area" style={styles.canvas} {...pan.panHandlers}>{points.map((point, index) => <View key={index} style={[styles.dot, { left: point.x - 2, top: point.y - 2 }]} />)}</View>
       <PrimaryButton label="Undo last stroke" disabled={points.length === 0} onPress={undo} /><PrimaryButton label="Clear and retry" disabled={points.length === 0} onPress={clear} />

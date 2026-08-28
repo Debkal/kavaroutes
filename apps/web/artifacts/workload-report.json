@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T23:16:42.283Z",
+  "runtime": "v24.19.0",
+  "conditions": "WSL local Node pure-state measurement; not Core Web Vitals or production capacity",
+  "profiles": [
+    {
+      "name": "small",
+      "trips": 500,
+      "markers": 25,
+      "changesPerSecond": 5,
+      "filterSortP50Milliseconds": 0.007902000000001408,
+      "filterSortP95Milliseconds": 0.1278490000000012,
+      "coalescedVehicles": 5,
+      "acceptedChanges": 50,
+      "coalescingDroppedIntermediate": 45,
+      "updateMilliseconds": 0.017551000000000982,
+      "digest": "3386cf39eee401f764ed602da16aed440361c0e7b0bf23ec9a32b1ce3e919557"
+    },
+    {
+      "name": "p0",
+      "trips": 1500,
+      "markers": 75,
+      "changesPerSecond": 15,
+      "filterSortP50Milliseconds": 0.02491200000000049,
+      "filterSortP95Milliseconds": 0.05853799999999865,
+      "coalescedVehicles": 15,
+      "acceptedChanges": 150,
+      "coalescingDroppedIntermediate": 135,
+      "updateMilliseconds": 0.01594400000000107,
+      "digest": "ee7319f562f979e60d046bd3fe706eb9f777280883fab9bd2cccd9ffee83083b"
+    },
+    {
+      "name": "enterprise",
+      "trips": 10000,
+      "markers": 500,
+      "changesPerSecond": 100,
+      "filterSortP50Milliseconds": 0.21530400000000327,
+      "filterSortP95Milliseconds": 0.8083420000000032,
+      "coalescedVehicles": 100,
+      "acceptedChanges": 1000,
+      "coalescingDroppedIntermediate": 900,
+      "updateMilliseconds": 0.058759000000002004,
+      "digest": "cdfa571724023849a40d352b25865385a9ca26d2fe3341f7d897247227edbc6f"
+    }
+  ]
+}

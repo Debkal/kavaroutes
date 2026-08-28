@@ -12,6 +12,7 @@
     { "path": "packages/driver-core" },
     { "path": "apps/api-host" },
     { "path": "apps/worker-host" },
-    { "path": "apps/driver" }
+    { "path": "apps/driver" },
+    { "path": "apps/web" }
   ]
 }

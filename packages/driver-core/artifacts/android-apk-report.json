@@ -4,8 +4,8 @@
   "result": "PASS_DEVELOPMENT_APK_CREATED",
   "artifact": "builds/client/android/kavaroutes-driver-android.apk",
   "artifactName": "kavaroutes-driver-android.apk",
-  "bytes": 179049941,
-  "sha256": "dab8b9032d160d9a6691ca02930d64ae61c61fd5759f7575c0feae48356a77c0",
+  "bytes": 179056025,
+  "sha256": "5fb3b3fd901aaab0ec1c65b5a7e4fb79f005890da38d3409ccd9ba667aad9709",
   "packageName": "com.kavaroutes.driver.synthetic",
   "versionName": "0.0.0-wp010",
   "minimumAndroidApi": 29,
@@ -23,7 +23,7 @@
     "android.permission.INTERNET",
     "com.kavaroutes.driver.synthetic.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
   ],
-  "sourceDigest": "10f189e00092e755b5a611faef7c3504e65cee4a6a6924f46bca4697fc5a80f4",
+  "sourceDigest": "2e265e6fcb841b94c818b26e01c985a87719d3d98ed9f0d3428b18ddfff72203",
   "signing": {
     "kind": "generated Android debug certificate",
     "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
