@@ -6,18 +6,20 @@ import { Type as TypeBox, type Static, type TSchema } from "typebox";
 import { Compile } from "typebox/compile";
 import { Value } from "typebox/value";
 import { PersistenceConflict } from "@kavaroutes/postgres-persistence";
+import type { EffectiveDriverPolicy } from "@kavaroutes/platform-engine/domain";
 import type { Wp007Application } from "./application.js";
 import { createDocumentationApplication, createOfflineBatchService, syntheticReadModels } from "./application.js";
+import { createSyntheticDriverPolicyService, policyVersionFromEtag, type DriverPolicyService } from "./driver-policy.js";
 import { createCursorCodec, IdempotencyKeySchema, isValidTraceparent, parseStrictJson, problemFor, ProblemSchema, ProtocolError, safeTelemetryEvent, StrongEtagSchema } from "./index-internal.js";
 import type { SafeTelemetryEvent } from "./protocol.js";
 import { authorize, createSyntheticTestVerifier, type AuthorizationRequirement, type PrincipalVerifier, type SyntheticPrincipal, syntheticIds } from "./security.js";
 import {
   allSchemas, BatchReceiptSchema, CancelTripRequestSchema, DispatchDaySchema, DispatcherTripSchema,
-  DriverActionBatchSchema, DriverManifestSchema, LocationBatchSchema, MeResponseSchema, OpaqueIdSchema,
+  DriverActionBatchSchema, DriverControlPolicySchema, DriverManifestSchema, LocationBatchSchema, MeResponseSchema, OpaqueIdSchema,
   OperationSchema, RiderSearchRequestSchema, RiderSearchResponseSchema, ServiceDateSchema,
-  TripCollectionSchema, TripCommandResponseSchema, TripCreateRequestSchema,
+  TripCollectionSchema, TripCommandResponseSchema, TripCreateRequestSchema, UpdateDriverControlPolicySchema,
 } from "./schemas.js";
-import type { CancelTripRequest, DriverActionBatch, LocationBatch, TripCreateRequest } from "./schemas.js";
+import type { CancelTripRequest, DriverActionBatch, LocationBatch, TripCreateRequest, UpdateDriverControlPolicy } from "./schemas.js";
 
 const Type = Object.freeze({
   ...TypeBox,
@@ -48,6 +50,7 @@ export interface Wp007ApiOptions {
   readonly requestIdFactory?: () => string;
   readonly telemetrySink?: (event: SafeTelemetryEvent) => void;
   readonly rateLimitPerOperation?: number;
+  readonly driverPolicyService?: DriverPolicyService;
 }
 
 const OrganizationParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false });
@@ -55,7 +58,7 @@ const TripParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), tripI
 const DispatchDayParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), serviceDate: Type.Ref(ServiceDateSchema) }, { additionalProperties: false });
 const OperationParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), operationId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false });
 const CollectionQuery = Type.Object({ cursor: Type.Optional(Type.String({ minLength: 32, maxLength: 2048 })), limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200 })) }, { additionalProperties: false });
-const AuthorizationHeaders = Type.Object({ authorization: Type.String({ pattern: "^Synthetic principal_[a-z]+$", maxLength: 64 }) });
+const AuthorizationHeaders = Type.Object({ authorization: Type.String({ pattern: "^Synthetic principal_[a-z_]+$", maxLength: 64 }) });
 const IdempotentHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "idempotency-key": Type.Ref(IdempotencyKeySchema) })]);
 const CommandHeaders = Type.Intersect([IdempotentHeaders, Type.Object({ "if-match": Type.Optional(Type.Ref(StrongEtagSchema)) })]);
 const ConditionalHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "if-none-match": Type.Optional(Type.Ref(StrongEtagSchema)) })]);
@@ -87,6 +90,22 @@ function contextPrincipal(request: FastifyRequest): SyntheticPrincipal {
   return principal;
 }
 
+function policyActionRejection(item: DriverActionBatch["items"][number], policy: EffectiveDriverPolicy): string | undefined {
+  if ("policyDigest" in item && item.policyDigest !== policy.canonicalDigest) return "STALE_POLICY_SNAPSHOT";
+  if (item.command === "COMPLETE_PRECHECK" && policy.preInspection.mode === "DISABLED" && policy.startOdometer.mode === "DISABLED") return "CONTROL_DISABLED";
+  if (item.command === "SKIP_PRECHECK") {
+    if (policy.preInspection.mode === "DISABLED" && policy.startOdometer.mode === "DISABLED") return "CONTROL_DISABLED";
+    if (policy.preInspection.mode === "REQUIRED" || policy.startOdometer.mode === "REQUIRED") return "CONTROL_REQUIRED_CANNOT_SKIP";
+  }
+  if (item.command === "COMPLETE_POSTCHECK" && policy.postInspection.mode === "DISABLED" && policy.endOdometer.mode === "DISABLED") return "CONTROL_DISABLED";
+  if (item.command === "SKIP_POSTCHECK") {
+    if (policy.postInspection.mode === "DISABLED" && policy.endOdometer.mode === "DISABLED") return "CONTROL_DISABLED";
+    if (policy.postInspection.mode === "REQUIRED" || policy.endOdometer.mode === "REQUIRED") return "CONTROL_REQUIRED_CANNOT_SKIP";
+  }
+  if (item.command === "PROPOSE_ROUTE_CHANGE" && policy.routeChange.mode === "DISABLED") return "ROUTE_CHANGE_DISABLED";
+  return undefined;
+}
+
 export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<FastifyInstance> {
   const now = options.now ?? (() => new Date());
   const etagSecret = options.etagSecret ?? "synthetic-etag-secret-wp007-local-only";
@@ -94,6 +113,9 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   const verifier = options.verifier ?? createSyntheticTestVerifier();
   const cursorCodec = createCursorCodec(options.cursorSecret ?? "synthetic-cursor-secret-wp007-local-only");
   const offline = createOfflineBatchService(now);
+  const driverPolicy = options.driverPolicyService ?? createSyntheticDriverPolicyService({ organizationId: syntheticIds.organizationA, now });
+  const pinnedDriverPolicy = driverPolicy.resolveShift({ organizationId: syntheticIds.organizationA, driverId: syntheticIds.driverSubject,
+    assignmentId: "40000000-0000-4000-8000-000000000001", relationship: "EMPLOYEE", capabilities: new Set() });
   const rateLimit = options.rateLimitPerOperation ?? 10_000;
   const rateCounters = new Map<string, number>();
   let nextRequest = 0;
@@ -313,7 +335,32 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     reply.header("etag", tag);
     if (request.headers["if-none-match"] === tag) { request.wp007Context.resultCode = "NOT_MODIFIED"; return reply.status(304).send(); }
     request.wp007Context.resultCode = "DRIVER_MANIFEST_RETURNED";
-    return reply.send(syntheticReadModels.manifest);
+    return reply.send({ ...syntheticReadModels.manifest, effectivePolicy: pinnedDriverPolicy, effectivePolicyDigest: pinnedDriverPolicy.canonicalDigest });
+  });
+
+  app.get("/v1/organizations/:organizationId/driver-control-policy", { schema: { operationId: "getDriverControlPolicy", tags: ["driver"], security,
+    headers: ConditionalHeaders, params: OrganizationParams, response: responseWithErrors({ 200: jsonResponse(DriverControlPolicySchema, "Versioned organization Driver control policy", { ETag: { schema: StrongEtagSchema } }), 304: { description: "Not modified" } }, [400, 401, 403, 404, 406, 429, 500]) } }, async (request, reply) => {
+    const { organizationId } = request.params as { organizationId: string };
+    requireAccess(request, organizationId, { capability: "driver-policy:read", purpose: "ASSIGNED_SERVICE_DELIVERY", resourceIsVisible: true }, "getDriverControlPolicy");
+    const policy = driverPolicy.read(organizationId); if (!policy) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
+    const tag = application.etag(policy.organizationId, policy.version, "driver-control-policy-v1"); reply.header("etag", tag);
+    if (request.headers["if-none-match"] === tag) { request.wp007Context.resultCode = "NOT_MODIFIED"; return reply.status(304).send(); }
+    request.wp007Context.resultCode = "DRIVER_POLICY_RETURNED"; return reply.send(policy);
+  });
+
+  app.post("/v1/organizations/:organizationId/driver-control-policy/commands/update", { bodyLimit: 256 * 1024, schema: { operationId: "updateDriverControlPolicy", tags: ["driver"], security,
+    headers: CommandHeaders, params: OrganizationParams, body: UpdateDriverControlPolicySchema,
+    response: responseWithErrors({ 200: jsonResponse(DriverControlPolicySchema, "Updated organization Driver control policy", { ETag: { schema: StrongEtagSchema }, "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 403, 404, 406, 409, 412, 413, 415, 422, 428, 429, 500]) } }, async (request, reply) => {
+    const { organizationId } = request.params as { organizationId: string }; const principal = contextPrincipal(request);
+    const capability = principal.capabilities.has("driver-policy:write") ? "driver-policy:write" : "driver-policy:override";
+    requireAccess(request, organizationId, { capability, purpose: "ASSIGNED_SERVICE_DELIVERY", resourceIsVisible: true }, "updateDriverControlPolicy");
+    const ifMatch = request.headers["if-match"]; if (typeof ifMatch !== "string") throw new ProtocolError(428, "PRECONDITION_REQUIRED", "current strong tag required");
+    const current = driverPolicy.read(organizationId); if (!current) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
+    const result = driverPolicy.update({ organizationId, principal, idempotencyKey: String(request.headers["idempotency-key"]),
+      expectedVersion: () => policyVersionFromEtag(ifMatch, current, application.etag), command: request.body as UpdateDriverControlPolicy });
+    reply.header("etag", application.etag(result.policy.organizationId, result.policy.version, "driver-control-policy-v1"));
+    if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
+    request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "DRIVER_POLICY_UPDATED"; return reply.send(result.policy);
   });
 
   app.post("/v1/organizations/:organizationId/driver/action-batches", { bodyLimit: 512 * 1024, schema: { operationId: "submitDriverActionBatch", tags: ["driver"], security,
@@ -321,7 +368,8 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     response: responseWithErrors({ 200: jsonResponse(BatchReceiptSchema, "Ordered action receipts", { "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
     const principal = requireAccess(request, organizationId, { capability: "driver:execute", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "submitDriverActionBatch");
-    const result = await offline.actions(`${organizationId}:${principal.id}`, String(request.headers["idempotency-key"]), request.body as DriverActionBatch);
+    const result = await offline.actions(`${organizationId}:${principal.id}`, String(request.headers["idempotency-key"]), request.body as DriverActionBatch,
+      (item) => policyActionRejection(item, pinnedDriverPolicy));
     if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
     request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "ACTION_BATCH_COMMITTED";
     return reply.send(result.receipt);

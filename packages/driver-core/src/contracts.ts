@@ -18,8 +18,8 @@ export const TrackingStateSchema = Type.Union([
 export type TrackingState = Static<typeof TrackingStateSchema>;
 
 export const DriverRouteSchema = Type.Union([
-  Type.Literal("BOOTSTRAP"), Type.Literal("TRACKING"), Type.Literal("MANIFEST"), Type.Literal("STOP_DETAIL"), Type.Literal("ACTION"),
-  Type.Literal("INSPECTION"), Type.Literal("SIGNATURE"), Type.Literal("SYNC"), Type.Literal("NAVIGATION"), Type.Literal("DIAGNOSTICS"),
+  Type.Literal("SHIFT_HOME"), Type.Literal("MANIFEST"), Type.Literal("STOP_DETAIL"), Type.Literal("INSPECTION"),
+  Type.Literal("SIGNATURE"), Type.Literal("PROPOSAL"), Type.Literal("RETURN"), Type.Literal("SYNC"), Type.Literal("DIAGNOSTICS"),
 ], { $id: "DriverRoute" });
 export type DriverRoute = Static<typeof DriverRouteSchema>;
 
@@ -57,7 +57,7 @@ export const EvidenceDraftSchema = Type.Object({
   draftId: Type.String({ pattern: "^evd_[a-z0-9]{16,64}$" }),
   kind: Type.Union([Type.Literal("INSPECTION"), Type.Literal("SIGNATURE")]),
   digest: Type.String({ pattern: "^[a-f0-9]{64}$" }),
-  state: Type.Union([Type.Literal("DRAFT"), Type.Literal("UPLOADING"), Type.Literal("ACCEPTED"), Type.Literal("REJECTED"), Type.Literal("SUPERSEDED")]),
+  state: Type.Union([Type.Literal("DRAFT"), Type.Literal("QUEUED"), Type.Literal("UPLOADING"), Type.Literal("ACCEPTED"), Type.Literal("REJECTED"), Type.Literal("SUPERSEDED")]),
   createdAt: Type.String({ format: "date-time" }),
 }, { $id: "DriverEvidenceDraft", ...Closed });
 export type EvidenceDraft = Static<typeof EvidenceDraftSchema>;

@@ -415,6 +415,15 @@
           "driverReference": {
             "$ref": "#/components/schemas/def-0"
           },
+          "effectivePolicy": {
+            "$ref": "#/components/schemas/def-43"
+          },
+          "effectivePolicyDigest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
           "serviceDate": {
             "$ref": "#/components/schemas/def-2"
           },
@@ -431,90 +440,358 @@
           "serviceDate",
           "serviceTimezone",
           "version",
+          "effectivePolicy",
+          "effectivePolicyDigest",
           "assignments"
         ],
         "title": "DriverManifest",
         "type": "object"
       },
       "def-22": {
-        "additionalProperties": false,
-        "properties": {
-          "capturedAt": {
-            "$ref": "#/components/schemas/def-1"
-          },
-          "clientActionId": {
-            "$ref": "#/components/schemas/def-0"
-          },
-          "command": {
-            "anyOf": [
-              {
-                "enum": [
-                  "MARK_EN_ROUTE"
-                ],
-                "type": "string"
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "capturedAt": {
+                "$ref": "#/components/schemas/def-1"
               },
-              {
-                "enum": [
-                  "ARRIVE_PICKUP"
-                ],
-                "type": "string"
+              "clientActionId": {
+                "$ref": "#/components/schemas/def-0"
               },
-              {
-                "enum": [
-                  "BOARD_RIDER"
-                ],
-                "type": "string"
+              "command": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "MARK_EN_ROUTE"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "ARRIVE_PICKUP"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "BOARD_RIDER"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "ARRIVE_DROPOFF"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "COMPLETE_LEG"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "REPORT_INCIDENT"
+                    ],
+                    "type": "string"
+                  }
+                ]
               },
-              {
-                "enum": [
-                  "ARRIVE_DROPOFF"
-                ],
-                "type": "string"
+              "deviceEpoch": {
+                "minimum": 1,
+                "type": "integer"
               },
-              {
-                "enum": [
-                  "COMPLETE_LEG"
-                ],
-                "type": "string"
+              "expectedTag": {
+                "$ref": "#/components/schemas/def-5"
               },
-              {
-                "enum": [
-                  "REPORT_INCIDENT"
-                ],
-                "type": "string"
+              "idempotencyKey": {
+                "$ref": "#/components/schemas/def-4"
+              },
+              "resourceReference": {
+                "$ref": "#/components/schemas/def-0"
+              },
+              "sequence": {
+                "minimum": 1,
+                "type": "integer"
               }
-            ]
+            },
+            "required": [
+              "clientActionId",
+              "deviceEpoch",
+              "sequence",
+              "capturedAt",
+              "resourceReference",
+              "expectedTag",
+              "idempotencyKey",
+              "command"
+            ],
+            "type": "object"
           },
-          "deviceEpoch": {
-            "minimum": 1,
-            "type": "integer"
+          {
+            "additionalProperties": false,
+            "properties": {
+              "capturedAt": {
+                "$ref": "#/components/schemas/def-1"
+              },
+              "clientActionId": {
+                "$ref": "#/components/schemas/def-0"
+              },
+              "command": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "COMPLETE_PRECHECK"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "COMPLETE_POSTCHECK"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "deviceEpoch": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "expectedTag": {
+                "$ref": "#/components/schemas/def-5"
+              },
+              "idempotencyKey": {
+                "$ref": "#/components/schemas/def-4"
+              },
+              "policyDigest": {
+                "maxLength": 64,
+                "minLength": 64,
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "resourceReference": {
+                "$ref": "#/components/schemas/def-0"
+              },
+              "sequence": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "clientActionId",
+              "deviceEpoch",
+              "sequence",
+              "capturedAt",
+              "resourceReference",
+              "expectedTag",
+              "idempotencyKey",
+              "command",
+              "policyDigest"
+            ],
+            "type": "object"
           },
-          "expectedTag": {
-            "$ref": "#/components/schemas/def-5"
+          {
+            "additionalProperties": false,
+            "properties": {
+              "capturedAt": {
+                "$ref": "#/components/schemas/def-1"
+              },
+              "clientActionId": {
+                "$ref": "#/components/schemas/def-0"
+              },
+              "command": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "SKIP_PRECHECK"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "SKIP_POSTCHECK"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "deviceEpoch": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "expectedTag": {
+                "$ref": "#/components/schemas/def-5"
+              },
+              "idempotencyKey": {
+                "$ref": "#/components/schemas/def-4"
+              },
+              "policyDigest": {
+                "maxLength": 64,
+                "minLength": 64,
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "reasonCode": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "OPTIONAL_CONTROL_SKIPPED"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "CONTROL_UNAVAILABLE"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "resourceReference": {
+                "$ref": "#/components/schemas/def-0"
+              },
+              "sequence": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "clientActionId",
+              "deviceEpoch",
+              "sequence",
+              "capturedAt",
+              "resourceReference",
+              "expectedTag",
+              "idempotencyKey",
+              "command",
+              "reasonCode",
+              "policyDigest"
+            ],
+            "type": "object"
           },
-          "idempotencyKey": {
-            "$ref": "#/components/schemas/def-4"
+          {
+            "additionalProperties": false,
+            "properties": {
+              "capturedAt": {
+                "$ref": "#/components/schemas/def-1"
+              },
+              "clientActionId": {
+                "$ref": "#/components/schemas/def-0"
+              },
+              "command": {
+                "enum": [
+                  "PROPOSE_ROUTE_CHANGE"
+                ],
+                "type": "string"
+              },
+              "deviceEpoch": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "expectedTag": {
+                "$ref": "#/components/schemas/def-5"
+              },
+              "idempotencyKey": {
+                "$ref": "#/components/schemas/def-4"
+              },
+              "policyDigest": {
+                "maxLength": 64,
+                "minLength": 64,
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "resourceReference": {
+                "$ref": "#/components/schemas/def-0"
+              },
+              "sequence": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "clientActionId",
+              "deviceEpoch",
+              "sequence",
+              "capturedAt",
+              "resourceReference",
+              "expectedTag",
+              "idempotencyKey",
+              "command",
+              "policyDigest"
+            ],
+            "type": "object"
           },
-          "resourceReference": {
-            "$ref": "#/components/schemas/def-0"
-          },
-          "sequence": {
-            "minimum": 1,
-            "type": "integer"
+          {
+            "additionalProperties": false,
+            "properties": {
+              "capturedAt": {
+                "$ref": "#/components/schemas/def-1"
+              },
+              "clientActionId": {
+                "$ref": "#/components/schemas/def-0"
+              },
+              "command": {
+                "enum": [
+                  "REQUEST_CONTROL_OVERRIDE"
+                ],
+                "type": "string"
+              },
+              "deviceEpoch": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "expectedTag": {
+                "$ref": "#/components/schemas/def-5"
+              },
+              "idempotencyKey": {
+                "$ref": "#/components/schemas/def-4"
+              },
+              "policyDigest": {
+                "maxLength": 64,
+                "minLength": 64,
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "reasonCode": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "SAFETY_EXCEPTION"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "POLICY_OVERRIDE_REQUESTED"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "resourceReference": {
+                "$ref": "#/components/schemas/def-0"
+              },
+              "sequence": {
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "clientActionId",
+              "deviceEpoch",
+              "sequence",
+              "capturedAt",
+              "resourceReference",
+              "expectedTag",
+              "idempotencyKey",
+              "command",
+              "reasonCode",
+              "policyDigest"
+            ],
+            "type": "object"
           }
-        },
-        "required": [
-          "clientActionId",
-          "deviceEpoch",
-          "sequence",
-          "capturedAt",
-          "command",
-          "resourceReference",
-          "expectedTag",
-          "idempotencyKey"
         ],
-        "title": "DriverActionItem",
-        "type": "object"
+        "title": "DriverActionItem"
       },
       "def-23": {
         "additionalProperties": false,
@@ -877,12 +1154,587 @@
         "title": "IntegrationProjection",
         "type": "object"
       },
+      "def-33": {
+        "anyOf": [
+          {
+            "enum": [
+              "SMALL_BUSINESS"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "ENTERPRISE"
+            ],
+            "type": "string"
+          }
+        ],
+        "title": "CommercialTier"
+      },
+      "def-34": {
+        "anyOf": [
+          {
+            "enum": [
+              "OWNER_OPERATOR"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "EMPLOYEE"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "CONTRACTOR"
+            ],
+            "type": "string"
+          }
+        ],
+        "title": "WorkforceRelationship"
+      },
+      "def-35": {
+        "anyOf": [
+          {
+            "enum": [
+              "DISABLED"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "OPTIONAL"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "REQUIRED"
+            ],
+            "type": "string"
+          }
+        ],
+        "title": "InspectionControlMode"
+      },
+      "def-36": {
+        "anyOf": [
+          {
+            "enum": [
+              "DISABLED"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "ADVISORY"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "REQUIRED_WITH_AUDITED_OVERRIDE"
+            ],
+            "type": "string"
+          }
+        ],
+        "title": "ReturnVerificationMode"
+      },
+      "def-37": {
+        "anyOf": [
+          {
+            "enum": [
+              "AUTHORIZED_SELF_APPROVE"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "DISPATCH_APPROVAL_REQUIRED"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "DISABLED"
+            ],
+            "type": "string"
+          }
+        ],
+        "title": "RouteChangeMode"
+      },
+      "def-38": {
+        "anyOf": [
+          {
+            "enum": [
+              "EXTERNAL_FLOOR"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "ORGANIZATION_LOCK"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "ORGANIZATION_CONFIGURATION"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "WORKFORCE_PRESET"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "TIER_DEFAULT"
+            ],
+            "type": "string"
+          }
+        ],
+        "title": "DriverControlSource"
+      },
+      "def-39": {
+        "anyOf": [
+          {
+            "enum": [
+              "EXTERNAL_REQUIREMENT_APPLIED"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "ORGANIZATION_LOCK_APPLIED"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "ORGANIZATION_CONFIGURATION_APPLIED"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "SMALL_BUSINESS_OWNER_DEFAULT"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "SMALL_BUSINESS_WORKFORCE_PRESET"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "ENTERPRISE_STRICT_DEFAULT"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "SELF_APPROVAL_CAPABILITY_MISSING"
+            ],
+            "type": "string"
+          }
+        ],
+        "title": "DriverControlReasonCode"
+      },
       "def-4": {
         "maxLength": 128,
         "minLength": 16,
         "pattern": "^[A-Za-z0-9_-]{16,128}$",
         "title": "IdempotencyKey",
         "type": "string"
+      },
+      "def-40": {
+        "additionalProperties": false,
+        "properties": {
+          "locked": {
+            "type": "boolean"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/def-35"
+          },
+          "reasonCode": {
+            "$ref": "#/components/schemas/def-39"
+          },
+          "source": {
+            "$ref": "#/components/schemas/def-38"
+          }
+        },
+        "required": [
+          "mode",
+          "source",
+          "reasonCode",
+          "locked"
+        ],
+        "title": "ResolvedInspectionControl",
+        "type": "object"
+      },
+      "def-41": {
+        "additionalProperties": false,
+        "properties": {
+          "locked": {
+            "type": "boolean"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/def-36"
+          },
+          "reasonCode": {
+            "$ref": "#/components/schemas/def-39"
+          },
+          "source": {
+            "$ref": "#/components/schemas/def-38"
+          }
+        },
+        "required": [
+          "mode",
+          "source",
+          "reasonCode",
+          "locked"
+        ],
+        "title": "ResolvedReturnVerification",
+        "type": "object"
+      },
+      "def-42": {
+        "additionalProperties": false,
+        "properties": {
+          "locked": {
+            "type": "boolean"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/def-37"
+          },
+          "reasonCode": {
+            "$ref": "#/components/schemas/def-39"
+          },
+          "source": {
+            "$ref": "#/components/schemas/def-38"
+          }
+        },
+        "required": [
+          "mode",
+          "source",
+          "reasonCode",
+          "locked"
+        ],
+        "title": "ResolvedRouteChange",
+        "type": "object"
+      },
+      "def-43": {
+        "additionalProperties": false,
+        "properties": {
+          "assignmentId": {
+            "$ref": "#/components/schemas/def-0"
+          },
+          "canonicalDigest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "commercialTier": {
+            "$ref": "#/components/schemas/def-33"
+          },
+          "driverId": {
+            "$ref": "#/components/schemas/def-0"
+          },
+          "endOdometer": {
+            "$ref": "#/components/schemas/def-40"
+          },
+          "nonWaivableControls": {
+            "additionalItems": false,
+            "items": [
+              {
+                "enum": [
+                  "IDENTITY_AND_AUTHORIZATION"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "TENANT_ISOLATION"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "ENCRYPTION_AND_AUDIT"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "MINIMUM_NECESSARY"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "NO_PHI_NAVIGATION"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "TRACKING_TRANSPARENCY"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "EMERGENCY_STOP"
+                ],
+                "type": "string"
+              }
+            ],
+            "minItems": 7,
+            "type": "array"
+          },
+          "organizationId": {
+            "$ref": "#/components/schemas/def-0"
+          },
+          "policyVersion": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "postInspection": {
+            "$ref": "#/components/schemas/def-40"
+          },
+          "preInspection": {
+            "$ref": "#/components/schemas/def-40"
+          },
+          "proofOfServicePolicy": {
+            "enum": [
+              "PAYER_CONTRACT_ORGANIZATION_RESOLVED"
+            ],
+            "type": "string"
+          },
+          "resolvedAt": {
+            "$ref": "#/components/schemas/def-1"
+          },
+          "returnVerification": {
+            "$ref": "#/components/schemas/def-41"
+          },
+          "routeChange": {
+            "$ref": "#/components/schemas/def-42"
+          },
+          "schemaVersion": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          },
+          "startOdometer": {
+            "$ref": "#/components/schemas/def-40"
+          },
+          "workforceRelationship": {
+            "$ref": "#/components/schemas/def-34"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "organizationId",
+          "driverId",
+          "assignmentId",
+          "commercialTier",
+          "workforceRelationship",
+          "policyVersion",
+          "resolvedAt",
+          "preInspection",
+          "postInspection",
+          "startOdometer",
+          "endOdometer",
+          "returnVerification",
+          "routeChange",
+          "proofOfServicePolicy",
+          "nonWaivableControls",
+          "canonicalDigest"
+        ],
+        "title": "EffectiveDriverPolicy",
+        "type": "object"
+      },
+      "def-44": {
+        "additionalProperties": false,
+        "properties": {
+          "endOdometer": {
+            "additionalProperties": false,
+            "properties": {
+              "locked": {
+                "type": "boolean"
+              },
+              "mode": {
+                "$ref": "#/components/schemas/def-35"
+              }
+            },
+            "required": [
+              "mode",
+              "locked"
+            ],
+            "type": "object"
+          },
+          "postInspection": {
+            "additionalProperties": false,
+            "properties": {
+              "locked": {
+                "type": "boolean"
+              },
+              "mode": {
+                "$ref": "#/components/schemas/def-35"
+              }
+            },
+            "required": [
+              "mode",
+              "locked"
+            ],
+            "type": "object"
+          },
+          "preInspection": {
+            "additionalProperties": false,
+            "properties": {
+              "locked": {
+                "type": "boolean"
+              },
+              "mode": {
+                "$ref": "#/components/schemas/def-35"
+              }
+            },
+            "required": [
+              "mode",
+              "locked"
+            ],
+            "type": "object"
+          },
+          "returnVerification": {
+            "additionalProperties": false,
+            "properties": {
+              "locked": {
+                "type": "boolean"
+              },
+              "mode": {
+                "$ref": "#/components/schemas/def-36"
+              }
+            },
+            "required": [
+              "mode",
+              "locked"
+            ],
+            "type": "object"
+          },
+          "routeChange": {
+            "additionalProperties": false,
+            "properties": {
+              "locked": {
+                "type": "boolean"
+              },
+              "mode": {
+                "$ref": "#/components/schemas/def-37"
+              }
+            },
+            "required": [
+              "mode",
+              "locked"
+            ],
+            "type": "object"
+          },
+          "startOdometer": {
+            "additionalProperties": false,
+            "properties": {
+              "locked": {
+                "type": "boolean"
+              },
+              "mode": {
+                "$ref": "#/components/schemas/def-35"
+              }
+            },
+            "required": [
+              "mode",
+              "locked"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "preInspection",
+          "postInspection",
+          "startOdometer",
+          "endOdometer",
+          "returnVerification",
+          "routeChange"
+        ],
+        "title": "DriverControlSettings",
+        "type": "object"
+      },
+      "def-45": {
+        "additionalProperties": false,
+        "properties": {
+          "commercialTier": {
+            "$ref": "#/components/schemas/def-33"
+          },
+          "controls": {
+            "$ref": "#/components/schemas/def-44"
+          },
+          "organizationId": {
+            "$ref": "#/components/schemas/def-0"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "organizationId",
+          "commercialTier",
+          "version",
+          "controls"
+        ],
+        "title": "DriverControlPolicy",
+        "type": "object"
+      },
+      "def-46": {
+        "additionalProperties": false,
+        "properties": {
+          "controls": {
+            "$ref": "#/components/schemas/def-44"
+          },
+          "reasonCode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "OWNER_ENABLED_STRICT_PRESET"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "OPERATING_POLICY_CHANGED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "EXTERNAL_REQUIREMENT_CHANGED"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "secondApprovalReference": {
+            "$ref": "#/components/schemas/def-0"
+          }
+        },
+        "required": [
+          "reasonCode",
+          "controls"
+        ],
+        "title": "UpdateDriverControlPolicy",
+        "type": "object"
       },
       "def-5": {
         "maxLength": 72,
@@ -1063,7 +1915,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           }
@@ -1167,7 +2019,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           },
@@ -1284,6 +2136,409 @@
         ]
       }
     },
+    "/v1/organizations/{organizationId}/driver-control-policy": {
+      "get": {
+        "operationId": "getDriverControlPolicy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-0"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "if-none-match",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-45"
+                }
+              }
+            },
+            "description": "Versioned organization Driver control policy",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "schema": {
+                    "$id": "StrongEtag",
+                    "maxLength": 72,
+                    "pattern": "^\"kr1.[A-Za-z0-9_-]{32,64}\"$",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "304": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Not modified"
+                }
+              }
+            },
+            "description": "Not modified"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "driver"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/driver-control-policy/commands/update": {
+      "post": {
+        "operationId": "updateDriverControlPolicy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-0"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-4"
+            }
+          },
+          {
+            "in": "header",
+            "name": "if-match",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "controls": {
+                    "$ref": "#/components/schemas/def-44"
+                  },
+                  "reasonCode": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "OWNER_ENABLED_STRICT_PRESET"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "OPERATING_POLICY_CHANGED"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "EXTERNAL_REQUIREMENT_CHANGED"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "secondApprovalReference": {
+                    "$ref": "#/components/schemas/def-0"
+                  }
+                },
+                "required": [
+                  "reasonCode",
+                  "controls"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-45"
+                }
+              }
+            },
+            "description": "Updated organization Driver control policy",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "schema": {
+                    "$id": "StrongEtag",
+                    "maxLength": 72,
+                    "pattern": "^\"kr1.[A-Za-z0-9_-]{32,64}\"$",
+                    "type": "string"
+                  }
+                }
+              },
+              "KavaRoutes-Idempotency-Replayed": {
+                "schema": {
+                  "schema": {
+                    "enum": [
+                      "true"
+                    ],
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "428": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Precondition required"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "driver"
+        ]
+      }
+    },
     "/v1/organizations/{organizationId}/driver/action-batches": {
       "post": {
         "operationId": "submitDriverActionBatch",
@@ -1302,7 +2557,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           },
@@ -1495,7 +2750,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           },
@@ -1688,7 +2943,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           },
@@ -1831,7 +3086,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           }
@@ -1957,7 +3212,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           }
@@ -2140,7 +3395,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           }
@@ -2262,7 +3517,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           },
@@ -2522,7 +3777,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           },
@@ -2663,7 +3918,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           },
@@ -2799,7 +4054,7 @@
             "required": true,
             "schema": {
               "maxLength": 64,
-              "pattern": "^Synthetic principal_[a-z]+$",
+              "pattern": "^Synthetic principal_[a-z_]+$",
               "type": "string"
             }
           },

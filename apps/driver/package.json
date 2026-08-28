@@ -18,8 +18,10 @@
     "@kavaroutes/realtime": "0.0.0-wp009",
     "expo": "57.0.16",
     "expo-build-properties": "57.0.14",
+    "expo-camera": "~57.0.4",
     "expo-crypto": "57.0.2",
     "expo-dev-client": "57.0.15",
+    "expo-file-system": "~57.0.6",
     "expo-location": "57.0.13",
     "expo-network": "57.0.1",
     "expo-router": "57.0.16",
@@ -41,5 +43,10 @@
     "jest": "29.7.0",
     "jest-expo": "57.0.4",
     "react-test-renderer": "19.2.3"
+  },
+  "expo": {
+    "install": {
+      "exclude": ["expo", "expo-build-properties", "expo-dev-client", "expo-location", "expo-router", "expo-secure-store", "expo-sqlite", "expo-task-manager", "react-native", "jest-expo"]
+    }
   }
 }

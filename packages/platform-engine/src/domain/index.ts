@@ -10,3 +10,5 @@ export function acceptSyntheticProbe(id: string, input: "alpha" | "bravo"): Synt
   if (!/^probe_[a-z0-9]{8}$/.test(id)) throw new Error("INVALID_SYNTHETIC_PROBE_ID");
   return Object.freeze({ id: id as ProbeId, input, outcome: "accepted" });
 }
+
+export * from "./driver-policy.js";

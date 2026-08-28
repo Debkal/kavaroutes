@@ -9,6 +9,7 @@ export const syntheticIds = Object.freeze({
   billing: "10000000-0000-4000-8000-000000000004",
   audit: "10000000-0000-4000-8000-000000000005",
   integration: "10000000-0000-4000-8000-000000000006",
+  policyOverride: "10000000-0000-4000-8000-000000000007",
   outsider: "20000000-0000-4000-8000-000000000001",
   driverSubject: "30000000-0000-4000-8000-000000000001",
   facilitySubject: "30000000-0000-4000-8000-000000000002",
@@ -18,7 +19,8 @@ export type Capability =
   | "profile:read" | "riders:read" | "riders:write" | "trips:read" | "trips:write" | "trips:command"
   | "dispatch:read" | "dispatch:command" | "dispatch:location:read" | "fleet:read" | "fleet:command" | "driver:manifest:read"
   | "driver:execute" | "driver:location:write" | "facility:trip-status:read" | "facility:coordinate"
-  | "billing:read" | "billing:command" | "integrations:read" | "integrations:write" | "audit:read";
+  | "billing:read" | "billing:command" | "integrations:read" | "integrations:write" | "audit:read"
+  | "driver-policy:read" | "driver-policy:write" | "driver-policy:override" | "driver-route:self-approve";
 export type Purpose = "RIDER_INTAKE" | "ASSIGNED_SERVICE_DELIVERY" | "FACILITY_COORDINATION" | "BILLING_PROOF" | "SUPPORT_DIAGNOSTICS" | "PARTNER_EXPORT";
 
 export interface SyntheticPrincipal {
@@ -32,7 +34,7 @@ export interface SyntheticPrincipal {
   readonly subjectId?: string;
 }
 
-const allDispatcherCapabilities: readonly Capability[] = ["profile:read", "riders:read", "riders:write", "trips:read", "trips:write", "trips:command", "dispatch:read", "dispatch:command", "dispatch:location:read", "fleet:read", "fleet:command"];
+const allDispatcherCapabilities: readonly Capability[] = ["profile:read", "riders:read", "riders:write", "trips:read", "trips:write", "trips:command", "dispatch:read", "dispatch:command", "dispatch:location:read", "fleet:read", "fleet:command", "driver-policy:read", "driver-policy:write"];
 const fixture = (input: Omit<SyntheticPrincipal, "capabilities" | "purposes" | "branchScopes" | "fleetScopes"> & { capabilities: readonly Capability[]; purposes: readonly Purpose[]; branchScopes?: readonly string[]; fleetScopes?: readonly string[] }): SyntheticPrincipal => Object.freeze({
   ...input,
   capabilities: new Set(input.capabilities), purposes: new Set(input.purposes),
@@ -46,6 +48,7 @@ const principals = new Map<string, SyntheticPrincipal>([
   ["principal_billing", fixture({ id: syntheticIds.billing, kind: "SYNTHETIC_USER", organizationId: syntheticIds.organizationA, capabilities: ["profile:read", "billing:read", "billing:command"], purposes: ["BILLING_PROOF"] })],
   ["principal_audit", fixture({ id: syntheticIds.audit, kind: "SYNTHETIC_USER", organizationId: syntheticIds.organizationA, capabilities: ["profile:read", "audit:read"], purposes: ["SUPPORT_DIAGNOSTICS"] })],
   ["principal_integration", fixture({ id: syntheticIds.integration, kind: "SYNTHETIC_USER", organizationId: syntheticIds.organizationA, capabilities: ["profile:read", "integrations:read", "integrations:write"], purposes: ["PARTNER_EXPORT"] })],
+  ["principal_policy_override", fixture({ id: syntheticIds.policyOverride, kind: "SYNTHETIC_USER", organizationId: syntheticIds.organizationA, capabilities: ["profile:read", "driver-policy:read", "driver-policy:override"], purposes: ["ASSIGNED_SERVICE_DELIVERY"] })],
   ["principal_outsider", fixture({ id: syntheticIds.outsider, kind: "SYNTHETIC_USER", organizationId: syntheticIds.organizationB, capabilities: allDispatcherCapabilities, purposes: ["RIDER_INTAKE", "ASSIGNED_SERVICE_DELIVERY"] })],
 ]);
 
@@ -57,7 +60,7 @@ export function createSyntheticTestVerifier(): PrincipalVerifier {
   return Object.freeze({
     async verify(authorization: unknown) {
       if (typeof authorization !== "string") return null;
-      const match = /^Synthetic (principal_[a-z]+)$/.exec(authorization);
+      const match = /^Synthetic (principal_[a-z_]+)$/.exec(authorization);
       return match?.[1] ? principals.get(match[1]) ?? null : null;
     },
   });

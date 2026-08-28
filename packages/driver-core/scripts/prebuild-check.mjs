@@ -42,8 +42,9 @@ async function generate(label) {
 const first = await generate("a");
 const second = await generate("b");
 assert.deepEqual(first.files, second.files, "CNG output must be deterministic across clean generations");
-for (const token of ["android.permission.ACCESS_BACKGROUND_LOCATION", "android.permission.FOREGROUND_SERVICE_LOCATION", "newArchEnabled=true", "hermesEnabled=true",
-  "expo.sqlite.useSQLCipher=true", "android.minSdkVersion=29", "UIBackgroundModes", "location", "16.4", "KavaRoutes Driver to record synthetic route position"]) assert.match(first.combined, new RegExp(token.replaceAll(".", "\\.")));
+for (const token of ["android.permission.ACCESS_BACKGROUND_LOCATION", "android.permission.FOREGROUND_SERVICE_LOCATION", "android.permission.CAMERA", "newArchEnabled=true", "hermesEnabled=true",
+  "expo.sqlite.useSQLCipher=true", "android.minSdkVersion=29", "UIBackgroundModes", "location", "16.4", "Allow KavaRoutes Driver to use your location", "Allow KavaRoutes Driver to photograph a synthetic vehicle defect"]) assert.match(first.combined, new RegExp(token.replaceAll(".", "\\.")));
+assert.match(first.combined, /android.permission.RECORD_AUDIO" tools:node="remove"/);
 assert.doesNotMatch(first.combined, /google-services\.json|GoogleService-Info\.plist|api[_-]?key|patient|rider_name/i);
 const digest = createHash("sha256").update([...first.files.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([file, hash]) => `${file}:${hash}`).join("\n")).digest("hex");
 const report = { format: 1, result: "PASS", generatedTwice: true, deterministic: true, files: first.files.size, digest, platform: ["android", "ios"],

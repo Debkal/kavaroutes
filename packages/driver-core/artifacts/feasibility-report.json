@@ -3,7 +3,7 @@
   "workPackage": "010",
   "decision": "BLOCKED_PENDING_HIG_006",
   "localPhase": "PASS",
-  "evidenceDigest": "0a4762f3bba2a3da797842e73a484e81b06b19b157e2b4fb2858625927c934b3",
+  "evidenceDigest": "099fc578bd296236b228943a08081cc2295bfdbdf5c08468cc4156835ce42a79",
   "evidenceDigestInputs": [
     "local-lint-report.json",
     "native-config-report.json",
@@ -19,11 +19,11 @@
   },
   "localEvidence": {
     "closedSchemas": 7,
-    "localMigrations": 1,
-    "routeSurfaces": 10,
-    "deterministicNativeConfigDigest": "f9a94b28216c438defadc72384c9d4d697a7bed177f7956f3a561aa1e8b72644",
+    "localMigrations": 3,
+    "routeSurfaces": 9,
+    "deterministicNativeConfigDigest": "7d7eebf5cbff503b88ce8d61634e09afa2df24c10f88743174d68070e6ceefaa",
     "androidBundle": "PASS",
-    "androidHermesBundleBytes": 3381587,
+    "androidHermesBundleBytes": 3729218,
     "offlineHours": 12,
     "offlineSamples": 2880,
     "batches": 6,
@@ -33,9 +33,9 @@
     "androidDevelopmentApk": {
       "result": "PASS_DEVELOPMENT_APK_CREATED",
       "artifact": "builds/client/android/kavaroutes-driver-android.apk",
-      "bytes": 148835470,
-      "sha256": "ef812259edcdb7ce5e075ad6d66f52e8638238b9215af211294713708fe2298a",
-      "sourceDigest": "5be29b24408d1185a29e0a6a0e75f78057007e3e3e23187097aa61db16ecbf5a",
+      "bytes": 179049941,
+      "sha256": "dab8b9032d160d9a6691ca02930d64ae61c61fd5759f7575c0feae48356a77c0",
+      "sourceDigest": "10f189e00092e755b5a611faef7c3504e65cee4a6a6924f46bca4697fc5a80f4",
       "signing": "generated Android debug certificate",
       "physicalInstallExecuted": false
     },

@@ -28,7 +28,7 @@ for (const file of sourceFiles) {
   const imports = [...text.matchAll(importPattern)].map((match) => match[1]);
   if (relative.includes("/domain/")) {
     for (const specifier of imports) {
-      if (specifier !== "@kavaroutes/shared-kernel" && !specifier.startsWith("node:")) {
+      if (specifier !== "@kavaroutes/shared-kernel" && !specifier.startsWith("node:") && !specifier.startsWith("./")) {
         violations.push(`${relative}: domain import ${specifier}`);
       }
     }

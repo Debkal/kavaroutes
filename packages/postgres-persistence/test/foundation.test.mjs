@@ -21,6 +21,10 @@ const ids = {
   runA: "11111111-1111-4111-8111-111111111118",
   runB: "11111111-1111-4111-8111-111111111119",
   driver: "11111111-1111-4111-8111-111111111120",
+  vehicle: "11111111-1111-4111-8111-111111111123",
+  assignment: "11111111-1111-4111-8111-111111111124",
+  shiftSnapshot: "11111111-1111-4111-8111-111111111125",
+  shiftGeneration: "11111111-1111-4111-8111-111111111126",
   device: "11111111-1111-4111-8111-111111111121",
   batch: "11111111-1111-4111-8111-111111111122",
 };
@@ -36,7 +40,7 @@ test("clean replay, WP005 upgrade replay, and migration replay are deterministic
     const client = await pool.connect();
     try {
       await applyMigrations(client);
-      assert.equal((await client.query("SELECT count(*)::int AS count FROM public.kavaroutes_schema_migration")).rows[0].count, 8);
+      assert.equal((await client.query("SELECT count(*)::int AS count FROM public.kavaroutes_schema_migration")).rows[0].count, 9);
       assert.equal((await client.query("SELECT platform.assert_tenant_boundaries() AS result")).rowCount, 1);
     } finally { client.release(); }
   }, async (pool) => {
@@ -88,6 +92,83 @@ test("forced RLS fails closed across missing, malformed, stale, owner, and poole
 
     const roles = await pool.query("SELECT rolname, rolsuper, rolbypassrls FROM pg_roles WHERE rolname LIKE 'kavaroutes_%' ORDER BY rolname");
     assert.ok(roles.rows.every((row) => !row.rolsuper && !row.rolbypassrls));
+  });
+});
+
+test("driver tier authority defaults strict and pins an immutable tenant-scoped shift policy", async () => {
+  await withFreshDatabase(connectionString, "driver_policy", async (pool) => {
+    await seedTenant(pool, ids.a, "Policy A");
+    await seedTenant(pool, ids.b, "Policy B");
+
+    await withTenantTransaction(pool, ids.a, "kavaroutes_api", async (client) => {
+      const organization = (await client.query("SELECT commercial_tier FROM platform.organization")).rows[0];
+      assert.equal(organization.commercial_tier, "ENTERPRISE");
+      const seededPolicy = (await client.query("SELECT policy_version,controls,locks,lifecycle FROM platform.driver_control_policy")).rows[0];
+      assert.equal(Number(seededPolicy.policy_version), 1);
+      assert.equal(seededPolicy.lifecycle, "ACTIVE");
+      assert.equal(seededPolicy.controls.preInspection, "REQUIRED");
+      assert.equal(seededPolicy.locks.preInspection, true);
+
+      await client.query("INSERT INTO platform.branch (tenant_id,id,organization_id,synthetic_label) VALUES ($1,$2,$1,'Policy Branch')", [ids.a, ids.branch]);
+      await client.query("INSERT INTO fleet.driver (tenant_id,id,synthetic_reference) VALUES ($1,$2,'policy-driver')", [ids.a, ids.driver]);
+      await client.query("INSERT INTO fleet.vehicle (tenant_id,id,synthetic_reference) VALUES ($1,$2,'policy-vehicle')", [ids.a, ids.vehicle]);
+      await client.query("INSERT INTO dispatch.run (tenant_id,id,branch_id,service_date,service_timezone,planned_start_at,planned_end_at,lifecycle_reference) VALUES ($1,$2,$3,'2026-08-28','UTC','2026-08-28T10:00Z','2026-08-28T12:00Z','planned')", [ids.a, ids.runA, ids.branch]);
+      await client.query("INSERT INTO dispatch.assignment (tenant_id,id,run_id,driver_id,vehicle_id) VALUES ($1,$2,$3,$4,$5)", [ids.a, ids.assignment, ids.runA, ids.driver, ids.vehicle]);
+      assert.equal((await client.query("SELECT workforce_relationship FROM fleet.driver WHERE id=$1", [ids.driver])).rows[0].workforce_relationship, "EMPLOYEE");
+
+      const effectivePolicy = {
+        schemaVersion: 1, commercialTier: "ENTERPRISE", workforceRelationship: "EMPLOYEE",
+        preInspection: { mode: "REQUIRED", locked: true },
+      };
+      await client.query(`INSERT INTO execution.shift_policy_snapshot (
+        tenant_id,id,assignment_id,driver_id,shift_generation,policy_version,policy_digest,effective_policy
+      ) VALUES ($1,$2,$3,$4,$5,1,$6,$7::jsonb)`, [ids.a, ids.shiftSnapshot, ids.assignment, ids.driver, ids.shiftGeneration, "a".repeat(64), JSON.stringify(effectivePolicy)]);
+
+      await client.query("UPDATE platform.organization SET commercial_tier='SMALL_BUSINESS' WHERE id=$1", [ids.a]);
+      await client.query("UPDATE dispatch.assignment SET workforce_relationship='OWNER_OPERATOR' WHERE id=$1", [ids.assignment]);
+      const pinned = (await client.query("SELECT policy_digest,effective_policy FROM execution.shift_policy_snapshot WHERE id=$1", [ids.shiftSnapshot])).rows[0];
+      assert.equal(pinned.policy_digest, "a".repeat(64));
+      assert.equal(pinned.effective_policy.commercialTier, "ENTERPRISE");
+
+      await client.query("UPDATE execution.shift_policy_snapshot SET lifecycle='INVALIDATE_REVIEW',invalidated_at=now(),invalidation_reason_code='CRITICAL_EXTERNAL_RULE' WHERE id=$1", [ids.shiftSnapshot]);
+    });
+
+    await assert.rejects(() => withTenantTransaction(pool, ids.a, "kavaroutes_api", (client) =>
+      client.query("UPDATE execution.shift_policy_snapshot SET policy_digest=$1 WHERE id=$2", ["b".repeat(64), ids.shiftSnapshot])), /SHIFT_POLICY_SNAPSHOT_IMMUTABLE/);
+
+    const persistence = createPostgresPersistence(pool);
+    const policyId = randomUUID(); const commandId = randomUUID(); const messageId = randomUUID(); const occurredAt = new Date();
+    const mutationInput = { tenantId: ids.a, actorReference: ids.driver, operationId: "updateDriverControlPolicy", key: "driver-policy-update-0001",
+      fingerprint: "d".repeat(64), recordId: randomUUID(), expiresAt: new Date(occurredAt.getTime() + 25 * 3_600_000) };
+    const updatePolicy = (transaction) => transaction.replaceDriverControlPolicy({ policyId, organizationId: ids.a, expectedVersion: 1,
+      controls: { preInspection: "OPTIONAL", postInspection: "OPTIONAL", startOdometer: "OPTIONAL", endOdometer: "OPTIONAL", returnVerification: "ADVISORY", routeChange: "DISPATCH_APPROVAL_REQUIRED" },
+      locks: { preInspection: false, postInspection: false, startOdometer: false, endOdometer: false, returnVerification: false, routeChange: true },
+      reasonCode: "OPERATING_POLICY_CHANGED", actorId: ids.driver }).then(async (policy) => {
+        await transaction.appendAudit({ auditId: randomUUID(), aggregateKind: "driver-control-policy", aggregateId: policy.policyId,
+          aggregateVersion: policy.version, actionReference: "driver.policy.updated", actorReference: ids.driver });
+        await transaction.appendOutboxMessage({ messageId, eventId: randomUUID(), aggregateType: "DRIVER_POLICY", aggregateId: policy.policyId,
+          aggregateVersion: policy.version, eventType: "DriverPolicyUpdated", schemaVersion: "v1", occurredAt, commandId,
+          idempotencyReferenceHash: "e".repeat(64), correlationId: commandId, source: "kavaroutes.api", classificationReference: "OPERATIONS",
+          purposeReference: "ASSIGNED_SERVICE_DELIVERY", policyReference: "driver-policy-v1", payload: { organizationId: ids.a, policyVersion: policy.version },
+          retainUntil: new Date(occurredAt.getTime() + 31 * 86_400_000) });
+        await transaction.appendOutboxDelivery({ deliveryId: randomUUID(), messageId, route: "projection", jobType: "kr.driver-policy.project.v1",
+          availableAt: occurredAt, retainUntil: new Date(occurredAt.getTime() + 31 * 86_400_000) });
+        return { statusCode: 200, body: policy, headers: { etag: '"synthetic-policy-v2"' }, resultReference: policy.policyId };
+      });
+    const committed = await persistence.executeIdempotentMutation(mutationInput, updatePolicy);
+    const replayed = await persistence.executeIdempotentMutation({ ...mutationInput, recordId: randomUUID() }, updatePolicy);
+    assert.equal(committed.replayed, false); assert.equal(replayed.replayed, true); assert.deepEqual(replayed.body, committed.body);
+    await withTenantTransaction(pool, ids.a, "kavaroutes_api", async (client) => {
+      assert.equal((await client.query("SELECT count(*)::int AS count FROM platform.driver_control_policy WHERE lifecycle='ACTIVE' AND policy_version=2")).rows[0].count, 1);
+      assert.equal((await client.query("SELECT count(*)::int AS count FROM audit.event WHERE action_reference='driver.policy.updated'")).rows[0].count, 1);
+      assert.equal((await client.query("SELECT count(*)::int AS count FROM outbox.message WHERE event_type='DriverPolicyUpdated'")).rows[0].count, 1);
+    });
+    assert.equal(await withTenantTransaction(pool, ids.b, "kavaroutes_api", async (client) =>
+      (await client.query("SELECT count(*)::int AS count FROM execution.shift_policy_snapshot")).rows[0].count), 0);
+    await assert.rejects(() => withTenantTransaction(pool, ids.b, "kavaroutes_api", (client) =>
+      client.query(`INSERT INTO execution.shift_policy_snapshot (
+        tenant_id,id,assignment_id,driver_id,shift_generation,policy_version,policy_digest,effective_policy
+      ) VALUES ($1,$2,$3,$4,$5,1,$6,'{}'::jsonb)`, [ids.b, randomUUID(), ids.assignment, ids.driver, randomUUID(), "c".repeat(64)])), PersistenceConflict);
   });
 });
 

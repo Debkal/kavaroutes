@@ -23,6 +23,48 @@ export const IanaTimezoneSchema = Type.String({ pattern: "^[A-Za-z_+-]+(?:/[A-Za
 export const IdempotencyKeySchema = Type.String({ pattern: "^[A-Za-z0-9_-]{16,128}$", minLength: 16, maxLength: 128, $id: "IdempotencyKey" });
 export const StrongEtagSchema = Type.String({ pattern: "^\"kr1\.[A-Za-z0-9_-]{32,64}\"$", maxLength: 72, $id: "StrongEtag" });
 
+export const CommercialTierSchema = Type.Union([Type.Literal("SMALL_BUSINESS"), Type.Literal("ENTERPRISE")], { $id: "CommercialTier" });
+export const WorkforceRelationshipSchema = Type.Union([Type.Literal("OWNER_OPERATOR"), Type.Literal("EMPLOYEE"), Type.Literal("CONTRACTOR")], { $id: "WorkforceRelationship" });
+export const InspectionControlModeSchema = Type.Union([Type.Literal("DISABLED"), Type.Literal("OPTIONAL"), Type.Literal("REQUIRED")], { $id: "InspectionControlMode" });
+export const ReturnVerificationModeSchema = Type.Union([Type.Literal("DISABLED"), Type.Literal("ADVISORY"), Type.Literal("REQUIRED_WITH_AUDITED_OVERRIDE")], { $id: "ReturnVerificationMode" });
+export const RouteChangeModeSchema = Type.Union([Type.Literal("AUTHORIZED_SELF_APPROVE"), Type.Literal("DISPATCH_APPROVAL_REQUIRED"), Type.Literal("DISABLED")], { $id: "RouteChangeMode" });
+export const DriverControlSourceSchema = Type.Union([Type.Literal("EXTERNAL_FLOOR"), Type.Literal("ORGANIZATION_LOCK"), Type.Literal("ORGANIZATION_CONFIGURATION"), Type.Literal("WORKFORCE_PRESET"), Type.Literal("TIER_DEFAULT")], { $id: "DriverControlSource" });
+export const DriverControlReasonCodeSchema = Type.Union([
+  Type.Literal("EXTERNAL_REQUIREMENT_APPLIED"), Type.Literal("ORGANIZATION_LOCK_APPLIED"), Type.Literal("ORGANIZATION_CONFIGURATION_APPLIED"),
+  Type.Literal("SMALL_BUSINESS_OWNER_DEFAULT"), Type.Literal("SMALL_BUSINESS_WORKFORCE_PRESET"), Type.Literal("ENTERPRISE_STRICT_DEFAULT"),
+  Type.Literal("SELF_APPROVAL_CAPABILITY_MISSING"),
+], { $id: "DriverControlReasonCode" });
+const resolvedControl = (mode: TSchema, id: string) => Type.Object({
+  mode, source: Type.Ref(DriverControlSourceSchema), reasonCode: Type.Ref(DriverControlReasonCodeSchema), locked: Type.Boolean(),
+}, { ...closed, $id: id });
+export const ResolvedInspectionControlSchema = resolvedControl(Type.Ref(InspectionControlModeSchema), "ResolvedInspectionControl");
+export const ResolvedReturnVerificationSchema = resolvedControl(Type.Ref(ReturnVerificationModeSchema), "ResolvedReturnVerification");
+export const ResolvedRouteChangeSchema = resolvedControl(Type.Ref(RouteChangeModeSchema), "ResolvedRouteChange");
+export const EffectiveDriverPolicySchema = Type.Object({
+  schemaVersion: Type.Literal(1), organizationId: Type.Ref(OpaqueIdSchema), driverId: Type.Ref(OpaqueIdSchema), assignmentId: Type.Ref(OpaqueIdSchema),
+  commercialTier: Type.Ref(CommercialTierSchema), workforceRelationship: Type.Ref(WorkforceRelationshipSchema), policyVersion: Type.Integer({ minimum: 1 }),
+  resolvedAt: Type.Ref(InstantSchema), preInspection: Type.Ref(ResolvedInspectionControlSchema), postInspection: Type.Ref(ResolvedInspectionControlSchema),
+  startOdometer: Type.Ref(ResolvedInspectionControlSchema), endOdometer: Type.Ref(ResolvedInspectionControlSchema),
+  returnVerification: Type.Ref(ResolvedReturnVerificationSchema), routeChange: Type.Ref(ResolvedRouteChangeSchema),
+  proofOfServicePolicy: Type.Literal("PAYER_CONTRACT_ORGANIZATION_RESOLVED"),
+  nonWaivableControls: Type.Tuple([Type.Literal("IDENTITY_AND_AUTHORIZATION"), Type.Literal("TENANT_ISOLATION"), Type.Literal("ENCRYPTION_AND_AUDIT"), Type.Literal("MINIMUM_NECESSARY"), Type.Literal("NO_PHI_NAVIGATION"), Type.Literal("TRACKING_TRANSPARENCY"), Type.Literal("EMERGENCY_STOP")]),
+  canonicalDigest: Type.String({ pattern: "^[a-f0-9]{64}$", minLength: 64, maxLength: 64 }),
+}, { ...closed, $id: "EffectiveDriverPolicy" });
+const configuredControl = (mode: TSchema) => Type.Object({ mode, locked: Type.Boolean() }, closed);
+export const DriverControlSettingsSchema = Type.Object({
+  preInspection: configuredControl(Type.Ref(InspectionControlModeSchema)), postInspection: configuredControl(Type.Ref(InspectionControlModeSchema)),
+  startOdometer: configuredControl(Type.Ref(InspectionControlModeSchema)), endOdometer: configuredControl(Type.Ref(InspectionControlModeSchema)),
+  returnVerification: configuredControl(Type.Ref(ReturnVerificationModeSchema)), routeChange: configuredControl(Type.Ref(RouteChangeModeSchema)),
+}, { ...closed, $id: "DriverControlSettings" });
+export const DriverControlPolicySchema = Type.Object({
+  organizationId: Type.Ref(OpaqueIdSchema), commercialTier: Type.Ref(CommercialTierSchema), version: Type.Integer({ minimum: 1 }),
+  controls: Type.Ref(DriverControlSettingsSchema),
+}, { ...closed, $id: "DriverControlPolicy" });
+export const UpdateDriverControlPolicySchema = Type.Object({
+  reasonCode: Type.Union([Type.Literal("OWNER_ENABLED_STRICT_PRESET"), Type.Literal("OPERATING_POLICY_CHANGED"), Type.Literal("EXTERNAL_REQUIREMENT_CHANGED")]),
+  controls: Type.Ref(DriverControlSettingsSchema), secondApprovalReference: Type.Optional(Type.Ref(OpaqueIdSchema)),
+}, { ...closed, $id: "UpdateDriverControlPolicy" });
+
 export const ProblemErrorSchema = Type.Object({
   code: Type.String({ pattern: "^[A-Z][A-Z0-9_]{2,63}$", maxLength: 64 }),
   pointer: Type.String({ pattern: "^/(?:[A-Za-z0-9_-]+/?)*$", maxLength: 256 }),
@@ -129,6 +171,8 @@ export const DriverManifestSchema = Type.Object({
   serviceDate: Type.Ref(ServiceDateSchema),
   serviceTimezone: Type.Ref(IanaTimezoneSchema),
   version: Type.Integer({ minimum: 1 }),
+  effectivePolicy: Type.Ref(EffectiveDriverPolicySchema),
+  effectivePolicyDigest: Type.String({ pattern: "^[a-f0-9]{64}$", minLength: 64, maxLength: 64 }),
   assignments: Type.Array(Type.Object({
     assignmentReference: Type.Ref(OpaqueIdSchema),
     stopOrdinal: Type.Integer({ minimum: 1, maximum: 1000 }),
@@ -137,19 +181,28 @@ export const DriverManifestSchema = Type.Object({
   }, closed), { maxItems: 200 }),
 }, { ...closed, $id: "DriverManifest" });
 
-export const DriverActionItemSchema = Type.Object({
+const driverActionIdentity = {
   clientActionId: Type.Ref(OpaqueIdSchema),
   deviceEpoch: Type.Integer({ minimum: 1 }),
   sequence: Type.Integer({ minimum: 1 }),
   capturedAt: Type.Ref(InstantSchema),
-  command: Type.Union([
-    Type.Literal("MARK_EN_ROUTE"), Type.Literal("ARRIVE_PICKUP"), Type.Literal("BOARD_RIDER"),
-    Type.Literal("ARRIVE_DROPOFF"), Type.Literal("COMPLETE_LEG"), Type.Literal("REPORT_INCIDENT"),
-  ]),
   resourceReference: Type.Ref(OpaqueIdSchema),
   expectedTag: Type.Ref(StrongEtagSchema),
   idempotencyKey: Type.Ref(IdempotencyKeySchema),
-}, { ...closed, $id: "DriverActionItem" });
+};
+const policyDigest = () => Type.String({ pattern: "^[a-f0-9]{64}$", minLength: 64, maxLength: 64 });
+export const DriverActionItemSchema = Type.Union([
+  Type.Object({ ...driverActionIdentity, command: Type.Union([
+    Type.Literal("MARK_EN_ROUTE"), Type.Literal("ARRIVE_PICKUP"), Type.Literal("BOARD_RIDER"),
+    Type.Literal("ARRIVE_DROPOFF"), Type.Literal("COMPLETE_LEG"), Type.Literal("REPORT_INCIDENT"),
+  ]) }, closed),
+  Type.Object({ ...driverActionIdentity, command: Type.Union([Type.Literal("COMPLETE_PRECHECK"), Type.Literal("COMPLETE_POSTCHECK")]), policyDigest: policyDigest() }, closed),
+  Type.Object({ ...driverActionIdentity, command: Type.Union([Type.Literal("SKIP_PRECHECK"), Type.Literal("SKIP_POSTCHECK")]),
+    reasonCode: Type.Union([Type.Literal("OPTIONAL_CONTROL_SKIPPED"), Type.Literal("CONTROL_UNAVAILABLE")]), policyDigest: policyDigest() }, closed),
+  Type.Object({ ...driverActionIdentity, command: Type.Literal("PROPOSE_ROUTE_CHANGE"), policyDigest: policyDigest() }, closed),
+  Type.Object({ ...driverActionIdentity, command: Type.Literal("REQUEST_CONTROL_OVERRIDE"),
+    reasonCode: Type.Union([Type.Literal("SAFETY_EXCEPTION"), Type.Literal("POLICY_OVERRIDE_REQUESTED")]), policyDigest: policyDigest() }, closed),
+], { $id: "DriverActionItem" });
 
 export const DriverActionBatchSchema = Type.Object({
   deviceSessionId: Type.Ref(OpaqueIdSchema),
@@ -225,12 +278,18 @@ export const allSchemas: readonly TSchema[] = Object.freeze([
   DriverManifestSchema, DriverActionItemSchema, DriverActionBatchSchema, BatchReceiptItemSchema, BatchReceiptSchema,
   LocationSampleSchema, LocationBatchSchema, OperationSchema, FacilityTripProjectionSchema, BillingProjectionSchema,
   AuditProjectionSchema, IntegrationProjectionSchema,
+  CommercialTierSchema, WorkforceRelationshipSchema, InspectionControlModeSchema, ReturnVerificationModeSchema, RouteChangeModeSchema,
+  DriverControlSourceSchema, DriverControlReasonCodeSchema, ResolvedInspectionControlSchema, ResolvedReturnVerificationSchema,
+  ResolvedRouteChangeSchema, EffectiveDriverPolicySchema, DriverControlSettingsSchema, DriverControlPolicySchema, UpdateDriverControlPolicySchema,
 ]);
 
 export type TripCreateRequest = Static<typeof TripCreateRequestSchema>;
 export type DispatcherTrip = Static<typeof DispatcherTripSchema>;
 export type CancelTripRequest = Static<typeof CancelTripRequestSchema>;
 export type DriverManifest = Static<typeof DriverManifestSchema>;
+export type EffectiveDriverPolicy = Static<typeof EffectiveDriverPolicySchema>;
+export type DriverControlPolicy = Static<typeof DriverControlPolicySchema>;
+export type UpdateDriverControlPolicy = Static<typeof UpdateDriverControlPolicySchema>;
 export type DriverActionBatch = Static<typeof DriverActionBatchSchema>;
 export type LocationBatch = Static<typeof LocationBatchSchema>;
 export type BatchReceipt = Static<typeof BatchReceiptSchema>;

@@ -15,10 +15,12 @@ test("closed contracts, routes, policies, and parameterized migrations are bound
   assert.equal(driverSchemas.length, 7);
   for (const schema of driverSchemas) if (schema.type === "object") assert.equal(schema.additionalProperties, false);
   assert.ok(Value.Check(driverSchemas.find((schema) => schema.$id === "DriverAction"), action));
-  assert.equal(DRIVER_MIGRATIONS.length, 1);
+  assert.equal(DRIVER_MIGRATIONS.length, 3);
   const sql = DRIVER_MIGRATIONS[0].sql;
   for (const table of ["local_session", "manifest_snapshot", "manifest_stop", "sync_cursor", "client_action", "location_epoch", "location_sample", "location_batch", "evidence_draft", "evidence_blob", "sync_attempt", "safe_diagnostic"]) assert.match(sql, new RegExp(`CREATE TABLE IF NOT EXISTS ${table}`));
   assert.doesNotMatch(sql, /rider_name|patient|medical|address_line|latitude|longitude|access_token/i);
+  assert.match(DRIVER_MIGRATIONS[1].sql, /CREATE TABLE IF NOT EXISTS workflow_checkpoint/);
+  assert.match(DRIVER_MIGRATIONS[2].sql, /ADD COLUMN policy_digest/);
   assert.equal(canonicalActionFingerprintInput(action), '{"resourceReference":"33333333-3333-4333-8333-333333333332","expectedVersion":1,"causalSequence":1,"command":"ARRIVE_PICKUP"}');
 });
 
@@ -80,13 +82,17 @@ test("tracking states report permission, approximate, pause, stop, stale, and li
   assert.equal(resolveTrackingState({ ...base, revoked: true }), "REVOKED");
 });
 
-test("navigation is allowlisted, falls back safely, and telemetry rejects identity, coordinates, and raw URLs", async () => {
+test("navigation is allowlisted, follows the device OS, and telemetry rejects identity, coordinates, and raw URLs", async () => {
   const url = new URL(buildGoogleDirectionsUrl({ kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" }));
   assert.equal(url.origin, "https://www.google.com"); assert.equal(url.searchParams.get("api"), "1"); assert.equal(url.searchParams.get("travelmode"), "driving"); assert.equal(url.searchParams.has("origin"), false);
   assert.throws(() => buildGoogleDirectionsUrl({ kind: "SYNTHETIC_ADDRESS", value: "Patient Jane oncology appointment" }), /NAVIGATION_ADDRESS_INVALID/);
   assert.equal(new URL(buildAppleMapsUrl({ kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" })).origin, "https://maps.apple.com");
-  const opened = []; const outcome = await handoffNavigation({ async canOpen(candidate) { return candidate.startsWith("https://maps.apple.com"); }, async open(candidate) { opened.push(candidate); } }, { kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" });
-  assert.equal(outcome, "OPENED_SYSTEM"); assert.equal(opened.length, 1);
+  const opened = []; const port = { async canOpen() { return true; }, async open(candidate) { opened.push(candidate); } };
+  assert.equal(await handoffNavigation(port, { kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" }, "android"), "OPENED_GOOGLE");
+  assert.equal(new URL(opened.at(-1)).origin, "https://www.google.com");
+  assert.equal(await handoffNavigation(port, { kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" }, "ios"), "OPENED_APPLE");
+  assert.equal(new URL(opened.at(-1)).origin, "https://maps.apple.com");
+  assert.equal(await handoffNavigation({ async canOpen() { return false; }, async open() { throw new Error("must not open"); } }, { kind: "SYNTHETIC_ADDRESS", value: "Synthetic Civic Center" }, "ios"), "UNAVAILABLE");
   assert.deepEqual(safeDriverTelemetry({ metric: "driver_sync", outcome: "success", state: "LIVE" }), { metric: "driver_sync", outcome: "success", state: "LIVE" });
   for (const prohibited of ["tenantId", "driverId", "latitude", "rawUrl", "cursor", "token"]) assert.throws(() => safeDriverTelemetry({ metric: "driver_sync", outcome: "failure", [prohibited]: "synthetic" }), /PROHIBITED/);
 });

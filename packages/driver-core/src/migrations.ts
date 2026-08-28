@@ -17,4 +17,8 @@ CREATE TABLE IF NOT EXISTS safe_diagnostic (id INTEGER PRIMARY KEY AUTOINCREMENT
 CREATE INDEX IF NOT EXISTS client_action_pending_idx ON client_action(state, next_attempt_at, causal_sequence);
 CREATE INDEX IF NOT EXISTS location_sample_pending_idx ON location_sample(state, epoch, sequence);
 CREATE INDEX IF NOT EXISTS evidence_draft_pending_idx ON evidence_draft(state, created_at);
+`}, { version: 2, name: "cohesive_shift_checkpoint", sql: `
+CREATE TABLE IF NOT EXISTS workflow_checkpoint (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER NOT NULL, encrypted_state BLOB NOT NULL, updated_at TEXT NOT NULL);
+`}, { version: 3, name: "pinned_effective_driver_policy", sql: `
+ALTER TABLE workflow_checkpoint ADD COLUMN policy_digest TEXT CHECK (policy_digest IS NULL OR (length(policy_digest) = 64 AND policy_digest NOT GLOB '*[^a-f0-9]*'));
 `}]);

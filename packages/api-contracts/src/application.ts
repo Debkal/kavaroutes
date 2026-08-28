@@ -160,7 +160,7 @@ export function createOfflineBatchService(now: () => Date = () => new Date()) {
   const operations = new Map<string, MemoryEntry<BatchReceipt>>();
   const itemReceipts = new Map<string, BatchReceipt["items"][number]>();
   const lastSequence = new Map<string, number>();
-  async function execute<T extends DriverActionBatch | LocationBatch>(scope: string, key: string, body: T, items: readonly { id: string; epoch: number; sequence: number }[]): Promise<{ replayed: boolean; receipt: BatchReceipt }> {
+  async function execute<T extends DriverActionBatch | LocationBatch>(scope: string, key: string, body: T, items: readonly { id: string; epoch: number; sequence: number; rejectionCode?: string }[]): Promise<{ replayed: boolean; receipt: BatchReceipt }> {
     const fingerprint = requestFingerprint(body);
     const operationKey = `${scope}:${key}`;
     const existing = operations.get(operationKey);
@@ -177,7 +177,9 @@ export function createOfflineBatchService(now: () => Date = () => new Date()) {
       if (previous) return { ...previous, outcome: "REPLAYED" as const };
       const sequenceKey = `${scope}:${item.epoch}`;
       const priorSequence = lastSequence.get(sequenceKey) ?? 0;
-      const receipt: BatchReceipt["items"][number] = item.sequence <= priorSequence
+      const receipt: BatchReceipt["items"][number] = item.rejectionCode
+        ? { clientItemId: item.id, outcome: "REJECTED", code: item.rejectionCode }
+        : item.sequence <= priorSequence
         ? { clientItemId: item.id, outcome: "REJECTED", code: "OUT_OF_ORDER_SEQUENCE" }
         : { clientItemId: item.id, outcome: "APPLIED", resourceVersion: item.sequence };
       if (receipt.outcome === "APPLIED") lastSequence.set(sequenceKey, item.sequence);
@@ -190,8 +192,11 @@ export function createOfflineBatchService(now: () => Date = () => new Date()) {
     return { replayed: false, receipt };
   }
   return Object.freeze({
-    actions(scope: string, key: string, batch: DriverActionBatch) {
-      return execute(scope, key, batch, batch.items.map((item) => ({ id: item.clientActionId, epoch: item.deviceEpoch, sequence: item.sequence })));
+    actions(scope: string, key: string, batch: DriverActionBatch, validate?: (item: DriverActionBatch["items"][number]) => string | undefined) {
+      return execute(scope, key, batch, batch.items.map((item) => {
+        const rejectionCode = validate?.(item); const identity = { id: item.clientActionId, epoch: item.deviceEpoch, sequence: item.sequence };
+        return rejectionCode ? { ...identity, rejectionCode } : identity;
+      }));
     },
     locations(scope: string, key: string, batch: LocationBatch) {
       return execute(scope, key, batch, batch.samples.map((sample) => ({ id: sample.sampleId, epoch: sample.deviceEpoch, sequence: sample.sequence })));

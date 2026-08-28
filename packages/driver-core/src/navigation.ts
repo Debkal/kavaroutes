@@ -1,4 +1,5 @@
 export type NavigationDestination = { readonly kind: "PLACE_ID"; readonly value: string } | { readonly kind: "COORDINATE"; readonly latitude: number; readonly longitude: number } | { readonly kind: "SYNTHETIC_ADDRESS"; readonly value: string };
+export type NavigationPlatform = "android" | "ios" | "other";
 
 export function buildGoogleDirectionsUrl(destination: NavigationDestination, action: "navigate" | "preview" = "navigate"): string {
   let value: string;
@@ -24,14 +25,16 @@ export function buildAppleMapsUrl(destination: NavigationDestination): string {
   return `https://maps.apple.com/?${new URLSearchParams({ daddr: destinationValue, dirflg: "d" }).toString()}`;
 }
 
-export async function handoffNavigation(port: { canOpen(url: string): Promise<boolean>; open(url: string): Promise<void> }, destination: NavigationDestination): Promise<"OPENED_GOOGLE" | "OPENED_SYSTEM" | "UNAVAILABLE"> {
-  const google = buildGoogleDirectionsUrl(destination);
-  if (await port.canOpen(google)) { await port.open(google); return "OPENED_GOOGLE"; }
-  const fallback = buildAppleMapsUrl(destination);
-  if (await port.canOpen(fallback)) { await port.open(fallback); return "OPENED_SYSTEM"; }
+export async function handoffNavigation(
+  port: { canOpen(url: string): Promise<boolean>; open(url: string): Promise<void> },
+  destination: NavigationDestination,
+  platform: NavigationPlatform = "other",
+): Promise<"OPENED_GOOGLE" | "OPENED_APPLE" | "UNAVAILABLE"> {
+  const url = platform === "ios" ? buildAppleMapsUrl(destination) : buildGoogleDirectionsUrl(destination);
+  if (await port.canOpen(url)) { await port.open(url); return platform === "ios" ? "OPENED_APPLE" : "OPENED_GOOGLE"; }
   return "UNAVAILABLE";
 }
 
-export function safeNavigationTelemetry(outcome: "OPENED_GOOGLE" | "OPENED_SYSTEM" | "UNAVAILABLE" | "REJECTED") {
+export function safeNavigationTelemetry(outcome: "OPENED_GOOGLE" | "OPENED_APPLE" | "UNAVAILABLE" | "REJECTED") {
   return Object.freeze({ metric: "driver_navigation_handoff", outcome });
 }

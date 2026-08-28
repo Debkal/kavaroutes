@@ -66,7 +66,7 @@ const permissionDump = execFileSync(resolve(buildTools, "aapt"), ["dump", "permi
 const permissions = [...permissionDump.matchAll(/uses-permission: name='([^']+)'/g)].map((match) => match[1]).sort();
 for (const permission of ["android.permission.ACCESS_BACKGROUND_LOCATION", "android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION",
   "android.permission.FOREGROUND_SERVICE", "android.permission.FOREGROUND_SERVICE_LOCATION", "android.permission.INTERNET", "android.permission.ACCESS_NETWORK_STATE",
-  "android.permission.DETECT_SCREEN_CAPTURE"]) assert.ok(permissions.includes(permission), `required permission missing: ${permission}`);
+  "android.permission.DETECT_SCREEN_CAPTURE", "android.permission.CAMERA"]) assert.ok(permissions.includes(permission), `required permission missing: ${permission}`);
 for (const permission of ["android.permission.READ_MEDIA_IMAGES", "android.permission.RECORD_AUDIO", "android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE",
   "android.permission.SYSTEM_ALERT_WINDOW", "android.permission.VIBRATE", "android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"]) assert.ok(!permissions.includes(permission), `prohibited permission present: ${permission}`);
 const certificateDigest = signer.match(/Signer #1 certificate SHA-256 digest: ([a-f0-9]+)/i)?.[1];

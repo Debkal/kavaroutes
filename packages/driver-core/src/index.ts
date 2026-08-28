@@ -8,3 +8,4 @@ export * from "./sync.js";
 export * from "./telemetry.js";
 export * from "./tracking.js";
 export * from "./upstream.js";
+export * from "./workflow.js";

@@ -13,8 +13,9 @@ assert.equal("newArchEnabled" in app.expo, false); assert.equal("jsEngine" in ap
 for (const permission of ["android.permission.READ_MEDIA_IMAGES", "android.permission.RECORD_AUDIO", "android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE",
   "android.permission.SYSTEM_ALERT_WINDOW", "android.permission.VIBRATE", "android.permission.USE_BIOMETRIC", "android.permission.USE_FINGERPRINT"]) assert.ok(app.expo.android.blockedPermissions.includes(permission));
 assert.equal(app.expo.plugins.some((plugin) => Array.isArray(plugin) && plugin[0] === "expo-sqlite" && plugin[1].useSQLCipher === true), true);
+assert.equal(app.expo.plugins.some((plugin) => Array.isArray(plugin) && plugin[0] === "expo-camera" && plugin[1].recordAudioAndroid === false && plugin[1].barcodeScannerEnabled === false), true);
 assert.equal(app.expo.plugins.some((plugin) => Array.isArray(plugin) && plugin[0] === "expo-build-properties" && plugin[1].android.compileSdkVersion === 36 && plugin[1].android.targetSdkVersion === 36 && plugin[1].android.minSdkVersion === 29 && plugin[1].ios.deploymentTarget === "16.4"), true);
-assert.equal(driverSchemas.length, 7); assert.equal(DRIVER_MIGRATIONS.length, 1);
+assert.equal(driverSchemas.length, 7); assert.equal(DRIVER_MIGRATIONS.length, 3);
 const files = [];
 async function walk(directory) { for (const item of await readdir(directory, { withFileTypes: true })) { const target = resolve(directory, item.name); if (item.isDirectory()) await walk(target); else if (/\.(ts|tsx)$/.test(item.name)) files.push(target); } }
 await walk(resolve(repository, "apps/driver")); await walk(resolve(root, "src"));
@@ -22,13 +23,22 @@ const source = (await Promise.all(files.map((file) => readFile(file, "utf8")))).
 assert.doesNotMatch(source, /AsyncStorage|redux-persist|firebase|@googlemaps|eas update|segment|sentry|datadog/i);
 assert.doesNotMatch(source, /@kavaroutes\/(postgres-persistence|durable-execution)|fastify|drizzle-orm|pg-boss/i);
 assert.doesNotMatch(source, /from ["']node:/);
+assert.doesNotMatch(source, /SET_SYNTHETIC_PROPOSAL_CONTEXT|Use Enterprise policy|Use authorized Small Business|Fake dispatch (?:approves|rejects|expires)/i);
 const background = await readFile(resolve(repository, "apps/driver/src/background-location.ts"), "utf8");
-assert.match(background, /TaskManager\.defineTask/); assert.doesNotMatch(background, /fetch\(|upload|render|arrival|billing/i);
+assert.match(background, /TaskManager\.defineTask/); assert.match(background, /initialSequence/); assert.doesNotMatch(background, /fetch\(|upload|render|arrival|billing/i);
+const nativeActions = await readFile(resolve(repository, "apps/driver/src/nativeActions.ts"), "utf8");
+assert.match(nativeActions, /createPolicyDigest\(parsed\.effectivePolicy\)/); assert.match(nativeActions, /WORKFLOW_POLICY_CONTENT_INVALID/);
+const workflowContext = await readFile(resolve(repository, "apps/driver/src/workflow-context.tsx"), "utf8");
+assert.match(workflowContext, /requestSyntheticShiftStartReceipt/); assert.doesNotMatch(workflowContext, /commercialTier\s*[:=]|workforceRelationship\s*[:=]/);
+for (const file of files.filter((candidate) => candidate.includes("/apps/driver/app/"))) {
+  const content = await readFile(file, "utf8");
+  assert.doesNotMatch(content, /<Pressable\b/, `route surface contains an unowned Pressable instead of PrimaryButton: ${file}`);
+}
 let routeSurfaceCount = 0;
 async function countRoutes(directory) { for (const entry of await readdir(directory, { withFileTypes: true })) { if (entry.isDirectory()) await countRoutes(resolve(directory, entry.name));
   else if (entry.name.endsWith(".tsx") && !entry.name.startsWith("_")) routeSurfaceCount += 1; } }
 await countRoutes(resolve(repository, "apps/driver/app"));
-assert.equal(routeSurfaceCount, 10);
+assert.equal(routeSurfaceCount, 9);
 const report = { format: 1, result: "PASS", schemas: driverSchemas.length, migrations: DRIVER_MIGRATIONS.length, sourceFiles: files.length,
   expo: manifest.dependencies.expo, reactNative: manifest.dependencies["react-native"], react: manifest.dependencies.react, newArchitectureMandatoryBySdk57: true, hermesMandatoryBySdk57: true,
   sqlCipherConfigured: true, routeSurfaces: routeSurfaceCount, physicalDeviceEvidence: false, completionBlockedBy: "HIG-006" };

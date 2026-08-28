@@ -31,6 +31,10 @@ export interface TenantMutationTransaction {
     resolvedServiceAt: Date; resolvedUtcOffsetSeconds: number; ambiguityPolicy: "reject" | "earlier" | "later";
   }): Promise<{ tripId: string; riderId: string; serviceDate: string; serviceTimezone: string; resolvedServiceAt: string; lifecycle: "DRAFT"; version: number }>;
   updateTripLifecycle(input: { tripId: string; expectedVersion: number; lifecycleReference: "cancelled" }): Promise<{ tripId: string; riderId: string; serviceDate: string; serviceTimezone: string; resolvedServiceAt: string; lifecycle: "CANCELLED"; version: number }>;
+  replaceDriverControlPolicy(input: {
+    policyId: string; organizationId: string; expectedVersion: number; controls: JsonValue; locks: JsonValue;
+    reasonCode: "OWNER_ENABLED_STRICT_PRESET" | "OPERATING_POLICY_CHANGED" | "EXTERNAL_REQUIREMENT_CHANGED"; actorId: string;
+  }): Promise<{ policyId: string; version: number }>;
   appendAudit(input: { auditId: string; aggregateKind: string; aggregateId: string; aggregateVersion: number; actionReference: string; actorReference: string }): Promise<void>;
   appendOutboxMessage(input: {
     messageId: string; eventId: string; aggregateType: string; aggregateId: string; aggregateVersion: number;
@@ -80,6 +84,20 @@ function transactionAdapter(client: PoolClient, tenantId: string): TenantMutatio
       const row = result.rows[0];
       if (!row) throw new PersistenceConflict("stale-version", "trip version is stale");
       return rowToTrip(row) as Awaited<ReturnType<TenantMutationTransaction["updateTripLifecycle"]>>;
+    },
+    async replaceDriverControlPolicy(input: Parameters<TenantMutationTransaction["replaceDriverControlPolicy"]>[0]) {
+      const current = await client.query<{ id: string; policy_version: string }>(`SELECT id,policy_version
+        FROM platform.driver_control_policy WHERE tenant_id=$1 AND organization_id=$2 AND scope_kind='ORGANIZATION'
+        AND scope_reference IS NULL AND lifecycle='ACTIVE' FOR UPDATE`, [tenantId, input.organizationId]);
+      const active = current.rows[0];
+      if (!active || Number(active.policy_version) !== input.expectedVersion) throw new PersistenceConflict("stale-version", "driver policy version is stale");
+      const nextVersion = input.expectedVersion + 1;
+      await client.query("UPDATE platform.driver_control_policy SET lifecycle='SUPERSEDED',aggregate_version=aggregate_version+1 WHERE tenant_id=$1 AND id=$2", [tenantId, active.id]);
+      await client.query(`INSERT INTO platform.driver_control_policy (
+        tenant_id,id,organization_id,scope_kind,scope_reference,policy_version,controls,locks,reason_code,created_by
+      ) VALUES ($1,$2,$3,'ORGANIZATION',NULL,$4,$5::jsonb,$6::jsonb,$7,$8)`, [tenantId, input.policyId, input.organizationId,
+        nextVersion, JSON.stringify(input.controls), JSON.stringify(input.locks), input.reasonCode, input.actorId]);
+      return { policyId: input.policyId, version: nextVersion };
     },
     async appendAudit(input: Parameters<TenantMutationTransaction["appendAudit"]>[0]) {
       await client.query(`INSERT INTO audit.event (

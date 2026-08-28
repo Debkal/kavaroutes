@@ -2,7 +2,7 @@
   "format": 1,
   "result": "PASS",
   "exactPins": true,
-  "packageCount": 23,
+  "packageCount": 25,
   "packages": [
     {
       "name": "@testing-library/react-native",
@@ -33,6 +33,13 @@
       "nativeCompatibility": "expo-doctor-57-pass"
     },
     {
+      "name": "expo-camera",
+      "version": "57.0.4",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
       "name": "expo-crypto",
       "version": "57.0.2",
       "license": "MIT",
@@ -49,6 +56,13 @@
     {
       "name": "expo-doctor",
       "version": "1.20.3",
+      "license": "MIT",
+      "repository": "https://github.com/expo/expo.git",
+      "nativeCompatibility": "expo-doctor-57-pass"
+    },
+    {
+      "name": "expo-file-system",
+      "version": "57.0.6",
       "license": "MIT",
       "repository": "https://github.com/expo/expo.git",
       "nativeCompatibility": "expo-doctor-57-pass"

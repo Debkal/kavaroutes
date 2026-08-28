@@ -88,7 +88,10 @@ test("strict bodies, driver batch limits/order/replay, operation access, and rat
   assert.equal(response.statusCode, 404);
   response = await app.inject({ method: "GET", url: `${base}/driver/manifest`, headers: driver });
   assert.equal(response.statusCode, 200);
-  assert.deepEqual(Object.keys(response.json()).sort(), ["assignments", "driverReference", "serviceDate", "serviceTimezone", "version"]);
+  assert.deepEqual(Object.keys(response.json()).sort(), ["assignments", "driverReference", "effectivePolicy", "effectivePolicyDigest", "serviceDate", "serviceTimezone", "version"]);
+  assert.equal(response.json().effectivePolicy.commercialTier, "ENTERPRISE");
+  assert.equal(response.json().effectivePolicy.workforceRelationship, "EMPLOYEE");
+  assert.equal(response.json().effectivePolicyDigest, response.json().effectivePolicy.canonicalDigest);
   const action = (id, sequence) => ({ clientActionId: id, deviceEpoch: 1, sequence, capturedAt: "2026-08-24T12:00:00.000Z", command: "MARK_EN_ROUTE",
     resourceReference: tripId, expectedTag: strongEtag("secret", tripId, 1, "driver"), idempotencyKey: `action-item-key-${String(sequence).padStart(4, "0")}` });
   const batch = { deviceSessionId: "44444444-4444-4444-8444-444444444444", items: [action("55555555-5555-4555-8555-555555555555", 2), action("66666666-6666-4666-8666-666666666666", 1)] };
@@ -101,6 +104,53 @@ test("strict bodies, driver batch limits/order/replay, operation access, and rat
 
   response = await app.inject({ method: "GET", url: `${base}/operations/${syntheticReadModels.operation.operationId}`, headers: auth("principal_integration") });
   assert.equal(response.statusCode, 200);
+});
+
+test("Driver control policy is versioned, capability-separated, and not writable by the Driver", async (t) => {
+  const app = await createWp007Api({ application: memoryApplication(), now: () => new Date("2026-08-27T12:00:00.000Z") });
+  t.after(() => app.close()); const base = `/v1/organizations/${syntheticIds.organizationA}/driver-control-policy`;
+  let response = await app.inject({ method: "GET", url: base, headers: auth("principal_driver") }); assert.equal(response.statusCode, 403);
+  response = await app.inject({ method: "GET", url: base, headers: auth("principal_dispatcher") }); assert.equal(response.statusCode, 200);
+  assert.equal(response.json().commercialTier, "ENTERPRISE"); const etag = response.headers.etag;
+  const controls = { preInspection: { mode: "OPTIONAL", locked: false }, postInspection: { mode: "OPTIONAL", locked: false },
+    startOdometer: { mode: "OPTIONAL", locked: false }, endOdometer: { mode: "OPTIONAL", locked: false },
+    returnVerification: { mode: "ADVISORY", locked: false }, routeChange: { mode: "AUTHORIZED_SELF_APPROVE", locked: false } };
+  response = await app.inject({ method: "POST", url: `${base}/commands/update`, headers: { ...auth("principal_dispatcher"), "idempotency-key": "policy-update-key-0001", "if-match": etag }, payload: { reasonCode: "OPERATING_POLICY_CHANGED", controls } });
+  assert.equal(response.statusCode, 403); assert.equal(response.json().code, "POLICY_OVERRIDE_CAPABILITY_REQUIRED");
+  response = await app.inject({ method: "POST", url: `${base}/commands/update`, headers: { ...auth("principal_policy_override"), "idempotency-key": "policy-update-key-0002", "if-match": etag },
+    payload: { reasonCode: "OPERATING_POLICY_CHANGED", controls, secondApprovalReference: syntheticIds.dispatcher } });
+  assert.equal(response.statusCode, 200); assert.equal(response.json().version, 2); assert.notEqual(response.headers.etag, etag);
+  const firstBody = response.json();
+  response = await app.inject({ method: "POST", url: `${base}/commands/update`, headers: { ...auth("principal_policy_override"), "idempotency-key": "policy-update-key-0002", "if-match": etag },
+    payload: { reasonCode: "OPERATING_POLICY_CHANGED", controls, secondApprovalReference: syntheticIds.dispatcher } });
+  assert.equal(response.statusCode, 200); assert.equal(response.headers["kavaroutes-idempotency-replayed"], "true"); assert.deepEqual(response.json(), firstBody);
+  response = await app.inject({ method: "POST", url: `${base}/commands/update`, headers: { ...auth("principal_policy_override"), "idempotency-key": "policy-update-key-0003", "if-match": etag },
+    payload: { reasonCode: "OPERATING_POLICY_CHANGED", controls, secondApprovalReference: syntheticIds.dispatcher } });
+  assert.equal(response.statusCode, 412);
+});
+
+test("Driver policy action commands are structurally closed and digest-bound", async (t) => {
+  const app = await createWp007Api({ application: memoryApplication() });
+  t.after(() => app.close());
+  const url = `/v1/organizations/${syntheticIds.organizationA}/driver/action-batches`;
+  const manifest = await app.inject({ method: "GET", url: `/v1/organizations/${syntheticIds.organizationA}/driver/manifest`, headers: auth("principal_driver") });
+  const policyDigest = manifest.json().effectivePolicyDigest;
+  const action = { clientActionId: "55555555-5555-4555-8555-555555555556", deviceEpoch: 1, sequence: 1,
+    capturedAt: "2026-08-27T12:00:00.000Z", command: "SKIP_PRECHECK", resourceReference: tripId,
+    expectedTag: strongEtag("secret", tripId, 1, "driver"), idempotencyKey: "policy-action-item-0001" };
+  let response = await app.inject({ method: "POST", url, headers: { ...auth("principal_driver"), "idempotency-key": "policy-action-batch-0001" },
+    payload: { deviceSessionId: "44444444-4444-4444-8444-444444444444", items: [action] } });
+  assert.equal(response.statusCode, 400);
+  response = await app.inject({ method: "POST", url, headers: { ...auth("principal_driver"), "idempotency-key": "policy-action-batch-0002" },
+    payload: { deviceSessionId: "44444444-4444-4444-8444-444444444444", items: [{ ...action, reasonCode: "OPTIONAL_CONTROL_SKIPPED", policyDigest: "a".repeat(64) }] } });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.json().items[0].code, "STALE_POLICY_SNAPSHOT");
+  response = await app.inject({ method: "POST", url, headers: { ...auth("principal_driver"), "idempotency-key": "policy-action-batch-0003" },
+    payload: { deviceSessionId: "44444444-4444-4444-8444-444444444444", items: [{ ...action, clientActionId: "55555555-5555-4555-8555-555555555557", sequence: 2, reasonCode: "OPTIONAL_CONTROL_SKIPPED", policyDigest }] } });
+  assert.equal(response.statusCode, 200); assert.equal(response.json().items[0].code, "CONTROL_REQUIRED_CANNOT_SKIP");
+  response = await app.inject({ method: "POST", url, headers: { ...auth("principal_driver"), "idempotency-key": "policy-action-batch-0004" },
+    payload: { deviceSessionId: "44444444-4444-4444-8444-444444444444", items: [{ ...action, clientActionId: "55555555-5555-4555-8555-555555555558", sequence: 3, command: "COMPLETE_PRECHECK", policyDigest }] } });
+  assert.equal(response.statusCode, 200); assert.equal(response.json().items[0].outcome, "APPLIED");
 });
 
 test("offline idempotent replay and payload mismatch are exact with normal rate capacity", async (t) => {

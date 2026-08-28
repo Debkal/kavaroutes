@@ -35,7 +35,7 @@ for (const [path, pathItem] of Object.entries(openapi.paths)) {
     if (pathItem[method]) operations.push({ method: method.toUpperCase(), path, operation: pathItem[method] });
   }
 }
-assert.equal(operations.length, 12);
+assert.equal(operations.length, 14);
 assert.equal(new Set(operations.map(({ operation }) => operation.operationId)).size, operations.length);
 assert.equal(operations.some(({ method }) => ["PATCH", "DELETE"].includes(method)), false);
 for (const { method, path, operation } of operations) {

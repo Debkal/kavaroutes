@@ -78,6 +78,12 @@
       "rule": "minimum necessary manifest/actions/locations"
     },
     {
+      "id": "driver-control-policy",
+      "path": "/v1/organizations/{organizationId}/driver-control-policy",
+      "audience": "authorized-operations-administration",
+      "rule": "tier and effective controls are backend authoritative"
+    },
+    {
       "id": "facility",
       "path": "/v1/organizations/{organizationId}/facility",
       "audience": "facility-user",
@@ -202,6 +208,22 @@
       "method": "GET",
       "path": "/v1/organizations/{organizationId}/driver/manifest",
       "capability": "driver:manifest:read",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getDriverControlPolicy",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver-control-policy",
+      "capability": "driver-policy:read",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "updateDriverControlPolicy",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver-control-policy/commands/update",
+      "capability": "driver-policy:write",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "implementationState": "REGISTERED"
     },

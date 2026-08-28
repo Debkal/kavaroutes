@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "KavaRoutes Driver Feasibility",
+    "name": "KavaRoutes Driver Test",
     "slug": "kavaroutes-driver-local",
     "version": "0.0.0-wp010",
     "runtimeVersion": "0.0.0-wp010",
@@ -30,9 +30,10 @@
       ["expo-build-properties", { "android": { "compileSdkVersion": 36, "targetSdkVersion": 36, "minSdkVersion": 29 }, "ios": { "deploymentTarget": "16.4" } }],
       ["expo-sqlite", { "enableFTS": false, "useSQLCipher": true }],
       ["expo-secure-store", { "configureAndroidBackup": false, "faceIDPermission": "KavaRoutes WP010 does not use Face ID." }],
+      ["expo-camera", { "cameraPermission": "Allow KavaRoutes Driver to photograph a synthetic vehicle defect. Keep people, paperwork, labels, screens, and private information out of frame.", "recordAudioAndroid": false, "barcodeScannerEnabled": false }],
       ["expo-location", {
-        "locationWhenInUsePermission": "Allow KavaRoutes Driver to record synthetic route position while an approved test shift is active.",
-        "locationAlwaysAndWhenInUsePermission": "Allow KavaRoutes Driver to record synthetic route position during an approved active test shift, including in the background.",
+        "locationWhenInUsePermission": "Allow KavaRoutes Driver to use your location while you test a shift.",
+        "locationAlwaysAndWhenInUsePermission": "Allow KavaRoutes Driver to use your location during a test shift, even when the app is not on screen.",
         "isIosBackgroundLocationEnabled": true,
         "isAndroidBackgroundLocationEnabled": true,
         "isAndroidForegroundServiceEnabled": true
