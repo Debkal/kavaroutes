@@ -27,6 +27,7 @@
     },
     "plugins": [
       "expo-router",
+      ["expo-notifications", { "defaultChannel": "dispatch_updates", "enableBackgroundRemoteNotifications": false }],
       ["expo-build-properties", { "android": { "compileSdkVersion": 36, "targetSdkVersion": 36, "minSdkVersion": 29 }, "ios": { "deploymentTarget": "16.4" } }],
       ["expo-sqlite", { "enableFTS": false, "useSQLCipher": true }],
       ["expo-secure-store", { "configureAndroidBackup": false, "faceIDPermission": "KavaRoutes WP010 does not use Face ID." }],

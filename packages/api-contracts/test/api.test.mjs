@@ -172,3 +172,24 @@ test("offline idempotent replay and payload mismatch are exact with normal rate 
   const tooMany = await app.inject({ method: "POST", url, headers: { ...driver, "idempotency-key": "location-batch-0002" }, payload: { ...batch, samples: Array.from({ length: 501 }, (_, index) => ({ ...sample, sampleId: `${String(index).padStart(8, "0")}-7777-4777-8777-777777777777`, sequence: index + 1 })) } });
   assert.equal(tooMany.statusCode, 400);
 });
+
+test("Driver installation registration is closed, tenant-bound, idempotent, and never returns its native token", async (t) => {
+  const app = await createWp007Api({ application: memoryApplication(), now: () => new Date("2026-08-29T00:00:00.000Z") });
+  t.after(() => app.close());
+  const base = `/v1/organizations/${syntheticIds.organizationA}/driver/installations`;
+  const payload = { installationId: "50000000-0000-4000-8000-000000000001", generation: "gen_synthetic000001",
+    platform: "android", provider: "fcm", environment: "development", appId: "com.kavaroutes.driver.synthetic",
+    nativeToken: "synthetic_native_token_0000000000000001", permission: "granted", channelEnabled: true, policyVersion: "push.policy.v1" };
+  const headers = { ...auth("principal_driver"), "idempotency-key": "push-register-key-0001" };
+  const first = await app.inject({ method: "POST", url: base, headers, payload });
+  assert.equal(first.statusCode, 200); assert.equal(first.json().lifecycle, "active");
+  assert.equal(JSON.stringify(first.json()).includes(payload.nativeToken), false); assert.equal("tokenFingerprint" in first.json(), false);
+  const replay = await app.inject({ method: "POST", url: base, headers, payload }); assert.equal(replay.statusCode, 200); assert.deepEqual(replay.json(), first.json());
+  const mismatch = await app.inject({ method: "POST", url: base, headers, payload: { ...payload, nativeToken: `${payload.nativeToken}changed` } });
+  assert.equal(mismatch.statusCode, 422); assert.equal(mismatch.json().code, "PUSH_IDEMPOTENCY_MISMATCH");
+  const outsider = await app.inject({ method: "POST", url: base, headers: { ...auth("principal_outsider"), "idempotency-key": "push-register-key-0002" }, payload });
+  assert.equal(outsider.statusCode, 404);
+  const unregister = await app.inject({ method: "POST", url: `${base}/${payload.installationId}/commands/unregister`,
+    headers: { ...auth("principal_driver"), "idempotency-key": "push-unregister-key-001" }, payload: { generation: payload.generation, reason: "logout" } });
+  assert.equal(unregister.statusCode, 200); assert.equal(unregister.json().lifecycle, "inactive");
+});

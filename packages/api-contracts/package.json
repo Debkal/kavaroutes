@@ -13,6 +13,7 @@
   },
   "types": "./dist/index.d.ts",
   "dependencies": {
+    "@kavaroutes/push-notifications": "0.0.0-wp012",
     "@fastify/swagger": "9.8.1",
     "@fastify/type-provider-typebox": "6.1.0",
     "@kavaroutes/platform-engine": "0.0.0-wp005",

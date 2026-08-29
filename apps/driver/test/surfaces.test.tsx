@@ -3,10 +3,15 @@ import { PrimaryButton } from "../src/components/PrimaryButton";
 import { StatusCard } from "../src/components/StatusCard";
 import ProposalScreen from "../app/proposal";
 import ShiftHomeScreen from "../app/index";
+import UpdatesScreen from "../app/updates";
 
 const mockUseWorkflow = jest.fn();
 jest.mock("@kavaroutes/driver-core", () => ({ actionLabel: (step: string) => step.replaceAll("_", " ") }));
 jest.mock("../src/workflow-context", () => ({ useWorkflow: () => mockUseWorkflow() }));
+jest.mock("../src/notification-actions", () => ({
+  readNotificationPermission: jest.fn(async () => "denied"),
+  requestNotificationPermissionInContext: jest.fn(async () => "denied"),
+}));
 test("status is exposed through text and an accessible summary", async () => {
   const surface = await render(<StatusCard title="Tracking" status="STOPPED BY DRIVER" />);
   expect(surface.getByRole("summary", { name: "Tracking: STOPPED BY DRIVER" })).toBeTruthy();
@@ -55,4 +60,14 @@ test("small business home offers one clear start action without policy internals
   await waitFor(() => expect(dispatch).toHaveBeenCalledWith({ type: "SKIP_PRECHECK", reason: "OPTIONAL_CONTROL_SKIPPED" }));
   expect(surface.getByText("Ready to start your route?")).toBeTruthy();
   expect(surface.queryByText(/policy v|canonical|digest/i)).toBeNull();
+});
+
+test("notification denial leaves manual authoritative recovery available", async () => {
+  const recoverUpdates = jest.fn(async () => ({ outcome: "synchronized", detail: "Authoritative synthetic state checked." }));
+  mockUseWorkflow.mockReturnValue({ recoverUpdates });
+  const surface = await render(<UpdatesScreen />);
+  await waitFor(() => expect(surface.getByText("denied")).toBeTruthy());
+  fireEvent.press(surface.getByRole("button", { name: "Check for updates now" }));
+  await waitFor(() => expect(recoverUpdates).toHaveBeenCalledWith("foreground"));
+  expect(surface.getByText("Authoritative synthetic state checked.")).toBeTruthy();
 });

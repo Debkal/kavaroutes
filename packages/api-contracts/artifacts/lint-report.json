@@ -1,8 +1,8 @@
 {
   "schemaVersion": "wp007.contract-lint.v1",
   "commandMappings": 88,
-  "registeredOperations": 14,
-  "schemas": 47,
+  "registeredOperations": 16,
+  "schemas": 51,
   "projections": 6,
   "breakingChanges": 0
 }

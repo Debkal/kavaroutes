@@ -24,6 +24,7 @@ const resourceFamilies = [
   { id: "fleet", path: "/v1/organizations/{organizationId}/fleet", audience: "fleet-dispatch", rule: "no rider projection" },
   { id: "driver", path: "/v1/organizations/{organizationId}/driver", audience: "assigned-driver", rule: "minimum necessary manifest/actions/locations" },
   { id: "driver-control-policy", path: "/v1/organizations/{organizationId}/driver-control-policy", audience: "authorized-operations-administration", rule: "tier and effective controls are backend authoritative" },
+  { id: "driver-installations", path: "/v1/organizations/{organizationId}/driver/installations", audience: "assigned-driver", rule: "native routing tokens are restricted, encrypted, generation-bound credentials" },
   { id: "facility", path: "/v1/organizations/{organizationId}/facility", audience: "facility-user", rule: "related trips only" },
   { id: "executions", path: "/v1/organizations/{organizationId}/executions", audience: "driver-dispatch-billing", rule: "purpose-specific execution/evidence" },
   { id: "billing", path: "/v1/organizations/{organizationId}/billing", audience: "billing", rule: "financial capability required" },
@@ -98,6 +99,8 @@ const liveOperations = [
   ["updateDriverControlPolicy", "POST", "/v1/organizations/{organizationId}/driver-control-policy/commands/update", "driver-policy:write", "ASSIGNED_SERVICE_DELIVERY"],
   ["submitDriverActionBatch", "POST", "/v1/organizations/{organizationId}/driver/action-batches", "driver:execute", "ASSIGNED_SERVICE_DELIVERY"],
   ["submitDriverLocationBatch", "POST", "/v1/organizations/{organizationId}/driver/location-batches", "driver:location:write", "ASSIGNED_SERVICE_DELIVERY"],
+  ["registerDriverInstallation", "POST", "/v1/organizations/{organizationId}/driver/installations", "driver:notifications:write", "ASSIGNED_SERVICE_DELIVERY"],
+  ["unregisterDriverInstallation", "POST", "/v1/organizations/{organizationId}/driver/installations/{installationId}/commands/unregister", "driver:notifications:write", "ASSIGNED_SERVICE_DELIVERY"],
   ["getOperation", "GET", "/v1/organizations/{organizationId}/operations/{operationId}", "integrations:read", "PARTNER_EXPORT"]
 ].map(([id, method, path, capability, purpose]) => ({ operationId: id, method, path, capability, purpose, implementationState: "REGISTERED" }));
 

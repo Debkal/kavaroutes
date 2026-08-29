@@ -111,6 +111,52 @@
     },
     {
       "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/installations",
+      "operationId": "registerDriverInstallation",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/installations/{installationId}/commands/unregister",
+      "operationId": "unregisterDriverInstallation",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
       "path": "/v1/organizations/{organizationId}/driver/location-batches",
       "operationId": "submitDriverLocationBatch",
       "statuses": [

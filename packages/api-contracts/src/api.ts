@@ -7,6 +7,7 @@ import { Compile } from "typebox/compile";
 import { Value } from "typebox/value";
 import { PersistenceConflict } from "@kavaroutes/postgres-persistence";
 import type { EffectiveDriverPolicy } from "@kavaroutes/platform-engine/domain";
+import { createRegistrationService, createTokenVault, type RegistrationInput, type RegistrationInactiveReason } from "@kavaroutes/push-notifications";
 import type { Wp007Application } from "./application.js";
 import { createDocumentationApplication, createOfflineBatchService, syntheticReadModels } from "./application.js";
 import { createSyntheticDriverPolicyService, policyVersionFromEtag, type DriverPolicyService } from "./driver-policy.js";
@@ -16,10 +17,11 @@ import { authorize, createSyntheticTestVerifier, type AuthorizationRequirement, 
 import {
   allSchemas, BatchReceiptSchema, CancelTripRequestSchema, DispatchDaySchema, DispatcherTripSchema,
   DriverActionBatchSchema, DriverControlPolicySchema, DriverManifestSchema, LocationBatchSchema, MeResponseSchema, OpaqueIdSchema,
-  OperationSchema, RiderSearchRequestSchema, RiderSearchResponseSchema, ServiceDateSchema,
+  OperationSchema, PushRegistrationRequestSchema, PushRegistrationResponseSchema, PushUnregistrationRequestSchema,
+  RiderSearchRequestSchema, RiderSearchResponseSchema, ServiceDateSchema,
   TripCollectionSchema, TripCommandResponseSchema, TripCreateRequestSchema, UpdateDriverControlPolicySchema,
 } from "./schemas.js";
-import type { CancelTripRequest, DriverActionBatch, LocationBatch, TripCreateRequest, UpdateDriverControlPolicy } from "./schemas.js";
+import type { CancelTripRequest, DriverActionBatch, LocationBatch, PushRegistrationRequest, PushUnregistrationRequest, TripCreateRequest, UpdateDriverControlPolicy } from "./schemas.js";
 
 const Type = Object.freeze({
   ...TypeBox,
@@ -51,12 +53,14 @@ export interface Wp007ApiOptions {
   readonly telemetrySink?: (event: SafeTelemetryEvent) => void;
   readonly rateLimitPerOperation?: number;
   readonly driverPolicyService?: DriverPolicyService;
+  readonly pushRegistrationService?: ReturnType<typeof createRegistrationService>;
 }
 
 const OrganizationParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false });
 const TripParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), tripId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false });
 const DispatchDayParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), serviceDate: Type.Ref(ServiceDateSchema) }, { additionalProperties: false });
 const OperationParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), operationId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false });
+const InstallationParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), installationId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false });
 const CollectionQuery = Type.Object({ cursor: Type.Optional(Type.String({ minLength: 32, maxLength: 2048 })), limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200 })) }, { additionalProperties: false });
 const AuthorizationHeaders = Type.Object({ authorization: Type.String({ pattern: "^Synthetic principal_[a-z_]+$", maxLength: 64 }) });
 const IdempotentHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "idempotency-key": Type.Ref(IdempotencyKeySchema) })]);
@@ -114,6 +118,9 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   const cursorCodec = createCursorCodec(options.cursorSecret ?? "synthetic-cursor-secret-wp007-local-only");
   const offline = createOfflineBatchService(now);
   const driverPolicy = options.driverPolicyService ?? createSyntheticDriverPolicyService({ organizationId: syntheticIds.organizationA, now });
+  const pushRegistrations = options.pushRegistrationService ?? createRegistrationService({ now, vault: createTokenVault({
+    encryptionKey: Buffer.from("wp012-local-encryption-key-00001"), equalityKey: Buffer.from("wp012-local-equality-key-00000001"),
+  }) });
   const pinnedDriverPolicy = driverPolicy.resolveShift({ organizationId: syntheticIds.organizationA, driverId: syntheticIds.driverSubject,
     assignmentId: "40000000-0000-4000-8000-000000000001", relationship: "EMPLOYEE", capabilities: new Set() });
   const rateLimit = options.rateLimitPerOperation ?? 10_000;
@@ -150,7 +157,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       openapi: "3.1.2",
       info: { title: "KavaRoutes local synthetic API contract", version: "1.0.0" },
       servers: [],
-      tags: ["profile", "intake", "dispatch", "driver", "operations"].map((name) => ({ name })),
+      tags: ["profile", "intake", "dispatch", "driver", "notifications", "operations"].map((name) => ({ name })),
       components: { securitySchemes: { syntheticTestPrincipal: { type: "apiKey", in: "header", name: "Authorization", description: "Local deterministic test verifier only; not a production authentication scheme." } } },
     },
   });
@@ -207,18 +214,20 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       ? error as unknown as Record<string, unknown>
       : {};
     const validation = Array.isArray(errorRecord.validation) ? errorRecord.validation : null;
+    const pushCode = error instanceof Error && /^PUSH_[A-Z0-9_]+$/.test(error.message) ? error.message : null;
     let status = error instanceof ProtocolError ? error.statusCode
       : error instanceof PersistenceConflict
         ? ({ "stale-version": 412, "idempotency-mismatch": 422, "idempotency-in-progress": 409, "idempotency-expired": 410,
           "resource-overlap": 409, duplicate: 409, relationship: 404, tenant: 404 }[error.kind] ?? 500)
+        : pushCode ? (/NOT_FOUND|CONTEXT_MISMATCH/.test(pushCode) ? 404 : 422)
         : validation ? 400
           : errorRecord.code === "FST_ERR_CTP_BODY_TOO_LARGE" ? 413
             : typeof errorRecord.statusCode === "number" ? errorRecord.statusCode : 500;
     if (!(status in errors)) status = 500;
     const code = error instanceof ProtocolError ? error.code
       : error instanceof PersistenceConflict ? `PERSISTENCE_${error.kind.replaceAll("-", "_").toUpperCase()}`
-        : validation ? "REQUEST_SCHEMA_INVALID"
-          : status === 413 ? "PAYLOAD_TOO_LARGE" : status === 415 ? "UNSUPPORTED_MEDIA_TYPE" : "INTERNAL_ERROR";
+        : pushCode ?? (validation ? "REQUEST_SCHEMA_INVALID"
+          : status === 413 ? "PAYLOAD_TOO_LARGE" : status === 415 ? "UNSUPPORTED_MEDIA_TYPE" : "INTERNAL_ERROR");
     const pointer = validation
       ? String((validation[0] as { instancePath?: string } | undefined)?.instancePath || "/request").replace(/[^/A-Za-z0-9_-]/g, "").slice(0, 256)
       : error instanceof ProtocolError ? error.pointer : undefined;
@@ -384,6 +393,40 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
     request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "LOCATION_BATCH_COMMITTED";
     return reply.send(result.receipt);
+  });
+
+  app.post("/v1/organizations/:organizationId/driver/installations", { bodyLimit: 16 * 1024, schema: { operationId: "registerDriverInstallation", tags: ["notifications"], security,
+    headers: IdempotentHeaders, params: OrganizationParams, body: PushRegistrationRequestSchema,
+    response: responseWithErrors({ 200: jsonResponse(PushRegistrationResponseSchema, "Registered native push installation without returning its routing token") }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
+    const { organizationId } = request.params as { organizationId: string };
+    const principal = requireAccess(request, organizationId, { capability: "driver:notifications:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "registerDriverInstallation");
+    if (!principal.subjectId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
+    const body = request.body as PushRegistrationRequest;
+    const input: RegistrationInput = { organizationId, principalId: principal.id, subjectId: principal.subjectId,
+      installationId: body.installationId, generation: body.generation, platform: body.platform, provider: body.provider,
+      environment: body.environment, appId: body.appId, token: body.nativeToken, permission: body.permission,
+      channelEnabled: body.channelEnabled, policyVersion: "push.policy.v1" };
+    const registered = pushRegistrations.register({ organizationId, principalId: principal.id, subjectId: principal.subjectId,
+      idempotencyKey: String(request.headers["idempotency-key"]) }, input);
+    request.wp007Context.resultCode = "PUSH_INSTALLATION_REGISTERED";
+    return reply.send({ installationId: registered.installationId, generation: registered.generation, platform: registered.platform,
+      provider: registered.provider, permission: registered.permission, channelEnabled: registered.channelEnabled,
+      policyVersion: registered.policyVersion, lifecycle: registered.lifecycle, lastConfirmedAt: registered.lastConfirmedAt });
+  });
+
+  app.post("/v1/organizations/:organizationId/driver/installations/:installationId/commands/unregister", { bodyLimit: 8 * 1024, schema: { operationId: "unregisterDriverInstallation", tags: ["notifications"], security,
+    headers: IdempotentHeaders, params: InstallationParams, body: PushUnregistrationRequestSchema,
+    response: responseWithErrors({ 200: jsonResponse(PushRegistrationResponseSchema, "Disabled the exact installation generation") }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
+    const { organizationId, installationId } = request.params as { organizationId: string; installationId: string };
+    const principal = requireAccess(request, organizationId, { capability: "driver:notifications:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "unregisterDriverInstallation");
+    if (!principal.subjectId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
+    const body = request.body as PushUnregistrationRequest;
+    const unregistered = pushRegistrations.unregister({ organizationId, principalId: principal.id, subjectId: principal.subjectId },
+      { installationId, generation: body.generation, reason: body.reason as RegistrationInactiveReason });
+    request.wp007Context.resultCode = "PUSH_INSTALLATION_UNREGISTERED";
+    return reply.send({ installationId: unregistered.installationId, generation: unregistered.generation, platform: unregistered.platform,
+      provider: unregistered.provider, permission: unregistered.permission, channelEnabled: unregistered.channelEnabled,
+      policyVersion: unregistered.policyVersion, lifecycle: unregistered.lifecycle, lastConfirmedAt: unregistered.lastConfirmedAt });
   });
 
   app.get("/v1/organizations/:organizationId/operations/:operationId", { schema: { operationId: "getOperation", tags: ["operations"], security,

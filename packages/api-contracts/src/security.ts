@@ -20,7 +20,7 @@ export type Capability =
   | "dispatch:read" | "dispatch:command" | "dispatch:location:read" | "fleet:read" | "fleet:command" | "driver:manifest:read"
   | "driver:execute" | "driver:location:write" | "facility:trip-status:read" | "facility:coordinate"
   | "billing:read" | "billing:command" | "integrations:read" | "integrations:write" | "audit:read"
-  | "driver-policy:read" | "driver-policy:write" | "driver-policy:override" | "driver-route:self-approve";
+  | "driver-policy:read" | "driver-policy:write" | "driver-policy:override" | "driver-route:self-approve" | "driver:notifications:write";
 export type Purpose = "RIDER_INTAKE" | "ASSIGNED_SERVICE_DELIVERY" | "FACILITY_COORDINATION" | "BILLING_PROOF" | "SUPPORT_DIAGNOSTICS" | "PARTNER_EXPORT";
 
 export interface SyntheticPrincipal {
@@ -43,7 +43,7 @@ const fixture = (input: Omit<SyntheticPrincipal, "capabilities" | "purposes" | "
 
 const principals = new Map<string, SyntheticPrincipal>([
   ["principal_dispatcher", fixture({ id: syntheticIds.dispatcher, kind: "SYNTHETIC_USER", organizationId: syntheticIds.organizationA, capabilities: allDispatcherCapabilities, purposes: ["RIDER_INTAKE", "ASSIGNED_SERVICE_DELIVERY"] })],
-  ["principal_driver", fixture({ id: syntheticIds.driver, kind: "SYNTHETIC_DEVICE", organizationId: syntheticIds.organizationA, subjectId: syntheticIds.driverSubject, capabilities: ["profile:read", "driver:manifest:read", "driver:execute", "driver:location:write"], purposes: ["ASSIGNED_SERVICE_DELIVERY"] })],
+  ["principal_driver", fixture({ id: syntheticIds.driver, kind: "SYNTHETIC_DEVICE", organizationId: syntheticIds.organizationA, subjectId: syntheticIds.driverSubject, capabilities: ["profile:read", "driver:manifest:read", "driver:execute", "driver:location:write", "driver:notifications:write"], purposes: ["ASSIGNED_SERVICE_DELIVERY"] })],
   ["principal_facility", fixture({ id: syntheticIds.facility, kind: "SYNTHETIC_USER", organizationId: syntheticIds.organizationA, subjectId: syntheticIds.facilitySubject, capabilities: ["profile:read", "facility:trip-status:read", "facility:coordinate"], purposes: ["FACILITY_COORDINATION"] })],
   ["principal_billing", fixture({ id: syntheticIds.billing, kind: "SYNTHETIC_USER", organizationId: syntheticIds.organizationA, capabilities: ["profile:read", "billing:read", "billing:command"], purposes: ["BILLING_PROOF"] })],
   ["principal_audit", fixture({ id: syntheticIds.audit, kind: "SYNTHETIC_USER", organizationId: syntheticIds.organizationA, capabilities: ["profile:read", "audit:read"], purposes: ["SUPPORT_DIAGNOSTICS"] })],

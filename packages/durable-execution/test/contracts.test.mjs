@@ -14,6 +14,10 @@ test("closed envelope and thin-job schemas reject unknown, unsupported, and sens
   assert.throws(() => validateEventEnvelope({ ...envelope, unexpected: true }), /UNSUPPORTED_SCHEMA/);
   assert.throws(() => validateEventEnvelope({ ...envelope, schemaVersion: "v2" }), /UNSUPPORTED_SCHEMA/);
   assert.throws(() => validateEventEnvelope({ ...envelope, payload: { ...envelope.payload, phone: "synthetic" } }), /PAYLOAD_POLICY_VIOLATION/);
+  const notification = { ...envelope, eventType: "NotificationIntentCreated", aggregateType: "NOTIFICATION_INTENT",
+    payload: { v: "1", kind: "sync_available", action: "open_and_sync" } };
+  assert.deepEqual(validateEventEnvelope(notification), notification);
+  assert.throws(() => validateEventEnvelope({ ...notification, payload: { ...notification.payload, tripId: uuid } }), /UNSUPPORTED_SCHEMA/);
   const thin = { tenantId: uuid, deliveryId: uuid, eventId: uuid, route: "projection", jobType: "kr.projection.trip.v1",
     eventType: "TripCreated", schemaVersion: "v1", aggregateType: "TRIP_REQUEST", aggregateId: uuid, aggregateVersion: 1,
     correlationId: uuid, classificationReference: "REGULATED_HEALTH", purposeReference: "RIDER_INTAKE", policyReference: "privacy-synthetic-v1" };

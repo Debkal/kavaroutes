@@ -1,15 +1,15 @@
 {
   "format": 1,
-  "sha256": "fc7d4b3cca2f72df6d3f2a588e671d900b8bc8bfdd68565a27158895f28879e3",
+  "sha256": "35c1eec2541eed8a2469915274ca81ce0ac1cfe65ce4fa512c254b31aaf2876a",
   "counts": {
-    "tables": 53,
-    "columns": 535,
-    "constraints": 340,
-    "indexes": 134,
-    "policies": 47,
-    "functions": 9,
+    "tables": 56,
+    "columns": 580,
+    "constraints": 375,
+    "indexes": 146,
+    "policies": 50,
+    "functions": 10,
     "extensions": 3,
-    "roles": 7
+    "roles": 8
   },
   "extensions": [
     {"name": "btree_gist", "version": "1.7"},

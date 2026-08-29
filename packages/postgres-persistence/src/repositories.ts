@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import type { Pool, PoolClient } from "pg";
 import { auditEvents, idempotencyRecords, organizations, runs } from "./schema.js";
 
-export type RuntimeRole = "kavaroutes_api" | "kavaroutes_worker" | "kavaroutes_import" | "kavaroutes_outbox_publisher" | "kavaroutes_outbox_consumer" | "kavaroutes_realtime";
+export type RuntimeRole = "kavaroutes_api" | "kavaroutes_worker" | "kavaroutes_import" | "kavaroutes_outbox_publisher" | "kavaroutes_outbox_consumer" | "kavaroutes_realtime" | "kavaroutes_push_worker";
 
 export class PersistenceConflict extends Error {
   readonly kind: "stale-version" | "duplicate" | "resource-overlap" | "relationship" | "tenant" | "idempotency-mismatch" | "idempotency-in-progress" | "idempotency-expired";
@@ -299,4 +299,48 @@ export function createPostgresPersistence(pool: Pool) {
 
     tables: { organizations, runs },
   };
+}
+
+export function createPushPersistence(pool: Pool) {
+  return Object.freeze({
+    async upsertRegistration(input: {
+      tenantId: string; id: string; organizationId: string; principalId: string; subjectId: string; installationId: string;
+      generation: string; platform: "ios" | "android"; provider: "apns" | "fcm"; environment: "sandbox" | "development";
+      appId: string; tokenCiphertext: Uint8Array; tokenKeyedHash: Uint8Array; permission: string; channelEnabled: boolean;
+    }) {
+      return withTenantTransaction(pool, input.tenantId, "kavaroutes_api", async (client) => {
+        await client.query(`UPDATE notification.installation_registration SET lifecycle='INACTIVE',inactive_reason='installation_replaced',invalidated_at=now(),refreshed_at=now()
+          WHERE tenant_id=$1 AND installation_id=$2 AND installation_generation<>$3 AND lifecycle='ACTIVE'`, [input.tenantId, input.installationId, input.generation]);
+        const result = await client.query(`INSERT INTO notification.installation_registration
+          (tenant_id,id,organization_id,principal_id,subject_id,installation_id,installation_generation,platform,provider,provider_environment,app_identity,token_ciphertext,token_keyed_hash,permission_state,channel_enabled)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+          ON CONFLICT (tenant_id,installation_id,installation_generation) DO UPDATE SET
+          token_ciphertext=excluded.token_ciphertext,token_keyed_hash=excluded.token_keyed_hash,permission_state=excluded.permission_state,
+          channel_enabled=excluded.channel_enabled,lifecycle='ACTIVE',inactive_reason=NULL,invalidated_at=NULL,refreshed_at=now(),last_confirmed_at=now()
+          WHERE notification.installation_registration.organization_id=excluded.organization_id
+            AND notification.installation_registration.principal_id=excluded.principal_id
+            AND notification.installation_registration.subject_id=excluded.subject_id
+          RETURNING id,lifecycle,last_confirmed_at`, [input.tenantId, input.id, input.organizationId, input.principalId, input.subjectId,
+          input.installationId, input.generation, input.platform, input.provider, input.environment, input.appId,
+          Buffer.from(input.tokenCiphertext), Buffer.from(input.tokenKeyedHash), input.permission, input.channelEnabled]);
+        if (!result.rows[0]) throw new PersistenceConflict("relationship", "registration binding differs");
+        return { id: result.rows[0].id as string, lifecycle: result.rows[0].lifecycle as string, lastConfirmedAt: (result.rows[0].last_confirmed_at as Date).toISOString() };
+      });
+    },
+    async deactivateRegistration(input: { tenantId: string; organizationId: string; principalId: string; subjectId: string; installationId: string; generation: string; reason: string }) {
+      return withTenantTransaction(pool, input.tenantId, "kavaroutes_api", async (client) => {
+        const result = await client.query(`UPDATE notification.installation_registration SET lifecycle='INACTIVE',inactive_reason=$1,invalidated_at=now(),refreshed_at=now()
+          WHERE tenant_id=$2 AND organization_id=$3 AND principal_id=$4 AND subject_id=$5 AND installation_id=$6 AND installation_generation=$7 AND lifecycle='ACTIVE'
+          RETURNING id`, [input.reason, input.tenantId, input.organizationId, input.principalId, input.subjectId, input.installationId, input.generation]);
+        if (!result.rows[0]) throw new PersistenceConflict("relationship", "registration hidden or inactive");
+        return { id: result.rows[0].id as string };
+      });
+    },
+    async activeRegistrationCount(tenantId: string, principalId: string) {
+      return withTenantTransaction(pool, tenantId, "kavaroutes_push_worker", async (client) => {
+        const result = await client.query<{ count: number }>("SELECT count(*)::int AS count FROM notification.installation_registration WHERE tenant_id=$1 AND principal_id=$2 AND lifecycle='ACTIVE'", [tenantId, principalId]);
+        return result.rows[0]?.count ?? 0;
+      });
+    },
+  });
 }

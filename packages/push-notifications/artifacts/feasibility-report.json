@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "decision": "LOCAL_KEEP_PROVIDER_CONFORMANCE_BLOCKED",
+  "policyVersion": "push.policy.v1",
+  "migration": "0010_push_installations_and_effects.sql",
+  "nativeLibrary": "expo-notifications",
+  "directAdapters": [
+    "APNS_SANDBOX_HTTP2",
+    "FCM_HTTP_V1"
+  ],
+  "providerCalls": 0,
+  "localProfiles": [
+    {
+      "registrations": 30,
+      "attempts": 30,
+      "amplification": 1
+    },
+    {
+      "registrations": 100,
+      "attempts": 100,
+      "amplification": 1
+    },
+    {
+      "registrations": 650,
+      "attempts": 650,
+      "amplification": 1
+    },
+    {
+      "registrations": 6000,
+      "attempts": 6000,
+      "amplification": 1
+    }
+  ],
+  "permissionStates": [
+    "not_requested",
+    "provisional",
+    "granted",
+    "denied",
+    "channel_limited",
+    "system_disabled"
+  ],
+  "completionBlockedBy": "HIG-013_DIRECT_APNS_AND_FCM_PHYSICAL_DEVICE_CONFORMANCE",
+  "productionReady": false,
+  "sha256": "1e41fa208d287f02085140b28dc27025370c81bd628442e467dff39737cc6377"
+}

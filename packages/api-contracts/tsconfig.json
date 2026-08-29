@@ -8,6 +8,7 @@
   "include": ["src/**/*.ts"],
   "references": [
     { "path": "../platform-engine" },
-    { "path": "../postgres-persistence" }
+    { "path": "../postgres-persistence" },
+    { "path": "../push-notifications" }
   ]
 }

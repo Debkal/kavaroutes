@@ -1,0 +1,61 @@
+{
+  "format": 1,
+  "generatedAt": "2026-08-29T00:00:00.000Z",
+  "profiles": [
+    {
+      "registrations": 30,
+      "intents": 1,
+      "attempts": 30,
+      "amplification": 1,
+      "elapsedMs": 2.1306109999999983,
+      "reconnectStorm": 8,
+      "invalidTokenFlood": 3,
+      "noisyTenantFairness": "bounded_by_installation_and_collapse",
+      "providerCapacityClaim": false
+    },
+    {
+      "registrations": 100,
+      "intents": 1,
+      "attempts": 100,
+      "amplification": 1,
+      "elapsedMs": 1.4717270000000013,
+      "reconnectStorm": 25,
+      "invalidTokenFlood": 10,
+      "noisyTenantFairness": "bounded_by_installation_and_collapse",
+      "providerCapacityClaim": false
+    },
+    {
+      "registrations": 650,
+      "intents": 1,
+      "attempts": 650,
+      "amplification": 1,
+      "elapsedMs": 6.274525000000001,
+      "reconnectStorm": 163,
+      "invalidTokenFlood": 65,
+      "noisyTenantFairness": "bounded_by_installation_and_collapse",
+      "providerCapacityClaim": false
+    },
+    {
+      "registrations": 6000,
+      "intents": 1,
+      "attempts": 6000,
+      "amplification": 1,
+      "elapsedMs": 40.622344999999996,
+      "reconnectStorm": 1500,
+      "invalidTokenFlood": 600,
+      "noisyTenantFairness": "bounded_by_installation_and_collapse",
+      "providerCapacityClaim": false
+    }
+  ],
+  "failureScenarios": [
+    "reconnect_storm",
+    "invalid_token_flood",
+    "provider_outage",
+    "throttling",
+    "credential_failure",
+    "worker_restart",
+    "queue_drain"
+  ],
+  "providerCalls": 0,
+  "productionCapacityClaim": false
+}

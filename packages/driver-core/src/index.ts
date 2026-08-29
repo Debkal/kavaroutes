@@ -1,6 +1,7 @@
 export * from "./contracts.js";
 export * from "./migrations.js";
 export * from "./navigation.js";
+export * from "./notifications.js";
 export * from "./ports.js";
 export * from "./recovery.js";
 export * from "./store.js";

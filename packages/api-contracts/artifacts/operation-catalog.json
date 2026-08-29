@@ -84,6 +84,12 @@
       "rule": "tier and effective controls are backend authoritative"
     },
     {
+      "id": "driver-installations",
+      "path": "/v1/organizations/{organizationId}/driver/installations",
+      "audience": "assigned-driver",
+      "rule": "native routing tokens are restricted, encrypted, generation-bound credentials"
+    },
+    {
       "id": "facility",
       "path": "/v1/organizations/{organizationId}/facility",
       "audience": "facility-user",
@@ -240,6 +246,22 @@
       "method": "POST",
       "path": "/v1/organizations/{organizationId}/driver/location-batches",
       "capability": "driver:location:write",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "registerDriverInstallation",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/installations",
+      "capability": "driver:notifications:write",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "unregisterDriverInstallation",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/installations/{installationId}/commands/unregister",
+      "capability": "driver:notifications:write",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "implementationState": "REGISTERED"
     },

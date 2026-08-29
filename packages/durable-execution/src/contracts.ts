@@ -73,7 +73,8 @@ function assertSafePayload(value: unknown): void {
   }
   if (typeof value !== "object" || value === null) return;
   for (const [key, nested] of Object.entries(value)) {
-    if (forbiddenPayloadKey.test(key)) throw new Error("PAYLOAD_POLICY_VIOLATION");
+    const normalizedKey = key.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+    if (forbiddenPayloadKey.test(normalizedKey)) throw new Error("PAYLOAD_POLICY_VIOLATION");
     assertSafePayload(nested);
   }
 }
@@ -90,6 +91,10 @@ const payloadValidators = Object.freeze({
   "LocationBatchRecorded:v1": (payload: Record<string, unknown>) => {
     assertExactKeys(payload, ["batchReference", "sampleCount"]);
     if (!/^ref_[a-z0-9_-]{8,96}$/.test(String(payload.batchReference)) || !Number.isInteger(payload.sampleCount) || Number(payload.sampleCount) < 1) throw new Error("UNSUPPORTED_SCHEMA");
+  },
+  "NotificationIntentCreated:v1": (payload: Record<string, unknown>) => {
+    assertExactKeys(payload, ["v", "kind", "action"]);
+    if (payload.v !== "1" || payload.action !== "open_and_sync" || !["sync_available", "review_update", "session_attention"].includes(String(payload.kind))) throw new Error("UNSUPPORTED_SCHEMA");
   },
 } satisfies Record<string, (payload: Record<string, unknown>) => void>);
 

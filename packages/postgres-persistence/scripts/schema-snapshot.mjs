@@ -8,7 +8,7 @@ const connectionString = process.env.WP006_DATABASE_URL;
 if (!connectionString) throw new Error("WP006_DATABASE_URL is required");
 const expectedPath = resolve(packageRoot, "artifacts/schema-snapshot.json");
 const pool = new Pool({ connectionString, max: 1, application_name: "kavaroutes-wp006-snapshot" });
-const schemas = ["platform","intake","fleet","dispatch","execution","realtime","billing","integration","audit","outbox"];
+const schemas = ["platform","intake","fleet","dispatch","execution","realtime","billing","integration","audit","outbox","notification"];
 try {
   const tables = await pool.query(`SELECT n.nspname AS schema, c.relname AS table, c.relkind AS kind,
       c.relrowsecurity AS rls, c.relforcerowsecurity AS force_rls

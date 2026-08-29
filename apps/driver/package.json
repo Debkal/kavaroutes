@@ -24,6 +24,7 @@
     "expo-file-system": "~57.0.6",
     "expo-location": "57.0.13",
     "expo-network": "57.0.1",
+    "expo-notifications": "~57.0.15",
     "expo-router": "57.0.16",
     "expo-screen-capture": "57.0.2",
     "expo-secure-store": "57.0.1",
@@ -46,7 +47,18 @@
   },
   "expo": {
     "install": {
-      "exclude": ["expo", "expo-build-properties", "expo-dev-client", "expo-location", "expo-router", "expo-secure-store", "expo-sqlite", "expo-task-manager", "react-native", "jest-expo"]
+      "exclude": [
+        "expo",
+        "expo-build-properties",
+        "expo-dev-client",
+        "expo-location",
+        "expo-router",
+        "expo-secure-store",
+        "expo-sqlite",
+        "expo-task-manager",
+        "react-native",
+        "jest-expo"
+      ]
     }
   }
 }

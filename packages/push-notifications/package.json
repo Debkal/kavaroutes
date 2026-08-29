@@ -1,0 +1,12 @@
+{
+  "name": "@kavaroutes/push-notifications",
+  "version": "0.0.0-wp012",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./client": "./dist/client.js"
+  },
+  "types": "./dist/index.d.ts"
+}

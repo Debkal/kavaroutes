@@ -5,10 +5,5 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
-  "include": ["src/**/*.ts"],
-  "references": [
-    { "path": "../api-contracts" },
-    { "path": "../realtime" },
-    { "path": "../push-notifications" }
-  ]
+  "include": ["src/**/*.ts"]
 }

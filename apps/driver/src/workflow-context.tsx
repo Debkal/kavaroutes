@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { applyWorkflowCommand, createSyntheticWorkflow, type SyntheticWorkflow, type WorkflowCommand } from "@kavaroutes/driver-core";
-import { loadSyntheticWorkflow, resetSyntheticWorkflow, saveSyntheticWorkflow, startSyntheticTracking, stopSyntheticTracking, trackingStatus, watchSyntheticVehicleMotion } from "./nativeActions";
-import { requestSyntheticShiftStartReceipt } from "./synthetic-server";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { applyWorkflowCommand, createNotificationRecovery, createSyntheticWorkflow, type SyntheticWorkflow, type WorkflowCommand } from "@kavaroutes/driver-core";
+import { loadSyntheticWorkflow, manualSyntheticSync, resetSyntheticWorkflow, saveSyntheticWorkflow, startSyntheticTracking, stopSyntheticTracking, trackingStatus, watchSyntheticVehicleMotion } from "./nativeActions";
+import { requestSyntheticShiftStartReceipt, restoreSyntheticAuthentication } from "./synthetic-server";
 
 interface WorkflowContextValue {
   readonly state: SyntheticWorkflow;
@@ -9,6 +9,7 @@ interface WorkflowContextValue {
   readonly error: string | undefined;
   readonly dispatch: (command: WorkflowCommand) => Promise<SyntheticWorkflow>;
   readonly startShift: () => Promise<SyntheticWorkflow>;
+  readonly recoverUpdates: (reason: "notification" | "foreground" | "start" | "reconnect", data?: unknown) => Promise<{ readonly outcome: "ignored" | "synchronized"; readonly detail: string }>;
   readonly reset: () => Promise<void>;
 }
 const WorkflowContext = createContext<WorkflowContextValue | null>(null);
@@ -62,7 +63,22 @@ export function WorkflowProvider({ children }: { readonly children: ReactNode })
     }
   };
   const reset = async () => { await resetSyntheticWorkflow(); const fresh = createSyntheticWorkflow(); stateRef.current = fresh; setState(fresh); setError(undefined); };
-  const value = useMemo(() => ({ state, ready, error, dispatch, startShift, reset }), [state, ready, error]);
+  const recoverUpdates = useCallback(async (reason: "notification" | "foreground" | "start" | "reconnect", data?: unknown) => {
+    let detail = "The notification was ignored because its data did not match the safe KavaRoutes envelope.";
+    const recovery = createNotificationRecovery({
+      authenticate: restoreSyntheticAuthentication,
+      openSafeUpdatesEntry: async () => Promise.resolve(),
+      synchronize: async () => {
+        const result = await manualSyntheticSync("ACCEPTED"); detail = result.detail;
+        const next = applyWorkflowCommand(stateRef.current, { type: "SYNC_OUTBOX", outcome: result.outcome });
+        await saveSyntheticWorkflow(next); stateRef.current = next; setState(next);
+        return { projectionDigest: next.effectivePolicy?.canonicalDigest ?? "0".repeat(64) };
+      },
+    });
+    const recovered = await recovery.recover(reason, data);
+    return Object.freeze({ outcome: recovered.outcome, detail });
+  }, []);
+  const value = useMemo(() => ({ state, ready, error, dispatch, startShift, recoverUpdates, reset }), [state, ready, error, recoverUpdates]);
   return <WorkflowContext.Provider value={value}>{children}</WorkflowContext.Provider>;
 }
 export function useWorkflow() { const value = useContext(WorkflowContext); if (!value) throw new Error("WORKFLOW_PROVIDER_REQUIRED"); return value; }

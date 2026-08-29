@@ -235,6 +235,36 @@ export const LocationBatchSchema = Type.Object({
   samples: Type.Array(Type.Ref(LocationSampleSchema), { minItems: 1, maxItems: 500 }),
 }, { ...closed, $id: "LocationBatch" });
 
+export const PushPermissionStateSchema = Type.Union([
+  Type.Literal("not_requested"), Type.Literal("provisional"), Type.Literal("granted"), Type.Literal("denied"),
+  Type.Literal("channel_limited"), Type.Literal("system_disabled"),
+], { $id: "PushPermissionState" });
+
+export const PushRegistrationRequestSchema = Type.Object({
+  installationId: Type.Ref(OpaqueIdSchema),
+  generation: Type.String({ pattern: "^gen_[a-z0-9_-]{12,96}$", minLength: 16, maxLength: 100 }),
+  platform: Type.Union([Type.Literal("ios"), Type.Literal("android")]),
+  provider: Type.Union([Type.Literal("apns"), Type.Literal("fcm")]),
+  environment: Type.Union([Type.Literal("sandbox"), Type.Literal("development")]),
+  appId: Type.String({ pattern: "^(?:com\\.)?kavaroutes\\.[a-z0-9.-]{3,80}$", maxLength: 96 }),
+  nativeToken: Type.String({ pattern: "^[^\\s]{16,4096}$", minLength: 16, maxLength: 4096 }),
+  permission: Type.Ref(PushPermissionStateSchema),
+  channelEnabled: Type.Boolean(),
+  policyVersion: Type.Literal("push.policy.v1"),
+}, { ...closed, $id: "PushRegistrationRequest" });
+
+export const PushUnregistrationRequestSchema = Type.Object({
+  generation: Type.String({ pattern: "^gen_[a-z0-9_-]{12,96}$", minLength: 16, maxLength: 100 }),
+  reason: Type.Union([Type.Literal("logout"), Type.Literal("deprovisioned"), Type.Literal("principal_switched"), Type.Literal("tenant_switched"), Type.Literal("installation_replaced"), Type.Literal("provider_invalid"), Type.Literal("remote_revocation"), Type.Literal("stale")]),
+}, { ...closed, $id: "PushUnregistrationRequest" });
+
+export const PushRegistrationResponseSchema = Type.Object({
+  installationId: Type.Ref(OpaqueIdSchema), generation: Type.String({ pattern: "^gen_[a-z0-9_-]{12,96}$", maxLength: 100 }),
+  platform: Type.Union([Type.Literal("ios"), Type.Literal("android")]), provider: Type.Union([Type.Literal("apns"), Type.Literal("fcm")]),
+  permission: Type.Ref(PushPermissionStateSchema), channelEnabled: Type.Boolean(), policyVersion: Type.Literal("push.policy.v1"),
+  lifecycle: Type.Union([Type.Literal("active"), Type.Literal("inactive")]), lastConfirmedAt: Type.Ref(InstantSchema),
+}, { ...closed, $id: "PushRegistrationResponse" });
+
 export const OperationSchema = Type.Object({
   operationId: Type.Ref(OpaqueIdSchema),
   state: Type.Union([Type.Literal("QUEUED"), Type.Literal("RUNNING"), Type.Literal("SUCCEEDED"), Type.Literal("FAILED"), Type.Literal("CANCELLED"), Type.Literal("EXPIRED")]),
@@ -281,6 +311,7 @@ export const allSchemas: readonly TSchema[] = Object.freeze([
   CommercialTierSchema, WorkforceRelationshipSchema, InspectionControlModeSchema, ReturnVerificationModeSchema, RouteChangeModeSchema,
   DriverControlSourceSchema, DriverControlReasonCodeSchema, ResolvedInspectionControlSchema, ResolvedReturnVerificationSchema,
   ResolvedRouteChangeSchema, EffectiveDriverPolicySchema, DriverControlSettingsSchema, DriverControlPolicySchema, UpdateDriverControlPolicySchema,
+  PushPermissionStateSchema, PushRegistrationRequestSchema, PushUnregistrationRequestSchema, PushRegistrationResponseSchema,
 ]);
 
 export type TripCreateRequest = Static<typeof TripCreateRequestSchema>;
@@ -292,5 +323,7 @@ export type DriverControlPolicy = Static<typeof DriverControlPolicySchema>;
 export type UpdateDriverControlPolicy = Static<typeof UpdateDriverControlPolicySchema>;
 export type DriverActionBatch = Static<typeof DriverActionBatchSchema>;
 export type LocationBatch = Static<typeof LocationBatchSchema>;
+export type PushRegistrationRequest = Static<typeof PushRegistrationRequestSchema>;
+export type PushUnregistrationRequest = Static<typeof PushUnregistrationRequestSchema>;
 export type BatchReceipt = Static<typeof BatchReceiptSchema>;
 export type Problem = Static<typeof ProblemSchema>;

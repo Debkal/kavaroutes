@@ -11,7 +11,7 @@ migrations.forEach((migration, index) => {
 });
 
 const combined = migrations.map(({ sql }) => sql).join("\n");
-for (const schema of ["platform", "intake", "fleet", "dispatch", "execution", "realtime", "billing", "integration", "audit", "outbox"]) {
+for (const schema of ["platform", "intake", "fleet", "dispatch", "execution", "realtime", "billing", "integration", "audit", "outbox", "notification"]) {
   assert.match(combined, new RegExp(`CREATE SCHEMA IF NOT EXISTS ${schema}\\b`));
 }
 for (const required of ["postgis", "btree_gist", "FORCE ROW LEVEL SECURITY", "NOBYPASSRLS", "PARTITION BY RANGE", "EXCLUDE USING gist", "set_config", "assert_tenant_boundaries"]) {

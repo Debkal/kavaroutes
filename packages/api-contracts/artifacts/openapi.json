@@ -1736,11 +1736,309 @@
         "title": "UpdateDriverControlPolicy",
         "type": "object"
       },
+      "def-47": {
+        "anyOf": [
+          {
+            "enum": [
+              "not_requested"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "provisional"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "granted"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "denied"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "channel_limited"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "system_disabled"
+            ],
+            "type": "string"
+          }
+        ],
+        "title": "PushPermissionState"
+      },
+      "def-48": {
+        "additionalProperties": false,
+        "properties": {
+          "appId": {
+            "maxLength": 96,
+            "pattern": "^(?:com\\.)?kavaroutes\\.[a-z0-9.-]{3,80}$",
+            "type": "string"
+          },
+          "channelEnabled": {
+            "type": "boolean"
+          },
+          "environment": {
+            "anyOf": [
+              {
+                "enum": [
+                  "sandbox"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "development"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "generation": {
+            "maxLength": 100,
+            "minLength": 16,
+            "pattern": "^gen_[a-z0-9_-]{12,96}$",
+            "type": "string"
+          },
+          "installationId": {
+            "$ref": "#/components/schemas/def-0"
+          },
+          "nativeToken": {
+            "maxLength": 4096,
+            "minLength": 16,
+            "pattern": "^[^\\s]{16,4096}$",
+            "type": "string"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/def-47"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ios"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "android"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "policyVersion": {
+            "enum": [
+              "push.policy.v1"
+            ],
+            "type": "string"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "enum": [
+                  "apns"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "fcm"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "installationId",
+          "generation",
+          "platform",
+          "provider",
+          "environment",
+          "appId",
+          "nativeToken",
+          "permission",
+          "channelEnabled",
+          "policyVersion"
+        ],
+        "title": "PushRegistrationRequest",
+        "type": "object"
+      },
+      "def-49": {
+        "additionalProperties": false,
+        "properties": {
+          "generation": {
+            "maxLength": 100,
+            "minLength": 16,
+            "pattern": "^gen_[a-z0-9_-]{12,96}$",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "logout"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "deprovisioned"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "principal_switched"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "tenant_switched"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "installation_replaced"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "provider_invalid"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "remote_revocation"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "stale"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "generation",
+          "reason"
+        ],
+        "title": "PushUnregistrationRequest",
+        "type": "object"
+      },
       "def-5": {
         "maxLength": 72,
         "pattern": "^\"kr1.[A-Za-z0-9_-]{32,64}\"$",
         "title": "StrongEtag",
         "type": "string"
+      },
+      "def-50": {
+        "additionalProperties": false,
+        "properties": {
+          "channelEnabled": {
+            "type": "boolean"
+          },
+          "generation": {
+            "maxLength": 100,
+            "pattern": "^gen_[a-z0-9_-]{12,96}$",
+            "type": "string"
+          },
+          "installationId": {
+            "$ref": "#/components/schemas/def-0"
+          },
+          "lastConfirmedAt": {
+            "$ref": "#/components/schemas/def-1"
+          },
+          "lifecycle": {
+            "anyOf": [
+              {
+                "enum": [
+                  "active"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "inactive"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "permission": {
+            "$ref": "#/components/schemas/def-47"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ios"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "android"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "policyVersion": {
+            "enum": [
+              "push.policy.v1"
+            ],
+            "type": "string"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "enum": [
+                  "apns"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "fcm"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "installationId",
+          "generation",
+          "platform",
+          "provider",
+          "permission",
+          "channelEnabled",
+          "policyVersion",
+          "lifecycle",
+          "lastConfirmedAt"
+        ],
+        "title": "PushRegistrationResponse",
+        "type": "object"
       },
       "def-6": {
         "additionalProperties": false,
@@ -2729,6 +3027,502 @@
         ],
         "tags": [
           "driver"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/driver/installations": {
+      "post": {
+        "operationId": "registerDriverInstallation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-0"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-4"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "appId": {
+                    "maxLength": 96,
+                    "pattern": "^(?:com\\.)?kavaroutes\\.[a-z0-9.-]{3,80}$",
+                    "type": "string"
+                  },
+                  "channelEnabled": {
+                    "type": "boolean"
+                  },
+                  "environment": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "sandbox"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "development"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "generation": {
+                    "maxLength": 100,
+                    "minLength": 16,
+                    "pattern": "^gen_[a-z0-9_-]{12,96}$",
+                    "type": "string"
+                  },
+                  "installationId": {
+                    "$ref": "#/components/schemas/def-0"
+                  },
+                  "nativeToken": {
+                    "maxLength": 4096,
+                    "minLength": 16,
+                    "pattern": "^[^\\s]{16,4096}$",
+                    "type": "string"
+                  },
+                  "permission": {
+                    "$ref": "#/components/schemas/def-47"
+                  },
+                  "platform": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "ios"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "android"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "policyVersion": {
+                    "enum": [
+                      "push.policy.v1"
+                    ],
+                    "type": "string"
+                  },
+                  "provider": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "apns"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "fcm"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "installationId",
+                  "generation",
+                  "platform",
+                  "provider",
+                  "environment",
+                  "appId",
+                  "nativeToken",
+                  "permission",
+                  "channelEnabled",
+                  "policyVersion"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-50"
+                }
+              }
+            },
+            "description": "Registered native push installation without returning its routing token",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/driver/installations/{installationId}/commands/unregister": {
+      "post": {
+        "operationId": "unregisterDriverInstallation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-0"
+            }
+          },
+          {
+            "in": "path",
+            "name": "installationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-0"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-4"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "generation": {
+                    "maxLength": 100,
+                    "minLength": 16,
+                    "pattern": "^gen_[a-z0-9_-]{12,96}$",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "logout"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "deprovisioned"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "principal_switched"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "tenant_switched"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "installation_replaced"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "provider_invalid"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "remote_revocation"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "stale"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "generation",
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-50"
+                }
+              }
+            },
+            "description": "Disabled the exact installation generation",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-7"
+                }
+              }
+            },
+            "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "notifications"
         ]
       }
     },
@@ -4295,6 +5089,9 @@
     },
     {
       "name": "driver"
+    },
+    {
+      "name": "notifications"
     },
     {
       "name": "operations"
