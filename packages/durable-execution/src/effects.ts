@@ -23,6 +23,23 @@ export class PermanentProviderFailure extends Error {
   constructor() { super("PERMANENT_VALIDATION"); this.name = "PermanentProviderFailure"; }
 }
 
+interface EffectRequest {
+  readonly tenantId: string;
+  readonly deliveryId: string;
+  readonly eventId: string;
+  readonly logicalEffectKey: string;
+  readonly operation: string;
+  readonly requestFingerprint: string;
+}
+
+type EffectOutcome = "SUCCEEDED" | "RECONCILED" | "PERMANENT_FAILURE" | "MANUAL_REVIEW";
+
+function validateEffectRequest(input: EffectRequest): void {
+  if (!/^effect_[a-z0-9_-]{8,96}$/.test(input.logicalEffectKey)
+    || !/^[A-Z][A-Z0-9_]{2,63}$/.test(input.operation)
+    || !/^[0-9a-f]{64}$/.test(input.requestFingerprint)) throw new Error("INVALID_EFFECT_REQUEST");
+}
+
 export function createOutboundEffectService(pool: Pool, options: { readonly idFactory?: () => string; readonly now?: () => Date } = {}) {
   const idFactory = options.idFactory ?? randomUUID;
   const now = options.now ?? (() => new Date());
@@ -40,74 +57,95 @@ export function createOutboundEffectService(pool: Pool, options: { readonly idFa
     } catch (error) { try { await client.query("ROLLBACK"); } catch { /* original failure wins */ } throw error; }
     finally { client.release(); }
   }
-  return Object.freeze({
-    async execute(input: { tenantId: string; deliveryId: string; eventId: string; logicalEffectKey: string; operation: string; requestFingerprint: string }, provider: EffectProvider): Promise<"SUCCEEDED" | "RECONCILED" | "PERMANENT_FAILURE" | "MANUAL_REVIEW"> {
-      if (!/^effect_[a-z0-9_-]{8,96}$/.test(input.logicalEffectKey) || !/^[A-Z][A-Z0-9_]{2,63}$/.test(input.operation) || !/^[0-9a-f]{64}$/.test(input.requestFingerprint)) throw new Error("INVALID_EFFECT_REQUEST");
-      const idempotencyHash = hash(`${input.tenantId}:${input.logicalEffectKey}`);
-      const client = await pool.connect();
-      let existingState: string | undefined;
-      try {
-        await client.query("BEGIN");
-        await client.query("SET LOCAL ROLE kavaroutes_outbox_consumer");
-        await client.query("SELECT set_config('app.tenant_id',$1,true)", [input.tenantId]);
-        const inserted = await client.query(`INSERT INTO outbox.outbound_effect
-          (tenant_id,id,logical_effect_key,event_id,delivery_id,provider_operation,attempt_state,provider_idempotency_hash,
-           request_fingerprint,reconciliation_state,retain_until)
-          VALUES ($1,$2,$3,$4,$5,$6,'PLANNED',$7,$8,'NOT_REQUIRED',$9)
-          ON CONFLICT (tenant_id,logical_effect_key) DO NOTHING RETURNING attempt_state`, [input.tenantId, idFactory(),
-          input.logicalEffectKey, input.eventId, input.deliveryId, input.operation, idempotencyHash, input.requestFingerprint,
-          new Date(now().getTime() + retentionMilliseconds)]);
-        if (!inserted.rowCount) {
-          const found = await client.query("SELECT attempt_state,request_fingerprint FROM outbox.outbound_effect WHERE tenant_id=$1 AND logical_effect_key=$2 FOR UPDATE", [input.tenantId, input.logicalEffectKey]);
-          if (!found.rows[0] || found.rows[0].request_fingerprint !== input.requestFingerprint) throw new Error("EFFECT_IDEMPOTENCY_MISMATCH");
-          existingState = found.rows[0].attempt_state;
-        }
-        if (!existingState || existingState === "PLANNED") await client.query("UPDATE outbox.outbound_effect SET attempt_state='IN_FLIGHT',reconciliation_state='PENDING',updated_at=now() WHERE tenant_id=$1 AND logical_effect_key=$2", [input.tenantId, input.logicalEffectKey]);
-        await client.query("COMMIT");
-      } catch (error) { try { await client.query("ROLLBACK"); } catch { /* original failure wins */ } throw error; }
-      finally { client.release(); }
 
+  async function plan(input: EffectRequest, idempotencyHash: string): Promise<string | undefined> {
+    const client = await pool.connect();
+    let existingState: string | undefined;
+    try {
+      await client.query("BEGIN");
+      await client.query("SET LOCAL ROLE kavaroutes_outbox_consumer");
+      await client.query("SELECT set_config('app.tenant_id',$1,true)", [input.tenantId]);
+      const inserted = await client.query(`INSERT INTO outbox.outbound_effect
+        (tenant_id,id,logical_effect_key,event_id,delivery_id,provider_operation,attempt_state,provider_idempotency_hash,
+         request_fingerprint,reconciliation_state,retain_until)
+        VALUES ($1,$2,$3,$4,$5,$6,'PLANNED',$7,$8,'NOT_REQUIRED',$9)
+        ON CONFLICT (tenant_id,logical_effect_key) DO NOTHING RETURNING attempt_state`, [input.tenantId, idFactory(),
+        input.logicalEffectKey, input.eventId, input.deliveryId, input.operation, idempotencyHash, input.requestFingerprint,
+        new Date(now().getTime() + retentionMilliseconds)]);
+      if (!inserted.rowCount) {
+        const found = await client.query("SELECT attempt_state,request_fingerprint FROM outbox.outbound_effect WHERE tenant_id=$1 AND logical_effect_key=$2 FOR UPDATE", [input.tenantId, input.logicalEffectKey]);
+        if (!found.rows[0] || found.rows[0].request_fingerprint !== input.requestFingerprint) throw new Error("EFFECT_IDEMPOTENCY_MISMATCH");
+        existingState = found.rows[0].attempt_state;
+      }
+      if (!existingState || existingState === "PLANNED") await client.query("UPDATE outbox.outbound_effect SET attempt_state='IN_FLIGHT',reconciliation_state='PENDING',updated_at=now() WHERE tenant_id=$1 AND logical_effect_key=$2", [input.tenantId, input.logicalEffectKey]);
+      await client.query("COMMIT");
+      return existingState;
+    } catch (error) {
+      try { await client.query("ROLLBACK"); } catch { /* original failure wins */ }
+      throw error;
+    } finally { client.release(); }
+  }
+
+  async function reconcileInFlight(input: EffectRequest, provider: EffectProvider, idempotencyHash: string): Promise<EffectOutcome | undefined> {
+    if (!provider.supportsReconciliation || !provider.reconcile) {
+      await update(input.tenantId, input.logicalEffectKey, "MANUAL_REVIEW", "UNAVAILABLE", "RECONCILIATION_UNAVAILABLE");
+      return "MANUAL_REVIEW";
+    }
+    const reconciled = await provider.reconcile(idempotencyHash);
+    if (reconciled.found && reconciled.providerReference) {
+      await update(input.tenantId, input.logicalEffectKey, "RECONCILED", "CONFIRMED", "PROVIDER_CONFIRMED", reconciled.providerReference);
+      return "RECONCILED";
+    }
+    if (!provider.supportsIdempotency) {
+      await update(input.tenantId, input.logicalEffectKey, "MANUAL_REVIEW", "CONFIRMED", "PROVIDER_NOT_FOUND_RETRY_UNSAFE");
+      return "MANUAL_REVIEW";
+    }
+    return undefined;
+  }
+
+  async function handleProviderFailure(input: EffectRequest, provider: EffectProvider, idempotencyHash: string, error: unknown): Promise<EffectOutcome> {
+    if (error instanceof TransientProviderFailure) {
+      await update(input.tenantId, input.logicalEffectKey, "PLANNED", "PENDING", "TRANSIENT_DEPENDENCY");
+      throw error;
+    }
+    if (error instanceof PermanentProviderFailure) {
+      await update(input.tenantId, input.logicalEffectKey, "PERMANENT_FAILURE", "NOT_REQUIRED", "PERMANENT_VALIDATION");
+      return "PERMANENT_FAILURE";
+    }
+    if (!(error instanceof AmbiguousProviderOutcome)) throw error;
+    if (provider.supportsReconciliation && provider.reconcile) {
+      const reconciled = await provider.reconcile(idempotencyHash);
+      if (reconciled.found && reconciled.providerReference) {
+        await update(input.tenantId, input.logicalEffectKey, "RECONCILED", "CONFIRMED", "PROVIDER_CONFIRMED", reconciled.providerReference);
+        return "RECONCILED";
+      }
+    }
+    await update(input.tenantId, input.logicalEffectKey, "MANUAL_REVIEW", provider.supportsReconciliation ? "CONFIRMED" : "UNAVAILABLE", "AMBIGUOUS_EXTERNAL_OUTCOME");
+    return "MANUAL_REVIEW";
+  }
+
+  async function perform(input: EffectRequest, provider: EffectProvider, idempotencyHash: string): Promise<EffectOutcome> {
+    try {
+      const result = await provider.perform({ operation: input.operation, idempotencyKey: idempotencyHash, requestFingerprint: input.requestFingerprint });
+      await update(input.tenantId, input.logicalEffectKey, "SUCCEEDED", "NOT_REQUIRED", "PROVIDER_SUCCEEDED", result.providerReference);
+      return "SUCCEEDED";
+    } catch (error) {
+      return handleProviderFailure(input, provider, idempotencyHash, error);
+    }
+  }
+
+  return Object.freeze({
+    async execute(input: EffectRequest, provider: EffectProvider): Promise<EffectOutcome> {
+      validateEffectRequest(input);
+      const idempotencyHash = hash(`${input.tenantId}:${input.logicalEffectKey}`);
+      const existingState = await plan(input, idempotencyHash);
       if (existingState === "SUCCEEDED" || existingState === "RECONCILED") return existingState;
       if (existingState === "MANUAL_REVIEW" || existingState === "PERMANENT_FAILURE") return existingState;
       if (existingState === "IN_FLIGHT") {
-        if (!provider.supportsReconciliation || !provider.reconcile) {
-          await update(input.tenantId, input.logicalEffectKey, "MANUAL_REVIEW", "UNAVAILABLE", "RECONCILIATION_UNAVAILABLE");
-          return "MANUAL_REVIEW";
-        }
-        const reconciled = await provider.reconcile(idempotencyHash);
-        if (reconciled.found && reconciled.providerReference) {
-          await update(input.tenantId, input.logicalEffectKey, "RECONCILED", "CONFIRMED", "PROVIDER_CONFIRMED", reconciled.providerReference);
-          return "RECONCILED";
-        }
-        if (!provider.supportsIdempotency) {
-          await update(input.tenantId, input.logicalEffectKey, "MANUAL_REVIEW", "CONFIRMED", "PROVIDER_NOT_FOUND_RETRY_UNSAFE");
-          return "MANUAL_REVIEW";
-        }
+        const outcome = await reconcileInFlight(input, provider, idempotencyHash);
+        if (outcome) return outcome;
       }
-      try {
-        const result = await provider.perform({ operation: input.operation, idempotencyKey: idempotencyHash, requestFingerprint: input.requestFingerprint });
-        await update(input.tenantId, input.logicalEffectKey, "SUCCEEDED", "NOT_REQUIRED", "PROVIDER_SUCCEEDED", result.providerReference);
-        return "SUCCEEDED";
-      } catch (error) {
-        if (error instanceof TransientProviderFailure) {
-          await update(input.tenantId, input.logicalEffectKey, "PLANNED", "PENDING", "TRANSIENT_DEPENDENCY");
-          throw error;
-        }
-        if (error instanceof PermanentProviderFailure) {
-          await update(input.tenantId, input.logicalEffectKey, "PERMANENT_FAILURE", "NOT_REQUIRED", "PERMANENT_VALIDATION");
-          return "PERMANENT_FAILURE";
-        }
-        if (!(error instanceof AmbiguousProviderOutcome)) throw error;
-        if (provider.supportsReconciliation && provider.reconcile) {
-          const reconciled = await provider.reconcile(idempotencyHash);
-          if (reconciled.found && reconciled.providerReference) {
-            await update(input.tenantId, input.logicalEffectKey, "RECONCILED", "CONFIRMED", "PROVIDER_CONFIRMED", reconciled.providerReference);
-            return "RECONCILED";
-          }
-        }
-        await update(input.tenantId, input.logicalEffectKey, "MANUAL_REVIEW", provider.supportsReconciliation ? "CONFIRMED" : "UNAVAILABLE", "AMBIGUOUS_EXTERNAL_OUTCOME");
-        return "MANUAL_REVIEW";
-      }
+      return perform(input, provider, idempotencyHash);
     },
   });
 }

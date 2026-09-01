@@ -1,3 +1,4 @@
+export * from "./admission-control.js";
 export * from "./api.js";
 export * from "./application.js";
 export * from "./compatibility.js";

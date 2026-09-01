@@ -30,6 +30,69 @@ function operations(document: JsonObject): Map<string, JsonObject> {
   return result;
 }
 
+function unionLiterals(schema: JsonObject): Set<string> {
+  return new Set((Array.isArray(schema.anyOf) ? schema.anyOf : []).flatMap((item) => {
+    const member = object(item);
+    if (typeof member.const === "string") return [member.const];
+    return Array.isArray(member.enum) ? member.enum.filter((value): value is string => typeof value === "string") : [];
+  }));
+}
+
+function compareProperties(before: JsonObject, after: JsonObject, location: string, findings: CompatibilityFinding[]): void {
+  const beforeProperties = object(before.properties);
+  const afterProperties = object(after.properties);
+  const afterRequired = stringSet(after.required);
+  for (const [property, schema] of Object.entries(beforeProperties)) {
+    if (!(property in afterProperties)) {
+      findings.push({ kind: "BREAKING", location: `${location}.${property}`, reason: "property removed" });
+      continue;
+    }
+    compareSchema(object(schema), object(afterProperties[property]), `${location}.${property}`, findings);
+  }
+  for (const property of Object.keys(afterProperties)) {
+    if (property in beforeProperties) continue;
+    findings.push({
+      kind: afterRequired.has(property) ? "BREAKING" : "COMPATIBLE",
+      location: `${location}.${property}`,
+      reason: afterRequired.has(property) ? "required property added" : "optional property added",
+    });
+  }
+}
+
+function compareRequired(before: JsonObject, after: JsonObject, location: string, findings: CompatibilityFinding[]): void {
+  const beforeProperties = object(before.properties);
+  const beforeRequired = stringSet(before.required);
+  for (const property of stringSet(after.required)) {
+    if (!beforeRequired.has(property) && property in beforeProperties) findings.push({ kind: "BREAKING", location: `${location}.${property}`, reason: "existing property became required" });
+  }
+}
+
+function compareNumericBounds(before: JsonObject, after: JsonObject, location: string, findings: CompatibilityFinding[]): void {
+  for (const keyword of ["maximum", "maxLength", "maxItems"] as const) {
+    if (typeof before[keyword] === "number" && typeof after[keyword] === "number" && after[keyword] < before[keyword]) findings.push({ kind: "BREAKING", location, reason: `${keyword} narrowed` });
+  }
+  for (const keyword of ["minimum", "minLength", "minItems"] as const) {
+    if (typeof before[keyword] === "number" && typeof after[keyword] === "number" && after[keyword] > before[keyword]) findings.push({ kind: "BREAKING", location, reason: `${keyword} narrowed` });
+  }
+}
+
+function compareClosedEnums(before: JsonObject, after: JsonObject, location: string, findings: CompatibilityFinding[]): void {
+  const enumChanged = (beforeValues: Set<string>, afterValues: Set<string>): boolean => beforeValues.size > 0
+    && (beforeValues.size !== afterValues.size || [...beforeValues].some((value) => !afterValues.has(value)));
+  if (enumChanged(stringSet(before.enum), stringSet(after.enum))) findings.push({ kind: "BREAKING", location, reason: "closed enum changed" });
+  if (enumChanged(unionLiterals(before), unionLiterals(after))) findings.push({ kind: "BREAKING", location, reason: "closed enum changed" });
+}
+
+function compareObjectClosure(before: JsonObject, after: JsonObject, location: string, findings: CompatibilityFinding[]): void {
+  if (before.additionalProperties === false && after.additionalProperties !== false) findings.push({ kind: "BREAKING", location, reason: "closed object became open" });
+}
+
+function compareItems(before: JsonObject, after: JsonObject, location: string, findings: CompatibilityFinding[]): void {
+  const beforeItems = object(before.items);
+  const afterItems = object(after.items);
+  if (Object.keys(beforeItems).length > 0 && Object.keys(afterItems).length > 0) compareSchema(beforeItems, afterItems, `${location}[]`, findings);
+}
+
 export function classifyOpenApiChange(baseline: JsonObject, candidate: JsonObject): CompatibilityReport {
   const findings: CompatibilityFinding[] = [];
   const beforeOperations = operations(baseline);
@@ -68,59 +131,10 @@ export function classifyOpenApiChange(baseline: JsonObject, candidate: JsonObjec
 }
 
 function compareSchema(before: JsonObject, after: JsonObject, location: string, findings: CompatibilityFinding[]): void {
-  const beforeProperties = object(before.properties);
-  const afterProperties = object(after.properties);
-  const beforeRequired = stringSet(before.required);
-  const afterRequired = stringSet(after.required);
-  for (const [property, schema] of Object.entries(beforeProperties)) {
-    if (!(property in afterProperties)) {
-      findings.push({ kind: "BREAKING", location: `${location}.${property}`, reason: "property removed" });
-      continue;
-    }
-    compareSchema(object(schema), object(afterProperties[property]), `${location}.${property}`, findings);
-  }
-  for (const property of Object.keys(afterProperties)) {
-    if (property in beforeProperties) continue;
-    findings.push({
-      kind: afterRequired.has(property) ? "BREAKING" : "COMPATIBLE",
-      location: `${location}.${property}`,
-      reason: afterRequired.has(property) ? "required property added" : "optional property added",
-    });
-  }
-  for (const property of afterRequired) {
-    if (!beforeRequired.has(property) && property in beforeProperties) findings.push({ kind: "BREAKING", location: `${location}.${property}`, reason: "existing property became required" });
-  }
-  const narrowerMaximums = ["maximum", "maxLength", "maxItems"] as const;
-  for (const keyword of narrowerMaximums) {
-    if (typeof before[keyword] === "number" && typeof after[keyword] === "number" && after[keyword] < before[keyword]) {
-      findings.push({ kind: "BREAKING", location, reason: `${keyword} narrowed` });
-    }
-  }
-  const narrowerMinimums = ["minimum", "minLength", "minItems"] as const;
-  for (const keyword of narrowerMinimums) {
-    if (typeof before[keyword] === "number" && typeof after[keyword] === "number" && after[keyword] > before[keyword]) {
-      findings.push({ kind: "BREAKING", location, reason: `${keyword} narrowed` });
-    }
-  }
-  const beforeEnum = stringSet(before.enum);
-  const afterEnum = stringSet(after.enum);
-  if (beforeEnum.size > 0 && (beforeEnum.size !== afterEnum.size || [...beforeEnum].some((value) => !afterEnum.has(value)))) {
-    findings.push({ kind: "BREAKING", location, reason: "closed enum changed" });
-  }
-  const unionLiterals = (schema: JsonObject): Set<string> => new Set((Array.isArray(schema.anyOf) ? schema.anyOf : []).flatMap((item) => {
-    const member = object(item);
-    if (typeof member.const === "string") return [member.const];
-    return Array.isArray(member.enum) ? member.enum.filter((value): value is string => typeof value === "string") : [];
-  }));
-  const beforeLiterals = unionLiterals(before);
-  const afterLiterals = unionLiterals(after);
-  if (beforeLiterals.size > 0 && (beforeLiterals.size !== afterLiterals.size || [...beforeLiterals].some((value) => !afterLiterals.has(value)))) {
-    findings.push({ kind: "BREAKING", location, reason: "closed enum changed" });
-  }
-  if (before.additionalProperties === false && after.additionalProperties !== false) {
-    findings.push({ kind: "BREAKING", location, reason: "closed object became open" });
-  }
-  const beforeItems = object(before.items);
-  const afterItems = object(after.items);
-  if (Object.keys(beforeItems).length > 0 && Object.keys(afterItems).length > 0) compareSchema(beforeItems, afterItems, `${location}[]`, findings);
+  compareProperties(before, after, location, findings);
+  compareRequired(before, after, location, findings);
+  compareNumericBounds(before, after, location, findings);
+  compareClosedEnums(before, after, location, findings);
+  compareObjectClosure(before, after, location, findings);
+  compareItems(before, after, location, findings);
 }

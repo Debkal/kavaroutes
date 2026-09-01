@@ -3,7 +3,7 @@
   "result": "PASS",
   "schemas": 7,
   "migrations": 3,
-  "sourceFiles": 38,
+  "sourceFiles": 39,
   "expo": "57.0.16",
   "reactNative": "0.86.2",
   "react": "19.2.3",

@@ -43,6 +43,9 @@ test("encrypted cursors hide claims and fail closed on every binding and lifetim
   assert.throws(() => codec.decode(`${token.slice(0, -1)}A`, { organizationId: auth.organizationId, principalId: auth.principalId, authorizationGeneration: 1, purpose: auth.purpose, scope: auth.scope }), CursorRejected);
   assert.throws(() => codec.decode(token, { organizationId: syntheticIds.organizationB, principalId: auth.principalId, authorizationGeneration: 1, purpose: auth.purpose, scope: auth.scope }), CursorRejected);
   assert.throws(() => codec.decode(token, { organizationId: auth.organizationId, principalId: auth.principalId, authorizationGeneration: 2, purpose: auth.purpose, scope: auth.scope }), CursorRejected);
+  const rotated = createTestOnlyCursorCodec({ keyReference: "test-only-key-v2", now: () => clock });
+  assert.throws(() => rotated.decode(token, { organizationId: auth.organizationId, principalId: auth.principalId, authorizationGeneration: 1, purpose: auth.purpose, scope: auth.scope }),
+    (error) => error instanceof CursorRejected && error.reason === "KEY_VERSION_UNKNOWN");
   clock = new Date("2026-08-25T12:01:01.000Z");
   assert.throws(() => codec.decode(token, { organizationId: auth.organizationId, principalId: auth.principalId, authorizationGeneration: 1, purpose: auth.purpose, scope: auth.scope }), CursorRejected);
 });
@@ -117,4 +120,22 @@ test("reference client advances cursor after durable apply and stops on gaps, re
   await assert.rejects(() => failing.applyBatch([change], "rtc1.synthetic-cursor-value-that-is-long-enough-for-test-0003"), /CURSOR_FAILURE/);
   failPersist = false;
   assert.equal(await failing.applyBatch([change], "rtc1.synthetic-cursor-value-that-is-long-enough-for-test-0003"), "APPLIED");
+});
+
+test("reference client gap classifications preserve epoch, schema, and resource-version boundaries", async () => {
+  const initial = { streamId: "11111111-1111-4111-8111-111111111111", epoch: 1, sequence: 1, schemaVersion: "realtime.schema.v1", committedAt: "2026-08-25T12:00:00.000Z",
+    delta: { kind: "DISPATCH_CONTROL", tripReference: "trip:synthetic:001", lifecycle: "DISPATCHED", resourceVersion: 2 } };
+  const cases = [
+    { name: "epoch mismatch", candidate: { ...initial, epoch: 2, sequence: 2 } },
+    { name: "schema mismatch", candidate: { ...initial, sequence: 2, schemaVersion: "realtime.schema.future" } },
+    { name: "resource regression", candidate: { ...initial, streamId: "22222222-2222-4222-8222-222222222222", delta: { ...initial.delta, resourceVersion: 1 } } },
+  ];
+  for (const { name, candidate } of cases) {
+    const client = createReferenceSyncClient(createMemoryClientProjection());
+    client.transition("AUTHENTICATING"); client.transition("REPLAYING");
+    assert.equal(await client.applyBatch([initial], `rtc1.${name}.initial.cursor.value.000000000000000000000000`), "APPLIED");
+    client.transition("LIVE");
+    assert.equal(await client.applyBatch([candidate], `rtc1.${name}.candidate.cursor.value.0000000000000000000000`), "GAP", name);
+    assert.equal(client.state(), "STALE", name);
+  }
 });

@@ -61,6 +61,52 @@ export function validateClassifications(registry) {
   return registry;
 }
 
+function validateRetentionPolicies(policies) {
+  for (const [index, item] of policies.entries()) {
+    const path = `policy.retentionPolicies[${index}]`;
+    for (const key of ["effectiveDate", "scope", "basis", "trigger", "disposition", "backupAging", "verificationState", "approvalState"]) string(item[key], `${path}.${key}`);
+    object(item.duration, `${path}.duration`);
+    if (!(item.duration.value > 0) || !["day", "month", "year"].includes(item.duration.unit)) fail(`${path}.duration`, "must have positive value and explicit unit");
+    if (item.holdPrecedence !== true) fail(`${path}.holdPrecedence`, "legal hold must take precedence");
+    if (/global|universal/i.test(item.scope) && !/not-final|capability/i.test(item.scope)) fail(path, "unlabeled universal retention is forbidden");
+  }
+}
+
+function validatePolicyFields(fields, classifications, references) {
+  const classIds = new Set(CLASS_IDS);
+  for (const [index, field] of fields.entries()) {
+    const path = `policy.fields[${index}]`;
+    for (const key of ["id", "subject", "retentionClass", "policyVersion", "approvalState", "approvalEvidenceRef"]) string(field[key], `${path}.${key}`);
+    if (!field.classifications?.length) fail(`${path}.classifications`, "unclassified fields fail closed");
+    for (const id of field.classifications) if (!classIds.has(id)) fail(`${path}.classifications`, `unknown classification ${id}`);
+    if (!field.purposes?.length || field.purposes.some((id) => !references.purposes.has(id))) fail(`${path}.purposes`, "unknown or missing purpose");
+    if (!field.roles?.length || field.roles.some((id) => !references.roles.has(id))) fail(`${path}.roles`, "unknown or missing role");
+    if (!field.destinations?.length || field.destinations.some((id) => !references.destinations.has(id))) fail(`${path}.destinations`, "unknown or missing destination");
+    if (!references.retention.has(field.retentionClass)) fail(`${path}.retentionClass`, "missing retention basis");
+    const effective = resolveClassifications({ direct: field.classifications, tags: field.tags ?? [] }, classifications);
+    for (const id of effective) if (!field.classifications.includes(id)) fail(`${path}.classifications`, `missing escalated classification ${id}`);
+  }
+}
+
+function validateOfficialSources(sources) {
+  for (const [index, source] of sources.entries()) {
+    for (const key of ["id", "title", "url", "accessed", "authority"]) string(source[key], `policy.officialSources[${index}].${key}`);
+  }
+}
+
+function validateRedactionCanaries(canaries) {
+  const canaryKinds = new Set();
+  for (const canary of canaries) {
+    string(canary.kind, "policy.redactionCanaries.kind"); string(canary.value, "policy.redactionCanaries.value");
+    if (!canary.value.startsWith("SYNTHETIC_") && !canary.value.startsWith("syn_")) fail("policy.redactionCanaries", "canaries must be conspicuously synthetic");
+    if (/sk-[A-Za-z0-9]{12,}|AIza[A-Za-z0-9_-]{20,}/.test(canary.value)) fail("policy.redactionCanaries", "canary resembles a usable secret");
+    canaryKinds.add(canary.kind);
+  }
+  for (const kind of ["name", "address", "coordinates", "free_text", "identifier", "credential", "token"]) {
+    if (!canaryKinds.has(kind)) fail("policy.redactionCanaries", `missing ${kind} canary`);
+  }
+}
+
 export function validatePolicy(policy, classifications) {
   object(policy, "policy");
   validateClassifications(classifications);
@@ -69,37 +115,16 @@ export function validatePolicy(policy, classifications) {
   unique(policy.roles, "id", "policy.roles"); unique(policy.destinations, "id", "policy.destinations");
   unique(policy.retentionPolicies, "id", "policy.retentionPolicies"); unique(policy.fields, "id", "policy.fields");
   unique(policy.officialSources, "id", "policy.officialSources");
-  const classIds = new Set(CLASS_IDS), purposes = new Set(policy.purposes), roles = new Set(policy.roles.map((x) => x.id));
-  const destinations = new Set(policy.destinations.map((x) => x.id)), retention = new Set(policy.retentionPolicies.map((x) => x.id));
-  for (const [index, item] of policy.retentionPolicies.entries()) {
-    const path = `policy.retentionPolicies[${index}]`;
-    for (const key of ["effectiveDate", "scope", "basis", "trigger", "disposition", "backupAging", "verificationState", "approvalState"]) string(item[key], `${path}.${key}`);
-    object(item.duration, `${path}.duration`);
-    if (!(item.duration.value > 0) || !["day", "month", "year"].includes(item.duration.unit)) fail(`${path}.duration`, "must have positive value and explicit unit");
-    if (item.holdPrecedence !== true) fail(`${path}.holdPrecedence`, "legal hold must take precedence");
-    if (/global|universal/i.test(item.scope) && !/not-final|capability/i.test(item.scope)) fail(path, "unlabeled universal retention is forbidden");
-  }
-  for (const [index, field] of policy.fields.entries()) {
-    const path = `policy.fields[${index}]`;
-    for (const key of ["id", "subject", "retentionClass", "policyVersion", "approvalState", "approvalEvidenceRef"]) string(field[key], `${path}.${key}`);
-    if (!field.classifications?.length) fail(`${path}.classifications`, "unclassified fields fail closed");
-    for (const id of field.classifications) if (!classIds.has(id)) fail(`${path}.classifications`, `unknown classification ${id}`);
-    if (!field.purposes?.length || field.purposes.some((id) => !purposes.has(id))) fail(`${path}.purposes`, "unknown or missing purpose");
-    if (!field.roles?.length || field.roles.some((id) => !roles.has(id))) fail(`${path}.roles`, "unknown or missing role");
-    if (!field.destinations?.length || field.destinations.some((id) => !destinations.has(id))) fail(`${path}.destinations`, "unknown or missing destination");
-    if (!retention.has(field.retentionClass)) fail(`${path}.retentionClass`, "missing retention basis");
-    const effective = resolveClassifications({ direct: field.classifications, tags: field.tags ?? [] }, classifications);
-    for (const id of effective) if (!field.classifications.includes(id)) fail(`${path}.classifications`, `missing escalated classification ${id}`);
-  }
-  for (const [index, source] of policy.officialSources.entries()) for (const key of ["id", "title", "url", "accessed", "authority"]) string(source[key], `policy.officialSources[${index}].${key}`);
-  const canaryKinds = new Set();
-  for (const canary of policy.redactionCanaries) {
-    string(canary.kind, "policy.redactionCanaries.kind"); string(canary.value, "policy.redactionCanaries.value");
-    if (!canary.value.startsWith("SYNTHETIC_") && !canary.value.startsWith("syn_")) fail("policy.redactionCanaries", "canaries must be conspicuously synthetic");
-    if (/sk-[A-Za-z0-9]{12,}|AIza[A-Za-z0-9_-]{20,}/.test(canary.value)) fail("policy.redactionCanaries", "canary resembles a usable secret");
-    canaryKinds.add(canary.kind);
-  }
-  for (const kind of ["name", "address", "coordinates", "free_text", "identifier", "credential", "token"]) if (!canaryKinds.has(kind)) fail("policy.redactionCanaries", `missing ${kind} canary`);
+  const references = {
+    purposes: new Set(policy.purposes),
+    roles: new Set(policy.roles.map((item) => item.id)),
+    destinations: new Set(policy.destinations.map((item) => item.id)),
+    retention: new Set(policy.retentionPolicies.map((item) => item.id))
+  };
+  validateRetentionPolicies(policy.retentionPolicies);
+  validatePolicyFields(policy.fields, classifications, references);
+  validateOfficialSources(policy.officialSources);
+  validateRedactionCanaries(policy.redactionCanaries);
   return policy;
 }
 
@@ -109,19 +134,17 @@ function validateHistory(record, path) {
   if (!(record.supersedes === null || typeof record.supersedes === "string")) fail(`${path}.supersedes`, "must be null or a stable prior reference");
 }
 
-export function validateAssurance(assurance, policy) {
-  object(assurance, "assurance");
-  const sources = new Set(policy.officialSources.map((x) => x.id));
-  for (const key of ["applicability", "controls", "evidence", "risks", "vendors", "evaluations", "incidents", "contingency", "assurances"]) {
-    array(assurance[key], `assurance.${key}`); unique(assurance[key], "id", `assurance.${key}`);
-  }
-  for (const [index, item] of assurance.applicability.entries()) {
+function validateApplicability(items) {
+  for (const [index, item] of items.entries()) {
     const path = `assurance.applicability[${index}]`; validateHistory(item, path);
     if (!APPLICABILITY.includes(item.status)) fail(`${path}.status`, "unsupported applicability status");
     for (const key of ["workflow", "jurisdiction", "rationale", "reviewerRole", "effectiveDate", "approvalState"]) string(item[key], `${path}.${key}`);
     if (item.status !== "UNDETERMINED" && item.approvalState !== "QUALIFIED_APPROVED") fail(path, "non-undetermined applicability requires qualified approval");
   }
-  for (const [index, control] of assurance.controls.entries()) {
+}
+
+function validateControls(controls, sources) {
+  for (const [index, control] of controls.entries()) {
     const path = `assurance.controls[${index}]`; validateHistory(control, path);
     for (const key of ["ruleFamily", "designation", "safeguardType", "ownerRole", "policyRef", "implementationRationale", "nextReview", "implementationState", "evidenceState", "exceptionState", "approvalState"]) string(control[key], `${path}.${key}`);
     if (!control.sourceIds?.length || control.sourceIds.some((id) => !sources.has(id))) fail(`${path}.sourceIds`, "official source required");
@@ -129,70 +152,137 @@ export function validateAssurance(assurance, policy) {
     object(control.reviewCadence, `${path}.reviewCadence`);
     if (control.designation.startsWith("ADDRESSABLE") && !control.addressableAssessment) fail(`${path}.addressableAssessment`, "ADDRESSABLE requires assessment and rationale and is not OPTIONAL");
   }
+}
+
+function validateEvidence(evidenceItems, controls) {
   const evidenceStates = new Set();
-  for (const [index, evidence] of assurance.evidence.entries()) {
+  const controlIds = new Set(controls.map((control) => control.id));
+  for (const [index, evidence] of evidenceItems.entries()) {
     const path = `assurance.evidence[${index}]`; validateHistory(evidence, path); evidenceStates.add(evidence.state);
     for (const key of ["controlId", "kind", "state", "provenance", "versionOrHash", "custodianRole", "result"]) string(evidence[key], `${path}.${key}`);
-    if (!assurance.controls.some((control) => control.id === evidence.controlId)) fail(`${path}.controlId`, "unknown control");
+    if (!controlIds.has(evidence.controlId)) fail(`${path}.controlId`, "unknown control");
   }
   for (const state of EVIDENCE_STATES) if (!evidenceStates.has(state)) fail("assurance.evidence", `missing evidence lifecycle state ${state}`);
-  for (const [index, risk] of assurance.risks.entries()) {
+}
+
+function validateRisks(risks) {
+  for (const [index, risk] of risks.entries()) {
     const path = `assurance.risks[${index}]`; validateHistory(risk, path);
     for (const key of ["threat", "vulnerability", "likelihood", "impact", "inherentRisk", "residualRisk", "treatment", "ownerRole", "dueDate", "approvalState"]) string(risk[key], `${path}.${key}`);
     if (!risk.scope?.length || !risk.reassessmentTriggers?.length) fail(path, "scope and reassessment triggers are required");
   }
-  for (const [index, vendor] of assurance.vendors.entries()) {
+}
+
+function validateVendors(vendors) {
+  for (const [index, vendor] of vendors.entries()) {
     const path = `assurance.vendors[${index}]`; validateHistory(vendor, path);
     for (const key of ["legalEntity", "exactService", "hipaaRole", "purpose", "baaStatus", "contractStatus", "region", "retentionDeletion", "incidentObligations", "reviewDate"]) string(vendor[key], `${path}.${key}`);
     if (!vendor.dataClasses?.length) fail(`${path}.dataClasses`, "must list data handled");
     if (vendor.phiEligible === true && !(vendor.baaStatus.startsWith("EXECUTED") && vendor.approvedConfiguration && vendor.subprocessorEvidence && vendor.approvalEvidenceRef)) fail(path, "PHI eligibility requires exact-service BAA, configuration, subprocessor, and approval evidence");
   }
-  for (const [index, evaluation] of assurance.evaluations.entries()) {
+}
+
+function validateEvaluations(evaluations) {
+  for (const [index, evaluation] of evaluations.entries()) {
     const path = `assurance.evaluations[${index}]`; validateHistory(evaluation, path);
     for (const key of ["evaluator", "evaluatorIndependence", "residualRisk", "approvalState", "evaluatedAt", "nextReview"]) string(evaluation[key], `${path}.${key}`);
     if (!evaluation.scope?.length || !evaluation.methods?.length || !evaluation.materialChangeTriggers?.length) fail(path, "scope, methods, and material-change triggers are required");
   }
-  for (const incident of assurance.incidents) {
+}
+
+function validateCorrectiveActions(actions, path) {
+  for (const action of actions) {
+    for (const key of ["id", "ownerRole", "dueDate", "status"]) string(action[key], `${path}.correctiveActions.${key}`);
+  }
+}
+
+function validateIncidents(incidents) {
+  for (const incident of incidents) {
     validateHistory(incident, `assurance.incidents.${incident.id}`);
     if (incident.type === "POTENTIAL_BREACH" && incident.legalDetermination !== null) fail(`assurance.incidents.${incident.id}.legalDetermination`, "synthetic validator must not automate a legal breach determination");
     if (!incident.correctiveActions?.length || !incident.auditLineage?.length) fail(`assurance.incidents.${incident.id}`, "corrective actions and audit lineage required");
-    for (const action of incident.correctiveActions) for (const key of ["id", "ownerRole", "dueDate", "status"]) string(action[key], `assurance.incidents.${incident.id}.correctiveActions.${key}`);
+    validateCorrectiveActions(incident.correctiveActions, `assurance.incidents.${incident.id}`);
   }
-  for (const item of assurance.contingency) {
+}
+
+function validateContingency(items) {
+  for (const item of items) {
     validateHistory(item, `assurance.contingency.${item.id}`);
     if (!item.evidenceRefs?.length || !item.correctiveActions?.length) fail(`assurance.contingency.${item.id}`, "evidence and corrective actions required");
-    for (const action of item.correctiveActions) for (const key of ["id", "ownerRole", "dueDate", "status"]) string(action[key], `assurance.contingency.${item.id}.correctiveActions.${key}`);
+    validateCorrectiveActions(item.correctiveActions, `assurance.contingency.${item.id}`);
   }
-  object(assurance.workforce, "assurance.workforce");
-  for (const key of ["responsibilityRoles", "training", "sanctions", "accessReviews", "breakGlassReviews", "policyVersions"]) if (!assurance.workforce[key]?.length) fail(`assurance.workforce.${key}`, "must not be empty");
-  const assuranceTypes = assurance.assurances.map((x) => x.type).sort();
+}
+
+function validateWorkforce(workforce) {
+  object(workforce, "assurance.workforce");
+  for (const key of ["responsibilityRoles", "training", "sanctions", "accessReviews", "breakGlassReviews", "policyVersions"]) {
+    if (!workforce[key]?.length) fail(`assurance.workforce.${key}`, "must not be empty");
+  }
+}
+
+function validateAssuranceTypes(assurances) {
+  const assuranceTypes = assurances.map((item) => item.type).sort();
   if (canonicalJson(assuranceTypes) !== canonicalJson([...ASSURANCE_TYPES].sort())) fail("assurance.assurances", "must contain all four assurance types");
-  for (const item of assurance.assurances) {
+  for (const item of assurances) {
     if (!item.limitations?.some((x) => /NOT_HHS_CERTIFICATION|NOT_HIPAA_EQUIVALENCE/.test(x))) fail(`assurance.assurances.${item.id}`, "must deny certification/equivalence");
     if (!item.limitations.includes("NOT_BAA_SUBSTITUTE")) fail(`assurance.assurances.${item.id}`, "must deny BAA substitution");
   }
+}
+
+export function validateAssurance(assurance, policy) {
+  object(assurance, "assurance");
+  for (const key of ["applicability", "controls", "evidence", "risks", "vendors", "evaluations", "incidents", "contingency", "assurances"]) {
+    array(assurance[key], `assurance.${key}`); unique(assurance[key], "id", `assurance.${key}`);
+  }
+  validateApplicability(assurance.applicability);
+  validateControls(assurance.controls, new Set(policy.officialSources.map((item) => item.id)));
+  validateEvidence(assurance.evidence, assurance.controls);
+  validateRisks(assurance.risks);
+  validateVendors(assurance.vendors);
+  validateEvaluations(assurance.evaluations);
+  validateIncidents(assurance.incidents);
+  validateContingency(assurance.contingency);
+  validateWorkforce(assurance.workforce);
+  validateAssuranceTypes(assurance.assurances);
   return assurance;
 }
 
-export function evaluateFlow(flow, policy, assurance) {
+function validateFlowContract(flow, policy) {
   object(flow, "flow");
   for (const key of ["id", "tenantId", "subject", "purpose", "role", "destination", "retentionClass", "policyVersion", "approvalState", "expectedDecision", "expectedReason"]) string(flow[key], `flow.${key}`);
   if (!policy.purposes.includes(flow.purpose)) fail("flow.purpose", "unknown purpose");
-  const role = policy.roles.find((x) => x.id === flow.role); if (!role) fail("flow.role", "unknown role");
-  const destination = policy.destinations.find((x) => x.id === flow.destination); if (!destination) fail("flow.destination", "unknown destination");
+  if (!policy.roles.some((item) => item.id === flow.role)) fail("flow.role", "unknown role");
+  if (!policy.destinations.some((item) => item.id === flow.destination)) fail("flow.destination", "unknown destination");
   if (!policy.retentionPolicies.some((x) => x.id === flow.retentionClass)) fail("flow.retentionClass", "missing retention basis");
   if (flow.policyVersion !== policy.policyVersion) fail("flow.policyVersion", "missing or stale policy version");
   if (!Array.isArray(flow.fieldIds) || !flow.fieldIds.length) fail("flow.fieldIds", "must not be empty");
   const fields = flow.fieldIds.map((id) => policy.fields.find((field) => field.id === id));
   if (fields.some((field) => !field)) fail("flow.fieldIds", "unknown field fails closed");
-  if (flow.referencedTenantId && flow.referencedTenantId !== flow.tenantId) return { decision: "DENY", reason: "CROSS_TENANT_REFERENCE" };
-  if (flow.relationship?.assignmentTenantId && flow.relationship.assignmentTenantId !== flow.tenantId) return { decision: "DENY", reason: "CROSS_TENANT_REFERENCE" };
-  if (flow.relationship?.relationshipTenantId && flow.relationship.relationshipTenantId !== flow.tenantId) return { decision: "DENY", reason: "CROSS_TENANT_REFERENCE" };
-  const revoked = assurance.workforce.accessReviews.some((x) => x.actor === flow.actor && x.accessState === "REVOKED");
-  if (revoked) return { decision: "DENY", reason: "WORKFORCE_ACCESS_REVOKED" };
-  if (flow.claim && FORBIDDEN_CLAIMS.includes(flow.claim)) return { decision: "DENY", reason: "FORBIDDEN_COMPLIANCE_OR_CERTIFICATION_CLAIM" };
+  return fields;
+}
+
+function tenantDecision(flow) {
+  const referencedTenants = [flow.referencedTenantId, flow.relationship?.assignmentTenantId, flow.relationship?.relationshipTenantId];
+  return referencedTenants.some((tenantId) => tenantId && tenantId !== flow.tenantId)
+    ? { decision: "DENY", reason: "CROSS_TENANT_REFERENCE" }
+    : null;
+}
+
+function workforceDecision(flow, assurance) {
+  return assurance.workforce.accessReviews.some((item) => item.actor === flow.actor && item.accessState === "REVOKED")
+    ? { decision: "DENY", reason: "WORKFORCE_ACCESS_REVOKED" }
+    : null;
+}
+
+function claimDecision(flow) {
+  return flow.claim && FORBIDDEN_CLAIMS.includes(flow.claim)
+    ? { decision: "DENY", reason: "FORBIDDEN_COMPLIANCE_OR_CERTIFICATION_CLAIM" }
+    : null;
+}
+
+function applicabilityDecision(flow, assurance) {
   if (flow.applicabilityId) {
-    const item = assurance.applicability.find((x) => x.id === flow.applicabilityId);
+    const item = assurance.applicability.find((candidate) => candidate.id === flow.applicabilityId);
     if (!item || item.status === "UNDETERMINED") return { decision: "BLOCKED", reason: "HIPAA_ROLE_UNDETERMINED" };
   }
   if (flow.applicabilityOverride) {
@@ -200,34 +290,67 @@ export function evaluateFlow(flow, policy, assurance) {
     if (!APPLICABILITY.includes(item.status) || item.status === "UNDETERMINED" || item.approvalState !== "QUALIFIED_APPROVAL_EXAMPLE" || !item.approvalEvidenceRef) return { decision: "BLOCKED", reason: "QUALIFIED_APPLICABILITY_APPROVAL_MISSING" };
     return { decision: "ELIGIBLE_FOR_FURTHER_REVIEW", reason: "QUALIFIED_APPLICABILITY_REPRESENTED_NOT_PRODUCTION_APPROVAL" };
   }
-  if (flow.riskIds?.some((id) => assurance.risks.some((risk) => risk.id === id && risk.residualRisk === "CRITICAL" && risk.approvalState === "UNACCEPTED"))) return { decision: "BLOCKED", reason: "CRITICAL_RISK_UNTREATED" };
+  return null;
+}
+
+function riskDecision(flow, assurance) {
+  return flow.riskIds?.some((id) => assurance.risks.some((risk) => risk.id === id && risk.residualRisk === "CRITICAL" && risk.approvalState === "UNACCEPTED"))
+    ? { decision: "BLOCKED", reason: "CRITICAL_RISK_UNTREATED" }
+    : null;
+}
+
+function evaluationDecision(flow, assurance) {
   if (flow.evaluationId) {
-    const item = assurance.evaluations.find((x) => x.id === flow.evaluationId);
+    const item = assurance.evaluations.find((candidate) => candidate.id === flow.evaluationId);
     if (!item || item.approvalState === "EXPIRED" || flow.materialChange) return { decision: "BLOCKED", reason: "EVALUATION_STALE_OR_MATERIAL_CHANGE" };
   }
+  return null;
+}
+
+function incidentDecision(flow, assurance) {
   if (flow.incidentId) {
-    const item = assurance.incidents.find((x) => x.id === flow.incidentId);
-    if (!item || item.legalDetermination === null || item.correctiveActions.some((x) => x.status !== "CLOSED")) return { decision: "BLOCKED", reason: "QUALIFIED_BREACH_DETERMINATION_REQUIRED" };
+    const item = assurance.incidents.find((candidate) => candidate.id === flow.incidentId);
+    if (!item || item.legalDetermination === null || item.correctiveActions.some((action) => action.status !== "CLOSED")) return { decision: "BLOCKED", reason: "QUALIFIED_BREACH_DETERMINATION_REQUIRED" };
   }
+  return null;
+}
+
+function contingencyDecision(flow, assurance) {
   if (flow.contingencyId) {
-    const item = assurance.contingency.find((x) => x.id === flow.contingencyId);
+    const item = assurance.contingency.find((candidate) => candidate.id === flow.contingencyId);
     if (!item || item.result !== "PASS" || item.deletionReconciliation !== "COMPLETE") return { decision: "BLOCKED", reason: "RESTORE_OR_DELETION_RECONCILIATION_INCOMPLETE" };
   }
+  return null;
+}
+
+function deletionDecision(flow) {
   if (flow.deletion) {
     if (flow.deletion.legalHold) return { decision: "BLOCKED", reason: "LEGAL_HOLD_PRECEDENCE" };
-    if (flow.deletion.completionReported && flow.deletion.destinations.some((x) => x.state !== "DELETED")) return { decision: "DENY", reason: "DELETION_DESTINATION_UNRESOLVED" };
+    if (flow.deletion.completionReported && flow.deletion.destinations.some((destination) => destination.state !== "DELETED")) return { decision: "DENY", reason: "DELETION_DESTINATION_UNRESOLVED" };
   }
+  return null;
+}
+
+function vendorDecision(flow, fields, assurance) {
   if (flow.vendorId) {
-    const vendor = assurance.vendors.find((x) => x.id === flow.vendorId);
+    const vendor = assurance.vendors.find((candidate) => candidate.id === flow.vendorId);
     if (!vendor) return { decision: "BLOCKED", reason: "EXACT_SERVICE_VENDOR_RECORD_MISSING" };
-    if (fields.some((x) => x.classifications.includes("REGULATED_HEALTH")) && !vendor.phiEligible) {
+    if (fields.some((field) => field.classifications.includes("REGULATED_HEALTH")) && !vendor.phiEligible) {
       const reason = vendor.baaStatus === "MISSING" ? "EXACT_SERVICE_BAA_OR_APPROVAL_MISSING" : "SYNTHETIC_VENDOR_NOT_PRODUCTION_APPROVED";
       return { decision: "BLOCKED", reason };
     }
   }
+  return null;
+}
+
+function roleDecision(flow, fields) {
   if (flow.role === "DRIVER" && flow.relationship?.assigned !== true) return { decision: "DENY", reason: "DRIVER_NOT_ASSIGNED" };
-  if (flow.role === "FACILITY_USER" && fields.some((x) => x.classifications.includes("RESTRICTED_LOCATION"))) return { decision: "DENY", reason: "FACILITY_FLEET_LOCATION_PROHIBITED" };
-  if (flow.role === "BILLING_USER" && fields.some((x) => x.id === "location.breadcrumb")) return { decision: "DENY", reason: "ADDITIONAL_LOCATION_PURPOSE_REQUIRED" };
+  if (flow.role === "FACILITY_USER" && fields.some((field) => field.classifications.includes("RESTRICTED_LOCATION"))) return { decision: "DENY", reason: "FACILITY_FLEET_LOCATION_PROHIBITED" };
+  if (flow.role === "BILLING_USER" && fields.some((field) => field.id === "location.breadcrumb")) return { decision: "DENY", reason: "ADDITIONAL_LOCATION_PURPOSE_REQUIRED" };
+  return null;
+}
+
+function specialPurposeDecision(flow, policy) {
   if (flow.purpose === "MAPS_ROUTE_GUIDANCE") {
     if (flow.fieldIds.some((id) => !policy.mapsAllowlist.includes(id)) || (flow.telemetryFieldIds ?? []).some((id) => !policy.observabilityAllowlist.includes(id))) return { decision: "DENY", reason: "MAPS_NON_ALLOWLISTED_FIELD" };
     return { decision: "ALLOW_SYNTHETIC_CONTRACT", reason: "MAPS_ROUTE_GUIDANCE_ALLOWLIST_ONLY" };
@@ -241,14 +364,45 @@ export function evaluateFlow(flow, policy, assurance) {
     if (!bg?.reason || !bg.actor || !bg.approvedBy || !bg.expiresAt || !bg.auditRef || !(new Date(flow.evaluationTime) < new Date(bg.expiresAt))) return { decision: "DENY", reason: "BREAK_GLASS_REQUIREMENTS_MISSING_OR_EXPIRED" };
     return { decision: "ALLOW_SYNTHETIC_CONTRACT", reason: "BREAK_GLASS_REQUIREMENTS_PRESENT" };
   }
+  return null;
+}
+
+const FLOW_ALLOW_REASONS = Object.freeze({
+  FLOW_DISPATCHER_RIDER_INTAKE: "APPROVED_INTERNAL_PURPOSE",
+  FLOW_DRIVER_ASSIGNED_MANIFEST: "MINIMUM_ASSIGNED_MANIFEST",
+  FLOW_FACILITY_RELATED_TRIP: "FACILITY_RELATIONSHIP_CONFIRMED",
+  FLOW_BILLING_TRIP_PROOF: "BILLING_PROOF_MINIMUM",
+  FLOW_SUPPORT_MASKED_DIAGNOSTICS: "MASKED_DIAGNOSTICS_ONLY",
+  FLOW_PUSH_OPAQUE_WAKEUP: "OPAQUE_WAKEUP_ONLY"
+});
+
+function fieldPolicyDecision(flow, fields) {
   const permitted = fields.every((field) => field.purposes.includes(flow.purpose) && field.roles.includes(flow.role) && field.destinations.includes(flow.destination));
   if (!permitted) return { decision: "DENY", reason: "FIELD_POLICY_DENIED" };
-  const allowReasons = {
-    FLOW_DISPATCHER_RIDER_INTAKE: "APPROVED_INTERNAL_PURPOSE", FLOW_DRIVER_ASSIGNED_MANIFEST: "MINIMUM_ASSIGNED_MANIFEST",
-    FLOW_FACILITY_RELATED_TRIP: "FACILITY_RELATIONSHIP_CONFIRMED", FLOW_BILLING_TRIP_PROOF: "BILLING_PROOF_MINIMUM",
-    FLOW_SUPPORT_MASKED_DIAGNOSTICS: "MASKED_DIAGNOSTICS_ONLY", FLOW_PUSH_OPAQUE_WAKEUP: "OPAQUE_WAKEUP_ONLY"
-  };
-  return { decision: "ALLOW_SYNTHETIC_CONTRACT", reason: allowReasons[flow.id] ?? "FIELD_POLICY_ALLOWLIST" };
+  return { decision: "ALLOW_SYNTHETIC_CONTRACT", reason: FLOW_ALLOW_REASONS[flow.id] ?? "FIELD_POLICY_ALLOWLIST" };
+}
+
+export function evaluateFlow(flow, policy, assurance) {
+  const fields = validateFlowContract(flow, policy);
+  const orderedEvaluators = [
+    () => tenantDecision(flow),
+    () => workforceDecision(flow, assurance),
+    () => claimDecision(flow),
+    () => applicabilityDecision(flow, assurance),
+    () => riskDecision(flow, assurance),
+    () => evaluationDecision(flow, assurance),
+    () => incidentDecision(flow, assurance),
+    () => contingencyDecision(flow, assurance),
+    () => deletionDecision(flow),
+    () => vendorDecision(flow, fields, assurance),
+    () => roleDecision(flow, fields),
+    () => specialPurposeDecision(flow, policy)
+  ];
+  for (const evaluate of orderedEvaluators) {
+    const decision = evaluate();
+    if (decision) return decision;
+  }
+  return fieldPolicyDecision(flow, fields);
 }
 
 export function validateFlows(flowRegistry, policy, assurance) {

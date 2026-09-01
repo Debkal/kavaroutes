@@ -46,4 +46,22 @@ test("compatibility classifier catches route, required-field, enum, and constrai
   assert.ok(report.breaking.some((finding) => finding.reason === "operation removed"));
   assert.ok(report.breaking.some((finding) => finding.reason === "required property added"));
   assert.ok(report.breaking.some((finding) => finding.reason === "closed enum changed"));
+  assert.ok(report.breaking.some((finding) => finding.reason === "maxLength narrowed"));
+});
+
+test("schema compatibility branch precedence remains independently characterized", () => {
+  const document = (schema) => ({ paths: {}, components: { schemas: { Contract: schema } } });
+  const cases = [
+    ["property removed", { type: "object", properties: { value: { type: "string" } } }, { type: "object", properties: {} }],
+    ["existing property became required", { type: "object", properties: { value: { type: "string" } } }, { type: "object", properties: { value: { type: "string" } }, required: ["value"] }],
+    ["maximum narrowed", { type: "number", maximum: 10 }, { type: "number", maximum: 9 }],
+    ["minimum narrowed", { type: "number", minimum: 1 }, { type: "number", minimum: 2 }],
+    ["closed enum changed", { type: "string", enum: ["A", "B"] }, { type: "string", enum: ["A"] }],
+    ["closed object became open", { type: "object", additionalProperties: false }, { type: "object" }],
+    ["maxItems narrowed", { type: "array", maxItems: 3, items: { type: "string", maxLength: 10 } }, { type: "array", maxItems: 2, items: { type: "string", maxLength: 9 } }],
+  ];
+  for (const [reason, before, after] of cases) {
+    const report = classifyOpenApiChange(document(before), document(after));
+    assert.ok(report.breaking.some((finding) => finding.reason === reason), reason);
+  }
 });

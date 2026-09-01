@@ -5,6 +5,56 @@ import { createMemoryAdapters, validateSyntheticJobPayload } from "@kavaroutes/p
 import { acceptSyntheticProbe, resolveEffectiveDriverPolicy } from "@kavaroutes/platform-engine/domain";
 import { createRequestContext } from "@kavaroutes/shared-kernel";
 import { syntheticContext } from "@kavaroutes/platform-test-support";
+import { API_NETWORK_LIMITS, resolveApiHostRuntime } from "@kavaroutes/api-host/network-security";
+import { createApi } from "@kavaroutes/api-host";
+
+test("API host rejects production promotion and non-loopback synthetic listeners", () => {
+  assert.deepEqual(resolveApiHostRuntime({}), {
+    profile: "local-synthetic",
+    host: "127.0.0.1",
+    port: 3000
+  });
+  assert.deepEqual(resolveApiHostRuntime({ HOST: "::1", PORT: "65535" }), {
+    profile: "local-synthetic",
+    host: "::1",
+    port: 65535
+  });
+  assert.throws(
+    () => resolveApiHostRuntime({ NODE_ENV: "production" }),
+    /PUBLIC_PRODUCTION_COMPOSITION_NOT_IMPLEMENTED/
+  );
+  assert.throws(
+    () => resolveApiHostRuntime({ NODE_ENV: "production", KAVAROUTES_RUNTIME_PROFILE: "local-synthetic" }),
+    /SYNTHETIC_PROFILE_FORBIDDEN_IN_PRODUCTION/
+  );
+  assert.throws(
+    () => resolveApiHostRuntime({ KAVAROUTES_RUNTIME_PROFILE: "public-production" }),
+    /PUBLIC_PRODUCTION_COMPOSITION_NOT_IMPLEMENTED/
+  );
+  for (const host of ["0.0.0.0", "::", "localhost", "api.internal"]) {
+    assert.throws(
+      () => resolveApiHostRuntime({ HOST: host }),
+      /SYNTHETIC_LISTENER_MUST_USE_EXPLICIT_LOOPBACK/
+    );
+  }
+  for (const port of ["0", "65536", "3000extra", "-1", " 3000"]) {
+    assert.throws(() => resolveApiHostRuntime({ PORT: port }), /INVALID_LISTENER_PORT/);
+  }
+  assert.throws(
+    () => resolveApiHostRuntime({ KAVAROUTES_RUNTIME_PROFILE: "staging" }),
+    /UNRECOGNIZED_RUNTIME_PROFILE/
+  );
+});
+
+test("API host has explicit nonzero connection and request ceilings", async (t) => {
+  const app = await createApi();
+  t.after(() => app.close());
+  assert.equal(app.server.headersTimeout, API_NETWORK_LIMITS.headersTimeoutMs);
+  assert.equal(app.server.requestTimeout, API_NETWORK_LIMITS.requestTimeoutMs);
+  assert.equal(app.server.timeout, API_NETWORK_LIMITS.connectionTimeoutMs);
+  assert.equal(app.server.keepAliveTimeout, API_NETWORK_LIMITS.keepAliveTimeoutMs);
+  assert.equal(app.server.maxRequestsPerSocket, API_NETWORK_LIMITS.maxRequestsPerSocket);
+});
 
 test("request context is immutable and rejects unsafe placeholders", () => {
   const context = syntheticContext();

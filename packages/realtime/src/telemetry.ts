@@ -1,4 +1,4 @@
-export type RealtimeMetric = "upgrade" | "connection" | "subscription" | "authorization" | "replay" | "reset" | "gap" | "fanout" | "reconnect" | "sync_age" | "freshness" | "buffer" | "slow_client" | "heartbeat" | "notification" | "poll" | "coalescing" | "resource" | "fairness";
+export type RealtimeMetric = "upgrade" | "connection" | "subscription" | "authorization" | "replay" | "reset" | "gap" | "fanout" | "reconnect" | "sync_age" | "freshness" | "buffer" | "slow_client" | "heartbeat" | "notification" | "poll" | "coalescing" | "resource" | "fairness" | "transport_failure" | "store_failure" | "dependency_failure";
 
 export interface RealtimeTelemetryEvent {
   readonly metric: RealtimeMetric;

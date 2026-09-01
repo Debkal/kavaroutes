@@ -4,7 +4,7 @@
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
-  "exports": { ".": "./dist/index.js", "./logging": "./dist/logging.js", "./realtime": "./dist/realtime.js", "./telemetry": "./dist/telemetry.js" },
+  "exports": { ".": "./dist/index.js", "./logging": "./dist/logging.js", "./network-security": "./dist/network-security.js", "./realtime": "./dist/realtime.js", "./telemetry": "./dist/telemetry.js" },
   "dependencies": {
     "@kavaroutes/api-contracts": "0.0.0-wp007",
     "@kavaroutes/realtime": "0.0.0-wp009",

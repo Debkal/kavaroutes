@@ -4,23 +4,47 @@ import type { SQLiteDatabase } from "expo-sqlite";
 import { DEFAULT_SAMPLING_POLICY, handoffNavigation, type DriverLocationSample, type VehicleMotionState, updateVehicleMotion } from "@kavaroutes/driver-core";
 import { createActionFingerprint, createEvidenceDigest, createPolicyDigest } from "./crypto";
 import { configureBackgroundLocation, DRIVER_LOCATION_TASK } from "./background-location";
-import { openNativeDriverStore, wipeNativeDriverStore } from "./storage/nativeStore";
+import {
+  assertNativeDriverSession,
+  invalidateNativeDriverSession,
+  openNativeDriverStore,
+  wipeNativeDriverStore,
+} from "./storage/nativeStore";
 import { createSyntheticWorkflow, restoreSyntheticWorkflow, type SyntheticWorkflow } from "@kavaroutes/driver-core";
 
 const INSTALLATION_GENERATION = "inst_synthetic0000001";
 const SESSION_GENERATION = "sess_synthetic0000001";
+const SYNTHETIC_SESSION_BINDING = Object.freeze({
+  installationGeneration: INSTALLATION_GENERATION,
+  sessionGeneration: SESSION_GENERATION,
+  expiresAt: "2027-08-26T00:00:00.000Z",
+});
 const SYNTHETIC_RESOURCE = "33333333-3333-4333-8333-333333333332";
 const SYNTHETIC_ACTION = "33333333-3333-4333-8333-333333333331";
 const encode = (value: string) => new TextEncoder().encode(value);
 let databasePromise: Promise<SQLiteDatabase> | undefined;
 
 async function database(): Promise<SQLiteDatabase> {
-  databasePromise ??= openNativeDriverStore({
-    installationGeneration: INSTALLATION_GENERATION,
-    sessionGeneration: SESSION_GENERATION,
-    expiresAt: "2027-08-26T00:00:00.000Z",
-  }).then((result) => result.database);
-  return databasePromise;
+  databasePromise ??= openNativeDriverStore(SYNTHETIC_SESSION_BINDING).then((result) => result.database);
+  let activeDatabase: SQLiteDatabase;
+  try {
+    activeDatabase = await databasePromise;
+  } catch (error) {
+    databasePromise = undefined;
+    throw error;
+  }
+  try {
+    await assertNativeDriverSession(activeDatabase, SYNTHETIC_SESSION_BINDING);
+    return activeDatabase;
+  } catch (error) {
+    databasePromise = undefined;
+    try {
+      await wipeNativeDriverStore(activeDatabase);
+    } catch {
+      throw new Error("DRIVER_STORE_RECOVERY_FAILED");
+    }
+    throw error;
+  }
 }
 
 export async function loadSyntheticWorkflow(): Promise<SyntheticWorkflow> {
@@ -43,8 +67,24 @@ export async function saveSyntheticWorkflow(state: SyntheticWorkflow): Promise<v
 }
 
 export async function resetSyntheticWorkflow(): Promise<void> {
-  if (await Location.hasStartedLocationUpdatesAsync(DRIVER_LOCATION_TASK)) await Location.stopLocationUpdatesAsync(DRIVER_LOCATION_TASK);
-  const db = await database(); databasePromise = undefined; await wipeNativeDriverStore(db);
+  let locationStopFailed = false;
+  try {
+    if (await Location.hasStartedLocationUpdatesAsync(DRIVER_LOCATION_TASK)) {
+      await Location.stopLocationUpdatesAsync(DRIVER_LOCATION_TASK);
+    }
+  } catch {
+    locationStopFailed = true;
+  }
+  const pendingDatabase = databasePromise;
+  databasePromise = undefined;
+  let activeDatabase: SQLiteDatabase | undefined;
+  try {
+    activeDatabase = await pendingDatabase;
+  } catch {
+    // A failed open is still followed by key and database artifact removal.
+  }
+  await invalidateNativeDriverSession(activeDatabase, "LOGGED_OUT");
+  if (locationStopFailed) throw new Error("DRIVER_LOCATION_STOP_FAILED");
 }
 
 export async function queueSyntheticArrival(): Promise<"QUEUED" | "ALREADY_QUEUED"> {

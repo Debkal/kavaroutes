@@ -89,6 +89,27 @@ test("cross-tenant references and grants fail closed", () => {
   assert.equal(evaluateFlow(invalid, policy, assurance).reason, "CROSS_TENANT_REFERENCE");
 });
 
+test("security and assurance decisions preserve explicit fail-closed precedence", () => {
+  const cases = [
+    ["cross-tenant before revoked workforce", (item) => { item.referencedTenantId = "syn_tenant_beta"; item.actor = "SYNTHETIC_TERMINATED_ACTOR_ALPHA"; }, "CROSS_TENANT_REFERENCE"],
+    ["revoked workforce before forbidden claim", (item) => { item.actor = "SYNTHETIC_TERMINATED_ACTOR_ALPHA"; item.claim = "HIPAA_CERTIFIED"; }, "WORKFORCE_ACCESS_REVOKED"],
+    ["forbidden claim before applicability", (item) => { item.claim = "HIPAA_CERTIFIED"; item.applicabilityId = "APP_RIDER_INTAKE"; }, "FORBIDDEN_COMPLIANCE_OR_CERTIFICATION_CLAIM"],
+    ["applicability before critical risk", (item) => { item.applicabilityId = "APP_RIDER_INTAKE"; item.riskIds = ["RISK_CRITICAL_UNTREATED"]; }, "HIPAA_ROLE_UNDETERMINED"],
+    ["critical risk before stale evaluation", (item) => { item.riskIds = ["RISK_CRITICAL_UNTREATED"]; item.evaluationId = "EVAL_STALE_SYNTHETIC"; }, "CRITICAL_RISK_UNTREATED"],
+    ["stale evaluation before incident", (item) => { item.evaluationId = "EVAL_STALE_SYNTHETIC"; item.incidentId = "INC_POTENTIAL_DISCLOSURE"; }, "EVALUATION_STALE_OR_MATERIAL_CHANGE"],
+    ["incident before contingency", (item) => { item.incidentId = "INC_POTENTIAL_DISCLOSURE"; item.contingencyId = "CONT_RESTORE_UNRESOLVED"; }, "QUALIFIED_BREACH_DETERMINATION_REQUIRED"],
+    ["contingency before deletion", (item) => { item.contingencyId = "CONT_RESTORE_UNRESOLVED"; item.deletion = { legalHold: true, completionReported: false, destinations: [] }; }, "RESTORE_OR_DELETION_RECONCILIATION_INCOMPLETE"],
+    ["deletion before vendor", (item) => { item.deletion = { legalHold: true, completionReported: false, destinations: [] }; item.vendorId = "VENDOR_CATEGORY_ONLY"; }, "LEGAL_HOLD_PRECEDENCE"],
+    ["vendor before role projection", (item) => { item.vendorId = "VENDOR_CATEGORY_ONLY"; item.role = "DRIVER"; item.relationship = { assigned: false }; }, "EXACT_SERVICE_VENDOR_RECORD_MISSING"],
+    ["role projection before special purpose", (item) => { item.role = "DRIVER"; item.relationship = { assigned: false }; item.purpose = "MAPS_ROUTE_GUIDANCE"; }, "DRIVER_NOT_ASSIGNED"]
+  ];
+  for (const [name, mutate, reason] of cases) {
+    const item = flow("FLOW_DISPATCHER_RIDER_INTAKE");
+    mutate(item);
+    assert.equal(evaluateFlow(item, policy, assurance).reason, reason, name);
+  }
+});
+
 test("retention requires explicit duration, legal-hold precedence, and verification", () => {
   const invalid = structuredClone(policy); delete invalid.retentionPolicies[0].duration;
   assert.throws(() => validatePolicy(invalid, classifications), /duration/);

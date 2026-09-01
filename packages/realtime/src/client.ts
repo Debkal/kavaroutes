@@ -16,6 +16,14 @@ export interface ClientProjectionPersistence {
   digest(): string;
 }
 
+function resourceKey(change: RealtimeChange): string {
+  const delta = change.delta;
+  if (delta.kind === "CURRENT_POSITION") return `driver:${delta.driverReference}`;
+  if (delta.kind === "DRIVER_MANIFEST") return `manifest:${delta.manifestReference}`;
+  if (delta.kind === "OPERATION_PROGRESS") return `operation:${delta.operationReference}`;
+  return `resource:${"resourceReference" in delta ? delta.resourceReference : delta.tripReference}`;
+}
+
 export function createMemoryClientProjection(control: { readonly failApply?: () => boolean; readonly failPersist?: () => boolean } = {}): ClientProjectionPersistence {
   const versions = new Map<string, { version: number; value: unknown }>();
   let persistedCursor: string | null = null;
@@ -24,10 +32,7 @@ export function createMemoryClientProjection(control: { readonly failApply?: () 
       if (control.failApply?.()) throw new Error("SYNTHETIC_CLIENT_APPLY_FAILURE");
       for (const change of changes) {
         const delta = change.delta;
-        const key = delta.kind === "CURRENT_POSITION" ? `driver:${delta.driverReference}`
-          : delta.kind === "DRIVER_MANIFEST" ? `manifest:${delta.manifestReference}`
-            : delta.kind === "OPERATION_PROGRESS" ? `operation:${delta.operationReference}`
-              : `resource:${"resourceReference" in delta ? delta.resourceReference : delta.tripReference}`;
+        const key = resourceKey(change);
         const current = versions.get(key);
         if (!current || delta.resourceVersion > current.version) versions.set(key, { version: delta.resourceVersion, value: delta });
       }
@@ -54,34 +59,44 @@ export function createReferenceSyncClient(persistence: ClientProjectionPersisten
     state = next;
   }
 
+  function gap(): "GAP" {
+    if (state === "LIVE" || state === "REPLAYING") transition("STALE");
+    return "GAP";
+  }
+
+  function classify(change: RealtimeChange): "ACCEPT" | "DUPLICATE" | "GAP" {
+    if (change.schemaVersion !== REALTIME_CLIENT_SCHEMA_VERSION) return "GAP";
+    const current = vectors.get(change.streamId);
+    if (!current) {
+      if (change.sequence !== 1) return "GAP";
+    } else {
+      if (change.epoch !== current.epoch || change.sequence > current.sequence + 1) return "GAP";
+      if (change.sequence <= current.sequence) return "DUPLICATE";
+    }
+    const version = resourceVersions.get(resourceKey(change));
+    return version !== undefined && change.delta.resourceVersion < version ? "GAP" : "ACCEPT";
+  }
+
+  async function commit(changes: readonly RealtimeChange[], cursor: string): Promise<void> {
+    await persistence.apply(changes);
+    await persistence.persistCursor(cursor);
+    for (const change of changes) {
+      vectors.set(change.streamId, { epoch: change.epoch, sequence: change.sequence });
+      const key = resourceKey(change);
+      resourceVersions.set(key, Math.max(resourceVersions.get(key) ?? 0, change.delta.resourceVersion));
+    }
+  }
+
   async function applyBatch(changes: readonly RealtimeChange[], cursor: string): Promise<"APPLIED" | "DUPLICATE" | "GAP"> {
     const accepted: RealtimeChange[] = [];
     for (const change of changes) {
-      if (change.schemaVersion !== REALTIME_CLIENT_SCHEMA_VERSION) { if (["LIVE", "REPLAYING"].includes(state)) transition("STALE"); return "GAP"; }
-      const current = vectors.get(change.streamId);
-      if (!current) {
-        if (change.sequence !== 1) { if (["LIVE", "REPLAYING"].includes(state)) transition("STALE"); return "GAP"; }
-      } else {
-        if (change.epoch !== current.epoch || change.sequence > current.sequence + 1) { if (["LIVE", "REPLAYING"].includes(state)) transition("STALE"); return "GAP"; }
-        if (change.sequence <= current.sequence) continue;
-      }
-      const delta = change.delta;
-      const resourceKey = delta.kind === "CURRENT_POSITION" ? `driver:${delta.driverReference}` : delta.kind === "DRIVER_MANIFEST" ? `manifest:${delta.manifestReference}`
-        : delta.kind === "OPERATION_PROGRESS" ? `operation:${delta.operationReference}` : `resource:${"resourceReference" in delta ? delta.resourceReference : delta.tripReference}`;
-      const version = resourceVersions.get(resourceKey);
-      if (version !== undefined && delta.resourceVersion < version) { if (["LIVE", "REPLAYING"].includes(state)) transition("STALE"); return "GAP"; }
+      const classification = classify(change);
+      if (classification === "GAP") return gap();
+      if (classification === "DUPLICATE") continue;
       accepted.push(change);
     }
     if (accepted.length === 0) return "DUPLICATE";
-    await persistence.apply(accepted);
-    await persistence.persistCursor(cursor);
-    for (const change of accepted) {
-      vectors.set(change.streamId, { epoch: change.epoch, sequence: change.sequence });
-      const delta = change.delta;
-      const key = delta.kind === "CURRENT_POSITION" ? `driver:${delta.driverReference}` : delta.kind === "DRIVER_MANIFEST" ? `manifest:${delta.manifestReference}`
-        : delta.kind === "OPERATION_PROGRESS" ? `operation:${delta.operationReference}` : `resource:${"resourceReference" in delta ? delta.resourceReference : delta.tripReference}`;
-      resourceVersions.set(key, Math.max(resourceVersions.get(key) ?? 0, delta.resourceVersion));
-    }
+    await commit(accepted, cursor);
     return "APPLIED";
   }
 

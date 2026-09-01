@@ -16,6 +16,7 @@ import {
   SafeErrorSchema
 } from "@kavaroutes/transport-schemas";
 import type { ProbeRequest, SocketNotification } from "@kavaroutes/transport-schemas";
+import { API_NETWORK_LIMITS } from "./network-security.js";
 export { createWp007Api } from "@kavaroutes/api-contracts";
 
 declare module "fastify" {
@@ -36,9 +37,15 @@ export async function createApi(options: ApiFactoryOptions = {}): Promise<Fastif
   const app = Fastify({
     logger: options.logger === undefined ? false : options.logger,
     bodyLimit: 16 * 1024,
+    connectionTimeout: API_NETWORK_LIMITS.connectionTimeoutMs,
+    requestTimeout: API_NETWORK_LIMITS.requestTimeoutMs,
+    handlerTimeout: API_NETWORK_LIMITS.handlerTimeoutMs,
+    keepAliveTimeout: API_NETWORK_LIMITS.keepAliveTimeoutMs,
+    maxRequestsPerSocket: API_NETWORK_LIMITS.maxRequestsPerSocket,
     requestIdHeader: false,
     logController: new LogController({ disableRequestLogging: true })
   }).setValidatorCompiler(TypeBoxValidatorCompiler).withTypeProvider<TypeBoxTypeProvider>();
+  app.server.headersTimeout = API_NETWORK_LIMITS.headersTimeoutMs;
 
   await app.register(swagger, {
     openapi: {

@@ -64,6 +64,45 @@ export function createTestOnlyCursorCodec(options: {
   const nonceFactory = options.nonceFactory ?? (() => randomBytes(12));
   const aad = Buffer.from(`${REALTIME_PROTOCOL}:${keyVersion}`);
 
+  function unpack(token: string): { readonly nonce: Buffer; readonly tag: Buffer; readonly encrypted: Buffer } {
+    if (typeof token !== "string" || !token.startsWith("rtc1.") || token.length > 8197) throw new CursorRejected("MALFORMED");
+    let packed: Buffer;
+    try { packed = Buffer.from(token.slice(5), "base64url"); }
+    catch { throw new CursorRejected("MALFORMED"); }
+    const versionLength = packed[0] ?? 0;
+    if (versionLength < 1 || packed.length < 1 + versionLength + 12 + 16 + 2) throw new CursorRejected("MALFORMED");
+    const encodedKeyVersion = packed.subarray(1, 1 + versionLength).toString("utf8");
+    if (!stringEqual(encodedKeyVersion, keyVersion)) throw new CursorRejected("KEY_VERSION_UNKNOWN");
+    const nonceStart = 1 + versionLength;
+    return {
+      nonce: packed.subarray(nonceStart, nonceStart + 12),
+      tag: packed.subarray(nonceStart + 12, nonceStart + 28),
+      encrypted: packed.subarray(nonceStart + 28),
+    };
+  }
+
+  function decrypt(packed: ReturnType<typeof unpack>): RealtimeCursorClaims {
+    try {
+      const decipher = createDecipheriv("aes-256-gcm", key, packed.nonce);
+      decipher.setAAD(aad);
+      decipher.setAuthTag(packed.tag);
+      return JSON.parse(Buffer.concat([decipher.update(packed.encrypted), decipher.final()]).toString("utf8")) as RealtimeCursorClaims;
+    } catch { throw new CursorRejected("TAMPERED"); }
+  }
+
+  function validateVersions(claims: RealtimeCursorClaims): void {
+    if (claims.protocol !== REALTIME_PROTOCOL || claims.projectionVersion !== REALTIME_PROJECTION_VERSION || claims.schemaVersion !== REALTIME_SCHEMA_VERSION || claims.policyVersion !== REALTIME_POLICY_VERSION || claims.keyVersion !== keyVersion) throw new CursorRejected("VERSION_MISMATCH");
+  }
+
+  function validateBinding(claims: RealtimeCursorClaims, binding: CursorBinding): void {
+    if (!stringEqual(claims.organizationId, binding.organizationId) || !stringEqual(claims.principalId, binding.principalId) || claims.authorizationGeneration !== binding.authorizationGeneration || claims.purpose !== binding.purpose || !stringEqual(canonicalScope(claims.scope), canonicalScope(binding.scope))) throw new CursorRejected("BINDING_MISMATCH");
+  }
+
+  function validateLifetimeAndVectors(claims: RealtimeCursorClaims): void {
+    if (!Number.isFinite(Date.parse(claims.expiresAt)) || Date.parse(claims.expiresAt) <= now().getTime()) throw new CursorRejected("EXPIRED");
+    if (!Array.isArray(claims.vectors) || claims.vectors.some((vector) => typeof vector.streamId !== "string" || !Number.isInteger(vector.epoch) || vector.epoch < 1 || !Number.isInteger(vector.sequence) || vector.sequence < 0)) throw new CursorRejected("MALFORMED");
+  }
+
   function encode(input: Omit<RealtimeCursorClaims, "protocol" | "projectionVersion" | "schemaVersion" | "policyVersion" | "issuedAt" | "expiresAt" | "keyVersion"> & { readonly lifetimeMilliseconds: number }): string {
     if (!Number.isInteger(input.lifetimeMilliseconds) || input.lifetimeMilliseconds < 1 || input.lifetimeMilliseconds > 7 * 24 * 60 * 60 * 1000) throw new Error("CURSOR_LIFETIME_INVALID");
     const issued = now();
@@ -91,29 +130,10 @@ export function createTestOnlyCursorCodec(options: {
   }
 
   function decode(token: string, binding: CursorBinding): RealtimeCursorClaims {
-    if (typeof token !== "string" || !token.startsWith("rtc1.") || token.length > 8197) throw new CursorRejected("MALFORMED");
-    let packed: Buffer;
-    try { packed = Buffer.from(token.slice(5), "base64url"); }
-    catch { throw new CursorRejected("MALFORMED"); }
-    const versionLength = packed[0] ?? 0;
-    if (versionLength < 1 || packed.length < 1 + versionLength + 12 + 16 + 2) throw new CursorRejected("MALFORMED");
-    const encodedKeyVersion = packed.subarray(1, 1 + versionLength).toString("utf8");
-    if (!stringEqual(encodedKeyVersion, keyVersion)) throw new CursorRejected("KEY_VERSION_UNKNOWN");
-    const nonceStart = 1 + versionLength;
-    const nonce = packed.subarray(nonceStart, nonceStart + 12);
-    const tag = packed.subarray(nonceStart + 12, nonceStart + 28);
-    const encrypted = packed.subarray(nonceStart + 28);
-    let claims: RealtimeCursorClaims;
-    try {
-      const decipher = createDecipheriv("aes-256-gcm", key, nonce);
-      decipher.setAAD(aad);
-      decipher.setAuthTag(tag);
-      claims = JSON.parse(Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8")) as RealtimeCursorClaims;
-    } catch { throw new CursorRejected("TAMPERED"); }
-    if (claims.protocol !== REALTIME_PROTOCOL || claims.projectionVersion !== REALTIME_PROJECTION_VERSION || claims.schemaVersion !== REALTIME_SCHEMA_VERSION || claims.policyVersion !== REALTIME_POLICY_VERSION || claims.keyVersion !== keyVersion) throw new CursorRejected("VERSION_MISMATCH");
-    if (!stringEqual(claims.organizationId, binding.organizationId) || !stringEqual(claims.principalId, binding.principalId) || claims.authorizationGeneration !== binding.authorizationGeneration || claims.purpose !== binding.purpose || !stringEqual(canonicalScope(claims.scope), canonicalScope(binding.scope))) throw new CursorRejected("BINDING_MISMATCH");
-    if (!Number.isFinite(Date.parse(claims.expiresAt)) || Date.parse(claims.expiresAt) <= now().getTime()) throw new CursorRejected("EXPIRED");
-    if (!Array.isArray(claims.vectors) || claims.vectors.some((vector) => typeof vector.streamId !== "string" || !Number.isInteger(vector.epoch) || vector.epoch < 1 || !Number.isInteger(vector.sequence) || vector.sequence < 0)) throw new CursorRejected("MALFORMED");
+    const claims = decrypt(unpack(token));
+    validateVersions(claims);
+    validateBinding(claims, binding);
+    validateLifetimeAndVectors(claims);
     return Object.freeze({ ...claims, vectors: Object.freeze(claims.vectors.map((vector) => Object.freeze({ ...vector }))) });
   }
 

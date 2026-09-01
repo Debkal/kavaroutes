@@ -8,6 +8,7 @@ import { Value } from "typebox/value";
 import { PersistenceConflict } from "@kavaroutes/postgres-persistence";
 import type { EffectiveDriverPolicy } from "@kavaroutes/platform-engine/domain";
 import { createRegistrationService, createTokenVault, type RegistrationInput, type RegistrationInactiveReason } from "@kavaroutes/push-notifications";
+import { createSyntheticLocalAdmissionController, type AdmissionController } from "./admission-control.js";
 import type { Wp007Application } from "./application.js";
 import { createDocumentationApplication, createOfflineBatchService, syntheticReadModels } from "./application.js";
 import { createSyntheticDriverPolicyService, policyVersionFromEtag, type DriverPolicyService } from "./driver-policy.js";
@@ -52,6 +53,7 @@ export interface Wp007ApiOptions {
   readonly requestIdFactory?: () => string;
   readonly telemetrySink?: (event: SafeTelemetryEvent) => void;
   readonly rateLimitPerOperation?: number;
+  readonly admissionController?: AdmissionController;
   readonly driverPolicyService?: DriverPolicyService;
   readonly pushRegistrationService?: ReturnType<typeof createRegistrationService>;
 }
@@ -110,6 +112,58 @@ function policyActionRejection(item: DriverActionBatch["items"][number], policy:
   return undefined;
 }
 
+function persistenceStatus(error: PersistenceConflict): number {
+  return ({ "stale-version": 412, "idempotency-mismatch": 422, "idempotency-in-progress": 409, "idempotency-expired": 410,
+    "resource-overlap": 409, duplicate: 409, relationship: 404, tenant: 404 }[error.kind] ?? 500);
+}
+
+type RequestValidation = readonly { readonly instancePath?: string }[];
+
+function errorRecord(error: unknown): Record<string, unknown> {
+  return typeof error === "object" && error !== null ? error as Record<string, unknown> : {};
+}
+
+function requestValidation(record: Record<string, unknown>): RequestValidation | null {
+  return Array.isArray(record.validation) ? record.validation as RequestValidation : null;
+}
+
+function pushErrorCode(error: unknown): string | null {
+  return error instanceof Error && /^PUSH_[A-Z0-9_]+$/.test(error.message) ? error.message : null;
+}
+
+function candidateErrorStatus(error: unknown, record: Record<string, unknown>, validation: RequestValidation | null, pushCode: string | null): number {
+  if (error instanceof ProtocolError) return error.statusCode;
+  if (error instanceof PersistenceConflict) return persistenceStatus(error);
+  if (pushCode) return /NOT_FOUND|CONTEXT_MISMATCH/.test(pushCode) ? 404 : 422;
+  if (validation) return 400;
+  if (record.code === "FST_ERR_CTP_BODY_TOO_LARGE") return 413;
+  return typeof record.statusCode === "number" ? record.statusCode : 500;
+}
+
+function mappedErrorCode(error: unknown, status: number, validation: RequestValidation | null, pushCode: string | null): string {
+  if (error instanceof ProtocolError) return error.code;
+  if (error instanceof PersistenceConflict) return `PERSISTENCE_${error.kind.replaceAll("-", "_").toUpperCase()}`;
+  if (pushCode) return pushCode;
+  if (validation) return "REQUEST_SCHEMA_INVALID";
+  if (status === 413) return "PAYLOAD_TOO_LARGE";
+  if (status === 415) return "UNSUPPORTED_MEDIA_TYPE";
+  return "INTERNAL_ERROR";
+}
+
+function mappedError(error: unknown): { readonly status: number; readonly code: string; readonly pointer?: string; readonly retryAfterSeconds?: number } {
+  const record = errorRecord(error);
+  const validation = requestValidation(record);
+  const pushCode = pushErrorCode(error);
+  const candidateStatus = candidateErrorStatus(error, record, validation, pushCode);
+  const status = candidateStatus in errors ? candidateStatus : 500;
+  const code = mappedErrorCode(error, status, validation, pushCode);
+  const pointer = validation
+    ? String(validation[0]?.instancePath || "/request").replace(/[^/A-Za-z0-9_-]/g, "").slice(0, 256)
+    : error instanceof ProtocolError ? error.pointer : undefined;
+  return { status, code, ...(pointer ? { pointer } : {}),
+    ...(error instanceof ProtocolError && error.retryAfterSeconds !== undefined ? { retryAfterSeconds: error.retryAfterSeconds } : {}) };
+}
+
 export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<FastifyInstance> {
   const now = options.now ?? (() => new Date());
   const etagSecret = options.etagSecret ?? "synthetic-etag-secret-wp007-local-only";
@@ -123,8 +177,13 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   }) });
   const pinnedDriverPolicy = driverPolicy.resolveShift({ organizationId: syntheticIds.organizationA, driverId: syntheticIds.driverSubject,
     assignmentId: "40000000-0000-4000-8000-000000000001", relationship: "EMPLOYEE", capabilities: new Set() });
-  const rateLimit = options.rateLimitPerOperation ?? 10_000;
-  const rateCounters = new Map<string, number>();
+  if (options.admissionController && options.rateLimitPerOperation !== undefined) {
+    throw new Error("ADMISSION_CONFIGURATION_AMBIGUOUS");
+  }
+  const admissionController = options.admissionController ?? createSyntheticLocalAdmissionController({
+    ...(options.rateLimitPerOperation === undefined ? {} : { limitPerWindow: options.rateLimitPerOperation }),
+    now,
+  });
   let nextRequest = 0;
   const requestIdFactory = options.requestIdFactory ?? (() => `req_wp007_${String(++nextRequest).padStart(8, "0")}`);
   const schemaContext = Object.fromEntries(allSchemas.map((schema) => {
@@ -199,42 +258,23 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     }));
   });
 
-  const requireAccess = (request: FastifyRequest, organizationId: string, requirement: AuthorizationRequirement, operationId: string) => {
+  const requireAccess = async (request: FastifyRequest, organizationId: string, requirement: AuthorizationRequirement, operationId: string) => {
     const principal = contextPrincipal(request);
     authorize(principal, organizationId, requirement);
-    const key = `${organizationId}:${principal.id}:${operationId}`;
-    const used = (rateCounters.get(key) ?? 0) + 1;
-    rateCounters.set(key, used);
-    if (used > rateLimit) throw new ProtocolError(429, "RATE_LIMIT_EXCEEDED", "rate limit exceeded", { retryAfterSeconds: 1 });
+    const decision = await admissionController.admit({ organizationId, principalId: principal.id, operationId });
+    if (!decision.allowed) {
+      throw new ProtocolError(429, "RATE_LIMIT_EXCEEDED", "rate limit exceeded", {
+        retryAfterSeconds: decision.retryAfterSeconds ?? 1,
+      });
+    }
     return principal;
   };
 
   app.setErrorHandler((error, request, reply) => {
-    const errorRecord: Record<string, unknown> = typeof error === "object" && error !== null
-      ? error as unknown as Record<string, unknown>
-      : {};
-    const validation = Array.isArray(errorRecord.validation) ? errorRecord.validation : null;
-    const pushCode = error instanceof Error && /^PUSH_[A-Z0-9_]+$/.test(error.message) ? error.message : null;
-    let status = error instanceof ProtocolError ? error.statusCode
-      : error instanceof PersistenceConflict
-        ? ({ "stale-version": 412, "idempotency-mismatch": 422, "idempotency-in-progress": 409, "idempotency-expired": 410,
-          "resource-overlap": 409, duplicate: 409, relationship: 404, tenant: 404 }[error.kind] ?? 500)
-        : pushCode ? (/NOT_FOUND|CONTEXT_MISMATCH/.test(pushCode) ? 404 : 422)
-        : validation ? 400
-          : errorRecord.code === "FST_ERR_CTP_BODY_TOO_LARGE" ? 413
-            : typeof errorRecord.statusCode === "number" ? errorRecord.statusCode : 500;
-    if (!(status in errors)) status = 500;
-    const code = error instanceof ProtocolError ? error.code
-      : error instanceof PersistenceConflict ? `PERSISTENCE_${error.kind.replaceAll("-", "_").toUpperCase()}`
-        : pushCode ?? (validation ? "REQUEST_SCHEMA_INVALID"
-          : status === 413 ? "PAYLOAD_TOO_LARGE" : status === 415 ? "UNSUPPORTED_MEDIA_TYPE" : "INTERNAL_ERROR");
-    const pointer = validation
-      ? String((validation[0] as { instancePath?: string } | undefined)?.instancePath || "/request").replace(/[^/A-Za-z0-9_-]/g, "").slice(0, 256)
-      : error instanceof ProtocolError ? error.pointer : undefined;
+    const { status, code, pointer, retryAfterSeconds } = mappedError(error);
     request.wp007Context.resultCode = code;
     if (status === 401) reply.header("www-authenticate", "Synthetic realm=\"kavaroutes-local-test\"");
-    const retryAfter = error instanceof ProtocolError ? error.retryAfterSeconds : undefined;
-    if (retryAfter !== undefined && [429, 503].includes(status)) reply.header("retry-after", String(retryAfter));
+    if (retryAfterSeconds !== undefined && [429, 503].includes(status)) reply.header("retry-after", String(retryAfterSeconds));
     void reply.status(status).type("application/problem+json").send(problemFor({ status, requestId: request.wp007Context.requestId, code, ...(pointer ? { pointer } : {}) }));
   });
   app.setNotFoundHandler((request, reply) => {
@@ -255,7 +295,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: AuthorizationHeaders, params: OrganizationParams, querystring: CollectionQuery,
     response: responseWithErrors({ 200: jsonResponse(TripCollectionSchema, "Cursor page", { Link: { schema: { type: "string" } } }) }, [400, 401, 404, 406, 410, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    const principal = requireAccess(request, organizationId, { capability: "trips:read", purpose: "RIDER_INTAKE" }, "listTrips");
+    const principal = await requireAccess(request, organizationId, { capability: "trips:read", purpose: "RIDER_INTAKE" }, "listTrips");
     const query = request.query as { cursor?: string; limit?: number };
     const limit = query.limit ?? 50;
     const expected = { organizationId, principalId: principal.id, purpose: "RIDER_INTAKE", filters: {}, sort: "tripId:asc", schemaVersion: "wp007.contract.v1" as const, policyVersion: "privacy-synthetic-v1" as const };
@@ -274,7 +314,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: AuthorizationHeaders, params: OrganizationParams, body: RiderSearchRequestSchema,
     response: responseWithErrors({ 200: jsonResponse(RiderSearchResponseSchema, "Bounded synthetic rider search") }, [400, 401, 404, 406, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    requireAccess(request, organizationId, { capability: "riders:read", purpose: "RIDER_INTAKE" }, "searchRiders");
+    await requireAccess(request, organizationId, { capability: "riders:read", purpose: "RIDER_INTAKE" }, "searchRiders");
     const body = request.body as { syntheticReferencePrefix: string; limit?: number };
     request.wp007Context.resultCode = "RIDER_SEARCH_RETURNED";
     return reply.send({ items: await application.searchRiders(organizationId, body.syntheticReferencePrefix, body.limit ?? 25) });
@@ -284,7 +324,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: IdempotentHeaders, params: OrganizationParams, body: TripCreateRequestSchema,
     response: responseWithErrors({ 201: jsonResponse(DispatcherTripSchema, "Created trip", { Location: { schema: { type: "string" } }, ETag: { schema: StrongEtagSchema }, "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    const principal = requireAccess(request, organizationId, { capability: "trips:write", purpose: "RIDER_INTAKE" }, "createTrip");
+    const principal = await requireAccess(request, organizationId, { capability: "trips:write", purpose: "RIDER_INTAKE" }, "createTrip");
     const result = await application.createTrip({ organizationId, principal, key: String(request.headers["idempotency-key"]), request: request.body as TripCreateRequest });
     for (const [name, value] of Object.entries(result.headers)) reply.header(name, value);
     if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
@@ -294,7 +334,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
 
   const sendTrip = async (request: FastifyRequest, reply: FastifyReply, head: boolean) => {
     const { organizationId, tripId } = request.params as { organizationId: string; tripId: string };
-    requireAccess(request, organizationId, { capability: "trips:read", purpose: "RIDER_INTAKE" }, head ? "headTrip" : "getTrip");
+    await requireAccess(request, organizationId, { capability: "trips:read", purpose: "RIDER_INTAKE" }, head ? "headTrip" : "getTrip");
     const trip = await application.readTrip(organizationId, tripId);
     if (!trip) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
     const tag = application.etag(trip.tripId, trip.version, "dispatcher-trip-v1");
@@ -312,7 +352,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: CommandHeaders, params: TripParams, body: CancelTripRequestSchema,
     response: responseWithErrors({ 200: jsonResponse(TripCommandResponseSchema, "Cancelled trip", { ETag: { schema: StrongEtagSchema }, "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 403, 404, 406, 409, 412, 413, 415, 422, 428, 429, 500]) } }, async (request, reply) => {
     const { organizationId, tripId } = request.params as { organizationId: string; tripId: string };
-    const principal = requireAccess(request, organizationId, { capability: "trips:command", purpose: "RIDER_INTAKE", resourceIsVisible: true }, "cancelTrip");
+    const principal = await requireAccess(request, organizationId, { capability: "trips:command", purpose: "RIDER_INTAKE", resourceIsVisible: true }, "cancelTrip");
     const ifMatch = request.headers["if-match"];
     if (typeof ifMatch !== "string") throw new ProtocolError(428, "PRECONDITION_REQUIRED", "current strong tag required");
     const result = await application.cancelTrip({ organizationId, principal, tripId, key: String(request.headers["idempotency-key"]), ifMatch, request: request.body as CancelTripRequest });
@@ -325,7 +365,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   app.get("/v1/organizations/:organizationId/dispatch-days/:serviceDate", { schema: { operationId: "getDispatchDay", tags: ["dispatch"], security,
     headers: ConditionalHeaders, params: DispatchDayParams, response: responseWithErrors({ 200: jsonResponse(DispatchDaySchema, "Versioned dispatch-day snapshot", { ETag: { schema: StrongEtagSchema } }), 304: { description: "Not modified" } }, [400, 401, 404, 406, 429, 500]) } }, async (request, reply) => {
     const { organizationId, serviceDate } = request.params as { organizationId: string; serviceDate: string };
-    requireAccess(request, organizationId, { capability: "dispatch:read", purpose: "ASSIGNED_SERVICE_DELIVERY" }, "getDispatchDay");
+    await requireAccess(request, organizationId, { capability: "dispatch:read", purpose: "ASSIGNED_SERVICE_DELIVERY" }, "getDispatchDay");
     const runs = await application.readDispatchDay(organizationId, serviceDate);
     const snapshotVersion = Math.max(1, ...runs.map((run) => run.version));
     const tag = application.etag(serviceDate, snapshotVersion, "dispatch-day-v1");
@@ -339,7 +379,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   app.get("/v1/organizations/:organizationId/driver/manifest", { schema: { operationId: "getDriverManifest", tags: ["driver"], security,
     headers: ConditionalHeaders, params: OrganizationParams, response: responseWithErrors({ 200: jsonResponse(DriverManifestSchema, "Minimum-necessary driver manifest", { ETag: { schema: StrongEtagSchema } }), 304: { description: "Not modified" } }, [400, 401, 404, 406, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    requireAccess(request, organizationId, { capability: "driver:manifest:read", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "getDriverManifest");
+    await requireAccess(request, organizationId, { capability: "driver:manifest:read", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "getDriverManifest");
     const tag = application.etag(syntheticReadModels.manifest.driverReference, syntheticReadModels.manifest.version, "driver-manifest-v1");
     reply.header("etag", tag);
     if (request.headers["if-none-match"] === tag) { request.wp007Context.resultCode = "NOT_MODIFIED"; return reply.status(304).send(); }
@@ -350,7 +390,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   app.get("/v1/organizations/:organizationId/driver-control-policy", { schema: { operationId: "getDriverControlPolicy", tags: ["driver"], security,
     headers: ConditionalHeaders, params: OrganizationParams, response: responseWithErrors({ 200: jsonResponse(DriverControlPolicySchema, "Versioned organization Driver control policy", { ETag: { schema: StrongEtagSchema } }), 304: { description: "Not modified" } }, [400, 401, 403, 404, 406, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    requireAccess(request, organizationId, { capability: "driver-policy:read", purpose: "ASSIGNED_SERVICE_DELIVERY", resourceIsVisible: true }, "getDriverControlPolicy");
+    await requireAccess(request, organizationId, { capability: "driver-policy:read", purpose: "ASSIGNED_SERVICE_DELIVERY", resourceIsVisible: true }, "getDriverControlPolicy");
     const policy = driverPolicy.read(organizationId); if (!policy) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
     const tag = application.etag(policy.organizationId, policy.version, "driver-control-policy-v1"); reply.header("etag", tag);
     if (request.headers["if-none-match"] === tag) { request.wp007Context.resultCode = "NOT_MODIFIED"; return reply.status(304).send(); }
@@ -362,7 +402,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     response: responseWithErrors({ 200: jsonResponse(DriverControlPolicySchema, "Updated organization Driver control policy", { ETag: { schema: StrongEtagSchema }, "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 403, 404, 406, 409, 412, 413, 415, 422, 428, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string }; const principal = contextPrincipal(request);
     const capability = principal.capabilities.has("driver-policy:write") ? "driver-policy:write" : "driver-policy:override";
-    requireAccess(request, organizationId, { capability, purpose: "ASSIGNED_SERVICE_DELIVERY", resourceIsVisible: true }, "updateDriverControlPolicy");
+    await requireAccess(request, organizationId, { capability, purpose: "ASSIGNED_SERVICE_DELIVERY", resourceIsVisible: true }, "updateDriverControlPolicy");
     const ifMatch = request.headers["if-match"]; if (typeof ifMatch !== "string") throw new ProtocolError(428, "PRECONDITION_REQUIRED", "current strong tag required");
     const current = driverPolicy.read(organizationId); if (!current) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
     const result = driverPolicy.update({ organizationId, principal, idempotencyKey: String(request.headers["idempotency-key"]),
@@ -376,7 +416,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: IdempotentHeaders, params: OrganizationParams, body: DriverActionBatchSchema,
     response: responseWithErrors({ 200: jsonResponse(BatchReceiptSchema, "Ordered action receipts", { "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    const principal = requireAccess(request, organizationId, { capability: "driver:execute", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "submitDriverActionBatch");
+    const principal = await requireAccess(request, organizationId, { capability: "driver:execute", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "submitDriverActionBatch");
     const result = await offline.actions(`${organizationId}:${principal.id}`, String(request.headers["idempotency-key"]), request.body as DriverActionBatch,
       (item) => policyActionRejection(item, pinnedDriverPolicy));
     if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
@@ -388,7 +428,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: IdempotentHeaders, params: OrganizationParams, body: LocationBatchSchema,
     response: responseWithErrors({ 200: jsonResponse(BatchReceiptSchema, "Location sample receipts", { "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    const principal = requireAccess(request, organizationId, { capability: "driver:location:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "submitDriverLocationBatch");
+    const principal = await requireAccess(request, organizationId, { capability: "driver:location:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "submitDriverLocationBatch");
     const result = await offline.locations(`${organizationId}:${principal.id}`, String(request.headers["idempotency-key"]), request.body as LocationBatch);
     if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
     request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "LOCATION_BATCH_COMMITTED";
@@ -399,7 +439,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: IdempotentHeaders, params: OrganizationParams, body: PushRegistrationRequestSchema,
     response: responseWithErrors({ 200: jsonResponse(PushRegistrationResponseSchema, "Registered native push installation without returning its routing token") }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    const principal = requireAccess(request, organizationId, { capability: "driver:notifications:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "registerDriverInstallation");
+    const principal = await requireAccess(request, organizationId, { capability: "driver:notifications:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "registerDriverInstallation");
     if (!principal.subjectId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
     const body = request.body as PushRegistrationRequest;
     const input: RegistrationInput = { organizationId, principalId: principal.id, subjectId: principal.subjectId,
@@ -418,7 +458,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: IdempotentHeaders, params: InstallationParams, body: PushUnregistrationRequestSchema,
     response: responseWithErrors({ 200: jsonResponse(PushRegistrationResponseSchema, "Disabled the exact installation generation") }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId, installationId } = request.params as { organizationId: string; installationId: string };
-    const principal = requireAccess(request, organizationId, { capability: "driver:notifications:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "unregisterDriverInstallation");
+    const principal = await requireAccess(request, organizationId, { capability: "driver:notifications:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "unregisterDriverInstallation");
     if (!principal.subjectId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
     const body = request.body as PushUnregistrationRequest;
     const unregistered = pushRegistrations.unregister({ organizationId, principalId: principal.id, subjectId: principal.subjectId },
@@ -432,7 +472,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   app.get("/v1/organizations/:organizationId/operations/:operationId", { schema: { operationId: "getOperation", tags: ["operations"], security,
     headers: AuthorizationHeaders, params: OperationParams, response: responseWithErrors({ 200: jsonResponse(OperationSchema, "Synthetic operation status") }, [400, 401, 404, 406, 410, 429, 500, 503]) } }, async (request, reply) => {
     const { organizationId, operationId } = request.params as { organizationId: string; operationId: string };
-    requireAccess(request, organizationId, { capability: "integrations:read", purpose: "PARTNER_EXPORT" }, "getOperation");
+    await requireAccess(request, organizationId, { capability: "integrations:read", purpose: "PARTNER_EXPORT" }, "getOperation");
     if (operationId !== syntheticReadModels.operation.operationId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
     request.wp007Context.resultCode = "OPERATION_RETURNED";
     return reply.send(syntheticReadModels.operation);

@@ -130,52 +130,24 @@ export function isValidTraceparent(value: unknown): boolean {
 
 export function parseStrictJson(raw: string, maximumDepth = 16): unknown {
   let index = 0;
+  const malformed = (): never => { throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON"); };
   const whitespace = () => { while (/\s/.test(raw[index] ?? "")) index += 1; };
   const readString = (): string => {
     const start = index;
-    if (raw[index] !== '"') throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON");
+    if (raw[index] !== '"') return malformed();
     index += 1;
     while (index < raw.length) {
       if (raw[index] === "\\") { index += 2; continue; }
       if (raw[index] === '"') {
         index += 1;
         try { return JSON.parse(raw.slice(start, index)) as string; }
-        catch { throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON"); }
+        catch { return malformed(); }
       }
       index += 1;
     }
-    throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON");
+    return malformed();
   };
-  const parseValue = (depth: number): void => {
-    if (depth > maximumDepth) throw new ProtocolError(400, "JSON_DEPTH_EXCEEDED", "JSON nesting too deep");
-    whitespace();
-    if (raw[index] === "{") {
-      index += 1; whitespace();
-      const keys = new Set<string>();
-      if (raw[index] === "}") { index += 1; return; }
-      while (index < raw.length) {
-        whitespace(); const key = readString();
-        if (keys.has(key)) throw new ProtocolError(400, "DUPLICATE_JSON_KEY", "duplicate JSON key", { pointer: `/${key.replaceAll("~", "~0").replaceAll("/", "~1")}` });
-        keys.add(key); whitespace();
-        if (raw[index] !== ":") throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON");
-        index += 1; parseValue(depth + 1); whitespace();
-        if (raw[index] === "}") { index += 1; return; }
-        if (raw[index] !== ",") throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON");
-        index += 1;
-      }
-      throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON");
-    }
-    if (raw[index] === "[") {
-      index += 1; whitespace();
-      if (raw[index] === "]") { index += 1; return; }
-      while (index < raw.length) {
-        parseValue(depth + 1); whitespace();
-        if (raw[index] === "]") { index += 1; return; }
-        if (raw[index] !== ",") throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON");
-        index += 1;
-      }
-      throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON");
-    }
+  const parseScalar = (): void => {
     if (raw[index] === '"') { readString(); return; }
     const start = index;
     while (index < raw.length && !/[\s,\]}]/.test(raw[index] ?? "")) index += 1;
@@ -183,12 +155,46 @@ export function parseStrictJson(raw: string, maximumDepth = 16): unknown {
     try {
       const parsed = JSON.parse(token) as unknown;
       if (typeof parsed === "number" && !Number.isFinite(parsed)) throw new Error("nonfinite");
-    } catch { throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON"); }
+    } catch { malformed(); }
   };
+  function parseObject(depth: number): void {
+    index += 1; whitespace();
+    const keys = new Set<string>();
+    if (raw[index] === "}") { index += 1; return; }
+    while (index < raw.length) {
+      whitespace(); const key = readString();
+      if (keys.has(key)) throw new ProtocolError(400, "DUPLICATE_JSON_KEY", "duplicate JSON key", { pointer: `/${key.replaceAll("~", "~0").replaceAll("/", "~1")}` });
+      keys.add(key); whitespace();
+      if (raw[index] !== ":") malformed();
+      index += 1; parseValue(depth + 1); whitespace();
+      if (raw[index] === "}") { index += 1; return; }
+      if (raw[index] !== ",") malformed();
+      index += 1;
+    }
+    malformed();
+  }
+  function parseArray(depth: number): void {
+    index += 1; whitespace();
+    if (raw[index] === "]") { index += 1; return; }
+    while (index < raw.length) {
+      parseValue(depth + 1); whitespace();
+      if (raw[index] === "]") { index += 1; return; }
+      if (raw[index] !== ",") malformed();
+      index += 1;
+    }
+    malformed();
+  }
+  function parseValue(depth: number): void {
+    if (depth > maximumDepth) throw new ProtocolError(400, "JSON_DEPTH_EXCEEDED", "JSON nesting too deep");
+    whitespace();
+    if (raw[index] === "{") { parseObject(depth); return; }
+    if (raw[index] === "[") { parseArray(depth); return; }
+    parseScalar();
+  }
   parseValue(1); whitespace();
-  if (index !== raw.length) throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON");
+  if (index !== raw.length) malformed();
   try { return JSON.parse(raw) as unknown; }
-  catch { throw new ProtocolError(400, "MALFORMED_JSON", "malformed JSON"); }
+  catch { return malformed(); }
 }
 
 export interface SafeTelemetryEvent {

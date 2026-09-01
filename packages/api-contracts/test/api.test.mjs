@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createWp007Api, strongEtag, syntheticIds, syntheticReadModels } from "../dist/index.js";
+import { createSyntheticLocalAdmissionController, createWp007Api, strongEtag, syntheticIds, syntheticReadModels } from "../dist/index.js";
 
 const auth = (principal) => ({ authorization: `Synthetic ${principal}` });
 const tripId = "11111111-1111-4111-8111-111111111111";
@@ -72,7 +72,8 @@ test("resource, collection, conditional, search, command, and response-projectio
 });
 
 test("strict bodies, driver batch limits/order/replay, operation access, and rate limits are enforced", async (t) => {
-  const app = await createWp007Api({ application: memoryApplication(), rateLimitPerOperation: 1 });
+  let clock = new Date("2026-09-01T12:00:00.000Z");
+  const app = await createWp007Api({ application: memoryApplication(), rateLimitPerOperation: 1, now: () => clock });
   t.after(() => app.close());
   const driver = auth("principal_driver");
   const base = `/v1/organizations/${syntheticIds.organizationA}`;
@@ -100,10 +101,42 @@ test("strict bodies, driver batch limits/order/replay, operation access, and rat
   assert.deepEqual(response.json().items.map((item) => item.outcome), ["APPLIED", "REJECTED"]);
   response = await app.inject({ method: "POST", url: `${base}/driver/action-batches`, headers: { ...driver, "idempotency-key": "action-batch-key-0001" }, payload: batch });
   assert.equal(response.statusCode, 429);
-  assert.equal(response.headers["retry-after"], "1");
+  assert.equal(response.headers["retry-after"], "60");
+  clock = new Date("2026-09-01T12:01:00.000Z");
+  response = await app.inject({ method: "POST", url: `${base}/driver/action-batches`, headers: { ...driver, "idempotency-key": "action-batch-key-0001" }, payload: batch });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers["kavaroutes-idempotency-replayed"], "true");
 
   response = await app.inject({ method: "GET", url: `${base}/operations/${syntheticReadModels.operation.operationId}`, headers: auth("principal_integration") });
   assert.equal(response.statusCode, 200);
+});
+
+test("local admission windows are bounded, expiring, and isolated by tenant, principal, and operation", async () => {
+  let clock = new Date("2026-09-01T12:00:00.000Z");
+  const admission = createSyntheticLocalAdmissionController({
+    limitPerWindow: 2,
+    maximumTrackedScopes: 2,
+    windowMilliseconds: 10_000,
+    now: () => clock,
+  });
+  const first = { organizationId: syntheticIds.organizationA, principalId: "principal_dispatcher", operationId: "listTrips" };
+  assert.deepEqual(await admission.admit(first), { allowed: true, remaining: 1 });
+  assert.deepEqual(await admission.admit(first), { allowed: true, remaining: 0 });
+  assert.deepEqual(await admission.admit(first), { allowed: false, remaining: 0, retryAfterSeconds: 10, reason: "SCOPE_LIMIT_EXCEEDED" });
+  assert.equal((await admission.admit({ ...first, operationId: "getTrip" })).allowed, true);
+  assert.deepEqual(await admission.admit({ ...first, principalId: "principal_integration" }), {
+    allowed: false,
+    remaining: 0,
+    retryAfterSeconds: 10,
+    reason: "TRACKING_CAPACITY_EXCEEDED",
+  });
+  assert.equal(admission.trackedScopes(), 2);
+  clock = new Date("2026-09-01T12:00:10.000Z");
+  assert.deepEqual(await admission.admit({ ...first, principalId: "principal_integration" }), { allowed: true, remaining: 1 });
+  assert.equal(admission.trackedScopes(), 1);
+  clock = new Date("2026-09-01T11:59:00.000Z");
+  assert.deepEqual(await admission.admit({ ...first, principalId: "principal_integration" }), { allowed: true, remaining: 0 });
+  assert.throws(() => createSyntheticLocalAdmissionController({ maximumTrackedScopes: 0 }), /ADMISSION_POLICY_INVALID/);
 });
 
 test("Driver control policy is versioned, capability-separated, and not writable by the Driver", async (t) => {

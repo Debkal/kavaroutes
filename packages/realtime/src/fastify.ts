@@ -4,7 +4,7 @@ import type { WebSocket } from "ws";
 import { problemFor, ProblemSchema, type SyntheticPrincipal } from "@kavaroutes/api-contracts";
 import { ChangeQueryRequestSchema, ChangeQueryResponseSchema, REALTIME_LIMITS, REALTIME_PROTOCOL, RealtimeProtocolError, type ChangeQueryRequest } from "./contracts.js";
 import { authorizeRealtimeSubscription, type AuthorizationGenerationSource, RealtimeAuthorizationDenied } from "./authorization.js";
-import { createRealtimeGateway } from "./gateway.js";
+import { createRealtimeGateway, realtimeOriginAllowedFor } from "./gateway.js";
 import type { RealtimeStore } from "./store.js";
 import type { RealtimeTelemetryEvent } from "./telemetry.js";
 
@@ -22,7 +22,8 @@ export async function registerWp009Realtime(app: FastifyInstance, options: {
   readonly now?: () => Date;
   readonly telemetrySink?: (event: RealtimeTelemetryEvent) => void;
 }) {
-  const gateway = createRealtimeGateway(options);
+  const allowedOrigins = options.allowedOrigins ?? new Set(["http://kavaroutes.test"]);
+  const gateway = createRealtimeGateway({ ...options, allowedOrigins });
   await app.register(async (scope) => {
     await scope.register(websocket, { options: { maxPayload: REALTIME_LIMITS.maximumInboundBytes, perMessageDeflate: false,
       handleProtocols: (protocols) => protocols.has(REALTIME_PROTOCOL) && protocols.size === 1 ? REALTIME_PROTOCOL : false } });
@@ -57,17 +58,16 @@ export async function registerWp009Realtime(app: FastifyInstance, options: {
       preValidation: async (request, reply) => {
         const protocols = request.headers["sec-websocket-protocol"];
         if (protocols !== REALTIME_PROTOCOL) return reply.code(400).send({ code: "REALTIME_PROTOCOL_REQUIRED" });
-        const clientClass = request.headers["x-synthetic-client-class"];
-        if (clientClass !== "synthetic-web" && clientClass !== "synthetic-native") return reply.code(400).send({ code: "SYNTHETIC_CLIENT_CLASS_REQUIRED" });
-        if (clientClass === "synthetic-web" && (typeof request.headers.origin !== "string" || !(options.allowedOrigins ?? new Set(["http://kavaroutes.test"])).has(request.headers.origin))) return reply.code(403).send({ code: "REALTIME_ORIGIN_DENIED" });
+        if (request.headers["x-synthetic-client-class"] !== undefined) return reply.code(400).send({ code: "REALTIME_CLIENT_CLASS_HEADER_PROHIBITED" });
+        const origin = typeof request.headers.origin === "string" ? request.headers.origin : undefined;
+        if (!realtimeOriginAllowedFor(principalFor(request), origin, allowedOrigins)) return reply.code(403).send({ code: "REALTIME_ORIGIN_DENIED" });
         if (Object.keys(request.query as Record<string, unknown>).length > 0) return reply.code(400).send({ code: "REALTIME_QUERY_PROHIBITED" });
       },
     }, (socket: WebSocket, request) => {
-      const clientClass = request.headers["x-synthetic-client-class"] as "synthetic-web" | "synthetic-native";
       let connectionId: string;
       try {
         connectionId = gateway.open({ principal: principalFor(request), origin: request.headers.origin,
-          protocol: request.headers["sec-websocket-protocol"], clientClass,
+          protocol: request.headers["sec-websocket-protocol"],
           transport: {
             get bufferedAmount() { return socket.bufferedAmount; },
             send: (text) => socket.send(text), ping: () => socket.ping(),
@@ -78,7 +78,10 @@ export async function registerWp009Realtime(app: FastifyInstance, options: {
         socket.close(code, code === 1013 ? "TRY_AGAIN_LATER" : "POLICY_VIOLATION");
         return;
       }
-      socket.on("message", (data, binary) => { void gateway.receive(connectionId, Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer), binary); });
+      socket.on("message", (data, binary) => {
+        void gateway.receive(connectionId, Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer), binary)
+          .catch(() => gateway.close(connectionId));
+      });
       socket.on("pong", () => gateway.observeHeartbeat(connectionId));
       socket.on("error", () => gateway.close(connectionId));
       socket.on("close", () => gateway.close(connectionId));

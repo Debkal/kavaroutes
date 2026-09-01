@@ -55,15 +55,29 @@ test("loopback WebSocket authenticates before upgrade, enforces origin/subprotoc
   const url = `ws://127.0.0.1:${address.port}/v1/realtime`;
 
   const denied = await new Promise((resolve, reject) => {
-    const socket = new WebSocket(url, REALTIME_PROTOCOL, { headers: { authorization: "Synthetic principal_dispatcher", origin: "https://evil.test", "x-synthetic-client-class": "synthetic-web" } });
+    const socket = new WebSocket(url, REALTIME_PROTOCOL, { headers: { authorization: "Synthetic principal_dispatcher", origin: "https://evil.test" } });
     socket.once("unexpected-response", (_request, response) => { response.resume(); resolve(response.statusCode); });
     socket.once("error", reject);
   });
   assert.equal(denied, 403);
 
+  const spoofedClass = await new Promise((resolve, reject) => {
+    const socket = new WebSocket(url, REALTIME_PROTOCOL, { headers: { authorization: "Synthetic principal_dispatcher", "x-synthetic-client-class": "synthetic-native" } });
+    socket.once("unexpected-response", (_request, response) => { response.resume(); resolve(response.statusCode); });
+    socket.once("error", reject);
+  });
+  assert.equal(spoofedClass, 400);
+
+  const missingBrowserOrigin = await new Promise((resolve, reject) => {
+    const socket = new WebSocket(url, REALTIME_PROTOCOL, { headers: { authorization: "Synthetic principal_dispatcher" } });
+    socket.once("unexpected-response", (_request, response) => { response.resume(); resolve(response.statusCode); });
+    socket.once("error", reject);
+  });
+  assert.equal(missingBrowserOrigin, 403);
+
   const frames = await new Promise((resolve, reject) => {
     const socket = new WebSocket(url, REALTIME_PROTOCOL, { perMessageDeflate: false,
-      headers: { authorization: "Synthetic principal_dispatcher", origin: "http://kavaroutes.test", "x-synthetic-client-class": "synthetic-web" } });
+      headers: { authorization: "Synthetic principal_dispatcher", origin: "http://kavaroutes.test" } });
     const observed = [];
     let live = false;
     socket.on("message", (data) => {
@@ -76,6 +90,13 @@ test("loopback WebSocket authenticates before upgrade, enforces origin/subprotoc
     socket.once("error", reject);
   });
   assert.deepEqual(frames.map((frame) => frame.type), ["connection.ready", "subscription.live"]);
-  for (let attempt = 0; attempt < 20 && gateway.activeConnections() !== 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 10));
+
+  const nativeFrame = await new Promise((resolve, reject) => {
+    const socket = new WebSocket(url, REALTIME_PROTOCOL, { headers: { authorization: "Synthetic principal_driver" } });
+    socket.once("message", (data) => { resolve(JSON.parse(data.toString())); socket.close(1000, "NORMAL"); });
+    socket.once("error", reject);
+  });
+  assert.equal(nativeFrame.type, "connection.ready");
+  for (let attempt = 0; attempt < 100 && gateway.activeConnections() !== 0; attempt += 1) await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(gateway.activeConnections(), 0);
 });

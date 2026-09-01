@@ -40,7 +40,7 @@ async function runConnectionProfile(count) {
     const snapshot = await store.snapshot(authorization);
     const output = transport();
     const started = performance.now();
-    const id = gateway.open({ principal: candidate, origin: "http://kavaroutes.test", protocol: REALTIME_PROTOCOL, clientClass: "synthetic-web", transport: output });
+    const id = gateway.open({ principal: candidate, origin: "http://kavaroutes.test", protocol: REALTIME_PROTOCOL, transport: output });
     await gateway.receive(id, JSON.stringify({ type: "subscription.subscribe", messageId: `message:synthetic:${index}`, subscriptionId: `subscription:synthetic:${index}`,
       organizationId: syntheticIds.organizationA, purpose: "DISPATCH_CONTROL", scope, cursor: snapshot.cursor }));
     upgrades.push(performance.now() - started);
@@ -57,7 +57,7 @@ async function runConnectionProfile(count) {
     gateway.close(record.id);
     const output = transport();
     const started = performance.now();
-    const id = gateway.open({ principal: record.principal, origin: "http://kavaroutes.test", protocol: REALTIME_PROTOCOL, clientClass: "synthetic-web", transport: output });
+    const id = gateway.open({ principal: record.principal, origin: "http://kavaroutes.test", protocol: REALTIME_PROTOCOL, transport: output });
     await gateway.receive(id, JSON.stringify({ type: "subscription.subscribe", messageId: `message:reconnect:${index}`, subscriptionId: `subscription:reconnect:${index}`,
       organizationId: syntheticIds.organizationA, purpose: "DISPATCH_CONTROL", scope, cursor: record.output.state.cursor }));
     recoveries.push(performance.now() - started);
@@ -114,8 +114,8 @@ async function runNoisyTenant() {
   const [snapshotA, snapshotB] = await Promise.all([store.snapshot(authA), store.snapshot(authB)]);
   const observedA = []; const observedB = [];
   const inspectionTransport = (frames) => ({ bufferedAmount: 0, send(text) { frames.push(JSON.parse(text)); }, ping() {}, close() {}, terminate() {} });
-  const connectionA = gateway.open({ principal: basePrincipal, origin: "http://kavaroutes.test", protocol: REALTIME_PROTOCOL, clientClass: "synthetic-web", transport: inspectionTransport(observedA) });
-  const connectionB = gateway.open({ principal: outsider, origin: "http://kavaroutes.test", protocol: REALTIME_PROTOCOL, clientClass: "synthetic-web", transport: inspectionTransport(observedB) });
+  const connectionA = gateway.open({ principal: basePrincipal, origin: "http://kavaroutes.test", protocol: REALTIME_PROTOCOL, transport: inspectionTransport(observedA) });
+  const connectionB = gateway.open({ principal: outsider, origin: "http://kavaroutes.test", protocol: REALTIME_PROTOCOL, transport: inspectionTransport(observedB) });
   await gateway.receive(connectionA, JSON.stringify({ type: "subscription.subscribe", messageId: "message:noisy:a", subscriptionId: "subscription:noisy:a", organizationId: syntheticIds.organizationA, purpose: "DISPATCH_CONTROL", scope, cursor: snapshotA.cursor }));
   await gateway.receive(connectionB, JSON.stringify({ type: "subscription.subscribe", messageId: "message:noisy:b", subscriptionId: "subscription:noisy:b", organizationId: syntheticIds.organizationB, purpose: "DISPATCH_CONTROL", scope, cursor: snapshotB.cursor }));
   for (let index = 0; index < 500; index += 1) await store.append({ organizationId: syntheticIds.organizationB, sourceEventId: `event:noisy:${index}`, purpose: "DISPATCH_CONTROL", scope,
