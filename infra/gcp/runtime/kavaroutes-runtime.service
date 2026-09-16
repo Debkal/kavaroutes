@@ -1,0 +1,18 @@
+[Unit]
+Description=KavaRoutes private synthetic runtime
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/kavaroutes/runtime/vm.env
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/kavaroutes/runtime
+ExecStart=/usr/bin/docker compose --env-file /opt/kavaroutes/runtime/vm.env -f /opt/kavaroutes/runtime/compose.yaml up -d --wait --wait-timeout 120 --pull never postgres api worker
+ExecStop=/usr/bin/docker compose --env-file /opt/kavaroutes/runtime/vm.env -f /opt/kavaroutes/runtime/compose.yaml stop --timeout 30
+TimeoutStartSec=150
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

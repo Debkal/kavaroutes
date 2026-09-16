@@ -21,4 +21,50 @@ CREATE INDEX IF NOT EXISTS evidence_draft_pending_idx ON evidence_draft(state, c
 CREATE TABLE IF NOT EXISTS workflow_checkpoint (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER NOT NULL, encrypted_state BLOB NOT NULL, updated_at TEXT NOT NULL);
 `}, { version: 3, name: "pinned_effective_driver_policy", sql: `
 ALTER TABLE workflow_checkpoint ADD COLUMN policy_digest TEXT CHECK (policy_digest IS NULL OR (length(policy_digest) = 64 AND policy_digest NOT GLOB '*[^a-f0-9]*'));
+`}, { version: 4, name: "private_cloud_control_commands", sql: `
+CREATE TABLE IF NOT EXISTS cloud_precheck_command (
+  shift_reference TEXT PRIMARY KEY, idempotency_key TEXT NOT NULL UNIQUE,
+  encrypted_request BLOB NOT NULL, encrypted_receipt BLOB,
+  state TEXT NOT NULL CHECK (state IN ('PENDING','ACCEPTED','REJECTED')),
+  created_at TEXT NOT NULL
+);
+`}, { version: 5, name: "protected_inspection_form_drafts", sql: `
+CREATE TABLE inspection_form_draft (
+  shift_generation TEXT NOT NULL, stage TEXT NOT NULL CHECK(stage IN ('PRE','POST')),
+  policy_digest TEXT NOT NULL, encrypted_draft BLOB NOT NULL, PRIMARY KEY(shift_generation,stage)
+);
+`}, { version: 6, name: "private_cloud_shift_and_action_queue", sql: `
+CREATE TABLE cloud_shift_start (
+  id INTEGER PRIMARY KEY CHECK(id=1), command_key TEXT NOT NULL UNIQUE,
+  encrypted_request BLOB NOT NULL, encrypted_receipt BLOB,
+  state TEXT NOT NULL CHECK(state IN ('PENDING','ACCEPTED','REJECTED'))
+);
+CREATE TABLE cloud_driver_action (
+  shift_reference TEXT NOT NULL, sequence INTEGER NOT NULL, action_id TEXT NOT NULL UNIQUE,
+  intent_key TEXT NOT NULL, batch_key TEXT NOT NULL UNIQUE, encrypted_request BLOB NOT NULL,
+  encrypted_receipt BLOB, state TEXT NOT NULL CHECK(state IN ('PENDING','ACCEPTED','REJECTED')),
+  PRIMARY KEY(shift_reference,sequence), UNIQUE(shift_reference,intent_key)
+);
+CREATE INDEX cloud_driver_action_pending ON cloud_driver_action(shift_reference,state,sequence);
+CREATE TABLE cloud_driver_manifest (id INTEGER PRIMARY KEY CHECK(id=1), encrypted_projection BLOB NOT NULL);
+`}, { version: 7, name: "protected_driver_signature_commands", sql: `
+ALTER TABLE cloud_driver_action ADD COLUMN reviewed INTEGER NOT NULL DEFAULT 0 CHECK(reviewed IN (0,1));
+CREATE TABLE cloud_signature_draft (
+  shift_reference TEXT NOT NULL, leg_reference TEXT NOT NULL, event TEXT NOT NULL,
+  encrypted_draft BLOB NOT NULL, PRIMARY KEY(shift_reference,leg_reference,event)
+);
+CREATE TABLE cloud_signature_command (
+  evidence_id TEXT PRIMARY KEY, shift_reference TEXT NOT NULL, leg_reference TEXT NOT NULL, event TEXT NOT NULL,
+  command_key TEXT NOT NULL UNIQUE, encrypted_request BLOB NOT NULL, encrypted_receipt BLOB,
+  state TEXT NOT NULL CHECK(state IN ('PENDING','ACCEPTED','REJECTED')), rejection_code TEXT
+);
+`}, { version: 8, name: "protected_route_proposals", sql: `
+CREATE TABLE cloud_route_draft(shift_reference TEXT PRIMARY KEY,encrypted_view BLOB NOT NULL,encrypted_order BLOB NOT NULL);
+CREATE TABLE cloud_route_command(proposal_id TEXT PRIMARY KEY,shift_reference TEXT NOT NULL,command_key TEXT NOT NULL UNIQUE,encrypted_request BLOB NOT NULL,encrypted_receipt BLOB,state TEXT NOT NULL CHECK(state IN ('PENDING','ACCEPTED','REJECTED')));
+`}, {version:9,name:'protected_shift_finish_commands',sql:`
+CREATE TABLE cloud_finish_command(shift_reference TEXT NOT NULL,kind TEXT NOT NULL,command_key TEXT NOT NULL UNIQUE,encrypted_request BLOB NOT NULL,encrypted_receipt BLOB,state TEXT NOT NULL CHECK(state IN('PENDING','ACCEPTED','REJECTED')),PRIMARY KEY(shift_reference,kind,command_key));
+CREATE UNIQUE INDEX cloud_finish_pending ON cloud_finish_command(shift_reference,kind) WHERE state='PENDING';
+CREATE TABLE cloud_postcheck_command(shift_reference TEXT PRIMARY KEY,idempotency_key TEXT NOT NULL UNIQUE,encrypted_request BLOB NOT NULL,encrypted_receipt BLOB,state TEXT NOT NULL CHECK(state IN('PENDING','ACCEPTED','REJECTED')),created_at TEXT NOT NULL);
+`},{version:10,name:'closed_cloud_shift_history',sql:`
+CREATE TABLE cloud_shift_history(shift_reference TEXT PRIMARY KEY,command_key TEXT NOT NULL UNIQUE,encrypted_request BLOB NOT NULL,encrypted_receipt BLOB NOT NULL,encrypted_closure BLOB NOT NULL);
 `}]);

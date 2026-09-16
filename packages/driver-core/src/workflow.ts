@@ -57,6 +57,7 @@ export interface SignatureEvidence {
   readonly localActionAt: string;
   readonly installationGeneration: string;
   readonly shiftGeneration: string;
+  readonly shiftReference?: string;
   readonly digest: string;
   readonly locationEvidence: "SEPARATE_NOT_CAPTURED";
   readonly state: "QUEUED" | "UPLOADED" | "ACCEPTED" | "REJECTED" | "SUPERSEDED";
@@ -67,6 +68,8 @@ export interface SyntheticWorkflow {
   readonly schemaVersion: 3;
   readonly phase: ShiftPhase;
   readonly shiftGeneration: string;
+  readonly shiftReference?: string;
+  readonly lastActionSequence?: number;
   readonly authoritativeVersion: number;
   readonly tracking: "STOPPED" | "STARTING" | "TRACKING" | "EMERGENCY_STOPPED";
   readonly moving: boolean;
@@ -199,7 +202,7 @@ function resolveControlOutcome(mode: InspectionControlMode, completed: boolean, 
 
 export type WorkflowCommand =
   | { readonly type: "REQUEST_START_SHIFT" }
-  | { readonly type: "START_SHIFT_ACCEPTED"; readonly effectivePolicy: DriverPolicySnapshot }
+  | { readonly type: "START_SHIFT_ACCEPTED"; readonly effectivePolicy: DriverPolicySnapshot; readonly shiftGeneration?: string; readonly shiftReference?: string }
   | { readonly type: "START_SHIFT_FAILED"; readonly reason: "PERMISSION_DENIED" | "TRACKING_START_FAILED" }
   | { readonly type: "CONFIRM_VEHICLE" }
   | { readonly type: "ANSWER_INSPECTION"; readonly stage: "PRE" | "POST"; readonly item: string; readonly answer: InspectionAnswer }
@@ -230,7 +233,11 @@ export function applyWorkflowCommand(state: SyntheticWorkflow, command: Workflow
     case "START_SHIFT_ACCEPTED":
       if (state.phase !== "SHIFT_STARTING") fail("SHIFT_START_NOT_PENDING");
       if (!validatePolicySnapshot(command.effectivePolicy)) fail("EFFECTIVE_POLICY_INVALID");
+      if (command.shiftGeneration !== undefined && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(command.shiftGeneration)) fail("SHIFT_GENERATION_INVALID");
+      if (command.shiftReference !== undefined && !/^[0-9a-f-]{36}$/i.test(command.shiftReference)) fail("SHIFT_REFERENCE_INVALID");
       return receipt(state, { phase: "POLICY_RESOLVED", tracking: "TRACKING", effectivePolicy: command.effectivePolicy,
+        ...(command.shiftGeneration ? { shiftGeneration: command.shiftGeneration } : {}),
+        ...(command.shiftReference ? { shiftReference: command.shiftReference } : {}),
         preInspectionOutcome: outcomeFor(command.effectivePolicy.preInspection.mode), startOdometerOutcome: outcomeFor(command.effectivePolicy.startOdometer.mode),
         postInspectionOutcome: outcomeFor(command.effectivePolicy.postInspection.mode), endOdometerOutcome: outcomeFor(command.effectivePolicy.endOdometer.mode) },
       "driver.shift.started|driver.tracking.started|driver.shift.policy_snapshotted");

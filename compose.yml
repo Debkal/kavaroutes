@@ -1,0 +1,128 @@
+name: kavaroutes-local
+
+x-runtime: &runtime
+  image: kavaroutes-local-runtime:dev
+  pull_policy: never
+  network_mode: service:postgres
+  user: "1000:1000"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  init: true
+  mem_limit: 512m
+  pids_limit: 128
+  stop_grace_period: 30s
+  restart: unless-stopped
+  logging: &logging
+    driver: json-file
+    options: {max-size: 5m, max-file: "2"}
+
+services:
+  credentials:
+    image: node:24.19.0-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03
+    network_mode: none
+    read_only: true
+    command: [node, /bootstrap.mjs]
+    volumes:
+      - ./infra/local/bootstrap.mjs:/bootstrap.mjs:ro
+      - bootstrap:/secrets/bootstrap
+      - db-secret:/secrets/postgres
+      - admin-secret:/secrets/admin
+      - api-secret:/secrets/api
+      - worker-secret:/secrets/worker
+    restart: "no"
+    logging: *logging
+  postgres:
+    image: postgis/postgis:17-3.5@sha256:624f5195b91d424dbebf018890148cc0e5a3e80db5467da8b53cc2ed2ce49216
+    depends_on:
+      credentials: {condition: service_completed_successfully}
+    command: [postgres, -c, listen_addresses=127.0.0.1, -c, shared_preload_libraries=pg_stat_statements, -c, timezone=UTC, -c, max_connections=80, -c, log_min_error_statement=panic]
+    environment:
+      POSTGRES_USER: kr_cloud_admin
+      POSTGRES_DB: kavaroutes_cloud
+      POSTGRES_PASSWORD_FILE: /run/db-secret/password
+    # API, worker and web share this private network namespace. Only web is
+    # published; PostgreSQL and runtime listeners remain on container loopback.
+    ports: ["127.0.0.1:${KAVAROUTES_PORT:-8080}:8080"]
+    volumes:
+      - database:/var/lib/postgresql/data
+      - db-secret:/run/db-secret:ro
+    healthcheck:
+      test: [CMD, pg_isready, -h, 127.0.0.1, -U, kr_cloud_admin, -d, kavaroutes_cloud]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    shm_size: 128m
+    mem_limit: 1g
+    restart: unless-stopped
+    logging: *logging
+  initialize:
+    <<: *runtime
+    build:
+      context: .
+      dockerfile: infra/gcp/runtime/Dockerfile
+    depends_on:
+      postgres: {condition: service_healthy}
+    entrypoint: [node, /local/initialize.mjs]
+    command: []
+    healthcheck: {disable: true}
+    volumes:
+      - admin-secret:/run/secrets:ro
+      - ./infra/local/initialize.mjs:/local/initialize.mjs:ro
+      - ./infra/gcp/runtime:/fixtures:ro
+    restart: "no"
+  api:
+    <<: *runtime
+    depends_on:
+      initialize: {condition: service_completed_successfully}
+    command: [api, /run/secrets/config.json]
+    volumes: [api-secret:/run/secrets:ro]
+    healthcheck:
+      test: [CMD, node, infra/gcp/runtime/health.mjs, "58080"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  worker:
+    <<: *runtime
+    depends_on:
+      initialize: {condition: service_completed_successfully}
+    command: [worker, /run/secrets/config.json]
+    volumes: [worker-secret:/run/secrets:ro]
+    healthcheck:
+      test: [CMD, node, infra/gcp/runtime/health.mjs, "58081"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+  web:
+    image: kavaroutes-local-web:dev
+    build:
+      context: .
+      dockerfile: infra/local/Web.Dockerfile
+    network_mode: service:postgres
+    depends_on:
+      api: {condition: service_healthy}
+      worker: {condition: service_healthy}
+    environment:
+      KAVAROUTES_PORT: ${KAVAROUTES_PORT:-8080}
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    init: true
+    mem_limit: 256m
+    pids_limit: 64
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, node, /app/server.mjs, --health]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging: *logging
+
+volumes:
+  database:
+  bootstrap:
+  db-secret:
+  admin-secret:
+  api-secret:
+  worker-secret:

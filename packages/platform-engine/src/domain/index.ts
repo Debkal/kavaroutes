@@ -12,3 +12,6 @@ export function acceptSyntheticProbe(id: string, input: "alpha" | "bravo"): Synt
 }
 
 export * from "./driver-policy.js";
+export * from './route-proposal.js';
+export * from './shift-return.js';
+export * from './tracking-freshness.js';

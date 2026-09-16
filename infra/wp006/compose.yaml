@@ -25,6 +25,22 @@ services:
       - "127.0.0.1:55433:5432"
     volumes:
       - wp006-postgres:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 2.0
+    shm_size: 128m
+    ulimits:
+      nofile: { soft: 1024, hard: 2048 }
     stop_grace_period: 30s
 volumes:
   wp006-postgres:

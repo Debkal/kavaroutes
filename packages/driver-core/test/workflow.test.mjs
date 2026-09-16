@@ -7,6 +7,15 @@ const noDefects = (state, stage = "PRE") => INSPECTION_ITEMS.reduce((current, it
   { type: "ANSWER_INSPECTION", stage, item, answer: { response: "NO_DEFECT" } }), state);
 const policy = (overrides = {}) => ({ ...SYNTHETIC_ENTERPRISE_POLICY, canonicalDigest: "b".repeat(64), ...overrides });
 const startShift = (state = createSyntheticWorkflow(), effectivePolicy = SYNTHETIC_ENTERPRISE_POLICY) => applyWorkflowCommand(applyWorkflowCommand(state, { type: "REQUEST_START_SHIFT" }), { type: "START_SHIFT_ACCEPTED", effectivePolicy });
+
+test("server shift generation replaces the local pending reference and rejects malformed values", () => {
+  const pending = applyWorkflowCommand(createSyntheticWorkflow(), { type: "REQUEST_START_SHIFT" });
+  const accepted = applyWorkflowCommand(pending, { type: "START_SHIFT_ACCEPTED", effectivePolicy: SYNTHETIC_ENTERPRISE_POLICY,
+    shiftGeneration: "50000000-0000-4000-8000-000000000002" });
+  assert.equal(accepted.shiftGeneration, "50000000-0000-4000-8000-000000000002");
+  assert.throws(() => applyWorkflowCommand(pending, { type: "START_SHIFT_ACCEPTED", effectivePolicy: SYNTHETIC_ENTERPRISE_POLICY,
+    shiftGeneration: "client-selected-shift" }), /SHIFT_GENERATION_INVALID/);
+});
 const draftProposal = (state = { ...createSyntheticWorkflow(), effectivePolicy: SYNTHETIC_ENTERPRISE_POLICY }) => applyWorkflowCommand(state, { type: "BEGIN_PROPOSAL" });
 const signature = (state, action, id) => ({ evidenceId: id, stopReference: `ref_synthetic_stop_${String(state.currentNode + 1).padStart(4, "0")}`, action, role: "RIDER",
   attestationPolicyVersion: ATTESTATION_POLICY_VERSION, capturedAt: "2026-08-26T12:00:00.000Z", localActionAt: "2026-08-26T12:00:00.000Z",

@@ -1,0 +1,31 @@
+import {it,expect,vi,afterEach} from 'vitest';
+import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import {CloudReturnReview} from '../src/components/CloudReturnReview';
+import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development-transport';
+import {webcrypto} from 'node:crypto';
+const shift='11111111-1111-4111-8111-111111111111';
+const value={shiftReference:shift,shiftGeneration:'22222222-2222-4222-8222-222222222222',resourceVersion:3,exceptionCommandId:'33333333-3333-4333-8333-333333333333',lifecycle:'ACTIVE',returnMode:'REQUIRED_WITH_AUDITED_OVERRIDE',returnResult:'OUTSIDE'};
+const mount=(api:any)=>{const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});const result=render(<QueryClientProvider client={client}><CloudReturnReview api={api} shift={shift}/></QueryClientProvider>);return {...result,client};};
+afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
+it('requires explicit reviewer selection and recovers exact original override after reload',async()=>{
+ vi.spyOn(window,'confirm').mockReturnValue(true);
+ vi.stubGlobal('crypto',webcrypto);
+ const api={returnReview:vi.fn(async()=>({value})),overrideReturn:vi.fn().mockRejectedValueOnce(new DevelopmentApiError(0,'OUTCOME_UNKNOWN')).mockResolvedValue({value:{shiftReference:shift,resourceVersion:4}})};
+ const first=mount(api);expect(api.returnReview).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByText('Open synthetic authorized return reviewer'));
+ await waitFor(()=>expect(screen.getByText('Record audited return override')).toBeEnabled());
+ fireEvent.click(screen.getByText('Record audited return override'));
+ await screen.findByText(/Outcome unknown. Recover this original request/);
+ const original=api.overrideReturn.mock.calls[0];first.unmount();first.client.clear();
+ const second=mount(api);fireEvent.click(screen.getByText('Open synthetic authorized return reviewer'));
+ await waitFor(()=>expect(screen.getByText('Record audited return override')).toBeEnabled());
+ fireEvent.click(screen.getByText('Record audited return override'));
+ await screen.findByText('Server accepted audited override; shift ended and collection stopped.');
+ expect(api.overrideReturn.mock.calls[1]).toEqual(original);expect(window.confirm).toHaveBeenCalledTimes(2);second.client.clear();
+});
+it('no recorded exception or unavailable review cannot enable override',async()=>{
+ const api={returnReview:async()=>({value:{...value,exceptionCommandId:null}}),overrideReturn:vi.fn()};const surface=mount(api);
+ fireEvent.click(screen.getByText('Open synthetic authorized return reviewer'));
+ await screen.findByText(/Return policy:/);expect(screen.getByText('Record audited return override')).toBeDisabled();expect(api.overrideReturn).not.toHaveBeenCalled();surface.client.clear();
+});

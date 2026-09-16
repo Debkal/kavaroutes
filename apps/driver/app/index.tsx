@@ -9,7 +9,7 @@ import { openSyntheticNavigation } from "../src/nativeActions";
 import { useWorkflow } from "../src/workflow-context";
 
 export default function ShiftHomeScreen() {
-  const router = useRouter(); const { state, ready, error, startShift, dispatch } = useWorkflow();
+  const router = useRouter(); const { state, ready, error, itinerary, cloudPrototype, startShift, dispatch, recoverUpdates,syncCloudActions } = useWorkflow();
   const [directionsMessage, setDirectionsMessage] = useState("");
   const nodes = [
     { label: "P1 · Pickup", time: "8:00–8:15 AM", rider: "Synthetic Rider A", place: "Demo Civic Center" },
@@ -31,14 +31,18 @@ export default function ShiftHomeScreen() {
     if (state.stopStep === "NAVIGATE") { await dispatch({ type: "ADVANCE_STOP" }); router.push("/signature"); return; }
     router.push(`/stop/ref_synthetic_stop_${String(state.currentNode + 1).padStart(4, "0")}` as never);
   };
-  if (!ready) return <FeasibilityScreen title="Opening your shift" summary="Loading protected test data from this phone." />;
-  if (state.phase === "SIGNED_OUT") return <FeasibilityScreen title="Ready for your day?" summary="This candidate uses made-up riders, stops, and receipts. Starting the shift is intentional and also starts visible location sharing.">
-    <StatusCard title="Assigned vehicle" status="Synthetic Van 12"><Text>Run: TEST-204 · 1 rider · 2 stops</Text></StatusCard>
+  if (!ready) return <FeasibilityScreen title="Opening your shift" summary={error ?? "Loading protected test data from this phone."}>
+    {cloudPrototype && error ? <PrimaryButton label="Retry protected shift recovery" onPress={() => recoverUpdates("reconnect")} /> : null}
+    <PrimaryButton label="Emergency: stop location sharing" onPress={() => dispatch({ type: "EMERGENCY_STOP",reason: "SAFETY" })} />
+  </FeasibilityScreen>;
+  if (state.phase === "SIGNED_OUT") return <FeasibilityScreen title="Ready for your day?" summary={cloudPrototype ? "This prototype reads synthetic assignments from the private cloud. Starting a shift enables foreground test transmissions every 20 seconds. No device GPS is collected or uploaded." : "This candidate uses made-up riders, stops, and receipts. Starting the shift is intentional and also starts visible location sharing."}>
+    <StatusCard title="Assigned vehicle" status={cloudPrototype ? (itinerary?.legs[0]?.vehicleLabel ?? "No cloud assignment") : "Synthetic Van 12"}><Text>{cloudPrototype ? `${itinerary?.legs.length ?? 0} persisted leg${itinerary?.legs.length === 1 ? "" : "s"} for today` : "Run: TEST-204 · 1 rider · 2 stops"}</Text></StatusCard>
     {error ? <StatusCard title="Protected storage" status="Needs attention"><Text>{error}</Text></StatusCard> : null}
     <PrimaryButton label="Sign in & start shift" busyLabel="Starting shift and location…" onPress={start} />
   </FeasibilityScreen>;
-  if (smallBusiness && ["POLICY_RESOLVED", "PRECHECK_OFFERED"].includes(state.phase)) return <FeasibilityScreen title="Ready to start your route?" summary="Confirm your van and get to the first pickup. The longer vehicle check is available when you want it, but it is not required for this assigned shift.">
-    <StatusCard title="Today's van" status="Synthetic Van 12"><Text>Run TEST-204 · 2 riders · 4 stops</Text></StatusCard>
+  if (smallBusiness && state.effectivePolicy?.preInspection?.mode !== "REQUIRED" && state.effectivePolicy?.startOdometer?.mode !== "REQUIRED" && ["POLICY_RESOLVED", "PRECHECK_OFFERED"].includes(state.phase)) return <FeasibilityScreen title="Ready to start your route?" summary="Confirm your van and get to the first pickup. The longer vehicle check is available when you want it, but it is not required for this assigned shift.">
+    <StatusCard title="Today's van" status={cloudPrototype ? itinerary?.legs.find(leg => leg.assignmentId === state.effectivePolicy?.assignmentId)?.vehicleLabel ?? "Assigned vehicle unavailable" : "Synthetic Van 12"}><Text>{cloudPrototype ? `${itinerary?.legs.length ?? 0} persisted legs for today` : "Run TEST-204 · 2 riders · 4 stops"}</Text></StatusCard>
+    {error ? <StatusCard title="Vehicle submission" status={error} /> : null}
     <PrimaryButton label="Confirm van and start route" busyLabel="Starting today's route…" onPress={startSmallBusinessRoute} />
     <PrimaryButton label="Do the optional vehicle check" onPress={() => router.push("/inspection")} />
     <PrimaryButton label="Emergency: stop location sharing" onPress={() => dispatch({ type: "EMERGENCY_STOP", reason: "SAFETY" })} />
@@ -47,6 +51,7 @@ export default function ShiftHomeScreen() {
     <StatusCard title="Shift" status={state.phase === "BLOCKED_CRITICAL_DEFECT" ? "Vehicle out of service" : state.phase === "PRECHECK_OFFERED" ? "Tracking on · optional controls offered" : "Tracking on · vehicle confirmation due"}><Text>{state.lastReceipt}</Text></StatusCard>
     {state.effectivePolicy ? <StatusCard title="Assigned operating policy" status={`${state.effectivePolicy.commercialTier.replaceAll("_", " ")} · ${state.effectivePolicy.workforceRelationship.replaceAll("_", " ")}`}><Text>These settings came with this shift and cannot be changed in the Driver app.</Text></StatusCard> : null}
     <PrimaryButton label="Continue vehicle check" onPress={() => router.push("/inspection")} />
+    {error ? <StatusCard title="Vehicle submission" status={error} /> : null}
     <PrimaryButton label="Emergency: stop location sharing" onPress={() => dispatch({ type: "EMERGENCY_STOP", reason: "SAFETY" })} />
   </FeasibilityScreen>;
   if (state.phase === "POSTCHECK_REQUIRED" || state.phase === "POSTCHECK_OFFERED" || state.phase === "SIGNOFF_PENDING" || state.phase === "RETURN_LOCATION_EXCEPTION") return <FeasibilityScreen title="Finish your shift" summary="Complete or explicitly skip only the controls allowed by the pinned policy. Location sharing stops after accepted sign-off.">
@@ -57,6 +62,17 @@ export default function ShiftHomeScreen() {
   if (state.phase === "SHIFT_ENDED" || state.phase === "EMERGENCY_STOPPED") return <FeasibilityScreen title={state.phase === "SHIFT_ENDED" ? "Shift complete" : "Location sharing stopped"} summary={state.phase === "SHIFT_ENDED" ? "Your synthetic shift ended and continuous location collection is off." : "Location collection is off. Dispatch has a synthetic alert and the shift still needs review."}>
     <StatusCard title="Last receipt" status={state.lastReceipt}><Text>Pending events: {state.eventOutbox.length}</Text></StatusCard>
     <PrimaryButton label="View app details" onPress={() => router.push("/diagnostics")} />
+    {cloudPrototype ? <PrimaryButton label="Recover server shift status" onPress={()=>recoverUpdates('reconnect')} /> : null}
+    {cloudPrototype && state.phase==='SHIFT_ENDED' ? <PrimaryButton label="Start next assigned shift" onPress={start} /> : null}
+  </FeasibilityScreen>;
+  if (cloudPrototype) return <FeasibilityScreen title="Today's cloud route" summary="Synthetic trips and server receipts are connected. Foreground test transmissions run every 20 seconds; suspension or lost connectivity causes Dispatch to show overdue updates. No real GPS is sent.">
+    <StatusCard title="Private cloud shift" status={`${state.tracking === "TRACKING" ? "Synthetic transmission enabled" : state.tracking} · ${itinerary?.legs.length ?? 0} leg${itinerary?.legs.length === 1 ? "" : "s"}`}><Text>{state.lastReceipt}</Text></StatusCard>
+    {itinerary?.legs[0] ? <StatusCard title={`Current assignment · stop ${itinerary.legs[0].ordinal}`} status={itinerary.legs[0].runLifecycle.replaceAll("_", " ")}><Text>{itinerary.legs[0].riderLabel}</Text><Text>{itinerary.legs[0].pickupLabel} → {itinerary.legs[0].dropoffLabel}</Text></StatusCard> : null}
+    <PrimaryButton label="Review persisted itinerary" onPress={() => router.push("/manifest")} />
+    <PrimaryButton label="Return vehicle and finish shift" disabled={state.moving} onPress={() => router.push('/return')} />
+    {error ? <StatusCard title="Cloud recovery" status={error} /> : null}
+    <PrimaryButton label="Recover saved trip submissions" onPress={syncCloudActions} />
+    <PrimaryButton label="Emergency: stop location sharing" onPress={() => dispatch({ type: "EMERGENCY_STOP", reason: "SAFETY" })} />
   </FeasibilityScreen>;
   return <FeasibilityScreen title="Today's route" summary="The itinerary is your in-shift home. Review the full day only while safely parked.">
     <StatusCard title="Run TEST-204 · Synthetic Van 12" status="2 riders · 4 stops · 63 min · 22 mi"><Text>First pickup 8:00 AM · last drop-off 9:03 AM</Text></StatusCard>

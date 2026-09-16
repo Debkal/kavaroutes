@@ -4,6 +4,7 @@ export interface SyntheticShiftStartReceipt {
   readonly outcome: "ACCEPTED";
   readonly resourceVersion: number;
   readonly effectivePolicy: DriverPolicySnapshot;
+  readonly shiftGeneration?: string;
 }
 
 export async function restoreSyntheticAuthentication(): Promise<"authenticated"> {

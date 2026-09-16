@@ -9,16 +9,22 @@
     "./schemas": "./dist/schemas.js",
     "./protocol": "./dist/protocol.js",
     "./security": "./dist/security.js",
-    "./client-web": "./dist/client-web.generated.js"
+    "./pony-fixtures": "./dist/pony-fixtures.js",
+    "./google-identity-verifier": "./dist/google-identity-verifier.js",
+    "./identity-admission": "./dist/identity-admission.js",
+    "./client-web": "./dist/client-web.generated.js",
+    "./private-development-transport": "./dist/private-development-transport.js",
+    "./client-route-proposals": "./dist/client-route-proposals.js"
   },
   "types": "./dist/index.d.ts",
   "dependencies": {
-    "@kavaroutes/push-notifications": "0.0.0-wp012",
     "@fastify/swagger": "9.8.1",
     "@fastify/type-provider-typebox": "6.1.0",
     "@kavaroutes/platform-engine": "0.0.0-wp005",
     "@kavaroutes/postgres-persistence": "0.0.0-wp006",
+    "@kavaroutes/push-notifications": "0.0.0-wp012",
     "fastify": "5.12.1",
+    "jpeg-js": "0.4.4",
     "pg": "8.23.0",
     "typebox": "1.3.7"
   }

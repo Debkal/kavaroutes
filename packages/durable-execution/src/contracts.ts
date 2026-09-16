@@ -7,7 +7,7 @@ export type OutboxRoute = typeof OUTBOX_ROUTES[number];
 
 export const JOB_TYPES: Readonly<Record<OutboxRoute, readonly string[]>> = Object.freeze({
   projection: ["kr.projection.trip.v1"],
-  "realtime-signal": ["kr.realtime-signal.trip.v1", "kr.realtime-signal.location.v1"],
+  "realtime-signal": ["kr.realtime-signal.trip.v1", "kr.realtime-signal.location.v1", "kr.realtime-signal.driver-shift.v1", "kr.realtime-signal.dispatch-assignment.v1", "kr.realtime-signal.route-proposal.v1"],
   integration: ["kr.integration.partner.v1"],
   notification: ["kr.notification.dispatch.v1"],
   maps: ["kr.maps.route.v1"],
@@ -80,6 +80,38 @@ function assertSafePayload(value: unknown): void {
 }
 
 const payloadValidators = Object.freeze({
+  "DriverShiftClosureRecorded:v1": (payload: Record<string, unknown>) => {
+    assertExactKeys(payload, ["shiftReference", "driverId", "assignmentId", "policyDigest"]);
+    if (![payload.shiftReference, payload.driverId, payload.assignmentId].every(value => typeof value === "string" && uuid.test(value)) || typeof payload.policyDigest !== "string" || !sha256.test(payload.policyDigest)) throw new Error("UNSUPPORTED_SCHEMA");
+  },
+  "DriverPostcheckRecorded:v1": (payload: Record<string, unknown>) => {
+    assertExactKeys(payload, ["shiftReference", "driverId", "assignmentId", "policyDigest"]);
+    if (![payload.shiftReference, payload.driverId, payload.assignmentId].every(value => typeof value === "string" && uuid.test(value)) ||
+        typeof payload.policyDigest !== "string" || !sha256.test(payload.policyDigest)) throw new Error("UNSUPPORTED_SCHEMA");
+  },
+  "DriverPrecheckRecorded:v1": (payload: Record<string, unknown>) => {
+    assertExactKeys(payload, ["shiftReference", "driverId", "assignmentId", "policyDigest"]);
+    if (![payload.shiftReference, payload.driverId, payload.assignmentId].every(value => typeof value === "string" && uuid.test(value)) ||
+        typeof payload.policyDigest !== "string" || !sha256.test(payload.policyDigest)) throw new Error("UNSUPPORTED_SCHEMA");
+  },
+  "DriverActionRecorded:v1": (payload: Record<string, unknown>) => {
+    assertExactKeys(payload, ["shiftReference", "driverId", "assignmentId", "policyDigest"]);
+    if (![payload.shiftReference, payload.driverId, payload.assignmentId].every(value => typeof value === "string" && uuid.test(value)) ||
+        typeof payload.policyDigest !== "string" || !sha256.test(payload.policyDigest)) throw new Error("UNSUPPORTED_SCHEMA");
+  },
+  "DriverShiftStarted:v1": (payload: Record<string, unknown>) => {
+    assertExactKeys(payload, ["shiftReference", "driverId", "assignmentId", "policyDigest"]);
+    if (![payload.shiftReference, payload.driverId, payload.assignmentId].every(value => typeof value === "string" && uuid.test(value)) ||
+        typeof payload.policyDigest !== "string" || !sha256.test(payload.policyDigest)) throw new Error("UNSUPPORTED_SCHEMA");
+  },
+  "DispatchAssignmentCommitted:v1": (payload: Record<string, unknown>) => {
+    assertExactKeys(payload,["runId","runVersion"]);
+    if(typeof payload.runId!=="string" || !uuid.test(payload.runId) || !Number.isSafeInteger(payload.runVersion) || Number(payload.runVersion)<1)throw new Error("UNSUPPORTED_SCHEMA");
+  },
+  "RouteProposalRecorded:v1": (payload: Record<string, unknown>) => {
+    assertExactKeys(payload,["runId","runVersion"]);
+    if(typeof payload.runId!=="string" || !uuid.test(payload.runId) || !Number.isSafeInteger(payload.runVersion) || Number(payload.runVersion)<1)throw new Error("UNSUPPORTED_SCHEMA");
+  },
   "TripCreated:v1": (payload: Record<string, unknown>) => {
     assertExactKeys(payload, ["tripId", "lifecycle", "version"]);
     if (!uuid.test(String(payload.tripId)) || payload.lifecycle !== "DRAFT" || !Number.isInteger(payload.version) || Number(payload.version) < 1) throw new Error("UNSUPPORTED_SCHEMA");

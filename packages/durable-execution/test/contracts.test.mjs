@@ -34,10 +34,35 @@ test("all eight routes and all failure classes have explicit bounded policy", ()
   assert.equal(retryDelayMilliseconds("TRANSIENT_DEPENDENCY", 1, () => 0.5), 1000);
 });
 
+test("Driver shift events pass publication with only identifiers and policy digest", () => {
+  const shift = { ...envelope, aggregateType: "DRIVER_SHIFT", eventType: "DriverShiftStarted",
+    purposeReference: "ASSIGNED_SERVICE_DELIVERY", classificationReference: "OPERATIONAL_SENSITIVE",
+    payload: { shiftReference: uuid, driverId: uuid, assignmentId: uuid, policyDigest: "a".repeat(64) } };
+  assert.deepEqual(validateEventEnvelope(shift), shift);
+  const action = { ...shift, eventType: "DriverActionRecorded", aggregateVersion: 2 };
+  assert.deepEqual(validateEventEnvelope(action), action);
+  const precheck = { ...shift, eventType: "DriverPrecheckRecorded", aggregateVersion: 3 };
+  assert.deepEqual(validateEventEnvelope(precheck), precheck);
+  for (const patch of [{ photoDigest: "a".repeat(64) }, { odometer: 10420 }, { note: "forbidden" }, { policyDigest: "invalid" }]) {
+    assert.throws(() => validateEventEnvelope({ ...precheck, payload: { ...precheck.payload, ...patch } }), /PAYLOAD_POLICY_VIOLATION|UNSUPPORTED_SCHEMA/);
+  }
+  assert.throws(() => validateEventEnvelope({ ...action, payload: { ...action.payload, signature: "forbidden" } }), /PAYLOAD_POLICY_VIOLATION|UNSUPPORTED_SCHEMA/);
+  for (const patch of [{ policyDigest: "invalid" }, { driverId: "invalid" }, { extra: true }]) {
+    assert.throws(() => validateEventEnvelope({ ...shift, payload: { ...shift.payload, ...patch } }), /UNSUPPORTED_SCHEMA/);
+  }
+  assert.throws(() => validateEventEnvelope({ ...shift, payload: { ...shift.payload, patientName: "forbidden" } }), /PAYLOAD_POLICY_VIOLATION/);
+});
+
 test("telemetry exposes only bounded operational labels", () => {
   assert.deepEqual(safeTelemetry({ name: "outbox.publish", route: "projection", jobType: "kr.projection.trip.v1", status: "SUCCESS", handlerVersion: "v1", environment: "LOCAL", durationMs: 3.9 }),
     { name: "outbox.publish", route: "projection", job_type: "kr.projection.trip.v1", status: "SUCCESS", handler_version: "v1", environment: "LOCAL", duration_ms: 3 });
   assert.throws(() => safeTelemetry({ name: "outbox.publish", route: "projection", jobType: `kr.projection.${uuid}.v1`, status: "SUCCESS", handlerVersion: "v1", environment: "LOCAL", durationMs: 1 }), /UNSAFE_TELEMETRY/);
+});
+
+test('dispatch assignment invalidation contains only run identity and version',()=>{
+ const event={...envelope,aggregateType:'ASSIGNMENT',eventType:'DispatchAssignmentCommitted',payload:{runId:uuid,runVersion:4}};
+ assert.deepEqual(validateEventEnvelope(event),event);
+ for(const payload of [{runId:uuid,runVersion:0},{runId:'bad',runVersion:4},{runId:uuid,runVersion:4,riderName:'forbidden'}])assert.throws(()=>validateEventEnvelope({...event,payload}));
 });
 
 test("coalescing, round-robin fairness, connection admission, and graceful drain are bounded", async () => {

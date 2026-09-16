@@ -47,13 +47,17 @@ for (const file of sourceFiles) {
   }
   if (relative.startsWith("apps/driver/") || relative.startsWith("packages/driver-core/")) {
     for (const specifier of imports) {
-      if (/fastify|drizzle|pg-boss|postgres-persistence|durable-execution/.test(specifier)) violations.push(`${relative}: server-only Driver import ${specifier}`);
+      if (/fastify|drizzle|pg-boss|postgres-persistence|durable-execution|google-identity|firebase-admin/.test(specifier)) violations.push(`${relative}: server-only Driver import ${specifier}`);
     }
-    if (/AsyncStorage|redux-persist|@googlemaps|firebase|process\.env/.test(text)) violations.push(`${relative}: prohibited Driver platform dependency`);
+    // Only the reviewed composition file can read the two non-secret Expo
+    // build constants. All other names/access forms remain prohibited there.
+    const driverText = relative === 'apps/driver/src/runtime-config.ts'
+      ? text.replace(/process\.env\.EXPO_PUBLIC_KAVAROUTES_(?:BACKEND|API_URL)\b/g, 'PUBLIC_BUILD_SETTING') : text;
+    if (/AsyncStorage|redux-persist|@googlemaps|firebase|process\s*(?:\?\.)?\s*(?:\.\s*env|\[)/.test(driverText)) violations.push(`${relative}: prohibited Driver platform dependency`);
   }
   if (relative.startsWith("apps/web/")) {
     for (const specifier of imports) {
-      if (/fastify|drizzle|pg-boss|postgres-persistence|durable-execution|driver-core|react-native|@googlemaps/.test(specifier)) violations.push(`${relative}: server/native/provider import ${specifier}`);
+      if (/fastify|drizzle|pg-boss|postgres-persistence|durable-execution|driver-core|react-native|@googlemaps|google-identity|firebase-admin/.test(specifier)) violations.push(`${relative}: server/native/provider import ${specifier}`);
     }
     if (relative.startsWith("apps/web/src/") && /localStorage|sessionStorage|indexedDB|serviceWorker|process\.env/.test(text)) violations.push(`${relative}: prohibited web persistence/environment access`);
   }

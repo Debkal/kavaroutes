@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { Value } from "typebox/value";
 import { createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
 import {
   authorizeRealtimeSubscription, createAuthorizationGenerationSource, createInMemoryRealtimeStore,
@@ -10,6 +11,16 @@ import {
 const dispatcherScope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: "branch:synthetic-all", serviceDate: "2026-08-25" });
 const locationScope = Object.freeze({ streamKind: "CURRENT_POSITION", scopeReference: "fleet:synthetic-all" });
 const verifier = createSyntheticTestVerifier();
+
+test("persisted Driver shift invalidations are supported by the closed realtime contract", () => {
+  const schema = realtimeSchemas.find(item => item.$id === "RealtimeInvalidationDelta");
+  assert.ok(schema);
+  const delta = { kind: "RESOURCE_INVALIDATED", resourceKind: "driver-shift",
+    resourceReference: "driver-shift:ff8cc83f-baba-47bf-a636-11132bac1262", resourceVersion: 1 };
+  assert.equal(Value.Check(schema, delta), true);
+  assert.equal(Value.Check(schema, { ...delta, resourceKind: "unknown-resource" }), false);
+  assert.equal(Value.Check(schema, { ...delta, patientName: "forbidden" }), false);
+});
 
 async function authorization(scope = dispatcherScope, purpose = "DISPATCH_CONTROL", principalName = "principal_dispatcher") {
   const principal = await verifier.verify(`Synthetic ${principalName}`);

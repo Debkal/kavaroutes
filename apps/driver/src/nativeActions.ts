@@ -1,4 +1,13 @@
 import { Linking, Platform } from "react-native";
+import { randomUUID, digestStringAsync, CryptoDigestAlgorithm } from "expo-crypto";
+import type { DriverPrecheckRequest, DriverPrecheckReceipt } from "@kavaroutes/api-contracts/client-web";
+import { createCloudPrecheckStore } from "./cloud-precheck-store";
+import { createInspectionFormStore, type FormBinding, type InspectionFormDraft } from "./inspection-form-store";
+import { createCloudCommandStore } from "./cloud-command-store";
+import { createCloudSignatureStore } from "./cloud-signature-store";
+import {createCloudRouteStore} from './cloud-route-store';
+import {createCloudFinishStore} from './cloud-finish-store';
+import {readCloudDiagnostics} from './cloud-diagnostics';
 import * as Location from "expo-location";
 import type { SQLiteDatabase } from "expo-sqlite";
 import { DEFAULT_SAMPLING_POLICY, handoffNavigation, type DriverLocationSample, type VehicleMotionState, updateVehicleMotion } from "@kavaroutes/driver-core";
@@ -45,6 +54,35 @@ async function database(): Promise<SQLiteDatabase> {
     }
     throw error;
   }
+}
+
+async function cloudPrecheckStore() {
+  return createCloudPrecheckStore(await database(), { newKey: () => `precheck_${randomUUID()}`, now: () => new Date().toISOString() });
+}
+export async function openCloudPostcheckStore(){return createCloudPrecheckStore(await database(),{newKey:()=>`postcheck_${randomUUID()}`,now:()=>new Date().toISOString(),stage:'POST'});}
+export async function openCloudFinishStore(){return createCloudFinishStore(await database(),randomUUID);}
+export async function readInspectionFormDraft(binding: FormBinding) { return createInspectionFormStore(await database()).read(binding); }
+export async function saveInspectionFormDraft(binding: FormBinding, draft: InspectionFormDraft) { return createInspectionFormStore(await database()).save(binding, draft); }
+export async function openCloudCommandStore() { return createCloudCommandStore(await database(), { uuid: randomUUID, now: () => new Date().toISOString() }); }
+export async function openCloudSignatureStore() { return createCloudSignatureStore(await database(),randomUUID); }
+export async function openCloudRouteStore(){return createCloudRouteStore(await database(),randomUUID);}
+export async function readCloudPrecheckCommand(shiftReference: string) { return (await cloudPrecheckStore()).read(shiftReference); }
+export async function prepareCloudPrecheckCommand(shiftReference: string, request: DriverPrecheckRequest) {
+  return (await cloudPrecheckStore()).prepare(shiftReference, request);
+}
+export async function recordCloudPrecheckOutcome(shiftReference: string, key: string, receipt: DriverPrecheckReceipt | null) {
+  return (await cloudPrecheckStore()).record(shiftReference, key, receipt);
+}
+
+export async function readCloudDefectPhotos(digests: readonly string[]) {
+  const db = await database(); const photos: { digest: string; base64: string }[] = [];
+  for (const digest of digests) {
+    if (!/^[a-f0-9]{64}$/.test(digest)) throw new Error("EVIDENCE_DIGEST_INVALID");
+    const row = await db.getFirstAsync<{ encrypted_content: Uint8Array }>("SELECT encrypted_content FROM evidence_blob WHERE digest=? AND state='DRAFT'", digest);
+    if (!row) throw new Error("DEFECT_PHOTO_NOT_AVAILABLE");
+    photos.push({ digest, base64: new TextDecoder().decode(row.encrypted_content) });
+  }
+  return photos;
 }
 
 export async function loadSyntheticWorkflow(): Promise<SyntheticWorkflow> {
@@ -134,7 +172,7 @@ export async function supersedeSyntheticDefectPhoto(digest: string): Promise<voi
 
 export async function saveSyntheticDefectPhoto(base64: string): Promise<string> {
   if (base64.length < 100 || base64.length > 4_000_000 || !/^[A-Za-z0-9+/=]+$/.test(base64)) throw new Error("SYNTHETIC_PHOTO_INVALID");
-  const db = await database(); const digest = await createEvidenceDigest(`DEFECT_PHOTO:${base64}`);
+  const db = await database(); const digest = await digestStringAsync(CryptoDigestAlgorithm.SHA256, `DEFECT_PHOTO:${base64}`);
   const draftId = `evd_${digest.slice(0, 24)}`; const blobId = `blob_${digest.slice(0, 24)}`; const now = new Date().toISOString();
   await db.withTransactionAsync(async () => {
     await db.runAsync(`INSERT INTO evidence_draft (draft_id,kind,digest,encrypted_content,state,created_at) VALUES (?,'INSPECTION',?,?,'DRAFT',?)
@@ -239,6 +277,10 @@ export async function manualSyntheticSync(outcome: "ACCEPTED" | "CONFLICT" = "AC
   return pending > 0
     ? { outcome, state: "Accepted by synthetic server", detail: `${pending} test item${pending === 1 ? " was" : "s were"} accepted by the in-process fake. No public or production server was contacted.` }
     : { outcome, state: "Nothing waiting", detail: "There are no local database items waiting. No public or production server was contacted." };
+}
+
+export async function readSafeCloudDiagnostics(shift?:string) {
+  return readCloudDiagnostics(await database(),shift);
 }
 
 export async function readSafeDiagnostics(): Promise<{ readonly actions: number; readonly locations: number; readonly evidence: number; readonly tracking: boolean }> {

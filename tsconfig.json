@@ -7,6 +7,7 @@
     { "path": "packages/platform-test-support" },
     { "path": "packages/postgres-persistence" },
     { "path": "packages/api-contracts" },
+    { "path": "packages/google-identity" },
     { "path": "packages/durable-execution" },
     { "path": "packages/realtime" },
     { "path": "packages/push-notifications" },

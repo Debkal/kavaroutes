@@ -1,0 +1,88 @@
+name: KavaRoutes CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    name: Required checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Select affected suites
+        id: scope
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/ci-scope.mjs
+      - run: node --test scripts/ci-scope.test.mjs
+      - if: steps.scope.outputs.code == 'true'
+        run: npm ci --ignore-scripts --no-audit
+      - name: Build once and check boundaries
+        if: steps.scope.outputs.code == 'true'
+        run: |
+          npm run build
+          npm run check:architecture
+          npm run check:logging
+      - name: Server and authentication contracts
+        if: steps.scope.outputs.server == 'true'
+        run: |
+          node --test --test-concurrency=1 test/core.test.mjs test/architecture-negative.test.mjs test/api.test.mjs test/telemetry.test.mjs test/websocket.test.mjs test/smoke.test.mjs test/container-policy.test.mjs apps/api-host/test/*.test.mjs packages/google-identity/test/*.test.mjs
+          npm run kavaroutes:database:lint
+          npm run kavaroutes:api:test
+          npm run kavaroutes:jobs:test
+          npm run kavaroutes:realtime:test
+          npm run kavaroutes:push:test
+      - name: Web client
+        if: steps.scope.outputs.web == 'true'
+        run: |
+          npm run kavaroutes:web:test
+          npm run kavaroutes:web:build
+      - name: Driver contracts and UI
+        if: steps.scope.outputs.driver == 'true'
+        run: |
+          npm run kavaroutes:driver:test
+          npm run kavaroutes:driver:test:ui
+      - name: Release dependency audit
+        if: github.event_name == 'workflow_dispatch'
+        run: npm audit --audit-level=moderate
+      - name: Build single release candidate
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          docker build --iidfile /tmp/kavaroutes-image-id -f infra/gcp/runtime/Dockerfile .
+          printf 'KR_CLOUD_IMAGE=%s\n' "$(cat /tmp/kavaroutes-image-id)" >> "$GITHUB_ENV"
+      - name: Verify exact candidate and disposable PostgreSQL integration
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          KR_CLOUD_LOCAL_TEST: '1'
+        run: |
+          node infra/gcp/runtime/image-evidence.mjs "$KR_CLOUD_IMAGE"
+          node --test --test-isolation=none infra/gcp/runtime/integration.test.mjs
+          git rev-parse HEAD > .tooling/gcp/image-evidence/source-commit.txt
+          docker save "$KR_CLOUD_IMAGE" | gzip > /tmp/kavaroutes-runtime.tar.gz
+      - name: Retain verified candidate (no deployment)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: runtime-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            /tmp/kavaroutes-runtime.tar.gz
+            .tooling/gcp/image-evidence/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3

@@ -3,6 +3,8 @@
   "compilerOptions": { "rootDir": "src", "outDir": "dist", "tsBuildInfoFile": "dist/.tsbuildinfo" },
   "include": ["src/**/*.ts"],
   "references": [
+    { "path": "../../packages/postgres-persistence" },
+    { "path": "../../packages/google-identity" },
     { "path": "../../packages/api-contracts" },
     { "path": "../../packages/shared-kernel" },
     { "path": "../../packages/platform-engine" },

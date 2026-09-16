@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { PanResponder, StyleSheet, Text, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter,useLocalSearchParams } from "expo-router";
+import { CloudSignatureScreen } from "../src/components/CloudSignatureScreen";
 import { ATTESTATION_POLICY_VERSION, validateSignatureStroke, type SignerRole } from "@kavaroutes/driver-core";
 import { FeasibilityScreen } from "../src/components/FeasibilityScreen";
 import { PrimaryButton } from "../src/components/PrimaryButton";
@@ -11,6 +12,10 @@ import { queueSyntheticEvidence, saveSyntheticEvidence, supersedeSyntheticEviden
 type Point = { readonly x: number; readonly y: number };
 const roles: readonly SignerRole[] = ["RIDER", "GUARDIAN_OR_AUTHORIZED_REPRESENTATIVE", "FACILITY_EMPLOYEE", "DRIVER", "RIDER_UNABLE_TO_SIGN"];
 export default function SignatureScreen() {
+  const {leg,event}=useLocalSearchParams<{leg:string;event:string}>();const w=useWorkflow();
+  return w.cloudPrototype ? <CloudSignatureScreen legId={leg} event={event} /> : <SyntheticSignatureScreen />;
+}
+function SyntheticSignatureScreen() {
   const router = useRouter(); const { state, dispatch } = useWorkflow(); const [points, setPoints] = useState<readonly Point[]>([]); const pointsRef = useRef<readonly Point[]>([]);
   const [role, setRole] = useState<SignerRole>("RIDER"); const [unableReason, setUnableReason] = useState<"DECLINED" | "PHYSICALLY_UNABLE" | "NO_AUTHORIZED_SIGNER">("PHYSICALLY_UNABLE"); const [witness, setWitness] = useState(""); const [message, setMessage] = useState("");
   const signerRoles = state.effectivePolicy?.commercialTier === "SMALL_BUSINESS" ? (["RIDER", "DRIVER"] as const) : roles;

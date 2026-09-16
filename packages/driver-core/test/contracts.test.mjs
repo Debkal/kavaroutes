@@ -15,7 +15,7 @@ test("closed contracts, routes, policies, and parameterized migrations are bound
   assert.equal(driverSchemas.length, 7);
   for (const schema of driverSchemas) if (schema.type === "object") assert.equal(schema.additionalProperties, false);
   assert.ok(Value.Check(driverSchemas.find((schema) => schema.$id === "DriverAction"), action));
-  assert.equal(DRIVER_MIGRATIONS.length, 3);
+  assert.equal(DRIVER_MIGRATIONS.length, 10);
   const sql = DRIVER_MIGRATIONS[0].sql;
   for (const table of ["local_session", "manifest_snapshot", "manifest_stop", "sync_cursor", "client_action", "location_epoch", "location_sample", "location_batch", "evidence_draft", "evidence_blob", "sync_attempt", "safe_diagnostic"]) assert.match(sql, new RegExp(`CREATE TABLE IF NOT EXISTS ${table}`));
   assert.doesNotMatch(sql, /rider_name|patient|medical|address_line|latitude|longitude|access_token/i);

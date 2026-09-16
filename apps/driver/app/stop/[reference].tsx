@@ -7,9 +7,11 @@ import { StatusCard } from "../../src/components/StatusCard";
 import { openSyntheticNavigation } from "../../src/nativeActions";
 import { useWorkflow } from "../../src/workflow-context";
 import { useState } from "react";
+import { CloudStopDetails } from "../../src/components/CloudStopDetails";
 export default function StopDetailScreen() {
-  const { reference } = useLocalSearchParams<{ reference: string }>(); const router = useRouter(); const { state, dispatch } = useWorkflow();
+  const { reference } = useLocalSearchParams<{ reference: string }>(); const router = useRouter(); const { state, dispatch, cloudPrototype } = useWorkflow();
   const [showExceptions, setShowExceptions] = useState(false); const [directionsMessage, setDirectionsMessage] = useState("");
+  if (cloudPrototype) return <ConnectedCloudStop reference={reference} />;
   const safe = reference === `ref_synthetic_stop_${String(state.currentNode + 1).padStart(4, "0")}`;
   if (!safe) return <FeasibilityScreen title="Stop unavailable" summary="That safe stop reference is not part of this shift." />;
   const nodes = [
@@ -35,3 +37,4 @@ export default function StopDetailScreen() {
     <PrimaryButton label="Emergency: stop location sharing" onPress={() => dispatch({ type: "EMERGENCY_STOP", reason: "SAFETY" })} />
   </FeasibilityScreen>;
 }
+function ConnectedCloudStop({reference}:{reference:string|undefined}) {const w=useWorkflow();return <CloudStopDetails reference={reference} itinerary={w.itinerary} moving={w.state.moving} action={w.cloudAction} sync={w.syncCloudActions} review={w.reviewCloudRejections} />;}

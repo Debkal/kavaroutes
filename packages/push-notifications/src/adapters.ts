@@ -2,12 +2,11 @@ import { createSign } from "node:crypto";
 import { assertProviderBoundaryEnvelope } from "./contracts.js";
 import type { PushPort, PushResult, PushTarget } from "./delivery.js";
 import type { DeliveryInstruction } from "./policy.js";
-
-interface TransportResponse { readonly status: number; readonly safeReason?: string; readonly retryAfterSeconds?: number; }
-export interface ProviderTransport { exchange(request: { readonly endpoint: string; readonly headers: Readonly<Record<string, string>>; readonly body: string }): Promise<TransportResponse>; }
+import { isBoundedProviderTransport, type ProviderTransport, type TransportResponse } from "./transport.js";
 
 const permanent = (safeCode: string): PushResult => Object.freeze({ outcome: "permanent_payload_or_auth", safeCode });
 const classify = (provider: "apns" | "fcm", response: TransportResponse): PushResult => {
+  if (response.safeReason === "AMBIGUOUS_TIMEOUT") return Object.freeze({ outcome: "ambiguous_timeout", safeCode: "PROVIDER_AMBIGUOUS_TIMEOUT" });
   if (response.status >= 200 && response.status < 300) return Object.freeze({ outcome: "accepted", safeCode: "PROVIDER_ACCEPTED" });
   if (provider === "apns" && (response.status === 410 || (response.status === 400 && ["BadDeviceToken", "DeviceTokenNotForTopic"].includes(response.safeReason ?? "")))) return Object.freeze({ outcome: "invalid_registration", safeCode: "REGISTRATION_INVALID" });
   if (provider === "fcm" && response.status === 404 && response.safeReason === "UNREGISTERED") return Object.freeze({ outcome: "invalid_registration", safeCode: "REGISTRATION_INVALID" });
@@ -26,6 +25,7 @@ function apnsBody(instruction: DeliveryInstruction): string {
 export function createDirectApnsPort(options: { readonly configured: boolean; readonly topic: string; readonly authorization: () => Promise<string>; readonly transport: ProviderTransport; readonly now?: () => Date }): PushPort {
   return Object.freeze({ async send(target: PushTarget, instruction: DeliveryInstruction) {
     if (!options.configured) throw new Error("APNS_PROVIDER_NOT_CONFIGURED_HIG_013_REQUIRED");
+    if (!isBoundedProviderTransport(options.transport)) throw new Error("APNS_TRANSPORT_POLICY_REQUIRED");
     if (target.provider !== "apns" || target.platform !== "ios" || target.environment !== "sandbox" || target.appId !== options.topic) return permanent("APNS_TARGET_POLICY_INVALID");
     const expiration = Math.floor(Date.parse(instruction.expiresAt) / 1000);
     const response = await options.transport.exchange({ endpoint: `https://api.sandbox.push.apple.com/3/device/${target.token}`,
@@ -63,6 +63,7 @@ function fcmBody(target: PushTarget, instruction: DeliveryInstruction): string {
 export function createDirectFcmPort(options: { readonly configured: boolean; readonly projectReference: string; readonly oauth: { readonly scope: "https://www.googleapis.com/auth/firebase.messaging"; token(): Promise<string> }; readonly transport: ProviderTransport }): PushPort {
   return Object.freeze({ async send(target: PushTarget, instruction: DeliveryInstruction) {
     if (!options.configured) throw new Error("FCM_PROVIDER_NOT_CONFIGURED_HIG_013_REQUIRED");
+    if (!isBoundedProviderTransport(options.transport)) throw new Error("FCM_TRANSPORT_POLICY_REQUIRED");
     if (target.provider !== "fcm" || target.platform !== "android" || target.environment !== "development") return permanent("FCM_TARGET_POLICY_INVALID");
     const response = await options.transport.exchange({ endpoint: `https://fcm.googleapis.com/v1/projects/${options.projectReference}/messages:send`,
       headers: { authorization: `Bearer ${await options.oauth.token()}`, "content-type": "application/json; charset=UTF-8" }, body: fcmBody(target, instruction) });

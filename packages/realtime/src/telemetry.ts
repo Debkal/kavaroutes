@@ -3,7 +3,7 @@ export type RealtimeMetric = "upgrade" | "connection" | "subscription" | "author
 export interface RealtimeTelemetryEvent {
   readonly metric: RealtimeMetric;
   readonly outcome: "accepted" | "rejected" | "success" | "reset" | "closed" | "missed";
-  readonly clientClass?: "synthetic-web" | "synthetic-native";
+  readonly clientClass?: "synthetic-web" | "synthetic-native" | "browser-web";
   readonly streamKind?: "dispatch" | "manifest" | "facility" | "operation" | "position";
   readonly value?: number;
 }

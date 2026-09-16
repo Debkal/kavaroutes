@@ -5,10 +5,10 @@ import { assertServerFrame, decodeClientFrame, REALTIME_CLOSE_CODES, REALTIME_LI
 import type { RealtimeStore } from "./store.js";
 import type { RealtimeTelemetryEvent } from "./telemetry.js";
 
-export type RealtimeClientClass = "synthetic-web" | "synthetic-native";
+export type RealtimeClientClass = "synthetic-web" | "synthetic-native" | "browser-web";
 
 export function realtimeClientClassFor(principal: SyntheticPrincipal): RealtimeClientClass {
-  return principal.kind === "SYNTHETIC_DEVICE" ? "synthetic-native" : "synthetic-web";
+  return principal.kind === 'BROWSER_USER' ? 'browser-web' : principal.kind === "SYNTHETIC_DEVICE" ? "synthetic-native" : "synthetic-web";
 }
 
 export function realtimeOriginAllowedFor(
@@ -35,6 +35,7 @@ interface Subscription {
 }
 
 interface Connection {
+  readonly revalidateSession?:()=>Promise<boolean>;
   readonly id: string;
   readonly principal: SyntheticPrincipal;
   readonly clientClass: RealtimeClientClass;
@@ -139,16 +140,18 @@ export function createRealtimeGateway(options: {
     return true;
   }
 
-  function open(input: { readonly principal: SyntheticPrincipal; readonly origin: string | undefined; readonly protocol: string | undefined; readonly transport: RealtimeTransport }): string {
+  function open(input: { readonly principal: SyntheticPrincipal; readonly origin: string | undefined; readonly protocol: string | undefined; readonly transport: RealtimeTransport; readonly revalidateSession?:()=>Promise<boolean> }): string {
     if (draining || connections.size >= maximumConnections) throw new RealtimeProtocolError("RATE_LIMITED");
     if (input.protocol !== REALTIME_PROTOCOL) throw new RealtimeProtocolError("FRAME_INVALID");
     const clientClass = realtimeClientClassFor(input.principal);
+    if(clientClass==='browser-web'&&!input.revalidateSession)throw new RealtimeProtocolError('AUTHORIZATION_DENIED');
     if (!realtimeOriginAllowedFor(input.principal, input.origin, allowedOrigins)) throw new RealtimeProtocolError("AUTHORIZATION_DENIED");
     const principalCount = [...connections.values()].filter((item) => item.principal.id === input.principal.id).length;
     if (principalCount >= REALTIME_LIMITS.maximumConnectionsPerPrincipal) throw new RealtimeProtocolError("RATE_LIMITED");
     const timestamp = now().getTime();
     const id = idFactory();
     const connection: Connection = { id, principal: input.principal, clientClass, transport: input.transport,
+      ...(input.revalidateSession?{revalidateSession:input.revalidateSession}:{}),
       subscriptions: new Map(), openedAt: timestamp, observedAt: timestamp, messageWindowStartedAt: timestamp, messageCount: 0, costUnits: 0, closed: false };
     connections.set(id, connection);
     peakConnections = Math.max(peakConnections, connections.size);
@@ -219,6 +222,23 @@ export function createRealtimeGateway(options: {
     }
   }
 
+  async function sessionValid(connection:Connection):Promise<boolean> {
+    if(connection.closed)return false;
+    if(!connection.revalidateSession)return connection.clientClass!=='browser-web';
+    let timer:ReturnType<typeof setTimeout>|undefined;
+    try {
+      const valid=await Promise.race([connection.revalidateSession(),new Promise<boolean>(resolve=>{timer=setTimeout(()=>resolve(false),2000);})]);
+      if(valid===true&&!connection.closed)return true;
+    }catch{/* Provider/database uncertainty must not retain access. */}
+    finally{if(timer)clearTimeout(timer);}
+    closeConnection(connection,REALTIME_CLOSE_CODES.POLICY.code,REALTIME_CLOSE_CODES.POLICY.reason);
+    return false;
+  }
+  async function sessionSweep():Promise<void> {
+    // Bounded batches prevent unbounded simultaneous database lookups.
+    const active=[...connections.values()];
+    for(let offset=0;offset<active.length;offset+=16)await Promise.all(active.slice(offset,offset+16).map(sessionValid));
+  }
   async function subscribe(connection: Connection, frame: Extract<ClientFrame, { type: "subscription.subscribe" }>): Promise<void> {
     if (connection.subscriptions.size >= REALTIME_LIMITS.maximumSubscriptionsPerConnection) {
       send(connection, { type: "protocol.error", code: "SUBSCRIPTION_LIMIT" });
@@ -239,6 +259,7 @@ export function createRealtimeGateway(options: {
       return;
     }
     if (connection.closed) return;
+    if(!await sessionValid(connection))return;
     if (replay.outcome === "RESET_REQUIRED" || !replay.cursor) {
       send(connection, { type: "subscription.reset-required", subscriptionId: frame.subscriptionId, code: "RESET_REQUIRED" });
       emit({ metric: "reset", outcome: "reset" });
@@ -255,6 +276,7 @@ export function createRealtimeGateway(options: {
     const connection = connections.get(connectionId);
     if (!connection || connection.closed) return;
     if (!acceptInbound(connection, binary)) return;
+    if(!await sessionValid(connection))return;
     const frame = decodeInbound(connection, raw);
     if (!frame || handleControlFrame(connection, frame)) return;
     if (frame.type !== "subscription.subscribe") return;
@@ -264,6 +286,7 @@ export function createRealtimeGateway(options: {
   async function fanOut(): Promise<number> {
     let batches = 0;
     for (const connection of [...connections.values()]) {
+      if(!await sessionValid(connection))continue;
       for (const subscription of [...connection.subscriptions.values()]) {
         let replay;
         try { replay = await options.store.replay(subscription.authorization, subscription.cursor); }
@@ -274,6 +297,7 @@ export function createRealtimeGateway(options: {
           break;
         }
         if (connection.closed) break;
+        if(!await sessionValid(connection))break;
         if (connection.subscriptions.get(subscription.id) !== subscription) continue;
         if (replay.outcome === "RESET_REQUIRED" || !replay.cursor) {
           connection.subscriptions.delete(subscription.id);
@@ -338,7 +362,7 @@ export function createRealtimeGateway(options: {
     }
   }
 
-  return Object.freeze({ open, receive, fanOut, heartbeatSweep, authorizationSweep, observeHeartbeat, presence, drain,
+  return Object.freeze({ open, receive, fanOut, heartbeatSweep, authorizationSweep, sessionSweep, observeHeartbeat, presence, drain,
     close(connectionId: string) { const connection = connections.get(connectionId); if (connection) closeConnection(connection, REALTIME_CLOSE_CODES.NORMAL.code, REALTIME_CLOSE_CODES.NORMAL.reason); },
     activeConnections: () => connections.size, peakConnections: () => peakConnections, isDraining: () => draining });
 }

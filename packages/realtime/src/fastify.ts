@@ -21,9 +21,18 @@ export async function registerWp009Realtime(app: FastifyInstance, options: {
   readonly maximumConnections?: number;
   readonly now?: () => Date;
   readonly telemetrySink?: (event: RealtimeTelemetryEvent) => void;
+  readonly revalidateBrowserSession?:(request:FastifyRequest,principal:SyntheticPrincipal)=>Promise<boolean>;
 }) {
   const allowedOrigins = options.allowedOrigins ?? new Set(["http://kavaroutes.test"]);
   const gateway = createRealtimeGateway({ ...options, allowedOrigins });
+  let sweeping=false;
+  const sessionTimer=options.revalidateBrowserSession?setInterval(()=>{
+    if(sweeping)return;
+    sweeping=true;
+    void gateway.sessionSweep().finally(()=>{sweeping=false;});
+  },5000):undefined;
+  sessionTimer?.unref();
+  app.addHook('onClose',async()=>{if(sessionTimer)clearInterval(sessionTimer);gateway.drain();});
   await app.register(async (scope) => {
     await scope.register(websocket, { options: { maxPayload: REALTIME_LIMITS.maximumInboundBytes, perMessageDeflate: false,
       handleProtocols: (protocols) => protocols.has(REALTIME_PROTOCOL) && protocols.size === 1 ? REALTIME_PROTOCOL : false } });
@@ -60,6 +69,7 @@ export async function registerWp009Realtime(app: FastifyInstance, options: {
         if (protocols !== REALTIME_PROTOCOL) return reply.code(400).send({ code: "REALTIME_PROTOCOL_REQUIRED" });
         if (request.headers["x-synthetic-client-class"] !== undefined) return reply.code(400).send({ code: "REALTIME_CLIENT_CLASS_HEADER_PROHIBITED" });
         const origin = typeof request.headers.origin === "string" ? request.headers.origin : undefined;
+        if(principalFor(request).kind==='BROWSER_USER'&&!options.revalidateBrowserSession)return reply.code(403).send({code:'SESSION_REVALIDATION_REQUIRED'});
         if (!realtimeOriginAllowedFor(principalFor(request), origin, allowedOrigins)) return reply.code(403).send({ code: "REALTIME_ORIGIN_DENIED" });
         if (Object.keys(request.query as Record<string, unknown>).length > 0) return reply.code(400).send({ code: "REALTIME_QUERY_PROHIBITED" });
       },
@@ -67,6 +77,8 @@ export async function registerWp009Realtime(app: FastifyInstance, options: {
       let connectionId: string;
       try {
         connectionId = gateway.open({ principal: principalFor(request), origin: request.headers.origin,
+          ...(principalFor(request).kind==='BROWSER_USER'&&options.revalidateBrowserSession
+            ?{revalidateSession:()=>options.revalidateBrowserSession!(request,principalFor(request))}:{}),
           protocol: request.headers["sec-websocket-protocol"],
           transport: {
             get bufferedAmount() { return socket.bufferedAmount; },

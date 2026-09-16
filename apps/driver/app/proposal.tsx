@@ -3,7 +3,9 @@ import { FeasibilityScreen } from "../src/components/FeasibilityScreen";
 import { PrimaryButton } from "../src/components/PrimaryButton";
 import { StatusCard } from "../src/components/StatusCard";
 import { useWorkflow } from "../src/workflow-context";
-export default function ProposalScreen() { const { state, dispatch } = useWorkflow();
+import { CloudRouteProposalScreen } from '../src/components/CloudRouteProposalScreen';
+export default function ProposalScreen() { const { state, dispatch, cloudPrototype } = useWorkflow();
+  if(cloudPrototype)return <CloudRouteProposalScreen/>;
   if (state.moving) return <FeasibilityScreen title="Route changes unavailable while moving" summary="Park safely before reviewing future stops." />;
   if (!state.effectivePolicy || state.effectivePolicy.routeChange.mode === "DISABLED") return <FeasibilityScreen title="Route changes unavailable" summary="The server-pinned policy disables driver route proposals for this shift. The Driver cannot change that setting." />;
   return <FeasibilityScreen title="Propose a route change" summary="Only eligible future, unlocked stops can be reordered. The itinerary does not change until a synthetic server receipt accepts it.">

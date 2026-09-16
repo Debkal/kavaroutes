@@ -6,6 +6,8 @@
   "type": "module",
   "exports": { ".": "./dist/index.js", "./logging": "./dist/logging.js", "./network-security": "./dist/network-security.js", "./realtime": "./dist/realtime.js", "./telemetry": "./dist/telemetry.js" },
   "dependencies": {
+    "@kavaroutes/postgres-persistence": "0.0.0-wp006",
+    "@kavaroutes/google-identity": "0.0.0",
     "@kavaroutes/api-contracts": "0.0.0-wp007",
     "@kavaroutes/realtime": "0.0.0-wp009",
     "@fastify/swagger": "9.8.1",

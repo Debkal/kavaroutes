@@ -1,4 +1,5 @@
 import { ProtocolError } from "./protocol.js";
+import { ponyPersonas } from "./pony-fixtures.js";
 
 export const syntheticIds = Object.freeze({
   organizationA: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
@@ -23,9 +24,9 @@ export type Capability =
   | "driver-policy:read" | "driver-policy:write" | "driver-policy:override" | "driver-route:self-approve" | "driver:notifications:write";
 export type Purpose = "RIDER_INTAKE" | "ASSIGNED_SERVICE_DELIVERY" | "FACILITY_COORDINATION" | "BILLING_PROOF" | "SUPPORT_DIAGNOSTICS" | "PARTNER_EXPORT";
 
-export interface SyntheticPrincipal {
+export interface ApiPrincipal {
   readonly id: string;
-  readonly kind: "SYNTHETIC_USER" | "SYNTHETIC_DEVICE";
+  readonly kind: "SYNTHETIC_USER" | "SYNTHETIC_DEVICE" | "BROWSER_USER";
   readonly organizationId: string;
   readonly capabilities: ReadonlySet<Capability>;
   readonly purposes: ReadonlySet<Purpose>;
@@ -33,6 +34,8 @@ export interface SyntheticPrincipal {
   readonly fleetScopes: ReadonlySet<string>;
   readonly subjectId?: string;
 }
+/** Compatibility alias for existing private fixtures; kind remains explicit. */
+export type SyntheticPrincipal = ApiPrincipal;
 
 const allDispatcherCapabilities: readonly Capability[] = ["profile:read", "riders:read", "riders:write", "trips:read", "trips:write", "trips:command", "dispatch:read", "dispatch:command", "dispatch:location:read", "fleet:read", "fleet:command", "driver-policy:read", "driver-policy:write"];
 const fixture = (input: Omit<SyntheticPrincipal, "capabilities" | "purposes" | "branchScopes" | "fleetScopes"> & { capabilities: readonly Capability[]; purposes: readonly Purpose[]; branchScopes?: readonly string[]; fleetScopes?: readonly string[] }): SyntheticPrincipal => Object.freeze({
@@ -54,14 +57,29 @@ const principals = new Map<string, SyntheticPrincipal>([
 
 export interface PrincipalVerifier {
   verify(authorization: unknown): Promise<SyntheticPrincipal | null>;
+  /** Explicit browser composition only; never falls back to synthetic headers. */
+  verifyRequest?(request:{method:string;headers:Readonly<Record<string,unknown>>}):Promise<SyntheticPrincipal|null>;
 }
 
-export function createSyntheticTestVerifier(): PrincipalVerifier {
+export function createSyntheticTestVerifier(options: { readonly enablePonyFixtures?: boolean } = {}): PrincipalVerifier {
+  // Opt-in only after the isolated company data and worker scope are prepared.
+  const allowed = new Map(principals);
+  if (options.enablePonyFixtures === true) for (const persona of ponyPersonas) {
+    allowed.set(persona.token, fixture({ id: persona.principalId,
+      kind: persona.role === 'driver' ? 'SYNTHETIC_DEVICE' : 'SYNTHETIC_USER',
+      organizationId: persona.organizationId,
+      ...(persona.subjectId ? { subjectId: persona.subjectId } : {}),
+      capabilities: persona.role === 'driver'
+        ? ['profile:read', 'driver:manifest:read', 'driver:execute', 'driver:location:write', 'driver:notifications:write']
+        : allDispatcherCapabilities,
+      purposes: persona.role === 'driver' ? ['ASSIGNED_SERVICE_DELIVERY'] : ['RIDER_INTAKE', 'ASSIGNED_SERVICE_DELIVERY'],
+    }));
+  }
   return Object.freeze({
     async verify(authorization: unknown) {
       if (typeof authorization !== "string") return null;
       const match = /^Synthetic (principal_[a-z_]+)$/.exec(authorization);
-      return match?.[1] ? principals.get(match[1]) ?? null : null;
+      return match?.[1] ? allowed.get(match[1]) ?? null : null;
     },
   });
 }

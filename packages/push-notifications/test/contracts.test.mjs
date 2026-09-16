@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   assertNoProhibitedPushData, createAdmissionController, createDeliveryCoordinator, createDirectApnsPort,
-  createDirectFcmPort, createFakePushPort, createNotificationIntent, createNotificationRecovery,
+  createBoundedProviderTransport, createDirectFcmPort, createFakePushPort, createNotificationIntent, createNotificationRecovery,
   createPushEnvelope, createRegistrationService, createTokenVault, deriveDeliveryInstruction,
   parseNativeNotification, permissionState, validatePushEnvelope,
 } from "../dist/index.js";
@@ -68,13 +68,49 @@ test("effects are persisted logically before fake calls and normalize retry, amb
 
 test("direct adapters fail closed while unconfigured and derive provider requests only inside injected transports", async () => {
   const instruction = deriveDeliveryInstruction({ kind: "sync_available", platform: "ios", createdAt: "2026-08-29T00:00:00.000Z" });
-  let calls = 0; const transport = { async exchange(request) { calls += 1; assert.match(request.endpoint, /^https:\/\//); return { status: 200 }; } };
+  let calls = 0; const transport = { securityProfile: "bounded-https-v1", async exchange(request) { calls += 1; assert.match(request.endpoint, /^https:\/\//); return { status: 200 }; } };
   const apns = createDirectApnsPort({ configured: false, topic: "com.kavaroutes.driver.synthetic", authorization: async () => "synthetic-unreachable", transport });
   await assert.rejects(apns.send({ platform: "ios", provider: "apns", environment: "sandbox", appId: "com.kavaroutes.driver.synthetic", token }, instruction), /HIG_013_REQUIRED/);
   const fcm = createDirectFcmPort({ configured: false, projectReference: "synthetic-unreachable", oauth: { scope: "https://www.googleapis.com/auth/firebase.messaging", token: async () => "synthetic-unreachable" }, transport });
   await assert.rejects(fcm.send({ platform: "android", provider: "fcm", environment: "development", appId: "com.kavaroutes.driver.synthetic", token },
     deriveDeliveryInstruction({ kind: "sync_available", platform: "android", createdAt: "2026-08-29T00:00:00.000Z" })), /HIG_013_REQUIRED/);
   assert.equal(calls, 0);
+});
+
+test("configured direct adapters reject a transport that only forges the public profile label", async () => {
+  const forged = { securityProfile: "bounded-https-v1", async exchange() { return { status: 200 }; } };
+  const apns = createDirectApnsPort({ configured: true, topic: "com.kavaroutes.driver.synthetic", authorization: async () => "unreachable", transport: forged });
+  await assert.rejects(apns.send({ platform: "ios", provider: "apns", environment: "sandbox", appId: "com.kavaroutes.driver.synthetic", token },
+    deriveDeliveryInstruction({ kind: "sync_available", platform: "ios", createdAt: "2026-08-29T00:00:00.000Z" })), /TRANSPORT_POLICY_REQUIRED/);
+});
+
+test("provider transport pins destinations, TLS, redirects, sizes, timeouts, and safe telemetry", async () => {
+  const seen = []; const events = [];
+  const transport = createBoundedProviderTransport({
+    connector: { async exchange(request) { seen.push(request); return { status: 400, headers: { "retry-after": "12" }, body: JSON.stringify({ reason: "BadDeviceToken", secret: token }) }; } },
+    telemetrySink: (event) => events.push(event),
+  });
+  const response = await transport.exchange({ endpoint: `https://api.sandbox.push.apple.com/3/device/${token}`, headers: { authorization: "bearer synthetic", "apns-topic": "com.kavaroutes.driver.synthetic" }, body: "{}" });
+  assert.deepEqual(response, { status: 400, safeReason: "BadDeviceToken", retryAfterSeconds: 12 });
+  assert.equal(seen[0].method, "POST"); assert.equal(seen[0].redirect, "error"); assert.equal(seen[0].rejectUnauthorized, true);
+  assert.equal(JSON.stringify(events).includes(token), false);
+  for (const endpoint of [
+    `http://api.sandbox.push.apple.com/3/device/${token}`,
+    `https://user@api.sandbox.push.apple.com/3/device/${token}`,
+    `https://api.sandbox.push.apple.com:444/3/device/${token}`,
+    `https://evil.test/3/device/${token}`,
+    `https://fcm.googleapis.com/v1/projects/../messages:send`,
+    `https://fcm.googleapis.com/v1/projects/safe/messages:send?redirect=true`,
+  ]) await assert.rejects(transport.exchange({ endpoint, headers: { authorization: "synthetic" }, body: "{}" }), /POLICY_REJECTED/);
+  await assert.rejects(transport.exchange({ endpoint: `https://api.sandbox.push.apple.com/3/device/${token}`, headers: { authorization: "bad\r\nheader" }, body: "{}" }), /HEADER_POLICY_REJECTED/);
+  await assert.rejects(transport.exchange({ endpoint: `https://api.sandbox.push.apple.com/3/device/${token}`, headers: { authorization: "synthetic" }, body: "x".repeat(20_000) }), /REQUEST_TOO_LARGE/);
+});
+
+test("provider transport bounds responses and classifies aborted calls without leaking bodies", async () => {
+  const oversized = createBoundedProviderTransport({ connector: { async exchange() { return { status: 500, body: "x".repeat(20_000) }; } } });
+  assert.deepEqual(await oversized.exchange({ endpoint: `https://api.sandbox.push.apple.com/3/device/${token}`, headers: { authorization: "synthetic" }, body: "{}" }), { status: 503, safeReason: "CONNECT_FAILURE" });
+  const timed = createBoundedProviderTransport({ connectTimeoutMs: 1, totalTimeoutMs: 5, connector: { exchange: () => new Promise(() => {}) } });
+  assert.deepEqual(await timed.exchange({ endpoint: "https://fcm.googleapis.com/v1/projects/synthetic/messages:send", headers: { authorization: "synthetic", "content-type": "application/json" }, body: "{}" }), { status: 503, safeReason: "AMBIGUOUS_TIMEOUT" });
 });
 
 test("permission denial and every wake path preserve authoritative authenticate-and-sync recovery", async () => {

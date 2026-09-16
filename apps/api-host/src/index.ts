@@ -17,6 +17,7 @@ import {
 } from "@kavaroutes/transport-schemas";
 import type { ProbeRequest, SocketNotification } from "@kavaroutes/transport-schemas";
 import { API_NETWORK_LIMITS } from "./network-security.js";
+import { safeLogEvent, type SafeLogEvent } from "./logging.js";
 export { createWp007Api } from "@kavaroutes/api-contracts";
 
 declare module "fastify" {
@@ -26,6 +27,7 @@ declare module "fastify" {
 export interface ApiFactoryOptions {
   readonly dependencies?: ProbeDependencies;
   readonly logger?: FastifyServerOptions["logger"];
+  readonly logSink?: (event: SafeLogEvent) => void;
   readonly operationIdFactory?: () => string;
 }
 
@@ -90,8 +92,9 @@ export async function createApi(options: ApiFactoryOptions = {}): Promise<Fastif
         : statusCode >= 400 && statusCode < 500
           ? "MALFORMED_REQUEST"
           : "INTERNAL_ERROR";
-    request.log.warn({ operationId: request.wp005Context.operationId, code }, "request rejected");
-    void reply.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).send({ code, operationId: request.wp005Context.operationId });
+    const responseStatus = statusCode >= 400 && statusCode < 600 ? statusCode : 500;
+    options.logSink?.(safeLogEvent({ event: `request.${code.toLowerCase()}`, outcome: "rejected", statusCode: responseStatus }));
+    void reply.status(responseStatus).send({ code, operationId: request.wp005Context.operationId });
   });
 
   app.get("/platform/v1/health", {

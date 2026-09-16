@@ -52,7 +52,7 @@ export const NormalizedScopeSchema = Type.Object({
 
 export const InvalidationDeltaSchema = Type.Object({
   kind: Type.Literal("RESOURCE_INVALIDATED"),
-  resourceKind: Type.Union([Type.Literal("trip"), Type.Literal("run"), Type.Literal("assignment"), Type.Literal("manifest"), Type.Literal("facility-trip"), Type.Literal("operation")]),
+  resourceKind: Type.Union([Type.Literal("trip"), Type.Literal("run"), Type.Literal("assignment"), Type.Literal("driver-shift"), Type.Literal("manifest"), Type.Literal("facility-trip"), Type.Literal("operation")]),
   resourceReference: SafeReference,
   resourceVersion: Type.Integer({ minimum: 1 }),
 }, { additionalProperties: false, $id: "RealtimeInvalidationDelta" });

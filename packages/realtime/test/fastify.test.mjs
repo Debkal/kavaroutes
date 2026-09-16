@@ -20,7 +20,18 @@ async function fixture() {
   const authorization = authorizeRealtimeSubscription({ principal, organizationId: syntheticIds.organizationA, authorizationGeneration: 1, purpose: "DISPATCH_CONTROL", scope });
   const snapshot = await store.snapshot(authorization);
   const app = await createWp007Api({ verifier });
-  const gateway = await registerWp009Realtime(app, { store, generationSource });
+  // Realtime is a sibling plugin; API lifecycle hooks are encapsulated.
+  // Match the runtime composition's explicit authentication boundary.
+  let gateway;
+  await app.register(async realtimeScope => {
+    realtimeScope.decorateRequest("wp007Context");
+    realtimeScope.addHook("onRequest", async (request, reply) => {
+      const authenticated = await verifier.verify(request.headers.authorization);
+      if (!authenticated) return reply.code(401).send({ code: "AUTHENTICATION_REQUIRED" });
+      request.wp007Context = { principal: authenticated };
+    });
+    gateway = await registerWp009Realtime(realtimeScope, { store, generationSource });
+  });
   return { app, gateway, store, snapshot };
 }
 

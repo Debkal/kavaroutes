@@ -1,0 +1,13 @@
+{
+  "name": "@kavaroutes/google-identity",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": { ".": "./dist/index.js" },
+  "types": "./dist/index.d.ts",
+  "dependencies": {
+    "@kavaroutes/api-contracts": "0.0.0-wp007",
+    "firebase-admin": "14.4.0"
+  }
+}

@@ -15,16 +15,45 @@ services:
       - "127.0.0.1:55432:5432"
     volumes:
       - wp005-postgres:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 2.0
+    shm_size: 128m
+    ulimits:
+      nofile: { soft: 1024, hard: 2048 }
     stop_grace_period: 20s
   api:
     build:
       context: ../..
       dockerfile: infra/wp005/api.Dockerfile
     environment:
+      NODE_ENV: "development"
+      KAVAROUTES_RUNTIME_PROFILE: "local-synthetic"
+      HOST: "127.0.0.1"
       PORT: "3000"
     read_only: true
-    tmpfs: ["/tmp"]
+    tmpfs: ["/tmp:size=67108864,mode=1777,noexec,nosuid,nodev"]
     user: node
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    ulimits:
+      nofile: { soft: 1024, hard: 2048 }
     depends_on:
       postgres: { condition: service_healthy }
     stop_grace_period: 10s
@@ -35,8 +64,18 @@ services:
     environment:
       DATABASE_URL: postgresql://wp005:${WP005_POSTGRES_PASSWORD}@postgres:5432/kavaroutes_wp005
     read_only: true
-    tmpfs: ["/tmp"]
+    tmpfs: ["/tmp:size=67108864,mode=1777,noexec,nosuid,nodev"]
     user: node
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+    ulimits:
+      nofile: { soft: 1024, hard: 2048 }
     depends_on:
       postgres: { condition: service_healthy }
     stop_grace_period: 10s

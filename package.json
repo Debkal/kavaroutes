@@ -17,9 +17,13 @@
     "build": "tsc -b",
     "clean": "tsc -b --clean",
     "check:architecture": "node scripts/check-architecture.mjs",
+    "check:logging": "node scripts/check-safe-logging.mjs",
+    "check:orchestration-status": "node scripts/check-orchestration-status.mjs",
+    "check:deployment-provenance": "node scripts/verify-deployment-provenance.mjs",
     "check:dependencies": "node scripts/dependency-review.mjs",
+    "generate:audit-assurance": "npm audit --audit-level=moderate && node scripts/generate-audit-assurance.mjs --verified-zero-online",
     "generate:openapi": "node scripts/generate-openapi.mjs",
-    "test": "npm run build && npm run generate:openapi && npm run check:architecture && node --test --test-concurrency=1 test/core.test.mjs test/architecture-negative.test.mjs test/api.test.mjs test/telemetry.test.mjs test/websocket.test.mjs test/smoke.test.mjs test/container-policy.test.mjs",
+    "test": "npm run build && npm run generate:openapi && npm run check:architecture && npm run check:logging && node --test --test-concurrency=1 test/core.test.mjs test/architecture-negative.test.mjs test/api.test.mjs test/telemetry.test.mjs test/websocket.test.mjs test/smoke.test.mjs test/container-policy.test.mjs test/dependency-assurance.test.mjs test/deployment-provenance.test.mjs",
     "test:database": "node --test --test-concurrency=1 test/database.integration.test.mjs",
     "test:worker": "node --test --test-concurrency=1 test/worker.integration.test.mjs",
     "test:all": "npm test && npm run test:database && npm run test:worker",
@@ -48,7 +52,7 @@
     "kavaroutes:realtime:catalog": "node packages/realtime/scripts/generate-catalog.mjs",
     "kavaroutes:realtime:openapi": "node packages/realtime/scripts/generate-openapi.mjs",
     "kavaroutes:realtime:lint": "node packages/realtime/scripts/lint.mjs",
-    "kavaroutes:realtime:test": "node --test --test-concurrency=1 packages/realtime/test/contracts.test.mjs packages/realtime/test/gateway.test.mjs packages/realtime/test/fastify.test.mjs",
+    "kavaroutes:realtime:test": "node --test --test-concurrency=1 packages/realtime/test/contracts.test.mjs packages/realtime/test/gateway.test.mjs packages/realtime/test/browser-session.test.mjs packages/realtime/test/fastify.test.mjs",
     "kavaroutes:realtime:test:database": "node --test --test-concurrency=1 packages/realtime/test/postgres.integration.test.mjs",
     "kavaroutes:realtime:snapshot": "node packages/realtime/scripts/verify-schema-snapshot.mjs",
     "kavaroutes:realtime:benchmark": "node packages/realtime/scripts/benchmark.mjs",
@@ -89,6 +93,7 @@
     "@fastify/websocket": "11.3.0",
     "@opentelemetry/api": "1.9.1",
     "@opentelemetry/sdk-node": "0.221.0",
+    "decode-uri-component": "file:vendor/decode-uri-component-safe",
     "drizzle-orm": "0.45.2",
     "fastify": "5.12.1",
     "pg": "8.23.0",
@@ -98,6 +103,7 @@
     "ws": "8.21.3"
   },
   "devDependencies": {
+    "firebase-admin": "14.4.0",
     "@types/node": "24.10.1",
     "@types/pg": "8.23.1",
     "@types/ws": "8.18.1",
@@ -111,6 +117,7 @@
     "react-native-safe-area-context": "5.7.0",
     "react-native-screens": "4.26.0",
     "react-native-worklets": "0.10.1",
-    "uuid": "11.1.1"
+    "uuid": "11.1.1",
+    "decode-uri-component": "$decode-uri-component"
   }
 }

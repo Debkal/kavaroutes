@@ -1,0 +1,5 @@
+# Deliberately invalid development candidate; use only in the rollback drill.
+# No secret file is created or changed; the missing-path startup guard must deny it.
+services:
+  api:
+    command: [api, /run/secrets/rollback-deliberately-missing.json]

@@ -20,6 +20,146 @@
       ]
     },
     {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/browser-commands",
+      "operationId": "prepareBrowserCommand",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "502",
+        "503",
+        "504"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/browser-commands/{commandId}/acknowledge",
+      "operationId": "acknowledgeBrowserCommand",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "502",
+        "503",
+        "504"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/browser-commands/{commandId}/execute",
+      "operationId": "executeBrowserCommand",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "502",
+        "503",
+        "504"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/browser-commands/pending",
+      "operationId": "getPendingBrowserCommand",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "502",
+        "503",
+        "504"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch-board/{serviceDate}",
+      "operationId": "getDispatchBoard",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
       "method": "GET",
       "path": "/v1/organizations/{organizationId}/dispatch-days/{serviceDate}",
       "operationId": "getDispatchDay",
@@ -32,6 +172,150 @@
         "406",
         "429",
         "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/route-proposals/{proposalId}/commands/decide",
+      "operationId": "decideRouteProposal",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/runs/{runId}/commands/assign",
+      "operationId": "assignDispatchRun",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/shifts/{shiftId}/commands/override-return",
+      "operationId": "overrideDriverReturn",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/shifts/{shiftId}/return-review",
+      "operationId": "getDriverReturnReview",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/shifts/{shiftId}/route-proposals",
+      "operationId": "getDispatchRouteProposals",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "412",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/shifts/{shiftId}/status",
+      "operationId": "getDispatchShiftStatus",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
       ],
       "security": [
         {
@@ -101,7 +385,8 @@
         "415",
         "422",
         "429",
-        "500"
+        "500",
+        "503"
       ],
       "security": [
         {
@@ -156,6 +441,26 @@
       ]
     },
     {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/itineraries/{serviceDate}",
+      "operationId": "getDriverItinerary",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
       "method": "POST",
       "path": "/v1/organizations/{organizationId}/driver/location-batches",
       "operationId": "submitDriverLocationBatch",
@@ -191,6 +496,288 @@
         "406",
         "429",
         "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/commands/close",
+      "operationId": "closeDriverShift",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/commands/postcheck",
+      "operationId": "submitDriverPostcheck",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/commands/precheck",
+      "operationId": "submitDriverPrecheck",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/legs/{legId}/evidence/signatures",
+      "operationId": "submitDriverSignature",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/route-proposals",
+      "operationId": "getDriverRouteProposals",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "412",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/route-proposals",
+      "operationId": "submitRouteProposal",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/status",
+      "operationId": "getDriverShiftStatus",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/synthetic-location-batches",
+      "operationId": "submitDriverSyntheticLocations",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/assignments/{assignmentId}",
+      "operationId": "getDriverShiftState",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/commands/start",
+      "operationId": "startDriverShift",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "409",
+        "410",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/facility/days/{serviceDate}",
+      "operationId": "getFacilityDay",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/facility/trips/{tripId}",
+      "operationId": "getFacilityTrip",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
       ],
       "security": [
         {

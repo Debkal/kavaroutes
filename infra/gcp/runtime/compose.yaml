@@ -1,0 +1,82 @@
+name: kavaroutes-cloud
+x-host: &host
+  image: ${KR_RUNTIME_IMAGE:?set the verified registry image digest}
+  network_mode: host
+  read_only: true
+  user: "1000:1000"
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 128
+  mem_limit: 384m
+  cpus: 1
+  stop_grace_period: 20s
+  restart: "no"
+  logging:
+    driver: json-file
+    options: {max-size: 5m, max-file: "2"}
+services:
+  postgres:
+    image: postgis/postgis:17-3.5@sha256:624f5195b91d424dbebf018890148cc0e5a3e80db5467da8b53cc2ed2ce49216
+    network_mode: host
+    command: [postgres, -c, listen_addresses=127.0.0.1, -c, shared_preload_libraries=pg_stat_statements, -c, timezone=UTC, -c, max_connections=80, -c, log_min_error_statement=panic]
+    environment:
+      POSTGRES_USER: kr_cloud_admin
+      POSTGRES_DB: kavaroutes_cloud
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+    volumes:
+      - database:/var/lib/postgresql/data
+      - ${KR_SECRETS_DIRECTORY:?set the private VM secrets directory}/postgres-password:/run/secrets/postgres-password:ro
+    healthcheck:
+      test: [CMD, pg_isready, -h, 127.0.0.1, -U, kr_cloud_admin, -d, kavaroutes_cloud]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 1
+    shm_size: 128m
+    stop_grace_period: 30s
+    restart: "no"
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: "2"}
+  initialize:
+    <<: *host
+    profiles: [initialize]
+    depends_on:
+      postgres: {condition: service_healthy}
+    entrypoint: [node, infra/gcp/runtime/init.mjs]
+    command: [/run/secrets/admin.json, /run/secrets/database-passwords.json]
+    healthcheck: {disable: true}
+    volumes:
+      - ${KR_SECRETS_DIRECTORY}/admin.json:/run/secrets/admin.json:ro
+      - ${KR_SECRETS_DIRECTORY}/database-passwords.json:/run/secrets/database-passwords.json:ro
+  api:
+    <<: *host
+    depends_on:
+      postgres: {condition: service_healthy}
+    command: [api, /run/secrets/api.json]
+    volumes:
+      - ${KR_SECRETS_DIRECTORY}/api.json:/run/secrets/api.json:ro
+    healthcheck:
+      test: [CMD, node, infra/gcp/runtime/health.mjs, "58080"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+  worker:
+    <<: *host
+    depends_on:
+      postgres: {condition: service_healthy}
+    command: [worker, /run/secrets/worker.json]
+    volumes:
+      - ${KR_SECRETS_DIRECTORY}/worker.json:/run/secrets/worker.json:ro
+    healthcheck:
+      test: [CMD, node, infra/gcp/runtime/health.mjs, "58081"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+volumes:
+  database:

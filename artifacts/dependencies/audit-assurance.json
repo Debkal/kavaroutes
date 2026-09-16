@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "kavaroutes.dependency-assurance.v1",
+  "evidenceDate": "2026-09-15",
+  "lockSha256": "71864b54a6e5cb78f1fad367f989b9fd49ee31543016c35591cd4f57de11ce06",
+  "componentCount": 1116,
+  "advisoryCheck": {
+    "command": "npm audit --json --audit-level=moderate",
+    "online": true,
+    "exitCode": 0,
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "installScriptReview": [
+    {
+      "name": "@firebase/util",
+      "version": "1.15.3",
+      "disposition": "platform-optional dependency"
+    },
+    {
+      "name": "protobufjs",
+      "version": "7.6.5",
+      "disposition": "reviewed: reads adjacent package metadata and may emit a compatibility warning; no network, child process, or file write"
+    }
+  ],
+  "nativeAddonReview": [
+    {
+      "name": "@rolldown/binding-linux-x64-gnu",
+      "version": "1.2.6",
+      "disposition": "retain pinned version; exercise on supported build platforms"
+    },
+    {
+      "name": "lightningcss-linux-x64-gnu",
+      "version": "1.33.0",
+      "disposition": "retain pinned version; exercise on supported build platforms"
+    }
+  ],
+  "unknownLicenseReview": [],
+  "exceptions": [
+    {
+      "id": "DEP-EXC-001",
+      "package": "decode-uri-component",
+      "owner": "Audit Worker",
+      "reviewCadence": "monthly and whenever expo-router/query-string changes",
+      "disposition": "temporary local CommonJS linear-time fork; remove when the caller supports a fixed upstream release"
+    }
+  ]
+}

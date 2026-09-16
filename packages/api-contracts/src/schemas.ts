@@ -1,4 +1,5 @@
 import { Type as TypeBox, type Static, type TSchema } from "typebox";
+import { DriverItinerarySchema } from "./driver-itinerary.js";
 
 const Type = Object.freeze({
   ...TypeBox,
@@ -88,7 +89,7 @@ export const OrganizationMembershipSchema = Type.Object({
 
 export const MeResponseSchema = Type.Object({
   principalId: Type.Ref(OpaqueIdSchema),
-  principalKind: Type.Union([Type.Literal("SYNTHETIC_USER"), Type.Literal("SYNTHETIC_DEVICE")]),
+  principalKind: Type.Union([Type.Literal("SYNTHETIC_USER"), Type.Literal("SYNTHETIC_DEVICE"),Type.Literal("BROWSER_USER")]),
   organizations: Type.Array(Type.Ref(OrganizationMembershipSchema), { maxItems: 8 }),
   policyVersion: Type.Literal("privacy-synthetic-v1"),
 }, { ...closed, $id: "MeResponse" });
@@ -194,8 +195,14 @@ const policyDigest = () => Type.String({ pattern: "^[a-f0-9]{64}$", minLength: 6
 export const DriverActionItemSchema = Type.Union([
   Type.Object({ ...driverActionIdentity, command: Type.Union([
     Type.Literal("MARK_EN_ROUTE"), Type.Literal("ARRIVE_PICKUP"), Type.Literal("BOARD_RIDER"),
-    Type.Literal("ARRIVE_DROPOFF"), Type.Literal("COMPLETE_LEG"), Type.Literal("REPORT_INCIDENT"),
+    Type.Literal("ARRIVE_DROPOFF"), Type.Literal("COMPLETE_LEG"),
   ]) }, closed),
+  Type.Object({ ...driverActionIdentity,command: Type.Literal("VERIFY_RIDER"),verificationMethod: Type.Union([Type.Literal("NAME_CONFIRMED_WITH_RIDER"),Type.Literal("AUTHORIZED_REPRESENTATIVE_CONFIRMED"),Type.Literal("FACILITY_CONFIRMED")]) },closed),
+  Type.Object({ ...driverActionIdentity,command: Type.Literal("SECURE_RIDER"),occupantRestraint: Type.Literal("SECURED"),mobilityDevice: Type.Union([Type.Literal("SECURED"),Type.Literal("NOT_APPLICABLE")]) },closed),
+  Type.Object({ ...driverActionIdentity,command: Type.Literal("UNLOAD_RIDER"),attestation: Type.Literal("UNLOADED_AND_ASSISTED") },closed),
+  Type.Object({ ...driverActionIdentity,command: Type.Literal("REPORT_INCIDENT"),incidentKind: Type.Union([Type.Literal("COLLISION"),Type.Literal("VEHICLE_FAILURE"),Type.Literal("RIDER_SAFETY"),Type.Literal("OTHER")]),note: Type.String({ minLength: 2,maxLength: 1000 }) },closed),
+  Type.Object({ ...driverActionIdentity,command: Type.Literal("MARK_RIDER_NO_SHOW"),contactAttestation: Type.Literal("ATTEMPTED_NO_RESPONSE"),authorizationReference: Type.Ref(OpaqueIdSchema) },closed),
+  Type.Object({ ...driverActionIdentity,command: Type.Literal("REQUEST_CANCEL_LEG"),reason: Type.Union([Type.Literal("RIDER_REQUESTED"),Type.Literal("FACILITY_REQUESTED"),Type.Literal("SERVICE_UNAVAILABLE")]) },closed),
   Type.Object({ ...driverActionIdentity, command: Type.Union([Type.Literal("COMPLETE_PRECHECK"), Type.Literal("COMPLETE_POSTCHECK")]), policyDigest: policyDigest() }, closed),
   Type.Object({ ...driverActionIdentity, command: Type.Union([Type.Literal("SKIP_PRECHECK"), Type.Literal("SKIP_POSTCHECK")]),
     reasonCode: Type.Union([Type.Literal("OPTIONAL_CONTROL_SKIPPED"), Type.Literal("CONTROL_UNAVAILABLE")]), policyDigest: policyDigest() }, closed),
@@ -206,6 +213,9 @@ export const DriverActionItemSchema = Type.Union([
 
 export const DriverActionBatchSchema = Type.Object({
   deviceSessionId: Type.Ref(OpaqueIdSchema),
+  // Required by the persisted runtime; optional only for older local fixtures.
+  shiftReference: Type.Optional(Type.Ref(OpaqueIdSchema)),
+  shiftGeneration: Type.Optional(Type.Ref(OpaqueIdSchema)),
   items: Type.Array(Type.Ref(DriverActionItemSchema), { minItems: 1, maxItems: 100 }),
 }, { ...closed, $id: "DriverActionBatch" });
 
@@ -301,6 +311,7 @@ export const IntegrationProjectionSchema = Type.Object({
 }, { ...closed, $id: "IntegrationProjection" });
 
 export const allSchemas: readonly TSchema[] = Object.freeze([
+  DriverItinerarySchema,
   OpaqueIdSchema, InstantSchema, ServiceDateSchema, IanaTimezoneSchema, IdempotencyKeySchema, StrongEtagSchema,
   ProblemErrorSchema, ProblemSchema, OrganizationMembershipSchema, MeResponseSchema, TripCreateRequestSchema,
   DispatcherTripSchema, CommandReceiptSchema, TripCommandResponseSchema, CancelTripRequestSchema, PageSchema,

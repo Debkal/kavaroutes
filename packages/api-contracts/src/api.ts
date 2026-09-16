@@ -1,22 +1,31 @@
-import { performance } from "node:perf_hooks";
 import swagger from "@fastify/swagger";
+import {BrowserCommandEnvelopeSchema,BrowserCommandPrepareSchema,BrowserCommandViewSchema,BrowserCommandPendingSchema,type BrowserRecoveryService} from './browser-recovery.js';
+import {FacilityDaySchema,type FacilityService} from './facility-day.js';
+import {DriverClosureRequestSchema,DriverClosureReceiptSchema,DriverClosureViewSchema,DriverSyntheticLocationRequestSchema,DriverSyntheticLocationReceiptSchema,DriverReturnOverrideRequestSchema,DriverReturnReviewSchema,type DriverClosureService} from './driver-closure.js';
+import {RouteProposalRequestSchema,RouteDecisionRequestSchema,RouteProposalReceiptSchema,RouteProposalViewSchema,type RouteProposalService} from './route-proposals.js';
+import {DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,type DispatchService,type AssignDispatchRunRequest} from './dispatch-board.js';
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import Fastify, { LogController, type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
+import Fastify, { LogController, type FastifyInstance, type FastifyPluginAsync, type FastifyReply, type FastifyRequest } from "fastify";
 import { Type as TypeBox, type Static, type TSchema } from "typebox";
 import { Compile } from "typebox/compile";
 import { Value } from "typebox/value";
-import { PersistenceConflict } from "@kavaroutes/postgres-persistence";
 import type { EffectiveDriverPolicy } from "@kavaroutes/platform-engine/domain";
 import { createRegistrationService, createTokenVault, type RegistrationInput, type RegistrationInactiveReason } from "@kavaroutes/push-notifications";
 import { createSyntheticLocalAdmissionController, type AdmissionController } from "./admission-control.js";
+import { contextPrincipal, createApiLifecyclePlugin } from "./api-lifecycle.js";
 import type { Wp007Application } from "./application.js";
 import { createDocumentationApplication, createOfflineBatchService, syntheticReadModels } from "./application.js";
 import { createSyntheticDriverPolicyService, policyVersionFromEtag, type DriverPolicyService } from "./driver-policy.js";
-import { createCursorCodec, IdempotencyKeySchema, isValidTraceparent, parseStrictJson, problemFor, ProblemSchema, ProtocolError, safeTelemetryEvent, StrongEtagSchema } from "./index-internal.js";
+import { createCursorCodec, IdempotencyKeySchema, parseStrictJson, ProblemSchema, ProtocolError, StrongEtagSchema } from "./index-internal.js";
 import type { SafeTelemetryEvent } from "./protocol.js";
-import { authorize, createSyntheticTestVerifier, type AuthorizationRequirement, type PrincipalVerifier, type SyntheticPrincipal, syntheticIds } from "./security.js";
+import { createSyntheticTestVerifier, type PrincipalVerifier, syntheticIds } from "./security.js";
+import { DriverItinerarySchema, type DriverItineraryReader } from "./driver-itinerary.js";
+import type { DriverActionService } from "./driver-actions.js";
+import { DriverSignatureRequestSchema,DriverSignatureReceiptSchema,type DriverSignatureService,type DriverSignatureRequest } from "./driver-service-proof.js";
+import { DriverPrecheckRequestSchema, DriverPrecheckReceiptSchema, DriverShiftStateSchema, type DriverShiftReader, type DriverPrecheckService, type DriverPrecheckRequest } from "./driver-precheck.js";
+import { StartDriverShiftRequestSchema, StartDriverShiftReceiptSchema, type DriverShiftService, type StartDriverShiftRequest } from "./driver-shift.js";
 import {
-  allSchemas, BatchReceiptSchema, CancelTripRequestSchema, DispatchDaySchema, DispatcherTripSchema,
+  allSchemas, BatchReceiptSchema, CancelTripRequestSchema, DispatchDaySchema, DispatcherTripSchema, FacilityTripProjectionSchema,
   DriverActionBatchSchema, DriverControlPolicySchema, DriverManifestSchema, LocationBatchSchema, MeResponseSchema, OpaqueIdSchema,
   OperationSchema, PushRegistrationRequestSchema, PushRegistrationResponseSchema, PushUnregistrationRequestSchema,
   RiderSearchRequestSchema, RiderSearchResponseSchema, ServiceDateSchema,
@@ -33,18 +42,12 @@ const Type = Object.freeze({
   },
 });
 
-interface Wp007RequestContext {
-  readonly requestId: string;
-  readonly startedAt: number;
-  principal: SyntheticPrincipal | null;
-  resultCode: string;
-}
-
-declare module "fastify" {
-  interface FastifyRequest { wp007Context: Wp007RequestContext; }
-}
-
 export interface Wp007ApiOptions {
+  readonly browserRecoveryService?:BrowserRecoveryService;
+  readonly driverClosureService?:DriverClosureService;
+  readonly facilityService?:FacilityService;
+  readonly routeProposalService?: RouteProposalService;
+  readonly dispatchService?: DispatchService;
   readonly application?: Wp007Application;
   readonly verifier?: PrincipalVerifier;
   readonly cursorSecret?: string;
@@ -55,6 +58,13 @@ export interface Wp007ApiOptions {
   readonly rateLimitPerOperation?: number;
   readonly admissionController?: AdmissionController;
   readonly driverPolicyService?: DriverPolicyService;
+  readonly driverItineraryReader?: DriverItineraryReader;
+  readonly driverShiftService?: DriverShiftService;
+  readonly driverActionService?: DriverActionService;
+  readonly driverPrecheckService?: DriverPrecheckService;
+  readonly driverPostcheckService?: DriverPrecheckService;
+  readonly driverSignatureService?: DriverSignatureService;
+  readonly driverShiftReader?: DriverShiftReader;
   readonly pushRegistrationService?: ReturnType<typeof createRegistrationService>;
 }
 
@@ -63,11 +73,7 @@ const TripParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), tripI
 const DispatchDayParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), serviceDate: Type.Ref(ServiceDateSchema) }, { additionalProperties: false });
 const OperationParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), operationId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false });
 const InstallationParams = Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), installationId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false });
-const CollectionQuery = Type.Object({ cursor: Type.Optional(Type.String({ minLength: 32, maxLength: 2048 })), limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200 })) }, { additionalProperties: false });
-const AuthorizationHeaders = Type.Object({ authorization: Type.String({ pattern: "^Synthetic principal_[a-z_]+$", maxLength: 64 }) });
-const IdempotentHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "idempotency-key": Type.Ref(IdempotencyKeySchema) })]);
-const CommandHeaders = Type.Intersect([IdempotentHeaders, Type.Object({ "if-match": Type.Optional(Type.Ref(StrongEtagSchema)) })]);
-const ConditionalHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "if-none-match": Type.Optional(Type.Ref(StrongEtagSchema)) })]);
+const CollectionQuery = Type.Object({ cursor: Type.Optional(Type.String({ minLength: 32, maxLength: 2048 })), limit: Type.Optional(Type.String({pattern:'^(?:[1-9][0-9]?|1[0-9]{2}|200)$',maxLength:3})) }, { additionalProperties: false });
 
 function jsonResponse(schema: TSchema, description: string, headers: Record<string, unknown> = {}) {
   return { description, headers, content: { "application/json": { schema: Type.Ref(schema) } } };
@@ -90,12 +96,6 @@ function responseWithErrors(success: Record<number, unknown>, selected: readonly
   return response;
 }
 
-function contextPrincipal(request: FastifyRequest): SyntheticPrincipal {
-  const principal = request.wp007Context.principal;
-  if (!principal) throw new ProtocolError(401, "AUTHENTICATION_REQUIRED", "authentication required");
-  return principal;
-}
-
 function policyActionRejection(item: DriverActionBatch["items"][number], policy: EffectiveDriverPolicy): string | undefined {
   if ("policyDigest" in item && item.policyDigest !== policy.canonicalDigest) return "STALE_POLICY_SNAPSHOT";
   if (item.command === "COMPLETE_PRECHECK" && policy.preInspection.mode === "DISABLED" && policy.startOdometer.mode === "DISABLED") return "CONTROL_DISABLED";
@@ -112,63 +112,17 @@ function policyActionRejection(item: DriverActionBatch["items"][number], policy:
   return undefined;
 }
 
-function persistenceStatus(error: PersistenceConflict): number {
-  return ({ "stale-version": 412, "idempotency-mismatch": 422, "idempotency-in-progress": 409, "idempotency-expired": 410,
-    "resource-overlap": 409, duplicate: 409, relationship: 404, tenant: 404 }[error.kind] ?? 500);
-}
-
-type RequestValidation = readonly { readonly instancePath?: string }[];
-
-function errorRecord(error: unknown): Record<string, unknown> {
-  return typeof error === "object" && error !== null ? error as Record<string, unknown> : {};
-}
-
-function requestValidation(record: Record<string, unknown>): RequestValidation | null {
-  return Array.isArray(record.validation) ? record.validation as RequestValidation : null;
-}
-
-function pushErrorCode(error: unknown): string | null {
-  return error instanceof Error && /^PUSH_[A-Z0-9_]+$/.test(error.message) ? error.message : null;
-}
-
-function candidateErrorStatus(error: unknown, record: Record<string, unknown>, validation: RequestValidation | null, pushCode: string | null): number {
-  if (error instanceof ProtocolError) return error.statusCode;
-  if (error instanceof PersistenceConflict) return persistenceStatus(error);
-  if (pushCode) return /NOT_FOUND|CONTEXT_MISMATCH/.test(pushCode) ? 404 : 422;
-  if (validation) return 400;
-  if (record.code === "FST_ERR_CTP_BODY_TOO_LARGE") return 413;
-  return typeof record.statusCode === "number" ? record.statusCode : 500;
-}
-
-function mappedErrorCode(error: unknown, status: number, validation: RequestValidation | null, pushCode: string | null): string {
-  if (error instanceof ProtocolError) return error.code;
-  if (error instanceof PersistenceConflict) return `PERSISTENCE_${error.kind.replaceAll("-", "_").toUpperCase()}`;
-  if (pushCode) return pushCode;
-  if (validation) return "REQUEST_SCHEMA_INVALID";
-  if (status === 413) return "PAYLOAD_TOO_LARGE";
-  if (status === 415) return "UNSUPPORTED_MEDIA_TYPE";
-  return "INTERNAL_ERROR";
-}
-
-function mappedError(error: unknown): { readonly status: number; readonly code: string; readonly pointer?: string; readonly retryAfterSeconds?: number } {
-  const record = errorRecord(error);
-  const validation = requestValidation(record);
-  const pushCode = pushErrorCode(error);
-  const candidateStatus = candidateErrorStatus(error, record, validation, pushCode);
-  const status = candidateStatus in errors ? candidateStatus : 500;
-  const code = mappedErrorCode(error, status, validation, pushCode);
-  const pointer = validation
-    ? String(validation[0]?.instancePath || "/request").replace(/[^/A-Za-z0-9_-]/g, "").slice(0, 256)
-    : error instanceof ProtocolError ? error.pointer : undefined;
-  return { status, code, ...(pointer ? { pointer } : {}),
-    ...(error instanceof ProtocolError && error.retryAfterSeconds !== undefined ? { retryAfterSeconds: error.retryAfterSeconds } : {}) };
-}
-
 export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<FastifyInstance> {
   const now = options.now ?? (() => new Date());
   const etagSecret = options.etagSecret ?? "synthetic-etag-secret-wp007-local-only";
   const application = options.application ?? createDocumentationApplication(etagSecret);
   const verifier = options.verifier ?? createSyntheticTestVerifier();
+  const AuthorizationHeaders = verifier.verifyRequest
+    ? Type.Object({cookie:Type.String({minLength:1,maxLength:4096})})
+    : Type.Object({ authorization: Type.String({ pattern: "^Synthetic principal_[a-z_]+$", maxLength: 64 }) });
+  const IdempotentHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "idempotency-key": Type.Ref(IdempotencyKeySchema) })]);
+  const CommandHeaders = Type.Intersect([IdempotentHeaders, Type.Object({ "if-match": Type.Optional(Type.Ref(StrongEtagSchema)) })]);
+  const ConditionalHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "if-none-match": Type.Optional(Type.Ref(StrongEtagSchema)) })]);
   const cursorCodec = createCursorCodec(options.cursorSecret ?? "synthetic-cursor-secret-wp007-local-only");
   const offline = createOfflineBatchService(now);
   const driverPolicy = options.driverPolicyService ?? createSyntheticDriverPolicyService({ organizationId: syntheticIds.organizationA, now });
@@ -186,7 +140,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   });
   let nextRequest = 0;
   const requestIdFactory = options.requestIdFactory ?? (() => `req_wp007_${String(++nextRequest).padStart(8, "0")}`);
-  const schemaContext = Object.fromEntries(allSchemas.map((schema) => {
+  const schemaContext = Object.fromEntries([...allSchemas,AssignDispatchRunRequestSchema,RouteDecisionRequestSchema,DriverReturnOverrideRequestSchema,BrowserCommandEnvelopeSchema].map((schema) => {
     const id = (schema as { $id?: unknown }).$id;
     if (typeof id !== "string") throw new Error("REGISTERED_SCHEMA_ID_REQUIRED");
     return [id, schema];
@@ -217,87 +171,35 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       info: { title: "KavaRoutes local synthetic API contract", version: "1.0.0" },
       servers: [],
       tags: ["profile", "intake", "dispatch", "driver", "notifications", "operations"].map((name) => ({ name })),
-      components: { securitySchemes: { syntheticTestPrincipal: { type: "apiKey", in: "header", name: "Authorization", description: "Local deterministic test verifier only; not a production authentication scheme." } } },
+      components: { securitySchemes: verifier.verifyRequest
+        ? {browserSession:{type:'apiKey',in:'cookie',name:'__Host-kr-session',description:'Server-validated session; unsafe requests also require same-origin CSRF header.'}}
+        : { syntheticTestPrincipal: { type: "apiKey", in: "header", name: "Authorization", description: "Local deterministic test verifier only; not a production authentication scheme." } } },
     },
   });
-  for (const schema of allSchemas) app.addSchema(schema);
-  app.decorateRequest("wp007Context");
-
-  app.addHook("onRequest", async (request) => {
-    request.wp007Context = { requestId: request.id, startedAt: performance.now(), principal: null, resultCode: "UNSET" };
-    if (["POST", "PUT", "PATCH"].includes(request.method)) {
-      const mediaType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
-      if (mediaType !== "application/json") throw new ProtocolError(415, "UNSUPPORTED_MEDIA_TYPE", "request media type unsupported");
-    }
-    const accept = request.headers.accept;
-    if (accept && !accept.split(",").some((value) => ["*/*", "application/json"].includes(value.split(";")[0]?.trim() ?? ""))) {
-      throw new ProtocolError(406, "REPRESENTATION_NOT_ACCEPTABLE", "response type not accepted");
-    }
-    if (request.headers.traceparent !== undefined && !isValidTraceparent(request.headers.traceparent)) {
-      throw new ProtocolError(400, "TRACE_CONTEXT_INVALID", "trace context invalid");
-    }
-    const queryKeys = Object.keys(request.query as Record<string, unknown>);
-    if (queryKeys.some((key) => /token|authorization|session|tenant|idempotency|etag/i.test(key))) {
-      throw new ProtocolError(400, "SENSITIVE_QUERY_PARAMETER", "sensitive query parameter prohibited");
-    }
-    request.wp007Context.principal = await verifier.verify(request.headers.authorization);
-    if (!request.wp007Context.principal) throw new ProtocolError(401, "AUTHENTICATION_REQUIRED", "authentication required");
-  });
-
-  app.addHook("onSend", async (request, reply, payload) => {
-    if (request.url.startsWith("/v1")) reply.header("cache-control", "no-store");
-    return payload;
-  });
-  app.addHook("onResponse", async (request, reply) => {
-    options.telemetrySink?.(safeTelemetryEvent({
-      operationId: request.routeOptions.schema?.operationId ?? "unmatchedRoute",
-      routeTemplate: request.routeOptions.url ?? "unmatched",
-      statusCode: reply.statusCode,
-      elapsedMs: performance.now() - request.wp007Context.startedAt,
-      resultCode: request.wp007Context.resultCode,
-    }));
-  });
-
-  const requireAccess = async (request: FastifyRequest, organizationId: string, requirement: AuthorizationRequirement, operationId: string) => {
-    const principal = contextPrincipal(request);
-    authorize(principal, organizationId, requirement);
-    const decision = await admissionController.admit({ organizationId, principalId: principal.id, operationId });
-    if (!decision.allowed) {
-      throw new ProtocolError(429, "RATE_LIMIT_EXCEEDED", "rate limit exceeded", {
-        retryAfterSeconds: decision.retryAfterSeconds ?? 1,
-      });
-    }
-    return principal;
-  };
-
-  app.setErrorHandler((error, request, reply) => {
-    const { status, code, pointer, retryAfterSeconds } = mappedError(error);
-    request.wp007Context.resultCode = code;
-    if (status === 401) reply.header("www-authenticate", "Synthetic realm=\"kavaroutes-local-test\"");
-    if (retryAfterSeconds !== undefined && [429, 503].includes(status)) reply.header("retry-after", String(retryAfterSeconds));
-    void reply.status(status).type("application/problem+json").send(problemFor({ status, requestId: request.wp007Context.requestId, code, ...(pointer ? { pointer } : {}) }));
-  });
-  app.setNotFoundHandler((request, reply) => {
-    request.wp007Context.resultCode = "RESOURCE_NOT_FOUND";
-    void reply.status(404).type("application/problem+json").send(problemFor({ status: 404, requestId: request.wp007Context.requestId }));
-  });
-
-  const security = [{ syntheticTestPrincipal: [] }];
-  app.get("/v1/me", { schema: { operationId: "getMe", tags: ["profile"], security, headers: AuthorizationHeaders,
+  for (const schema of [...allSchemas, DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,StartDriverShiftRequestSchema, StartDriverShiftReceiptSchema, DriverPrecheckRequestSchema, DriverPrecheckReceiptSchema, DriverShiftStateSchema,DriverSignatureRequestSchema,DriverSignatureReceiptSchema]) app.addSchema(schema);
+  const apiLifecyclePlugin = createApiLifecyclePlugin({ verifier, admissionController,
+    ...(options.telemetrySink ? { telemetrySink: options.telemetrySink } : {}),
+    registerRoutes: async (api, requireAccess) => {
+  const security = verifier.verifyRequest ? [{browserSession:[]}] : [{ syntheticTestPrincipal: [] }];
+  const profileRoutes: FastifyPluginAsync = async (routes) => {
+  routes.get("/v1/me", { schema: { operationId: "getMe", tags: ["profile"], security, headers: AuthorizationHeaders,
     response: responseWithErrors({ 200: jsonResponse(MeResponseSchema, "Current synthetic principal") }, [400, 401, 406, 429, 500]) } }, async (request, reply) => {
     const principal = contextPrincipal(request);
     request.wp007Context.resultCode = "PROFILE_RETURNED";
     return reply.send({ principalId: principal.id, principalKind: principal.kind,
       organizations: [{ organizationId: principal.organizationId, capabilities: [...principal.capabilities].sort() }], policyVersion: "privacy-synthetic-v1" });
   });
+  };
+  await api.register(profileRoutes);
 
-  app.get("/v1/organizations/:organizationId/trips", { schema: { operationId: "listTrips", tags: ["intake"], security,
+  const intakeRoutes: FastifyPluginAsync = async (routes) => {
+  routes.get("/v1/organizations/:organizationId/trips", { schema: { operationId: "listTrips", tags: ["intake"], security,
     headers: AuthorizationHeaders, params: OrganizationParams, querystring: CollectionQuery,
     response: responseWithErrors({ 200: jsonResponse(TripCollectionSchema, "Cursor page", { Link: { schema: { type: "string" } } }) }, [400, 401, 404, 406, 410, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
     const principal = await requireAccess(request, organizationId, { capability: "trips:read", purpose: "RIDER_INTAKE" }, "listTrips");
-    const query = request.query as { cursor?: string; limit?: number };
-    const limit = query.limit ?? 50;
+    const query = request.query as { cursor?: string; limit?: string };
+    const limit = query.limit === undefined ? 50 : Number(query.limit);
     const expected = { organizationId, principalId: principal.id, purpose: "RIDER_INTAKE", filters: {}, sort: "tripId:asc", schemaVersion: "wp007.contract.v1" as const, policyVersion: "privacy-synthetic-v1" as const };
     const claims = query.cursor ? cursorCodec.decode(query.cursor, expected, now()) : null;
     const values = await application.listTrips(organizationId, { ...(claims ? { afterId: claims.tieBreaker } : {}), limit });
@@ -310,7 +212,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     return reply.send({ items, page: { nextCursor, asOf, limit } });
   });
 
-  app.post("/v1/organizations/:organizationId/rider-searches", { bodyLimit: 256 * 1024, schema: { operationId: "searchRiders", tags: ["intake"], security,
+  routes.post("/v1/organizations/:organizationId/rider-searches", { bodyLimit: 256 * 1024, schema: { operationId: "searchRiders", tags: ["intake"], security,
     headers: AuthorizationHeaders, params: OrganizationParams, body: RiderSearchRequestSchema,
     response: responseWithErrors({ 200: jsonResponse(RiderSearchResponseSchema, "Bounded synthetic rider search") }, [400, 401, 404, 406, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
@@ -320,7 +222,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     return reply.send({ items: await application.searchRiders(organizationId, body.syntheticReferencePrefix, body.limit ?? 25) });
   });
 
-  app.post("/v1/organizations/:organizationId/trips", { bodyLimit: 256 * 1024, schema: { operationId: "createTrip", tags: ["intake"], security,
+  routes.post("/v1/organizations/:organizationId/trips", { bodyLimit: 256 * 1024, schema: { operationId: "createTrip", tags: ["intake"], security,
     headers: IdempotentHeaders, params: OrganizationParams, body: TripCreateRequestSchema,
     response: responseWithErrors({ 201: jsonResponse(DispatcherTripSchema, "Created trip", { Location: { schema: { type: "string" } }, ETag: { schema: StrongEtagSchema }, "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
@@ -343,12 +245,12 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     request.wp007Context.resultCode = "TRIP_RETURNED";
     return head ? reply.status(200).send() : reply.send(trip);
   };
-  app.get("/v1/organizations/:organizationId/trips/:tripId", { schema: { operationId: "getTrip", tags: ["intake"], security,
+  routes.get("/v1/organizations/:organizationId/trips/:tripId", { schema: { operationId: "getTrip", tags: ["intake"], security,
     headers: ConditionalHeaders, params: TripParams, response: responseWithErrors({ 200: jsonResponse(DispatcherTripSchema, "Dispatcher trip", { ETag: { schema: StrongEtagSchema } }), 304: { description: "Not modified" } }, [400, 401, 404, 406, 429, 500]) } }, (request, reply) => sendTrip(request, reply, false));
-  app.head("/v1/organizations/:organizationId/trips/:tripId", { schema: { operationId: "headTrip", tags: ["intake"], security,
+  routes.head("/v1/organizations/:organizationId/trips/:tripId", { schema: { operationId: "headTrip", tags: ["intake"], security,
     headers: ConditionalHeaders, params: TripParams, response: responseWithErrors({ 200: { description: "Trip headers", headers: { ETag: { schema: StrongEtagSchema } } }, 304: { description: "Not modified" } }, [400, 401, 404, 406, 429, 500]) } }, (request, reply) => sendTrip(request, reply, true));
 
-  app.post("/v1/organizations/:organizationId/trips/:tripId/commands/cancel", { bodyLimit: 256 * 1024, schema: { operationId: "cancelTrip", tags: ["intake"], security,
+  routes.post("/v1/organizations/:organizationId/trips/:tripId/commands/cancel", { bodyLimit: 256 * 1024, schema: { operationId: "cancelTrip", tags: ["intake"], security,
     headers: CommandHeaders, params: TripParams, body: CancelTripRequestSchema,
     response: responseWithErrors({ 200: jsonResponse(TripCommandResponseSchema, "Cancelled trip", { ETag: { schema: StrongEtagSchema }, "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 403, 404, 406, 409, 412, 413, 415, 422, 428, 429, 500]) } }, async (request, reply) => {
     const { organizationId, tripId } = request.params as { organizationId: string; tripId: string };
@@ -361,8 +263,120 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "TRIP_CANCELLED";
     return reply.send(result.body);
   });
+  };
+  await api.register(intakeRoutes);
+  app.addSchema(FacilityDaySchema);
+  await api.register(async routes=>{
+    const params=Type.Object({organizationId:Type.Ref(OpaqueIdSchema),serviceDate:Type.Ref(ServiceDateSchema)},{additionalProperties:false});
+    routes.get('/v1/organizations/:organizationId/facility/days/:serviceDate',{schema:{operationId:'getFacilityDay',tags:['facility'],security,headers:AuthorizationHeaders,params,querystring:Type.Object({after:Type.Optional(Type.Ref(OpaqueIdSchema)),limit:Type.Optional(Type.String({pattern:'^(?:[1-9][0-9]?|100)$',maxLength:3}))},{additionalProperties:false}),response:responseWithErrors({200:jsonResponse(FacilityDaySchema,'Facility-authorized day only')},[400,401,404,406,429,500,503])}},async(request,reply)=>{
+      const {organizationId,serviceDate}=request.params as {organizationId:string;serviceDate:string},q=request.query as {after?:string;limit?:string};
+      const principal=await requireAccess(request,organizationId,{capability:'facility:trip-status:read',purpose:'FACILITY_COORDINATION'},'getFacilityDay');
+      if(!options.facilityService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','facility unavailable');
+      return reply.send(await options.facilityService.day({organizationId,serviceDate,principal,limit:q.limit===undefined?100:Number(q.limit),...(q.after?{after:q.after}:{})}));
+    });
+    routes.get('/v1/organizations/:organizationId/facility/trips/:tripId',{schema:{operationId:'getFacilityTrip',tags:['facility'],security,headers:AuthorizationHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),tripId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),response:responseWithErrors({200:jsonResponse(FacilityTripProjectionSchema,'Facility-authorized trip only')},[400,401,404,406,429,500,503])}},async(request,reply)=>{
+      const {organizationId,tripId}=request.params as {organizationId:string;tripId:string};const principal=await requireAccess(request,organizationId,{capability:'facility:trip-status:read',purpose:'FACILITY_COORDINATION'},'getFacilityTrip');
+      if(!options.facilityService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','facility unavailable');
+      return reply.send(await options.facilityService.trip({organizationId,tripId,principal}));
+    });
+  });
 
-  app.get("/v1/organizations/:organizationId/dispatch-days/:serviceDate", { schema: { operationId: "getDispatchDay", tags: ["dispatch"], security,
+  for(const schema of [DriverClosureRequestSchema,DriverClosureReceiptSchema,DriverClosureViewSchema,DriverSyntheticLocationRequestSchema,DriverSyntheticLocationReceiptSchema,DriverReturnOverrideRequestSchema,DriverReturnReviewSchema])app.addSchema(schema);
+  await api.register(async routes=>{
+    const params=Type.Object({organizationId:Type.Ref(OpaqueIdSchema),shiftId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false});
+    routes.get('/v1/organizations/:organizationId/dispatch/shifts/:shiftId/return-review',{schema:{operationId:'getDriverReturnReview',tags:['dispatch'],security,headers:AuthorizationHeaders,params,response:responseWithErrors({200:jsonResponse(DriverReturnReviewSchema,'Minimal authorized return exception review')},[400,401,404,406,429,500,503])}},async(request,reply)=>{
+      const {organizationId,shiftId}=request.params as {organizationId:string;shiftId:string};const principal=await requireAccess(request,organizationId,{capability:'driver-policy:override',purpose:'ASSIGNED_SERVICE_DELIVERY'},'getDriverReturnReview');
+      if(!options.driverClosureService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','review unavailable');
+      return reply.send(await options.driverClosureService.review({organizationId,shiftId,principal}));
+    });
+    routes.post('/v1/organizations/:organizationId/dispatch/shifts/:shiftId/commands/override-return',{schema:{operationId:'overrideDriverReturn',tags:['dispatch'],security,headers:IdempotentHeaders,params,body:DriverReturnOverrideRequestSchema,response:responseWithErrors({200:jsonResponse(DriverClosureReceiptSchema,'Audited return override receipt')},[400,401,404,406,409,410,412,413,415,422,429,500,503])}},async(request,reply)=>{
+      const {organizationId,shiftId}=request.params as {organizationId:string;shiftId:string};const principal=await requireAccess(request,organizationId,{capability:'driver-policy:override',purpose:'ASSIGNED_SERVICE_DELIVERY'},'overrideDriverReturn');
+      if(!options.driverClosureService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','closure unavailable');
+      const result=await options.driverClosureService.override({organizationId,shiftId,principal,key:String(request.headers['idempotency-key']),request:request.body as Static<typeof DriverReturnOverrideRequestSchema>});
+      if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');request.wp007Context.resultCode='RETURN_OVERRIDE_RECORDED';return reply.send(result.body);
+    });
+    for(const dispatcher of [false,true])routes.get(`/v1/organizations/:organizationId/${dispatcher?'dispatch':'driver'}/shifts/:shiftId/status`,{schema:{operationId:dispatcher?'getDispatchShiftStatus':'getDriverShiftStatus',tags:['driver'],security,headers:AuthorizationHeaders,params,response:responseWithErrors({200:jsonResponse(DriverClosureViewSchema,'Persisted shift, vehicle and tracking status')},[400,401,404,406,429,500,503])}},async(request,reply)=>{
+      const {organizationId,shiftId}=request.params as {organizationId:string;shiftId:string};const principal=await requireAccess(request,organizationId,{capability:dispatcher?'dispatch:location:read':'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY'},dispatcher?'getDispatchShiftStatus':'getDriverShiftStatus');
+      if(!options.driverClosureService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','shift closure unavailable');
+      const value=await options.driverClosureService.read({organizationId,shiftId,principal,dispatcher});request.wp007Context.resultCode='SHIFT_STATUS_RETURNED';return reply.send(value);
+    });
+    for(const locations of [false,true])routes.post(`/v1/organizations/:organizationId/driver/shifts/:shiftId/${locations?'synthetic-location-batches':'commands/close'}`,{bodyLimit:locations?1024*1024:16384,schema:{operationId:locations?'submitDriverSyntheticLocations':'closeDriverShift',tags:['driver'],security,headers:IdempotentHeaders,params,body:locations?DriverSyntheticLocationRequestSchema:DriverClosureRequestSchema,response:responseWithErrors({200:jsonResponse(locations?DriverSyntheticLocationReceiptSchema:DriverClosureReceiptSchema,'Persisted command receipt')},[400,401,404,406,409,410,412,413,415,422,429,500,503])}},async(request,reply)=>{
+      const {organizationId,shiftId}=request.params as {organizationId:string;shiftId:string};const principal=await requireAccess(request,organizationId,{capability:locations?'driver:location:write':'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY'},locations?'submitDriverSyntheticLocations':'closeDriverShift');
+      if(!options.driverClosureService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','shift closure unavailable');
+      const input={organizationId,shiftId,principal,key:String(request.headers['idempotency-key'])};
+      const result=locations?await options.driverClosureService.locations({...input,request:request.body as Static<typeof DriverSyntheticLocationRequestSchema>}):await options.driverClosureService.close({...input,request:request.body as Static<typeof DriverClosureRequestSchema>});
+      if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');request.wp007Context.resultCode='SHIFT_COMMAND_RECORDED';return reply.send(result.body);
+    });
+  });
+
+  for(const schema of [RouteProposalRequestSchema,RouteDecisionRequestSchema,RouteProposalReceiptSchema,RouteProposalViewSchema])app.addSchema(schema);
+  const routeProposalRoutes:FastifyPluginAsync=async routes=>{
+    for(const dispatcher of [false,true]){
+      routes.get(`/v1/organizations/:organizationId/${dispatcher?'dispatch':'driver'}/shifts/:shiftId/route-proposals`,{schema:{operationId:dispatcher?'getDispatchRouteProposals':'getDriverRouteProposals',tags:['dispatch'],security,headers:AuthorizationHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),shiftId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),response:responseWithErrors({200:jsonResponse(RouteProposalViewSchema,'Scoped route plan and proposal decisions')},[400,401,404,406,409,412,422,429,500,503])}},async(request,reply)=>{
+        const {organizationId,shiftId}=request.params as {organizationId:string;shiftId:string};
+        const principal=await requireAccess(request,organizationId,{capability:dispatcher?'dispatch:read':'driver:manifest:read',purpose:'ASSIGNED_SERVICE_DELIVERY'},dispatcher?'getDispatchRouteProposals':'getDriverRouteProposals');
+        if(!options.routeProposalService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','route service unavailable');
+        const result=await options.routeProposalService.read({organizationId,principal,shiftId,dispatcher});
+        const expectedTag=application.etag(`${organizationId}:${shiftId}`,result.runVersion,'route-shift-v1');
+        reply.header('etag',expectedTag);
+        request.wp007Context.resultCode='ROUTE_PROPOSALS_RETURNED';return reply.send({...result,expectedTag,proposals:result.proposals.map(p=>({...p,expectedTag:application.etag(`${organizationId}:${p.proposalId}`,result.runVersion,'route-decision-v1')}))});
+      });
+    }
+    routes.post('/v1/organizations/:organizationId/driver/shifts/:shiftId/route-proposals',{bodyLimit:32768,schema:{operationId:'submitRouteProposal',tags:['driver'],security,headers:CommandHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),shiftId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),body:RouteProposalRequestSchema,response:responseWithErrors({200:jsonResponse(RouteProposalReceiptSchema,'Persisted proposal receipt')},[400,401,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+      const {organizationId,shiftId}=request.params as {organizationId:string;shiftId:string};
+      const principal=await requireAccess(request,organizationId,{capability:'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY'},'submitRouteProposal');
+      if(!options.routeProposalService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','route service unavailable');
+      const tag=request.headers['if-match'];if(typeof tag!=='string')throw new ProtocolError(428,'PRECONDITION_REQUIRED','route tag required');
+      if(tag!==application.etag(`${organizationId}:${shiftId}`,(request.body as Static<typeof RouteProposalRequestSchema>).expectedRunVersion,'route-shift-v1'))throw new ProtocolError(412,'PRECONDITION_FAILED','route tag mismatch');
+      const result=await options.routeProposalService.submit({organizationId,principal,shiftId,key:String(request.headers['idempotency-key']),request:request.body as Static<typeof RouteProposalRequestSchema>});
+      if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');request.wp007Context.resultCode='ROUTE_PROPOSAL_RECORDED';return reply.send(result.body);
+    });
+    routes.post('/v1/organizations/:organizationId/dispatch/route-proposals/:proposalId/commands/decide',{bodyLimit:16384,schema:{operationId:'decideRouteProposal',tags:['dispatch'],security,headers:CommandHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),proposalId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),body:RouteDecisionRequestSchema,response:responseWithErrors({200:jsonResponse(RouteProposalReceiptSchema,'Persisted proposal decision')},[400,401,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+      const {organizationId,proposalId}=request.params as {organizationId:string;proposalId:string};
+      const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY'},'decideRouteProposal');
+      const tag=request.headers['if-match'];if(typeof tag!=='string')throw new ProtocolError(428,'PRECONDITION_REQUIRED','proposal tag required');
+      if(tag!==application.etag(`${organizationId}:${proposalId}`,(request.body as Static<typeof RouteDecisionRequestSchema>).expectedRunVersion,'route-decision-v1'))throw new ProtocolError(412,'PRECONDITION_FAILED','proposal tag mismatch');
+      if(!options.routeProposalService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','route service unavailable');
+      const result=await options.routeProposalService.decide({organizationId,principal,proposalId,key:String(request.headers['idempotency-key']),request:request.body as Static<typeof RouteDecisionRequestSchema>});
+      if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');request.wp007Context.resultCode='ROUTE_DECISION_RECORDED';return reply.send(result.body);
+    });
+  };await api.register(routeProposalRoutes);
+  for(const schema of [BrowserCommandEnvelopeSchema,BrowserCommandPrepareSchema,BrowserCommandViewSchema,BrowserCommandPendingSchema])app.addSchema(schema);
+  await api.register(async routes=>{
+    const prefix='/v1/organizations/:organizationId/browser-commands';
+    const service=()=>{if(!options.browserRecoveryService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','recovery unavailable');return options.browserRecoveryService;};
+    const context=(request:FastifyRequest)=>({organizationId:(request.params as {organizationId:string}).organizationId,principal:contextPrincipal(request)});
+    routes.get(prefix+'/pending',{schema:{operationId:'getPendingBrowserCommand',tags:['dispatch'],security,headers:AuthorizationHeaders,params:OrganizationParams,response:responseWithErrors({200:jsonResponse(BrowserCommandPendingSchema,'Current principal original command only')})}},async(request,reply)=>reply.send(await service().pending(context(request))));
+    routes.post(prefix,{bodyLimit:16384,schema:{operationId:'prepareBrowserCommand',tags:['dispatch'],security,headers:IdempotentHeaders,params:OrganizationParams,body:BrowserCommandPrepareSchema,response:responseWithErrors({200:jsonResponse(BrowserCommandViewSchema,'Reserved original command; not domain acceptance')})}},async(request,reply)=>{
+      const input=request.body as Static<typeof BrowserCommandPrepareSchema>;
+      if(request.headers['idempotency-key']!==`browser-prepare-${input.id}`)throw new ProtocolError(422,'RECOVERY_KEY_MISMATCH','original reservation identity required');
+      return reply.send(await service().prepare(context(request),input));
+    });
+    for(const action of ['execute','acknowledge'] as const)routes.post(prefix+`/:commandId/${action}`,{bodyLimit:1024,schema:{operationId:action==='execute'?'executeBrowserCommand':'acknowledgeBrowserCommand',tags:['dispatch'],security,headers:IdempotentHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),commandId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),body:Type.Object({},{additionalProperties:false}),response:responseWithErrors({200:jsonResponse(BrowserCommandViewSchema,'Stored authoritative result or acknowledgement')})}},async(request,reply)=>{
+      const {commandId}=request.params as {commandId:string};
+      if(request.headers['idempotency-key']!==`browser-${action}-${commandId}`)throw new ProtocolError(422,'RECOVERY_KEY_MISMATCH','original command identity required');
+      return reply.send(await service()[action](context(request),commandId));
+    });
+  });
+  const dispatchRoutes: FastifyPluginAsync = async (routes) => {
+  routes.get('/v1/organizations/:organizationId/dispatch-board/:serviceDate',{schema:{operationId:'getDispatchBoard',tags:['dispatch'],security,headers:AuthorizationHeaders,params:DispatchDayParams,response:responseWithErrors({200:jsonResponse(DispatchBoardSchema,'Authorized persisted service-day board')},[400,401,404,406,429,500,503])}},async(request,reply)=>{
+    const {organizationId,serviceDate}=request.params as {organizationId:string;serviceDate:string};
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'},'getDispatchBoard');
+    if(!options.dispatchService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','persisted dispatch unavailable');
+    const board=await options.dispatchService.read(organizationId,principal,serviceDate);
+    request.wp007Context.resultCode='DISPATCH_BOARD_RETURNED';return reply.send(board);
+  });
+  routes.post('/v1/organizations/:organizationId/dispatch/runs/:runId/commands/assign',{bodyLimit:16*1024,schema:{operationId:'assignDispatchRun',tags:['dispatch'],security,headers:CommandHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),runId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),body:AssignDispatchRunRequestSchema,response:responseWithErrors({200:jsonResponse(AssignDispatchRunReceiptSchema,'Committed assignment receipt')},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+    const {organizationId,runId}=request.params as {organizationId:string;runId:string};
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'},'assignDispatchRun');
+    const ifMatch=request.headers['if-match'];if(typeof ifMatch!=='string')throw new ProtocolError(428,'PRECONDITION_REQUIRED','current strong tag required');
+    if(!options.dispatchService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','persisted dispatch unavailable');
+    const result=await options.dispatchService.assign({organizationId,principal,runId,ifMatch,key:String(request.headers['idempotency-key']),request:request.body as AssignDispatchRunRequest});
+    for(const[name,value]of Object.entries(result.headers))reply.header(name,value);
+    if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');
+    request.wp007Context.resultCode=result.replayed?'IDEMPOTENT_REPLAY':'DISPATCH_ASSIGNMENT_COMMITTED';return reply.send(result.body);
+  });
+  routes.get("/v1/organizations/:organizationId/dispatch-days/:serviceDate", { schema: { operationId: "getDispatchDay", tags: ["dispatch"], security,
     headers: ConditionalHeaders, params: DispatchDayParams, response: responseWithErrors({ 200: jsonResponse(DispatchDaySchema, "Versioned dispatch-day snapshot", { ETag: { schema: StrongEtagSchema } }), 304: { description: "Not modified" } }, [400, 401, 404, 406, 429, 500]) } }, async (request, reply) => {
     const { organizationId, serviceDate } = request.params as { organizationId: string; serviceDate: string };
     await requireAccess(request, organizationId, { capability: "dispatch:read", purpose: "ASSIGNED_SERVICE_DELIVERY" }, "getDispatchDay");
@@ -375,8 +389,90 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     return reply.send({ serviceDate, serviceTimezone: runs[0]?.serviceTimezone ?? "America/Los_Angeles", snapshotVersion,
       runs: runs.map(({ runId, plannedStartAt, plannedEndAt, lifecycle }) => ({ runId, plannedStartAt, plannedEndAt, lifecycle })) });
   });
+  };
+  await api.register(dispatchRoutes);
 
-  app.get("/v1/organizations/:organizationId/driver/manifest", { schema: { operationId: "getDriverManifest", tags: ["driver"], security,
+  const driverRoutes: FastifyPluginAsync = async (routes) => {
+  routes.post("/v1/organizations/:organizationId/driver/shifts/commands/start", { bodyLimit: 16 * 1024, schema: {
+    operationId: "startDriverShift", tags: ["driver"], security, headers: IdempotentHeaders, params: OrganizationParams,
+    body: StartDriverShiftRequestSchema,
+    response: responseWithErrors({ 200: jsonResponse(StartDriverShiftReceiptSchema, "Persisted idempotent Driver shift receipt",
+      { "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 410, 413, 415, 422, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId } = request.params as { organizationId: string };
+    const principal = await requireAccess(request, organizationId, { capability: "driver:execute", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "startDriverShift");
+    if (!options.driverShiftService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "persisted shift service unavailable");
+    const result = await options.driverShiftService.start({ organizationId, principal,
+      key: String(request.headers["idempotency-key"]), request: request.body as StartDriverShiftRequest });
+    if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
+    request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "DRIVER_SHIFT_STARTED";
+    return reply.send(result.body);
+  });
+  for(const post of [false,true])routes.post(`/v1/organizations/:organizationId/driver/shifts/:shiftId/commands/${post?'postcheck':'precheck'}`, { bodyLimit: 512 * 1024, schema: {
+    operationId: post?'submitDriverPostcheck':"submitDriverPrecheck", tags: ["driver"], security, headers: IdempotentHeaders,
+    params: Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), shiftId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false }),
+    body: DriverPrecheckRequestSchema,
+    response: responseWithErrors({ 200: jsonResponse(DriverPrecheckReceiptSchema, "Committed vehicle control decision") }, [400, 401, 404, 406, 409, 412, 413, 415, 422, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId, shiftId } = request.params as { organizationId: string; shiftId: string };
+    const principal = contextPrincipal(request);
+    if (!principal.subjectId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
+    await requireAccess(request, organizationId, { capability: "driver:execute", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: principal.subjectId }, post?'submitDriverPostcheck':"submitDriverPrecheck");
+    const service=post?options.driverPostcheckService:options.driverPrecheckService;
+    if (!service) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "persisted vehicle check service unavailable");
+    const result = await service.submit({ organizationId, shiftId, principal,
+      key: String(request.headers["idempotency-key"]), request: request.body as DriverPrecheckRequest });
+    if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
+    request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "DRIVER_PRECHECK_RECORDED";
+    return reply.send(result.body);
+  });
+  routes.post("/v1/organizations/:organizationId/driver/shifts/:shiftId/legs/:legId/evidence/signatures",{ bodyLimit: 64*1024,schema: {
+    operationId: "submitDriverSignature",tags: ["driver"],security,headers: IdempotentHeaders,
+    params: Type.Object({ organizationId: Type.Ref(OpaqueIdSchema),shiftId: Type.Ref(OpaqueIdSchema),legId: Type.Ref(OpaqueIdSchema) },{ additionalProperties: false }),
+    body: DriverSignatureRequestSchema,response: responseWithErrors({ 200: jsonResponse(DriverSignatureReceiptSchema,"Stored service proof; not billing verification") },[400,401,404,406,409,412,413,415,422,429,500,503]),
+  } },async(request,reply)=>{
+    const { organizationId,shiftId,legId }=request.params as { organizationId: string;shiftId: string;legId: string };const principal=contextPrincipal(request);
+    if(!principal.subjectId) throw new ProtocolError(404,"RESOURCE_NOT_FOUND","resource hidden");
+    await requireAccess(request,organizationId,{ capability: "driver:execute",purpose: "ASSIGNED_SERVICE_DELIVERY",subjectId: principal.subjectId },"submitDriverSignature");
+    if(!options.driverSignatureService) throw new ProtocolError(503,"RUNTIME_PATH_NOT_PROMOTED","persisted signature service unavailable");
+    const result=await options.driverSignatureService.submit({ organizationId,shiftId,legId,principal,key: String(request.headers["idempotency-key"]),request: request.body as DriverSignatureRequest });
+    if(result.replayed) reply.header("kavaroutes-idempotency-replayed","true");request.wp007Context.resultCode=result.replayed ? "IDEMPOTENT_REPLAY" : "DRIVER_SERVICE_PROOF_RECORDED";
+    return reply.send(result.body);
+  });
+  routes.get("/v1/organizations/:organizationId/driver/shifts/assignments/:assignmentId", { schema: {
+    operationId: "getDriverShiftState", tags: ["driver"], security, headers: AuthorizationHeaders,
+    params: Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), assignmentId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false }),
+    querystring: Type.Object({}, { additionalProperties: false }),
+    response: responseWithErrors({ 200: jsonResponse(DriverShiftStateSchema, "Persisted shift and control receipt") }, [400, 401, 404, 406, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId, assignmentId } = request.params as { organizationId: string; assignmentId: string };
+    const principal = contextPrincipal(request);
+    if (!principal.subjectId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
+    await requireAccess(request, organizationId, { capability: "driver:manifest:read", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: principal.subjectId }, "getDriverShiftState");
+    if (!options.driverShiftReader) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "persisted shift reader unavailable");
+    const state = await options.driverShiftReader(organizationId, principal.subjectId, assignmentId);
+    if (!state) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
+    request.wp007Context.resultCode = "DRIVER_SHIFT_READ";
+    return reply.send(state);
+  });
+  routes.get("/v1/organizations/:organizationId/driver/itineraries/:serviceDate", { schema: {
+    operationId: "getDriverItinerary", tags: ["driver"], security, headers: AuthorizationHeaders, params: DispatchDayParams,
+    querystring: Type.Object({}, { additionalProperties: false }),
+    response: responseWithErrors({ 200: jsonResponse(DriverItinerarySchema, "Persisted subject-scoped Driver itinerary") }, [400, 401, 404, 406, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId, serviceDate } = request.params as { organizationId: string; serviceDate: string };
+    const principal = contextPrincipal(request);
+    if (!principal.subjectId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
+    await requireAccess(request, organizationId, { capability: "driver:manifest:read", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: principal.subjectId }, "getDriverItinerary");
+    if (!options.driverItineraryReader) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "persisted itinerary unavailable");
+    const legs = await options.driverItineraryReader(organizationId, principal.subjectId, serviceDate);
+    reply.header("cache-control", "no-store");
+    request.wp007Context.resultCode = "DRIVER_ITINERARY_RETURNED";
+    return reply.send({ driverReference: principal.subjectId, serviceDate, legs: legs.map(leg => ({ ...leg,
+      ...(leg.execution ? { execution: { ...leg.execution, expectedTag: application.etag(leg.execution.executionId, leg.execution.version, "driver-execution-v1") } } : {}),
+    })) });
+  });
+  routes.get("/v1/organizations/:organizationId/driver/manifest", { schema: { operationId: "getDriverManifest", tags: ["driver"], security,
     headers: ConditionalHeaders, params: OrganizationParams, response: responseWithErrors({ 200: jsonResponse(DriverManifestSchema, "Minimum-necessary driver manifest", { ETag: { schema: StrongEtagSchema } }), 304: { description: "Not modified" } }, [400, 401, 404, 406, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
     await requireAccess(request, organizationId, { capability: "driver:manifest:read", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "getDriverManifest");
@@ -387,7 +483,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     return reply.send({ ...syntheticReadModels.manifest, effectivePolicy: pinnedDriverPolicy, effectivePolicyDigest: pinnedDriverPolicy.canonicalDigest });
   });
 
-  app.get("/v1/organizations/:organizationId/driver-control-policy", { schema: { operationId: "getDriverControlPolicy", tags: ["driver"], security,
+  routes.get("/v1/organizations/:organizationId/driver-control-policy", { schema: { operationId: "getDriverControlPolicy", tags: ["driver"], security,
     headers: ConditionalHeaders, params: OrganizationParams, response: responseWithErrors({ 200: jsonResponse(DriverControlPolicySchema, "Versioned organization Driver control policy", { ETag: { schema: StrongEtagSchema } }), 304: { description: "Not modified" } }, [400, 401, 403, 404, 406, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
     await requireAccess(request, organizationId, { capability: "driver-policy:read", purpose: "ASSIGNED_SERVICE_DELIVERY", resourceIsVisible: true }, "getDriverControlPolicy");
@@ -397,7 +493,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     request.wp007Context.resultCode = "DRIVER_POLICY_RETURNED"; return reply.send(policy);
   });
 
-  app.post("/v1/organizations/:organizationId/driver-control-policy/commands/update", { bodyLimit: 256 * 1024, schema: { operationId: "updateDriverControlPolicy", tags: ["driver"], security,
+  routes.post("/v1/organizations/:organizationId/driver-control-policy/commands/update", { bodyLimit: 256 * 1024, schema: { operationId: "updateDriverControlPolicy", tags: ["driver"], security,
     headers: CommandHeaders, params: OrganizationParams, body: UpdateDriverControlPolicySchema,
     response: responseWithErrors({ 200: jsonResponse(DriverControlPolicySchema, "Updated organization Driver control policy", { ETag: { schema: StrongEtagSchema }, "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 403, 404, 406, 409, 412, 413, 415, 422, 428, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string }; const principal = contextPrincipal(request);
@@ -412,11 +508,21 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "DRIVER_POLICY_UPDATED"; return reply.send(result.policy);
   });
 
-  app.post("/v1/organizations/:organizationId/driver/action-batches", { bodyLimit: 512 * 1024, schema: { operationId: "submitDriverActionBatch", tags: ["driver"], security,
+  routes.post("/v1/organizations/:organizationId/driver/action-batches", { bodyLimit: 512 * 1024, schema: { operationId: "submitDriverActionBatch", tags: ["driver"], security,
     headers: IdempotentHeaders, params: OrganizationParams, body: DriverActionBatchSchema,
-    response: responseWithErrors({ 200: jsonResponse(BatchReceiptSchema, "Ordered action receipts", { "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
+    response: responseWithErrors({ 200: jsonResponse(BatchReceiptSchema, "Ordered action receipts", { "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500, 503]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
     const principal = await requireAccess(request, organizationId, { capability: "driver:execute", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "submitDriverActionBatch");
+    if (options.driverActionService) {
+      const result = await options.driverActionService.submit({ organizationId, principal,
+        key: String(request.headers["idempotency-key"]), request: request.body as DriverActionBatch });
+      if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
+      request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "ACTION_BATCH_COMMITTED";
+      return reply.send(result.body);
+    }
+    if ((request.body as DriverActionBatch).shiftReference || (request.body as DriverActionBatch).shiftGeneration) {
+      throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "persisted action service unavailable");
+    }
     const result = await offline.actions(`${organizationId}:${principal.id}`, String(request.headers["idempotency-key"]), request.body as DriverActionBatch,
       (item) => policyActionRejection(item, pinnedDriverPolicy));
     if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
@@ -424,7 +530,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     return reply.send(result.receipt);
   });
 
-  app.post("/v1/organizations/:organizationId/driver/location-batches", { bodyLimit: 1024 * 1024, schema: { operationId: "submitDriverLocationBatch", tags: ["driver"], security,
+  routes.post("/v1/organizations/:organizationId/driver/location-batches", { bodyLimit: 1024 * 1024, schema: { operationId: "submitDriverLocationBatch", tags: ["driver"], security,
     headers: IdempotentHeaders, params: OrganizationParams, body: LocationBatchSchema,
     response: responseWithErrors({ 200: jsonResponse(BatchReceiptSchema, "Location sample receipts", { "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
@@ -434,8 +540,11 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "LOCATION_BATCH_COMMITTED";
     return reply.send(result.receipt);
   });
+  };
+  await api.register(driverRoutes);
 
-  app.post("/v1/organizations/:organizationId/driver/installations", { bodyLimit: 16 * 1024, schema: { operationId: "registerDriverInstallation", tags: ["notifications"], security,
+  const notificationRoutes: FastifyPluginAsync = async (routes) => {
+  routes.post("/v1/organizations/:organizationId/driver/installations", { bodyLimit: 16 * 1024, schema: { operationId: "registerDriverInstallation", tags: ["notifications"], security,
     headers: IdempotentHeaders, params: OrganizationParams, body: PushRegistrationRequestSchema,
     response: responseWithErrors({ 200: jsonResponse(PushRegistrationResponseSchema, "Registered native push installation without returning its routing token") }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
@@ -454,7 +563,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       policyVersion: registered.policyVersion, lifecycle: registered.lifecycle, lastConfirmedAt: registered.lastConfirmedAt });
   });
 
-  app.post("/v1/organizations/:organizationId/driver/installations/:installationId/commands/unregister", { bodyLimit: 8 * 1024, schema: { operationId: "unregisterDriverInstallation", tags: ["notifications"], security,
+  routes.post("/v1/organizations/:organizationId/driver/installations/:installationId/commands/unregister", { bodyLimit: 8 * 1024, schema: { operationId: "unregisterDriverInstallation", tags: ["notifications"], security,
     headers: IdempotentHeaders, params: InstallationParams, body: PushUnregistrationRequestSchema,
     response: responseWithErrors({ 200: jsonResponse(PushRegistrationResponseSchema, "Disabled the exact installation generation") }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId, installationId } = request.params as { organizationId: string; installationId: string };
@@ -468,8 +577,11 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       provider: unregistered.provider, permission: unregistered.permission, channelEnabled: unregistered.channelEnabled,
       policyVersion: unregistered.policyVersion, lifecycle: unregistered.lifecycle, lastConfirmedAt: unregistered.lastConfirmedAt });
   });
+  };
+  await api.register(notificationRoutes);
 
-  app.get("/v1/organizations/:organizationId/operations/:operationId", { schema: { operationId: "getOperation", tags: ["operations"], security,
+  const operationRoutes: FastifyPluginAsync = async (routes) => {
+  routes.get("/v1/organizations/:organizationId/operations/:operationId", { schema: { operationId: "getOperation", tags: ["operations"], security,
     headers: AuthorizationHeaders, params: OperationParams, response: responseWithErrors({ 200: jsonResponse(OperationSchema, "Synthetic operation status") }, [400, 401, 404, 406, 410, 429, 500, 503]) } }, async (request, reply) => {
     const { organizationId, operationId } = request.params as { organizationId: string; operationId: string };
     await requireAccess(request, organizationId, { capability: "integrations:read", purpose: "PARTNER_EXPORT" }, "getOperation");
@@ -477,6 +589,11 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     request.wp007Context.resultCode = "OPERATION_RETURNED";
     return reply.send(syntheticReadModels.operation);
   });
+  };
+  await api.register(operationRoutes);
+    },
+  });
+  await app.register(apiLifecyclePlugin);
 
   return app;
 }
