@@ -1,5 +1,5 @@
 import swagger from "@fastify/swagger";
-import {BrowserCommandEnvelopeSchema,BrowserCommandPrepareSchema,BrowserCommandViewSchema,BrowserCommandPendingSchema,type BrowserRecoveryService} from './browser-recovery.js';
+import {BrowserCommandPrepareSchema,BrowserCommandViewSchema,BrowserCommandPendingSchema,type BrowserRecoveryService} from './browser-recovery.js';
 import {FacilityDaySchema,type FacilityService} from './facility-day.js';
 import {DriverClosureRequestSchema,DriverClosureReceiptSchema,DriverClosureViewSchema,DriverSyntheticLocationRequestSchema,DriverSyntheticLocationReceiptSchema,DriverReturnOverrideRequestSchema,DriverReturnReviewSchema,type DriverClosureService} from './driver-closure.js';
 import {RouteProposalRequestSchema,RouteDecisionRequestSchema,RouteProposalReceiptSchema,RouteProposalViewSchema,type RouteProposalService} from './route-proposals.js';
@@ -25,12 +25,13 @@ import { DriverSignatureRequestSchema,DriverSignatureReceiptSchema,type DriverSi
 import { DriverPrecheckRequestSchema, DriverPrecheckReceiptSchema, DriverShiftStateSchema, type DriverShiftReader, type DriverPrecheckService, type DriverPrecheckRequest } from "./driver-precheck.js";
 import { StartDriverShiftRequestSchema, StartDriverShiftReceiptSchema, type DriverShiftService, type StartDriverShiftRequest } from "./driver-shift.js";
 import {
-  allSchemas, BatchReceiptSchema, CancelTripRequestSchema, DispatchDaySchema, DispatcherTripSchema, FacilityTripProjectionSchema,
+  BatchReceiptSchema, CancelTripRequestSchema, DispatchDaySchema, DispatcherTripSchema, FacilityTripProjectionSchema,
   DriverActionBatchSchema, DriverControlPolicySchema, DriverManifestSchema, LocationBatchSchema, MeResponseSchema, OpaqueIdSchema,
   OperationSchema, PushRegistrationRequestSchema, PushRegistrationResponseSchema, PushUnregistrationRequestSchema,
   RiderSearchRequestSchema, RiderSearchResponseSchema, ServiceDateSchema,
   TripCollectionSchema, TripCommandResponseSchema, TripCreateRequestSchema, UpdateDriverControlPolicySchema,
 } from "./schemas.js";
+import { allSchemas } from "./schema-registry.js";
 import type { CancelTripRequest, DriverActionBatch, LocationBatch, PushRegistrationRequest, PushUnregistrationRequest, TripCreateRequest, UpdateDriverControlPolicy } from "./schemas.js";
 
 const Type = Object.freeze({
@@ -145,7 +146,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   });
   let nextRequest = 0;
   const requestIdFactory = options.requestIdFactory ?? (() => `req_wp007_${String(++nextRequest).padStart(8, "0")}`);
-  const schemaContext = Object.fromEntries([...allSchemas,AssignDispatchRunRequestSchema,RouteDecisionRequestSchema,DriverReturnOverrideRequestSchema,BrowserCommandEnvelopeSchema].map((schema) => {
+  const schemaContext = Object.fromEntries(allSchemas.map((schema) => {
     const id = (schema as { $id?: unknown }).$id;
     if (typeof id !== "string") throw new Error("REGISTERED_SCHEMA_ID_REQUIRED");
     return [id, schema];
@@ -181,7 +182,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
         : { syntheticTestPrincipal: { type: "apiKey", in: "header", name: "Authorization", description: "Local deterministic test verifier only; not a production authentication scheme." } } },
     },
   });
-  for (const schema of [...allSchemas, DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,StartDriverShiftRequestSchema, StartDriverShiftReceiptSchema, DriverPrecheckRequestSchema, DriverPrecheckReceiptSchema, DriverShiftStateSchema,DriverSignatureRequestSchema,DriverSignatureReceiptSchema]) app.addSchema(schema);
+  for (const schema of allSchemas) app.addSchema(schema);
   const apiLifecyclePlugin = createApiLifecyclePlugin({ verifier, admissionController,
     ...(options.telemetrySink ? { telemetrySink: options.telemetrySink } : {}),
     ...(options.requestGuards ? { requestGuards: options.requestGuards } : {}),
@@ -271,7 +272,6 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   });
   };
   await api.register(intakeRoutes);
-  app.addSchema(FacilityDaySchema);
   await api.register(async routes=>{
     const params=Type.Object({organizationId:Type.Ref(OpaqueIdSchema),serviceDate:Type.Ref(ServiceDateSchema)},{additionalProperties:false});
     routes.get('/v1/organizations/:organizationId/facility/days/:serviceDate',{schema:{operationId:'getFacilityDay',tags:['facility'],security,headers:AuthorizationHeaders,params,querystring:Type.Object({after:Type.Optional(Type.Ref(OpaqueIdSchema)),limit:Type.Optional(Type.String({pattern:'^(?:[1-9][0-9]?|100)$',maxLength:3}))},{additionalProperties:false}),response:responseWithErrors({200:jsonResponse(FacilityDaySchema,'Facility-authorized day only')},[400,401,404,406,429,500,503])}},async(request,reply)=>{
@@ -287,7 +287,6 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     });
   });
 
-  for(const schema of [DriverClosureRequestSchema,DriverClosureReceiptSchema,DriverClosureViewSchema,DriverSyntheticLocationRequestSchema,DriverSyntheticLocationReceiptSchema,DriverReturnOverrideRequestSchema,DriverReturnReviewSchema])app.addSchema(schema);
   await api.register(async routes=>{
     const params=Type.Object({organizationId:Type.Ref(OpaqueIdSchema),shiftId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false});
     routes.get('/v1/organizations/:organizationId/dispatch/shifts/:shiftId/return-review',{schema:{operationId:'getDriverReturnReview',tags:['dispatch'],security,headers:AuthorizationHeaders,params,response:responseWithErrors({200:jsonResponse(DriverReturnReviewSchema,'Minimal authorized return exception review')},[400,401,404,406,429,500,503])}},async(request,reply)=>{
@@ -315,7 +314,6 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     });
   });
 
-  for(const schema of [RouteProposalRequestSchema,RouteDecisionRequestSchema,RouteProposalReceiptSchema,RouteProposalViewSchema])app.addSchema(schema);
   const routeProposalRoutes:FastifyPluginAsync=async routes=>{
     for(const dispatcher of [false,true]){
       routes.get(`/v1/organizations/:organizationId/${dispatcher?'dispatch':'driver'}/shifts/:shiftId/route-proposals`,{schema:{operationId:dispatcher?'getDispatchRouteProposals':'getDriverRouteProposals',tags:['dispatch'],security,headers:AuthorizationHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),shiftId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),response:responseWithErrors({200:jsonResponse(RouteProposalViewSchema,'Scoped route plan and proposal decisions')},[400,401,404,406,409,412,422,429,500,503])}},async(request,reply)=>{
@@ -347,7 +345,6 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');request.wp007Context.resultCode='ROUTE_DECISION_RECORDED';return reply.send(result.body);
     });
   };await api.register(routeProposalRoutes);
-  for(const schema of [BrowserCommandEnvelopeSchema,BrowserCommandPrepareSchema,BrowserCommandViewSchema,BrowserCommandPendingSchema])app.addSchema(schema);
   await api.register(async routes=>{
     const prefix='/v1/organizations/:organizationId/browser-commands';
     const service=()=>{if(!options.browserRecoveryService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','recovery unavailable');return options.browserRecoveryService;};

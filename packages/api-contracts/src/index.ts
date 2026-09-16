@@ -13,6 +13,7 @@ export * from "./driver-precheck.js";
 export * from "./driver-service-proof.js";
 export * from "./protocol.js";
 export * from "./schemas.js";
+export * from "./schema-registry.js";
 export * from "./security.js";
 export * from './dispatch-board.js';
 export * from './route-proposals.js';

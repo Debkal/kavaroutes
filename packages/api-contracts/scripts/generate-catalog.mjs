@@ -1,4 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { operationRequirements } from "./route-requirements.mjs";
+import { registeredApiDocument, registeredRoutes } from "./registered-routes.mjs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -85,24 +87,28 @@ const commandMappings = source.commands.map((command) => {
   };
 });
 
-const liveOperations = [
-  ["getMe", "GET", "/v1/me", "profile:read", "SUPPORT_DIAGNOSTICS"],
-  ["listTrips", "GET", "/v1/organizations/{organizationId}/trips", "trips:read", "RIDER_INTAKE"],
-  ["searchRiders", "POST", "/v1/organizations/{organizationId}/rider-searches", "riders:read", "RIDER_INTAKE"],
-  ["createTrip", "POST", "/v1/organizations/{organizationId}/trips", "trips:write", "RIDER_INTAKE"],
-  ["getTrip", "GET", "/v1/organizations/{organizationId}/trips/{tripId}", "trips:read", "RIDER_INTAKE"],
-  ["headTrip", "HEAD", "/v1/organizations/{organizationId}/trips/{tripId}", "trips:read", "RIDER_INTAKE"],
-  ["cancelTrip", "POST", "/v1/organizations/{organizationId}/trips/{tripId}/commands/cancel", "trips:command", "RIDER_INTAKE"],
-  ["getDispatchDay", "GET", "/v1/organizations/{organizationId}/dispatch-days/{serviceDate}", "dispatch:read", "ASSIGNED_SERVICE_DELIVERY"],
-  ["getDriverManifest", "GET", "/v1/organizations/{organizationId}/driver/manifest", "driver:manifest:read", "ASSIGNED_SERVICE_DELIVERY"],
-  ["getDriverControlPolicy", "GET", "/v1/organizations/{organizationId}/driver-control-policy", "driver-policy:read", "ASSIGNED_SERVICE_DELIVERY"],
-  ["updateDriverControlPolicy", "POST", "/v1/organizations/{organizationId}/driver-control-policy/commands/update", "driver-policy:write", "ASSIGNED_SERVICE_DELIVERY"],
-  ["submitDriverActionBatch", "POST", "/v1/organizations/{organizationId}/driver/action-batches", "driver:execute", "ASSIGNED_SERVICE_DELIVERY"],
-  ["submitDriverLocationBatch", "POST", "/v1/organizations/{organizationId}/driver/location-batches", "driver:location:write", "ASSIGNED_SERVICE_DELIVERY"],
-  ["registerDriverInstallation", "POST", "/v1/organizations/{organizationId}/driver/installations", "driver:notifications:write", "ASSIGNED_SERVICE_DELIVERY"],
-  ["unregisterDriverInstallation", "POST", "/v1/organizations/{organizationId}/driver/installations/{installationId}/commands/unregister", "driver:notifications:write", "ASSIGNED_SERVICE_DELIVERY"],
-  ["getOperation", "GET", "/v1/organizations/{organizationId}/operations/{operationId}", "integrations:read", "PARTNER_EXPORT"]
-].map(([id, method, path, capability, purpose]) => ({ operationId: id, method, path, capability, purpose, implementationState: "REGISTERED" }));
+// Registered operations come from the composed API (the same source the
+// OpenAPI artifact is generated from), and each operation's authorization is
+// read out of the route source by `operationRequirements`, which fails if a
+// registered operation has no declared requirement.
+const document = await registeredApiDocument();
+const registered = registeredRoutes(document);
+const requirements = operationRequirements(root, registered.map((route) => route.operationId));
+const liveOperations = registered.map(({ method, path, operationId }) => {
+  const requirement = requirements.get(operationId);
+  return {
+    operationId,
+    method,
+    path,
+    capability: requirement.capability,
+    ...(requirement.capabilityAlternatives ? { capabilityAlternatives: requirement.capabilityAlternatives } : {}),
+    purpose: requirement.purpose,
+    ...(requirement.purposeAlternatives ? { purposeAlternatives: requirement.purposeAlternatives } : {}),
+    authorization: requirement.authorization,
+    source: requirement.source,
+    implementationState: "REGISTERED",
+  };
+});
 
 const catalog = {
   schemaVersion: "wp007.operation-catalog.v1",

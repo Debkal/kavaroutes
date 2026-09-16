@@ -16,13 +16,21 @@ export const syntheticIds = Object.freeze({
   facilitySubject: "30000000-0000-4000-8000-000000000002",
 });
 
-export type Capability =
-  | "profile:read" | "riders:read" | "riders:write" | "trips:read" | "trips:write" | "trips:command"
-  | "dispatch:read" | "dispatch:command" | "dispatch:location:read" | "fleet:read" | "fleet:command" | "driver:manifest:read"
-  | "driver:execute" | "driver:location:write" | "facility:trip-status:read" | "facility:coordinate"
-  | "billing:read" | "billing:command" | "integrations:read" | "integrations:write" | "audit:read"
-  | "driver-policy:read" | "driver-policy:write" | "driver-policy:override" | "driver-route:self-approve" | "driver:notifications:write";
-export type Purpose = "RIDER_INTAKE" | "ASSIGNED_SERVICE_DELIVERY" | "FACILITY_COORDINATION" | "BILLING_PROOF" | "SUPPORT_DIAGNOSTICS" | "PARTNER_EXPORT";
+/** The complete capability union, exported so contract artifacts can be checked
+ * against it at runtime instead of restating the list. */
+export const capabilities = Object.freeze([
+  "profile:read", "riders:read", "riders:write", "trips:read", "trips:write", "trips:command",
+  "dispatch:read", "dispatch:command", "dispatch:location:read", "fleet:read", "fleet:command", "driver:manifest:read",
+  "driver:execute", "driver:location:write", "facility:trip-status:read", "facility:coordinate",
+  "billing:read", "billing:command", "integrations:read", "integrations:write", "audit:read",
+  "driver-policy:read", "driver-policy:write", "driver-policy:override", "driver-route:self-approve", "driver:notifications:write",
+] as const);
+export type Capability = typeof capabilities[number];
+/** The complete authorization-purpose union, exported for the same reason. */
+export const purposes = Object.freeze([
+  "RIDER_INTAKE", "ASSIGNED_SERVICE_DELIVERY", "FACILITY_COORDINATION", "BILLING_PROOF", "SUPPORT_DIAGNOSTICS", "PARTNER_EXPORT",
+] as const);
+export type Purpose = typeof purposes[number];
 
 export interface ApiPrincipal {
   readonly id: string;

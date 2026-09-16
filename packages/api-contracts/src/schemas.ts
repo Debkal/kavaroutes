@@ -310,7 +310,9 @@ export const IntegrationProjectionSchema = Type.Object({
   outcome: Type.Union([Type.Literal("ACCEPTED"), Type.Literal("REJECTED"), Type.Literal("PARTIAL")]),
 }, { ...closed, $id: "IntegrationProjection" });
 
-export const allSchemas: readonly TSchema[] = Object.freeze([
+/** Core contract schemas. Feature modules contribute the rest; the complete
+ * registry is `allSchemas` in `schema-registry.ts`. */
+export const coreSchemas: readonly TSchema[] = Object.freeze([
   DriverItinerarySchema,
   OpaqueIdSchema, InstantSchema, ServiceDateSchema, IanaTimezoneSchema, IdempotencyKeySchema, StrongEtagSchema,
   ProblemErrorSchema, ProblemSchema, OrganizationMembershipSchema, MeResponseSchema, TripCreateRequestSchema,

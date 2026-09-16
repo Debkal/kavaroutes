@@ -2,28 +2,11 @@ import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createWp007Api } from "../dist/index.js";
+import { registeredApiDocument, registeredRoutes } from "./registered-routes.mjs";
 
 const root = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
-function canonical(value) {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (value !== null && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])]));
-  return value;
-}
 
-const app = await createWp007Api({ requestIdFactory: () => "req_wp007_generation", now: () => new Date("2026-08-24T12:00:00.000Z") });
-await app.ready();
-const rawDocument = app.swagger();
-const tripDetail = rawDocument.paths["/v1/organizations/{organizationId}/trips/{tripId}"];
-if (!tripDetail?.get) throw new Error("REGISTERED_TRIP_DETAIL_ROUTE_REQUIRED");
-tripDetail.head = structuredClone(tripDetail.get);
-tripDetail.head.operationId = "headTrip";
-tripDetail.head.responses["200"] = {
-  description: "Trip headers",
-  headers: tripDetail.get.responses["200"].headers,
-};
-const document = canonical(rawDocument);
-await app.close();
+const document = await registeredApiDocument();
 const serialized = `${JSON.stringify(document, null, 2)}\n`;
 const openapiPath = resolve(root, "packages/api-contracts/artifacts/openapi.json");
 await writeFile(openapiPath, serialized);
@@ -31,14 +14,7 @@ if (process.argv.includes("--accept-baseline")) {
   await writeFile(resolve(root, "packages/api-contracts/artifacts/openapi.baseline.json"), serialized);
 }
 
-const routes = [];
-for (const [path, pathItem] of Object.entries(document.paths)) {
-  for (const method of ["get", "head", "post", "put", "delete"]) {
-    if (pathItem[method]) routes.push({ method: method.toUpperCase(), path, operationId: pathItem[method].operationId,
-      statuses: Object.keys(pathItem[method].responses).sort(), security: pathItem[method].security ?? [] });
-  }
-}
-routes.sort((a, b) => `${a.path}:${a.method}`.localeCompare(`${b.path}:${b.method}`));
+const routes = registeredRoutes(document);
 await writeFile(resolve(root, "packages/api-contracts/artifacts/route-matrix.json"), `${JSON.stringify({ schemaVersion: "wp007.route-matrix.v1", routes }, null, 2)}\n`);
 
 const schemas = document.components?.schemas ?? {};

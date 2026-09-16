@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { allSchemas, classifyOpenApiChange, problemRegistry } from "../dist/index.js";
+import { allSchemas, capabilities, classifyOpenApiChange, problemRegistry, purposes } from "../dist/index.js";
+import { registeredApiDocument, registeredRoutes } from "./registered-routes.mjs";
+import { operationRequirements } from "./route-requirements.mjs";
 
 const root = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
 const readJson = async (path) => JSON.parse(await readFile(resolve(root, path), "utf8"));
@@ -35,7 +37,7 @@ for (const [path, pathItem] of Object.entries(openapi.paths)) {
     if (pathItem[method]) operations.push({ method: method.toUpperCase(), path, operation: pathItem[method] });
   }
 }
-assert.equal(operations.length, 16);
+assert.ok(operations.length > 0, "the registered API surface must not be empty");
 assert.equal(new Set(operations.map(({ operation }) => operation.operationId)).size, operations.length);
 assert.equal(operations.some(({ method }) => ["PATCH", "DELETE"].includes(method)), false);
 for (const { method, path, operation } of operations) {
@@ -54,6 +56,38 @@ const openapiKeys = operations.map(({ method, path, operation }) => `${method} $
 const catalogKeys = catalog.liveOperations.map((route) => `${route.method} ${route.path} ${route.operationId}`).sort();
 assert.deepEqual(matrixKeys, openapiKeys);
 assert.deepEqual(catalogKeys, openapiKeys);
+assert.equal(new Set(catalog.liveOperations.map((route) => route.operationId)).size, catalog.liveOperations.length, "catalog operation ids are unique");
+
+// The committed artifacts must still agree with the surface the source actually
+// registers, and every catalog entry's authorization must match the requirement
+// the route source enforces, not a hand-maintained restatement of it.
+const derivedRoutes = registeredRoutes(await registeredApiDocument());
+assert.deepEqual(derivedRoutes.map((route) => `${route.method} ${route.path} ${route.operationId}`).sort(), openapiKeys,
+  "openapi.json is current for the composed API surface");
+const derivedRequirements = operationRequirements(root, derivedRoutes.map((route) => route.operationId));
+const capabilityUnion = new Set(capabilities);
+const purposeUnion = new Set(purposes);
+for (const route of catalog.liveOperations) {
+  const context = `liveOperation ${route.operationId}`;
+  assert.equal(typeof route.capability, "string", `${context} capability`);
+  assert.ok(capabilityUnion.has(route.capability), `${context} capability is a declared capability`);
+  for (const alternative of route.capabilityAlternatives ?? []) assert.ok(capabilityUnion.has(alternative), `${context} capability alternative ${alternative}`);
+  if (route.capabilityAlternatives) assert.ok(route.capabilityAlternatives.includes(route.capability), `${context} lists its own capability`);
+  assert.equal(typeof route.purpose, "string", `${context} purpose`);
+  assert.ok(purposeUnion.has(route.purpose), `${context} purpose is a declared purpose`);
+  for (const alternative of route.purposeAlternatives ?? []) assert.ok(purposeUnion.has(alternative), `${context} purpose alternative ${alternative}`);
+  assert.ok(["ROUTE_GUARD", "DELEGATED_SERVICE", "AUTHENTICATED_PRINCIPAL"].includes(route.authorization), `${context} authorization kind`);
+  assert.match(route.source ?? "", /^packages\/api-contracts\/src\/[\w.-]+\.ts:\d+$/, `${context} source location`);
+  assert.equal(route.implementationState, "REGISTERED", `${context} implementation state`);
+  const requirement = derivedRequirements.get(route.operationId);
+  assert.ok(requirement, `${context} is registered by the source`);
+  assert.equal(route.capability, requirement.capability, `${context} capability matches source`);
+  assert.deepEqual(route.capabilityAlternatives ?? [], requirement.capabilityAlternatives ?? [], `${context} capability alternatives match source`);
+  assert.equal(route.purpose, requirement.purpose, `${context} purpose matches source`);
+  assert.deepEqual(route.purposeAlternatives ?? [], requirement.purposeAlternatives ?? [], `${context} purpose alternatives match source`);
+  assert.equal(route.authorization, requirement.authorization, `${context} authorization kind matches source`);
+  assert.equal(route.source, requirement.source, `${context} source location matches source`);
+}
 for (const mapping of catalog.commandMappings.filter((entry) => entry.implementationState === "IMPLEMENTED_REPRESENTATIVE")) {
   assert.ok(openapiKeys.some((key) => key === `${mapping.method} ${mapping.path} ${mapping.operationId}`), `${mapping.commandId} representative route parity`);
 }
@@ -92,7 +126,32 @@ for (const projection of projections.projections) {
   for (const forbidden of projection.forbiddenProperties ?? []) assert.equal(names.has(forbidden), false, `${projection.schemaId} forbids ${forbidden}`);
 }
 
-const compatibility = classifyOpenApiChange(baseline, openapi);
+/** `@fastify/swagger` names referenced components `def-N` in traversal order, so
+ * adding an unrelated operation renumbers them: the same schema appears under a
+ * different key in an older baseline. Compare the accepted baseline against the
+ * current document by each schema's own title instead of that positional key, or
+ * every added operation reports as a breaking schema change. */
+function titleKeyedDocument(document) {
+  const schemas = document.components?.schemas ?? {};
+  const keys = Object.keys(schemas);
+  const titles = keys.map((key) => schemas[key]?.title);
+  assert.equal(new Set(titles).size, titles.length, "component schema titles are unique");
+  const titleByKey = Object.fromEntries(keys.map((key) => [key, schemas[key]?.title ?? key]));
+  const rewrite = (value) => {
+    if (Array.isArray(value)) return value.map(rewrite);
+    if (value === null || typeof value !== "object") return value;
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [
+      key,
+      key === "$ref" && typeof entry === "string" && entry.startsWith("#/components/schemas/")
+        ? `#/components/schemas/${titleByKey[entry.slice("#/components/schemas/".length)] ?? entry.slice("#/components/schemas/".length)}`
+        : rewrite(entry),
+    ]));
+  };
+  const components = { ...document.components, schemas: Object.fromEntries(keys.map((key) => [titleByKey[key], schemas[key]])) };
+  return rewrite({ ...document, components });
+}
+
+const compatibility = classifyOpenApiChange(titleKeyedDocument(baseline), titleKeyedDocument(openapi));
 assert.deepEqual(compatibility.breaking, [], "current OpenAPI must be compatible with the accepted WP007 baseline");
 const report = {
   schemaVersion: "wp007.contract-lint.v1",

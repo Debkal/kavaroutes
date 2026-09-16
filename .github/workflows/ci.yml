@@ -45,6 +45,12 @@ jobs:
           node --test --test-concurrency=1 test/core.test.mjs test/architecture-negative.test.mjs test/api.test.mjs test/telemetry.test.mjs test/websocket.test.mjs test/smoke.test.mjs test/container-policy.test.mjs apps/api-host/test/*.test.mjs packages/google-identity/test/*.test.mjs
           npm run kavaroutes:database:lint
           npm run kavaroutes:api:test
+          # Generated contract artifacts must still describe the composed API:
+          # regenerate from source and fail if anything committed is stale.
+          npm run kavaroutes:api:catalog
+          npm run kavaroutes:api:generate
+          npm run kavaroutes:api:lint
+          git diff --exit-code packages/api-contracts/artifacts packages/api-contracts/clients packages/api-contracts/src/client-web.generated.ts
           npm run kavaroutes:jobs:test
           npm run kavaroutes:realtime:test
           npm run kavaroutes:push:test

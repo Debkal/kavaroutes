@@ -151,54 +151,98 @@
       "path": "/v1/me",
       "capability": "profile:read",
       "purpose": "SUPPORT_DIAGNOSTICS",
+      "authorization": "AUTHENTICATED_PRINCIPAL",
+      "source": "packages/api-contracts/src/api.ts:192",
       "implementationState": "REGISTERED"
     },
     {
-      "operationId": "listTrips",
+      "operationId": "prepareBrowserCommand",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/browser-commands",
+      "capability": "dispatch:command",
+      "capabilityAlternatives": [
+        "dispatch:command",
+        "driver-policy:override",
+        "trips:command",
+        "trips:write"
+      ],
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "purposeAlternatives": [
+        "ASSIGNED_SERVICE_DELIVERY",
+        "RIDER_INTAKE"
+      ],
+      "authorization": "DELEGATED_SERVICE",
+      "source": "packages/api-contracts/src/browser-recovery.ts:34",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "acknowledgeBrowserCommand",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/browser-commands/{commandId}/acknowledge",
+      "capability": "dispatch:command",
+      "capabilityAlternatives": [
+        "dispatch:command",
+        "driver-policy:override",
+        "trips:command",
+        "trips:write"
+      ],
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "purposeAlternatives": [
+        "ASSIGNED_SERVICE_DELIVERY",
+        "RIDER_INTAKE"
+      ],
+      "authorization": "DELEGATED_SERVICE",
+      "source": "packages/api-contracts/src/browser-recovery.ts:34",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "executeBrowserCommand",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/browser-commands/{commandId}/execute",
+      "capability": "dispatch:command",
+      "capabilityAlternatives": [
+        "dispatch:command",
+        "driver-policy:override",
+        "trips:command",
+        "trips:write"
+      ],
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "purposeAlternatives": [
+        "ASSIGNED_SERVICE_DELIVERY",
+        "RIDER_INTAKE"
+      ],
+      "authorization": "DELEGATED_SERVICE",
+      "source": "packages/api-contracts/src/browser-recovery.ts:34",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getPendingBrowserCommand",
       "method": "GET",
-      "path": "/v1/organizations/{organizationId}/trips",
-      "capability": "trips:read",
-      "purpose": "RIDER_INTAKE",
+      "path": "/v1/organizations/{organizationId}/browser-commands/pending",
+      "capability": "dispatch:command",
+      "capabilityAlternatives": [
+        "dispatch:command",
+        "driver-policy:override",
+        "trips:command",
+        "trips:write"
+      ],
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "purposeAlternatives": [
+        "ASSIGNED_SERVICE_DELIVERY",
+        "RIDER_INTAKE"
+      ],
+      "authorization": "DELEGATED_SERVICE",
+      "source": "packages/api-contracts/src/browser-recovery.ts:34",
       "implementationState": "REGISTERED"
     },
     {
-      "operationId": "searchRiders",
-      "method": "POST",
-      "path": "/v1/organizations/{organizationId}/rider-searches",
-      "capability": "riders:read",
-      "purpose": "RIDER_INTAKE",
-      "implementationState": "REGISTERED"
-    },
-    {
-      "operationId": "createTrip",
-      "method": "POST",
-      "path": "/v1/organizations/{organizationId}/trips",
-      "capability": "trips:write",
-      "purpose": "RIDER_INTAKE",
-      "implementationState": "REGISTERED"
-    },
-    {
-      "operationId": "getTrip",
+      "operationId": "getDispatchBoard",
       "method": "GET",
-      "path": "/v1/organizations/{organizationId}/trips/{tripId}",
-      "capability": "trips:read",
-      "purpose": "RIDER_INTAKE",
-      "implementationState": "REGISTERED"
-    },
-    {
-      "operationId": "headTrip",
-      "method": "HEAD",
-      "path": "/v1/organizations/{organizationId}/trips/{tripId}",
-      "capability": "trips:read",
-      "purpose": "RIDER_INTAKE",
-      "implementationState": "REGISTERED"
-    },
-    {
-      "operationId": "cancelTrip",
-      "method": "POST",
-      "path": "/v1/organizations/{organizationId}/trips/{tripId}/commands/cancel",
-      "capability": "trips:command",
-      "purpose": "RIDER_INTAKE",
+      "path": "/v1/organizations/{organizationId}/dispatch-board/{serviceDate}",
+      "capability": "dispatch:read",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:367",
       "implementationState": "REGISTERED"
     },
     {
@@ -207,14 +251,76 @@
       "path": "/v1/organizations/{organizationId}/dispatch-days/{serviceDate}",
       "capability": "dispatch:read",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:385",
       "implementationState": "REGISTERED"
     },
     {
-      "operationId": "getDriverManifest",
-      "method": "GET",
-      "path": "/v1/organizations/{organizationId}/driver/manifest",
-      "capability": "driver:manifest:read",
+      "operationId": "decideRouteProposal",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/route-proposals/{proposalId}/commands/decide",
+      "capability": "dispatch:command",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:340",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "assignDispatchRun",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/runs/{runId}/commands/assign",
+      "capability": "dispatch:command",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:374",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "overrideDriverReturn",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/shifts/{shiftId}/commands/override-return",
+      "capability": "driver-policy:override",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:298",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getDriverReturnReview",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/shifts/{shiftId}/return-review",
+      "capability": "driver-policy:override",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:293",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getDispatchRouteProposals",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/shifts/{shiftId}/route-proposals",
+      "capability": "dispatch:read",
+      "capabilityAlternatives": [
+        "dispatch:read",
+        "driver:manifest:read"
+      ],
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:321",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getDispatchShiftStatus",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/shifts/{shiftId}/status",
+      "capability": "dispatch:location:read",
+      "capabilityAlternatives": [
+        "dispatch:location:read",
+        "driver:execute"
+      ],
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:304",
       "implementationState": "REGISTERED"
     },
     {
@@ -223,6 +329,8 @@
       "path": "/v1/organizations/{organizationId}/driver-control-policy",
       "capability": "driver-policy:read",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:492",
       "implementationState": "REGISTERED"
     },
     {
@@ -230,7 +338,13 @@
       "method": "POST",
       "path": "/v1/organizations/{organizationId}/driver-control-policy/commands/update",
       "capability": "driver-policy:write",
+      "capabilityAlternatives": [
+        "driver-policy:override",
+        "driver-policy:write"
+      ],
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:504",
       "implementationState": "REGISTERED"
     },
     {
@@ -239,14 +353,8 @@
       "path": "/v1/organizations/{organizationId}/driver/action-batches",
       "capability": "driver:execute",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
-      "implementationState": "REGISTERED"
-    },
-    {
-      "operationId": "submitDriverLocationBatch",
-      "method": "POST",
-      "path": "/v1/organizations/{organizationId}/driver/location-batches",
-      "capability": "driver:location:write",
-      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:518",
       "implementationState": "REGISTERED"
     },
     {
@@ -255,6 +363,8 @@
       "path": "/v1/organizations/{organizationId}/driver/installations",
       "capability": "driver:notifications:write",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:554",
       "implementationState": "REGISTERED"
     },
     {
@@ -263,6 +373,174 @@
       "path": "/v1/organizations/{organizationId}/driver/installations/{installationId}/commands/unregister",
       "capability": "driver:notifications:write",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:573",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getDriverItinerary",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/itineraries/{serviceDate}",
+      "capability": "driver:manifest:read",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:469",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "submitDriverLocationBatch",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/location-batches",
+      "capability": "driver:location:write",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:540",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getDriverManifest",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/manifest",
+      "capability": "driver:manifest:read",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:481",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "closeDriverShift",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/commands/close",
+      "capability": "driver:execute",
+      "capabilityAlternatives": [
+        "driver:execute",
+        "driver:location:write"
+      ],
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:309",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "submitDriverPostcheck",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/commands/postcheck",
+      "capability": "driver:execute",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:423",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "submitDriverPrecheck",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/commands/precheck",
+      "capability": "driver:execute",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:423",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "submitDriverSignature",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/legs/{legId}/evidence/signatures",
+      "capability": "driver:execute",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:439",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getDriverRouteProposals",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/route-proposals",
+      "capability": "driver:manifest:read",
+      "capabilityAlternatives": [
+        "dispatch:read",
+        "driver:manifest:read"
+      ],
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:321",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "submitRouteProposal",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/route-proposals",
+      "capability": "driver:execute",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:331",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getDriverShiftStatus",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/status",
+      "capability": "driver:execute",
+      "capabilityAlternatives": [
+        "dispatch:location:read",
+        "driver:execute"
+      ],
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:304",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "submitDriverSyntheticLocations",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/synthetic-location-batches",
+      "capability": "driver:location:write",
+      "capabilityAlternatives": [
+        "driver:execute",
+        "driver:location:write"
+      ],
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:309",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getDriverShiftState",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/assignments/{assignmentId}",
+      "capability": "driver:manifest:read",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:454",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "startDriverShift",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/commands/start",
+      "capability": "driver:execute",
+      "purpose": "ASSIGNED_SERVICE_DELIVERY",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:406",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getFacilityDay",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/facility/days/{serviceDate}",
+      "capability": "facility:trip-status:read",
+      "purpose": "FACILITY_COORDINATION",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:279",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getFacilityTrip",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/facility/trips/{tripId}",
+      "capability": "facility:trip-status:read",
+      "purpose": "FACILITY_COORDINATION",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:284",
       "implementationState": "REGISTERED"
     },
     {
@@ -271,6 +549,68 @@
       "path": "/v1/organizations/{organizationId}/operations/{operationId}",
       "capability": "integrations:read",
       "purpose": "PARTNER_EXPORT",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:590",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "searchRiders",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/rider-searches",
+      "capability": "riders:read",
+      "purpose": "RIDER_INTAKE",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:226",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "listTrips",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/trips",
+      "capability": "trips:read",
+      "purpose": "RIDER_INTAKE",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:207",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "createTrip",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/trips",
+      "capability": "trips:write",
+      "purpose": "RIDER_INTAKE",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:236",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "getTrip",
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/trips/{tripId}",
+      "capability": "trips:read",
+      "purpose": "RIDER_INTAKE",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:246",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "headTrip",
+      "method": "HEAD",
+      "path": "/v1/organizations/{organizationId}/trips/{tripId}",
+      "capability": "trips:read",
+      "purpose": "RIDER_INTAKE",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:246",
+      "implementationState": "REGISTERED"
+    },
+    {
+      "operationId": "cancelTrip",
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/trips/{tripId}/commands/cancel",
+      "capability": "trips:command",
+      "purpose": "RIDER_INTAKE",
+      "authorization": "ROUTE_GUARD",
+      "source": "packages/api-contracts/src/api.ts:264",
       "implementationState": "REGISTERED"
     }
   ],
