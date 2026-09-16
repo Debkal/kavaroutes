@@ -11,7 +11,7 @@ export const DriverSignatureRequestSchema = Type.Object({
   attestationPolicyVersion: Type.Literal("attestation-synthetic-v2"),policyVersion: Type.Integer({ minimum: 1 }),policyDigest: Type.String({ pattern: "^[a-f0-9]{64}$" }),
   capturedAt: Type.String({ format: "date-time" }),localActionAt: Type.String({ format: "date-time" }),
   installationGeneration: Type.String({ pattern: "^inst_[a-z0-9]{16,64}$" }),parkedAttestation: Type.Literal(true),
-  role: Type.Union(["RIDER","GUARDIAN_OR_AUTHORIZED_REPRESENTATIVE","FACILITY_EMPLOYEE","DRIVER","RIDER_UNABLE_TO_SIGN"].map(v=>Type.Literal(v))),
+  role: Type.Union([Type.Literal("RIDER"),Type.Literal("GUARDIAN_OR_AUTHORIZED_REPRESENTATIVE"),Type.Literal("FACILITY_EMPLOYEE"),Type.Literal("DRIVER"),Type.Literal("RIDER_UNABLE_TO_SIGN")]),
   points: Type.Array(Type.Tuple([Type.Integer({ minimum: 0,maximum: 2048 }),Type.Integer({ minimum: 0,maximum: 1024 })]),{ maxItems: 600 }),
   unableReason: Type.Optional(Type.Union([Type.Literal("DECLINED"),Type.Literal("PHYSICALLY_UNABLE"),Type.Literal("NO_AUTHORIZED_SIGNER")])),
   witnessAttestation: Type.Optional(Type.String({ minLength: 2,maxLength: 128 })),supersedesEvidenceId: Type.Optional(id()),

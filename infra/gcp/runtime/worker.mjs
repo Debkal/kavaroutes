@@ -3,7 +3,8 @@ import { createOutboxStore, createPgBossTransactionalTransport, createOrderedCon
 import { createTestOnlyCursorCodec } from '@kavaroutes/realtime';
 import { createPostgresRealtimeStore } from '@kavaroutes/realtime/postgres';
 import { makePool, makeBoss, verifyRuntimeDatabase } from './database.mjs';
-import { branchScopeReference, routes, validateConfig, classifyFailure, enrollmentBound } from './config.mjs';
+import { companyBranchScope } from '@kavaroutes/api-contracts/security';
+import { routes, validateConfig, classifyFailure, enrollmentBound } from './config.mjs';
 import { createRecovery } from './recovery.mjs';
 import {createWorkerTenantReader,reconcileTrackingAlerts} from '@kavaroutes/postgres-persistence';
 
@@ -66,8 +67,12 @@ export async function createRuntimeWorker(input) {
       await client.query('COMMIT');
     } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
     if (!source) throw new Error('MESSAGE_REFERENCE_NOT_FOUND');
+    // The publication scope is derived from the validated message tenant, never
+    // from a fixed constant. A company's invalidation must land on its own
+    // authorized stream. Subscriber grants are unchanged and still deny another
+    // company's branch reference.
     return realtime.consume(payload, { purpose: 'DISPATCH_CONTROL', scope: { streamKind: 'DISPATCH_DAY',
-      scopeReference: branchScopeReference, serviceDate: source.service_date },
+      scopeReference: companyBranchScope(tenant), serviceDate: source.service_date },
       delta: { kind: 'RESOURCE_INVALIDATED', resourceKind: source.resource_kind, resourceReference: `${source.resource_kind}:${source.resource_id ?? payload.aggregateId}`, resourceVersion: Number(source.resource_version ?? payload.aggregateVersion) } });
   }
 

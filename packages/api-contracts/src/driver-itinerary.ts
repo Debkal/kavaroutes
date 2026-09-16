@@ -7,7 +7,7 @@ const serviceControl = Type.Object({
   pickupEvidenceId: Type.Union([id(),Type.Null()]),dropoffEvidenceId: Type.Union([id(),Type.Null()]),
   proofRule: Type.Union([Type.Null(),Type.Object({ version: Type.Integer({ minimum: 1 }),digest: Type.String({ pattern: "^[a-f0-9]{64}$" }),
     rule: Type.Object({ pickupRequired: Type.Boolean(),dropoffRequired: Type.Boolean(),mobilitySecurementRequired: Type.Boolean(),
-      allowedRoles: Type.Array(Type.Union(["RIDER","GUARDIAN_OR_AUTHORIZED_REPRESENTATIVE","FACILITY_EMPLOYEE","DRIVER","RIDER_UNABLE_TO_SIGN"].map(v=>Type.Literal(v))),{ minItems: 1,maxItems: 5 }),
+      allowedRoles: Type.Array(Type.Union([Type.Literal("RIDER"),Type.Literal("GUARDIAN_OR_AUTHORIZED_REPRESENTATIVE"),Type.Literal("FACILITY_EMPLOYEE"),Type.Literal("DRIVER"),Type.Literal("RIDER_UNABLE_TO_SIGN")]),{ minItems: 1,maxItems: 5 }),
       unableReasons: Type.Array(Type.Union([Type.Literal("DECLINED"),Type.Literal("PHYSICALLY_UNABLE"),Type.Literal("NO_AUTHORIZED_SIGNER")]),{ maxItems: 3 }),
       noShowWaitMinutes: Type.Integer({ minimum: 1,maximum: 120 }),noShowAllowed: Type.Boolean(),noShowAuthorizationReference: Type.Union([id(),Type.Null()]),
     },{ additionalProperties: false }),
@@ -33,5 +33,5 @@ export const DriverItinerarySchema = Type.Object({
 }, { additionalProperties: false, $id: "DriverItinerary", title: "DriverItinerary" });
 export type DriverItinerary = Static<typeof DriverItinerarySchema>;
 export interface DriverItineraryReader {
-  (organizationId: string, driverId: string, serviceDate: string): Promise<DriverItinerary["legs"]>;
+  (organizationId: string, driverId: string, serviceDate: string): Promise<readonly DriverItinerary["legs"][number][]>;
 }

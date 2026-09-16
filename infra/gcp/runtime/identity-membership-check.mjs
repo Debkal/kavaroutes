@@ -2,15 +2,16 @@ import assert from 'node:assert/strict';
 import { createIdentityMembershipReader, createApplicationSessionStore, withTenantTransaction } from '@kavaroutes/postgres-persistence';
 import { createIdentityAdmission } from '../../../packages/api-contracts/dist/identity-admission.js';
 import { createBrowserCredentials } from '../../../apps/api-host/dist/browser-credentials.js';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import Fastify from 'fastify';
 import { registerPostgresBrowserAuth } from '../../../apps/api-host/dist/postgres-browser-auth.js';
 import {createBrowserPrincipalVerifier} from '../../../apps/api-host/dist/browser-principal.js';
-import {createWp007Api} from '@kavaroutes/api-contracts';
+import {createWp007Api,createWp007PostgresApplication} from '@kavaroutes/api-contracts';
+import {Pool} from 'pg';
 import {companyBranchScope,companyFleetScope} from '../../../packages/api-contracts/dist/security.js';
 import {authorizeRealtimeSubscription} from '../../../packages/realtime/dist/authorization.js';
 
-export async function checkIdentityMembership(pool) {
+export async function checkIdentityMembership(pool, apiDatabaseUrl) {
   const tenant = '71000000-0000-4000-8000-000000000001';
   const other = '72000000-0000-4000-8000-000000000001';
   const user = '71000000-0000-4000-8000-000000000020';
@@ -263,6 +264,97 @@ export async function checkIdentityMembership(pool) {
     assert.throws(() => authorizeRealtimeSubscription({principal:revokedPrincipal, organizationId:tenant,
       authorizationGeneration:revokedGeneration, purpose:'DISPATCH_CONTROL',
       scope:{streamKind:'DISPATCH_DAY',scopeReference:branchScope,serviceDate:'2026-09-16'}}), /REALTIME_AUTHORIZATION_DENIED/);
+    // ---- A-003: a real business mutation racing revocation ------------------
+    // Contract under test (snapshot-at-admission): authority is decided from the
+    // persisted session and membership generation when the request is admitted.
+    // A revocation committed before admission denies the request and leaves no
+    // effect. A revocation committed after admission does not retroactively abort
+    // the already-admitted transaction: it commits exactly once, and every later
+    // admission or revalidation for that session denies. This snapshot-at-admission
+    // rule is a policy decision flagged for auditor acceptance; it is not a licence
+    // to widen revocation semantics anywhere else.
+    const apiPool = new Pool({ connectionString: apiDatabaseUrl, connectionTimeoutMillis: 1000 });
+    try {
+      const etagSecret = `synthetic-etag-secret-${randomBytes(24).toString('base64url')}`;
+      const realApplication = createWp007PostgresApplication(apiPool, { etagSecret });
+      let admittedMutation;
+      const admitted = new Promise(resolve => { admittedMutation = resolve; });
+      let releaseMutation;
+      const gate = new Promise(resolve => { releaseMutation = resolve; });
+      const gatedApplication = { ...realApplication,
+        async createTrip(input) { admittedMutation(); await gate; return realApplication.createTrip(input); } };
+      const mutationApi = await createWp007Api({ verifier: authorityVerifier, application: gatedApplication, etagSecret });
+      try {
+        const raceRider = '71000000-0000-4000-8000-000000000031';
+        await withTenantTransaction(pool, tenant, 'kavaroutes_migration', async c => {
+          await c.query("INSERT INTO intake.rider(tenant_id,id,synthetic_reference) VALUES($1,$2,'Synthetic revocation rider') ON CONFLICT DO NOTHING", [tenant, raceRider]);
+        });
+        const mutationSession = async () => {
+          const issued = authorityCreds.issue(tenant);
+          await sessions.issue({ organizationId: tenant, userId: user, principalId: principal, issuer, subject: grantedSubject,
+            authorizationGeneration: await generationOf(tenant), tokenHash: issued.tokenHash, csrfHash: issued.csrfHash });
+          return { tokenHash: issued.tokenHash, headers: { cookie: issued.cookie.split(';')[0], origin: 'https://app.kavaroutes.com', 'x-kr-csrf': issued.csrf } };
+        };
+        const tripRequest = (headers, key, tripId) => ({ method: 'POST', url: `/v1/organizations/${tenant}/trips`, headers: { ...headers, 'idempotency-key': key },
+          payload: { tripId, riderId: raceRider, serviceDate: '2026-09-16', serviceTimezone: 'America/Los_Angeles', localServiceTime: '08:00:00',
+            resolvedServiceAt: '2026-09-16T15:00:00.000Z', resolvedUtcOffsetSeconds: -25200, ambiguityPolicy: 'reject' } });
+        // Committed business state, receipt identity and outbox effects for one trip.
+        const effect = async (tripId, key) => {
+          const read = (sql, values) => withTenantTransaction(pool, tenant, 'kavaroutes_api', c => c.query(sql, values));
+          return {
+            trips: Number((await read('SELECT count(*)::int AS n FROM intake.trip_request WHERE tenant_id=$1 AND id=$2', [tenant, tripId])).rows[0].n),
+            receipts: Number((await read("SELECT count(*)::int AS n FROM platform.idempotency_record WHERE tenant_id=$1 AND operation_id='createTrip' AND operation_key=$2 AND state='COMMITTED'", [tenant, key])).rows[0].n),
+            messages: Number((await read('SELECT count(*)::int AS n FROM outbox.message WHERE tenant_id=$1 AND aggregate_id=$2', [tenant, tripId])).rows[0].n),
+            deliveries: Number((await read(`SELECT count(*)::int AS n FROM outbox.delivery d JOIN outbox.message m ON m.tenant_id=d.tenant_id AND m.id=d.message_id
+              WHERE d.tenant_id=$1 AND m.aggregate_id=$2`, [tenant, tripId])).rows[0].n),
+          };
+        };
+        const emptyEffect = { trips: 0, receipts: 0, messages: 0, deliveries: 0 };
+        // 1. Revocation committed before admission: denied with no effect at all.
+        const deniedSession = await mutationSession();
+        await sessions.revoke(tenant, deniedSession.tokenHash);
+        const deniedTrip = randomUUID();
+        const denied = await mutationApi.inject(tripRequest(deniedSession.headers, 'revocation-race-0001', deniedTrip));
+        assert.equal(denied.statusCode, 401, denied.body);
+        assert.deepEqual(await effect(deniedTrip, 'revocation-race-0001'), emptyEffect, 'a revocation before admission leaves no business effect');
+        // 2. Revocation committed while the admitted mutation is still pending:
+        //    the mutation commits exactly once and the session is dead afterwards.
+        const pendingSession = await mutationSession();
+        const pendingTrip = randomUUID();
+        const inFlight = mutationApi.inject(tripRequest(pendingSession.headers, 'revocation-race-0002', pendingTrip));
+        // Deterministic synchronisation: wait until the request really is inside the
+        // domain service (the barrier sits after admission and before the write
+        // transaction), so the revocation below is provably committed while the
+        // admitted mutation is still pending. No sleeps and no test-only bypass.
+        assert.equal(await Promise.race([admitted.then(() => 'ADMITTED'), inFlight.then(() => 'SETTLED')]), 'ADMITTED',
+          'the request must reach the domain service before the revocation');
+        await sessions.revoke(tenant, pendingSession.tokenHash);
+        releaseMutation();
+        const committed = await inFlight;
+        assert.equal(committed.statusCode, 201, committed.body);
+        assert.deepEqual(await effect(pendingTrip, 'revocation-race-0002'), { trips: 1, receipts: 1, messages: 1, deliveries: 2 },
+          'the admitted mutation commits exactly one trip, receipt and outbox effect');
+        const replayedAfterRevoke = await mutationApi.inject(tripRequest(pendingSession.headers, 'revocation-race-0002', pendingTrip));
+        assert.equal(replayedAfterRevoke.statusCode, 401, 'the revoked session cannot reuse its key');
+        assert.equal(await sessions.resolve(tenant, pendingSession.tokenHash), null);
+        assert.deepEqual(await effect(pendingTrip, 'revocation-race-0002'), { trips: 1, receipts: 1, messages: 1, deliveries: 2 }, 'no second business effect');
+        // 3. Revocation committed after the mutation commits: the effect stands and
+        //    the server-held receipt recovers the same command for a new session.
+        const committedSession = await mutationSession();
+        const settledTrip = randomUUID();
+        const settled = await mutationApi.inject(tripRequest(committedSession.headers, 'revocation-race-0003', settledTrip));
+        assert.equal(settled.statusCode, 201, settled.body);
+        await sessions.revoke(tenant, committedSession.tokenHash);
+        assert.equal((await mutationApi.inject(tripRequest(committedSession.headers, 'revocation-race-0003', settledTrip))).statusCode, 401);
+        const recoveredSession = await mutationSession();
+        const recoveredTrip = await mutationApi.inject(tripRequest(recoveredSession.headers, 'revocation-race-0003', settledTrip));
+        assert.equal(recoveredTrip.statusCode, 201, recoveredTrip.body);
+        assert.equal(recoveredTrip.headers['kavaroutes-idempotency-replayed'], 'true', 'a fresh session recovers the server-held receipt');
+        assert.deepEqual(recoveredTrip.json(), settled.json());
+        assert.deepEqual(await effect(settledTrip, 'revocation-race-0003'), { trips: 1, receipts: 1, messages: 1, deliveries: 2 },
+          'recovery after revocation replays the stored receipt without a new effect');
+      } finally { await mutationApi.close(); }
+    } finally { await apiPool.end(); }
     // Deactivating the membership denies everything even with grants in place:
     // no new session can be admitted at all.
     await withTenantTransaction(pool, tenant, 'kavaroutes_migration', c =>

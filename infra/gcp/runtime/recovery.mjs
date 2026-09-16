@@ -21,9 +21,14 @@ export function createRecovery(pool, boss, authorizeReplay = async () => false) 
     catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }
-  async function bind(client, job, queue, tenants) {
+  // `expectedTenant` is the company the operator/action was authorized for.
+  // Enrollment alone is never authorization: a job whose payload belongs to a
+  // different enrolled company must be refused before any journal write, receipt
+  // lookup or retry enrollment happens.
+  async function bind(client, job, queue, tenants, expectedTenant) {
     const payload = validateThinJobPayload(job.data);
-    if (!tenants.includes(payload.tenantId) || !routes.includes(payload.route) || ROUTE_POLICIES[payload.route].queue !== queue) throw new Error('RECOVERY_SCOPE_DENIED');
+    if (!tenants.includes(payload.tenantId) || (expectedTenant !== undefined && payload.tenantId !== expectedTenant) ||
+        !routes.includes(payload.route) || ROUTE_POLICIES[payload.route].queue !== queue) throw new Error('RECOVERY_SCOPE_DENIED');
     const tenant = payload.tenantId;
     await client.query('SET LOCAL ROLE kavaroutes_outbox_consumer');
     await client.query("SELECT set_config('app.tenant_id',$1,true)", [tenant]);
@@ -83,9 +88,10 @@ export function createRecovery(pool, boss, authorizeReplay = async () => false) 
           !/^[0-9a-f-]{36}$/.test(input.requestId ?? '') || !tenants.includes(input.tenantId) || input.reasonCode !== 'OPERATOR_REVIEWED' ||
           !routes.some(route => ROUTE_POLICIES[route].queue === input.queue) || !(await authorizeReplay(input))) throw new Error('REPLAY_AUTHORIZATION_DENIED');
       return transaction(async client => {
-        const job = (await client.query(`SELECT * FROM ${schema}.job WHERE name=$1 AND id=$2 FOR UPDATE`, [input.queue,input.jobId])).rows[0];
+        const job = (await client.query(`SELECT * FROM ${schema}.job WHERE name=$1 AND id=$2 AND (data::jsonb->>'tenantId')=$3 FOR UPDATE`,
+          [input.queue,input.jobId,input.tenantId])).rows[0];
         if (!job) throw new Error('REPLAY_NOT_FOUND');
-        const payload = await bind(client, job, input.queue, tenants);
+        const payload = await bind(client, job, input.queue, tenants, input.tenantId);
         const prior = (await client.query('SELECT transport_id,actor_reference FROM outbox.consumer_transport_journal WHERE tenant_id=$1 AND id=$2', [payload.tenantId,input.requestId])).rows[0];
         if (prior) {
           if (prior.transport_id !== job.id || prior.actor_reference !== input.actorReference) throw new Error('REPLAY_IDEMPOTENCY_MISMATCH');
