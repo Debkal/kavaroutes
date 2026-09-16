@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { Pool } from "pg";
 import { createPostgresPersistence, type JsonValue, type StoredMutationResult } from "@kavaroutes/postgres-persistence";
 import type { BatchReceipt, DispatcherTrip, DriverActionBatch, LocationBatch, TripCreateRequest } from "./schemas.js";
-import { ProtocolError, requestFingerprint, strongEtag } from "./protocol.js";
+import { integrationSecretAccepted, ProtocolError, requestFingerprint, strongEtag, type IntegrationSecretProfile } from "./protocol.js";
 import type { SyntheticPrincipal } from "./security.js";
 import { syntheticIds } from "./security.js";
 
@@ -20,6 +20,9 @@ export interface Wp007Application {
 
 export interface PostgresApplicationOptions {
   readonly etagSecret: string;
+  /** Declared environment of `etagSecret`. The guarded profile must say so
+   * explicitly; it can never accept a test-marked key. */
+  readonly secretProfile?: IntegrationSecretProfile;
   readonly now?: () => Date;
   readonly idFactory?: () => string;
   readonly failurePoint?: "before-audit" | "before-outbox-message" | "before-outbox-deliveries" | "after-first-outbox-delivery" | "before-commit";
@@ -34,7 +37,10 @@ function toDispatcherTrip(value: { tripId: string; riderId: string; serviceDate:
 }
 
 export function createWp007PostgresApplication(pool: Pool, options: PostgresApplicationOptions): Wp007Application {
-  if (!/^synthetic-etag-secret-[A-Za-z0-9_-]{16,}$/.test(options.etagSecret)) throw new Error("TEST_ETAG_SECRET_REQUIRED");
+  const secretProfile = options.secretProfile ?? "synthetic-test";
+  if (!integrationSecretAccepted(secretProfile, options.etagSecret, /^synthetic-etag-secret-[A-Za-z0-9_-]{16,}$/)) {
+    throw new Error(secretProfile === "reviewed-guarded" ? "GUARDED_ETAG_SECRET_REQUIRED" : "TEST_ETAG_SECRET_REQUIRED");
+  }
   const persistence = createPostgresPersistence(pool);
   const now = options.now ?? (() => new Date());
   const idFactory = options.idFactory ?? randomUUID;

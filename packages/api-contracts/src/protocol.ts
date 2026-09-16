@@ -96,8 +96,28 @@ export interface CursorClaims {
   readonly expiresAt: string;
 }
 
-export function createCursorCodec(secret: string) {
-  if (!/^synthetic-cursor-secret-[A-Za-z0-9_-]{16,}$/.test(secret)) throw new Error("TEST_CURSOR_SECRET_REQUIRED");
+/** Which environment an integration secret was issued for.
+ *
+ * `synthetic-test` keeps the historical marker that makes a test key impossible
+ * to mistake for a real one. `reviewed-guarded` refuses that marker and accepts
+ * a production-shaped secret; the full strength and alphabet rule stays with the
+ * reviewed configuration that issued the secret, so this module only owns the
+ * "never a test-marked key in a guarded composition" intent. */
+export type IntegrationSecretProfile = "synthetic-test" | "reviewed-guarded";
+
+export function integrationSecretAccepted(secretProfile: IntegrationSecretProfile, secret: unknown, syntheticTestMarker: RegExp): boolean {
+  if (secretProfile === "reviewed-guarded") return typeof secret === "string" && secret.length >= 32 && !secret.startsWith("synthetic-");
+  // Fail closed on the profile declaration itself: the lenient marker rule is
+  // available only to the literal `synthetic-test` profile. An unrecognised
+  // profile accepts no secret at all, so a mistyped profile cannot silently
+  // inherit the test rule instead of the guarded one.
+  return secretProfile === "synthetic-test" && typeof secret === "string" && syntheticTestMarker.test(secret);
+}
+
+export function createCursorCodec(secret: string, secretProfile: IntegrationSecretProfile = "synthetic-test") {
+  if (!integrationSecretAccepted(secretProfile, secret, /^synthetic-cursor-secret-[A-Za-z0-9_-]{16,}$/)) {
+    throw new Error(secretProfile === "reviewed-guarded" ? "GUARDED_CURSOR_SECRET_REQUIRED" : "TEST_CURSOR_SECRET_REQUIRED");
+  }
   return Object.freeze({
     encode(claims: CursorClaims): string {
       const payload = Buffer.from(canonicalJson(claims)).toString("base64url");

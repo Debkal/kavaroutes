@@ -1,5 +1,5 @@
 import { performance } from "node:perf_hooks";
-import type { FastifyInstance, FastifyPluginAsync, FastifyRequest } from "fastify";
+import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import { PersistenceConflict } from "@kavaroutes/postgres-persistence";
 import type { AdmissionController } from "./admission-control.js";
 import { isValidTraceparent, problemFor, ProtocolError, safeTelemetryEvent } from "./index-internal.js";
@@ -23,6 +23,14 @@ export type RequireApiAccess = (
   requirement: AuthorizationRequirement,
   operationId: string,
 ) => Promise<SyntheticPrincipal>;
+
+/** A request guard placed inside the API lifecycle scope.
+ *
+ * Return the reply to refuse the request; return nothing to continue. Guards run
+ * after the request context exists and before authentication, so a refusal
+ * short-circuits before any credential is read or any business route is
+ * reached. */
+export type RequestGuard = (request: FastifyRequest, reply: FastifyReply) => unknown;
 
 export function contextPrincipal(request: FastifyRequest): SyntheticPrincipal {
   const principal = request.wp007Context.principal;
@@ -79,12 +87,22 @@ export function createApiLifecyclePlugin(options: {
   readonly verifier: PrincipalVerifier;
   readonly admissionController: AdmissionController;
   readonly telemetrySink?: (event: SafeTelemetryEvent) => void;
+  /** Ordered guards for every request in this scope, including requests that
+   * match no route. They must be supplied here rather than as an outer hook: a
+   * hook added to an outer instance after this plugin is created never runs for
+   * these routes, so a caller that needs edge trust or a promoted-path allowlist
+   * to cover the business surface has to install it in this scope. */
+  readonly requestGuards?: readonly RequestGuard[];
   readonly registerRoutes: (api: FastifyInstance, requireAccess: RequireApiAccess) => Promise<void>;
 }): FastifyPluginAsync {
   return async (api) => {
     api.decorateRequest("wp007Context");
-    api.addHook("onRequest", async (request) => {
+    api.addHook("onRequest", async (request, reply) => {
       request.wp007Context = { requestId: request.id, startedAt: performance.now(), principal: null, resultCode: "UNSET" };
+      for (const guard of options.requestGuards ?? []) {
+        const refusal = await guard(request, reply);
+        if (refusal !== undefined) return refusal as FastifyReply;
+      }
       if (["POST", "PUT", "PATCH"].includes(request.method)) {
         const mediaType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
         if (mediaType !== "application/json") throw new ProtocolError(415, "UNSUPPORTED_MEDIA_TYPE", "request media type unsupported");

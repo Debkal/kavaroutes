@@ -12,12 +12,12 @@ import { Value } from "typebox/value";
 import type { EffectiveDriverPolicy } from "@kavaroutes/platform-engine/domain";
 import { createRegistrationService, createTokenVault, type RegistrationInput, type RegistrationInactiveReason } from "@kavaroutes/push-notifications";
 import { createSyntheticLocalAdmissionController, type AdmissionController } from "./admission-control.js";
-import { contextPrincipal, createApiLifecyclePlugin } from "./api-lifecycle.js";
+import { contextPrincipal, createApiLifecyclePlugin, type RequestGuard } from "./api-lifecycle.js";
 import type { Wp007Application } from "./application.js";
 import { createDocumentationApplication, createOfflineBatchService, syntheticReadModels } from "./application.js";
 import { createSyntheticDriverPolicyService, policyVersionFromEtag, type DriverPolicyService } from "./driver-policy.js";
 import { createCursorCodec, IdempotencyKeySchema, parseStrictJson, ProblemSchema, ProtocolError, StrongEtagSchema } from "./index-internal.js";
-import type { SafeTelemetryEvent } from "./protocol.js";
+import type { IntegrationSecretProfile, SafeTelemetryEvent } from "./protocol.js";
 import { companyBranchScope, companyFleetScope, createSyntheticTestVerifier, type PrincipalVerifier, syntheticIds } from "./security.js";
 import { DriverItinerarySchema, type DriverItineraryReader } from "./driver-itinerary.js";
 import type { DriverActionService } from "./driver-actions.js";
@@ -52,6 +52,11 @@ export interface Wp007ApiOptions {
   readonly verifier?: PrincipalVerifier;
   readonly cursorSecret?: string;
   readonly etagSecret?: string;
+  /** Secret profile of `cursorSecret`/`etagSecret`; defaults to the test profile. */
+  readonly secretProfile?: IntegrationSecretProfile;
+  /** Ordered guards installed inside the API lifecycle scope before
+   * authentication, so they also cover the business routes below. */
+  readonly requestGuards?: readonly RequestGuard[];
   readonly now?: () => Date;
   readonly requestIdFactory?: () => string;
   readonly telemetrySink?: (event: SafeTelemetryEvent) => void;
@@ -123,7 +128,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   const IdempotentHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "idempotency-key": Type.Ref(IdempotencyKeySchema) })]);
   const CommandHeaders = Type.Intersect([IdempotentHeaders, Type.Object({ "if-match": Type.Optional(Type.Ref(StrongEtagSchema)) })]);
   const ConditionalHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "if-none-match": Type.Optional(Type.Ref(StrongEtagSchema)) })]);
-  const cursorCodec = createCursorCodec(options.cursorSecret ?? "synthetic-cursor-secret-wp007-local-only");
+  const cursorCodec = createCursorCodec(options.cursorSecret ?? "synthetic-cursor-secret-wp007-local-only", options.secretProfile ?? "synthetic-test");
   const offline = createOfflineBatchService(now);
   const driverPolicy = options.driverPolicyService ?? createSyntheticDriverPolicyService({ organizationId: syntheticIds.organizationA, now });
   const pushRegistrations = options.pushRegistrationService ?? createRegistrationService({ now, vault: createTokenVault({
@@ -179,6 +184,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   for (const schema of [...allSchemas, DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,StartDriverShiftRequestSchema, StartDriverShiftReceiptSchema, DriverPrecheckRequestSchema, DriverPrecheckReceiptSchema, DriverShiftStateSchema,DriverSignatureRequestSchema,DriverSignatureReceiptSchema]) app.addSchema(schema);
   const apiLifecyclePlugin = createApiLifecyclePlugin({ verifier, admissionController,
     ...(options.telemetrySink ? { telemetrySink: options.telemetrySink } : {}),
+    ...(options.requestGuards ? { requestGuards: options.requestGuards } : {}),
     registerRoutes: async (api, requireAccess) => {
   const security = verifier.verifyRequest ? [{browserSession:[]}] : [{ syntheticTestPrincipal: [] }];
   const profileRoutes: FastifyPluginAsync = async (routes) => {

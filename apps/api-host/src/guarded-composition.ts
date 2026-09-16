@@ -18,7 +18,9 @@ import {createWp007Api,createWp007PostgresApplication,createPostgresBrowserRecov
 import {createIdentityAdmission,type VerifiedIdentity} from '@kavaroutes/api-contracts/identity-admission';
 import {createApplicationSessionStore,createIdentityMembershipReader} from '@kavaroutes/postgres-persistence';
 import {createGuardedDriverItineraryReader} from './guarded-driver-itinerary.js';
-import {createAuthorizationGenerationSource,createTestOnlyCursorCodec,type RealtimeStore} from '@kavaroutes/realtime';
+import {contextPrincipal,type RequestGuard} from '@kavaroutes/api-contracts';
+import {authorizeRealtimeSubscription,createAuthorizationGenerationSource,createTestOnlyCursorCodec,type RealtimeStore} from '@kavaroutes/realtime';
+import {companyBranchScope} from '@kavaroutes/api-contracts/security';
 import {registerWp009Realtime} from '@kavaroutes/realtime/fastify';
 import {createPostgresRealtimeStore} from '@kavaroutes/realtime/postgres';
 import {createBrowserCredentials} from './browser-credentials.js';
@@ -96,8 +98,28 @@ export async function createGuardedApiHost(options:GuardedApiHostOptions) {
     {issuer:config.issuer,audience:config.audience,now:clock,maximumAuthenticationAgeSeconds:config.maximumAuthenticationAgeSeconds});
   // No Authorization-header or synthetic principal is ever interpreted here.
   const verifier=createBrowserPrincipalVerifier({origin:config.origin,signingKey:config.signingKey,resolve:sessions.resolve});
+  // The guarded scope below authenticates every request with the same persisted
+  // browser-session verifier the wp007 lifecycle plugin uses. Fail closed at
+  // construction if that verifier cannot resolve a request at all.
+  const verifyBrowserRequest=verifier.verifyRequest?.bind(verifier);
+  if(!verifyBrowserRequest)throw new Error('GUARDED_VERIFIER_INVALID');
   createBrowserCredentials({origin:config.origin,signingKey:config.signingKey,now:clock});
-  const application=createWp007PostgresApplication(options.pool,{etagSecret:config.etagSecret});
+  // Edge trust plus the promoted-path allowlist, as one guard used in two places.
+  // It has to be installed inside the API lifecycle scope as well as on this
+  // instance: a hook added to an outer instance after `createWp007Api` returns
+  // never runs for the routes the lifecycle plugin registered, so an outer hook
+  // alone would leave every business route ungated.
+  const promotedPathGuard:RequestGuard=async(request,reply)=>{
+    reply.header('cache-control','no-store').header('pragma','no-cache');
+    if(guardedEdgeDecision({trustedProxyHops:config.trustedProxyHops,peerAddress:request.socket.remoteAddress,
+      forwardedProto:request.headers['x-forwarded-proto']})!=='ALLOW')return reply.code(403).send({code:'GUARDED_EDGE_REQUIRED'});
+    const path=request.url.split('?')[0]??'';
+    if(!reviewedPaths.some(pattern=>pattern.test(path)))return reply.code(503).send({code:'RUNTIME_PATH_NOT_PROMOTED'});
+    return undefined;
+  };
+  // Declared guarded profile: a test-marked key is still refused, and the
+  // reviewed configuration above owns the strength rule for this secret.
+  const application=createWp007PostgresApplication(options.pool,{etagSecret:config.etagSecret,secretProfile:'reviewed-guarded'});
   const app:FastifyInstance=await createWp007Api({application,driverItineraryReader:createGuardedDriverItineraryReader(options.pool),
     browserRecoveryService:createPostgresBrowserRecoveryService(options.pool,{application,dispatchService:createPostgresDispatchService(options.pool,{etag:application.etag}),
       routeProposalService:createPostgresRouteProposalService(options.pool),driverClosureService:createPostgresDriverClosureService(options.pool)}),
@@ -111,19 +133,54 @@ export async function createGuardedApiHost(options:GuardedApiHostOptions) {
     driverPostcheckService:createPostgresDriverPrecheckService(options.pool,{stage:'POST'}),
     driverClosureService:createPostgresDriverClosureService(options.pool),
     driverSignatureService:createPostgresDriverSignatureService(options.pool,{etag:application.etag}),
-    verifier,etagSecret:config.etagSecret,cursorSecret:config.cursorSecret});
-  app.addHook('onRequest',async(request,reply)=>{
-    reply.header('cache-control','no-store').header('pragma','no-cache');
-    if(guardedEdgeDecision({trustedProxyHops:config.trustedProxyHops,peerAddress:request.socket.remoteAddress,
-      forwardedProto:request.headers['x-forwarded-proto']})!=='ALLOW')return reply.code(403).send({code:'GUARDED_EDGE_REQUIRED'});
-    const path=request.url.split('?')[0]??'';
-    if(!reviewedPaths.some(pattern=>pattern.test(path)))return reply.code(503).send({code:'RUNTIME_PATH_NOT_PROMOTED'});
-  });
+    verifier,etagSecret:config.etagSecret,cursorSecret:config.cursorSecret,secretProfile:'reviewed-guarded',
+    requestGuards:[promotedPathGuard]});
+  // The same guard on this instance covers the routes this composition registers
+  // itself below (`/auth/*`, readiness, realtime, the dispatch snapshot).
+  app.addHook('onRequest',promotedPathGuard);
   const store=options.realtimeStore??createPostgresRealtimeStore(options.pool,createTestOnlyCursorCodec({secret:config.cursorSecret}));
   const revalidate=createBrowserRealtimeRevalidator(verifier);
-  const gateway=await registerWp009Realtime(app,{store,generationSource:createAuthorizationGenerationSource(),
-    allowedOrigins:new Set([config.origin]),now,
-    revalidateBrowserSession:(request:FastifyRequest,principal)=>revalidate({method:request.method,headers:request.headers},principal)});
+  const generationSource=createAuthorizationGenerationSource();
+  // Readiness is unauthenticated and stays outside the authenticated scope. It
+  // reports only whether this host can reach its own database through the pool it
+  // was given; it never reports provider, credential or configuration detail.
+  app.get('/health/ready',async(_request,reply)=>{
+    try{await options.pool.query('SELECT 1');reply.header('cache-control','no-store');return {status:'ready',profile:'guarded-live'};}
+    catch{return reply.code(503).send({status:'unavailable'});}
+  });
+  // Realtime and the dispatch snapshot are registered inside their own
+  // session-authenticated scope. The wp007 lifecycle plugin installs its
+  // authentication hook and `wp007Context` decoration inside its own encapsulated
+  // scope, so a route registered on the parent app would never see an
+  // authenticated principal. `/auth/*` stays separately scoped and
+  // unauthenticated below.
+  let gateway!:Awaited<ReturnType<typeof registerWp009Realtime>>;
+  await app.register(async scope=>{
+    scope.decorateRequest('wp007Context');
+    scope.addHook('onRequest',async(request,reply)=>{
+      // Only the persisted browser session verifier is consulted here; no
+      // Authorization header, Bearer token or synthetic principal is accepted.
+      const principal=await verifyBrowserRequest({method:request.method,headers:request.headers});
+      if(!principal)return reply.code(401).send({code:'AUTHENTICATION_REQUIRED'});
+      request.wp007Context={requestId:request.id,startedAt:performance.now(),principal,resultCode:'UNSET'};
+    });
+    gateway=await registerWp009Realtime(scope,{store,generationSource,allowedOrigins:new Set([config.origin]),now,
+      revalidateBrowserSession:(request:FastifyRequest,principal)=>revalidate({method:request.method,headers:request.headers},principal)});
+    scope.get('/v1/organizations/:organizationId/runtime-dispatch-snapshot',async(request,reply)=>{
+      const principal=contextPrincipal(request);
+      const serviceDate=(request.query as {serviceDate?:unknown}).serviceDate;
+      if(typeof serviceDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate))return reply.code(400).send({code:'INVALID_SERVICE_DATE'});
+      const organizationId=(request.params as {organizationId:string}).organizationId;
+      try{
+        // The company's own canonical branch scope, never the fixture constant.
+        const authorization=authorizeRealtimeSubscription({principal,organizationId,
+          authorizationGeneration:generationSource.current(principal.id),purpose:'DISPATCH_CONTROL',
+          scope:{streamKind:'DISPATCH_DAY',scopeReference:companyBranchScope(organizationId),serviceDate}});
+        reply.header('cache-control','no-store');
+        return await store.snapshot(authorization);
+      }catch{return reply.code(404).send({code:'RESOURCE_NOT_FOUND'});}
+    });
+  });
   await registerBrowserAuth(app,{origin:config.origin,signingKey:config.signingKey,
     ports:{admit:admission.admit,issue:sessions.issue,resolve:sessions.resolve,revoke:sessions.revoke}});
   let stopped=false;

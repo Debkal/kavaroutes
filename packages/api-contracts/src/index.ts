@@ -1,4 +1,7 @@
 export * from "./admission-control.js";
+// Exported so a guarded host can compose its own authenticated scope with the
+// same principal semantics as the wp007 lifecycle plugin.
+export { contextPrincipal, type RequestGuard } from "./api-lifecycle.js";
 export * from "./api.js";
 export * from "./application.js";
 export * from "./compatibility.js";
