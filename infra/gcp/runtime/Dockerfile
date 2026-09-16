@@ -2,11 +2,12 @@ FROM node:24.19.0-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages ./packages
+COPY apps/api-host ./apps/api-host
 COPY vendor ./vendor
 COPY infra/gcp/runtime ./infra/gcp/runtime
-RUN npm ci --workspace=packages --include-workspace-root --ignore-scripts \
-    && ./node_modules/.bin/tsc -b packages/* \
-    && npm prune --omit=dev --workspace=packages --include-workspace-root --ignore-scripts \
+RUN npm ci --workspace=packages --workspace=apps/api-host --include-workspace-root --ignore-scripts \
+    && ./node_modules/.bin/tsc -b packages/* apps/api-host \
+    && npm prune --omit=dev --workspace=packages --workspace=apps/api-host --include-workspace-root --ignore-scripts \
     && node infra/gcp/runtime/stage-image.mjs
 
 FROM node:24.19.0-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03

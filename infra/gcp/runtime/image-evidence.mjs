@@ -10,15 +10,18 @@ const inspect = JSON.parse(run(['image','inspect',image]))[0];
 if (inspect.Config.User !== 'node') throw new Error('NONROOT_IMAGE_REQUIRED');
 const sandbox = ['run','--rm','--network','none','--read-only','--cap-drop','ALL','--security-opt','no-new-privileges',
   '--tmpfs','/home/node/.npm:rw,nosuid,noexec,size=16777216,uid=1000,gid=1000,mode=0700'];
-const sbom = JSON.parse(run([...sandbox,'--entrypoint','npm',image,'sbom','--omit=dev','--workspace=packages','--include-workspace-root','--sbom-format=cyclonedx']));
+const sbom = JSON.parse(run([...sandbox,'--entrypoint','npm',image,'sbom','--omit=dev','--workspace=packages','--workspace=apps/api-host','--include-workspace-root','--sbom-format=cyclonedx']));
 const names = ['api','config','database','health','init','main','manifest','recovery','worker'].map(name => `infra/gcp/runtime/${name}.mjs`);
 names.push('packages/postgres-persistence/scripts/migration-lib.mjs');
 const script = `import fs from 'node:fs';import{createHash}from'node:crypto';const names=${JSON.stringify(names)};
 for(const file of fs.readdirSync('packages/postgres-persistence/migrations').sort())names.push('packages/postgres-persistence/migrations/'+file);
 function walk(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const path=dir+'/'+entry.name;if(entry.isDirectory())walk(path);else if(entry.isFile()&&!entry.name.endsWith('.tsbuildinfo'))names.push(path);else if(entry.isSymbolicLink())throw new Error('UNEXPECTED_COMPILED_SYMLINK');}}
 for(const entry of fs.readdirSync('packages',{withFileTypes:true})){if(!entry.isDirectory())continue;const base='packages/'+entry.name;names.push(base+'/package.json');if(fs.existsSync(base+'/dist'))walk(base+'/dist');}
+// The staged server host is hashed like the packages, so the image cannot carry
+// an unverified copy of the composed browser/guarded API surface.
+names.push('apps/api-host/package.json');if(fs.existsSync('apps/api-host/dist'))walk('apps/api-host/dist');
 const hashes=Object.fromEntries(names.map(name=>[name,createHash('sha256').update(fs.readFileSync(name)).digest('hex')]));
-console.log(JSON.stringify({hashes,node:process.version,forbidden:['apps/driver','apps/web','infra/gcp/runtime/integration.test.mjs'].filter(name=>fs.existsSync(name))}));`;
+console.log(JSON.stringify({hashes,node:process.version,forbidden:['apps/driver','apps/web','apps/worker-host','infra/gcp/runtime/integration.test.mjs'].filter(name=>fs.existsSync(name))}));`;
 const payload = JSON.parse(run([...sandbox,'--entrypoint','node',image,'--input-type=module','-e',script]));
 const osPackages = run([...sandbox,'--entrypoint','dpkg-query',image,'-W','-f=${Package}\t${Version}\n']);
 if (payload.forbidden.length) throw new Error('UNEXPECTED_IMAGE_PAYLOAD');
