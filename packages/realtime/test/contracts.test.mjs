@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Value } from "typebox/value";
-import { createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
+import { companyBranchScope, companyFleetScope, createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
 import {
   authorizeRealtimeSubscription, createAuthorizationGenerationSource, createInMemoryRealtimeStore,
   createMemoryClientProjection, createReferenceSyncClient, createTestOnlyCursorCodec, CursorRejected,
   decodeClientFrame, locationShard, positionFreshness, PROTOCOL_CATALOG, REALTIME_LIMITS, realtimeSchemas, reconnectDelay,
 } from "../dist/index.js";
 
-const dispatcherScope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: "branch:synthetic-all", serviceDate: "2026-08-25" });
-const locationScope = Object.freeze({ streamKind: "CURRENT_POSITION", scopeReference: "fleet:synthetic-all" });
+const dispatcherScope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: companyBranchScope(syntheticIds.organizationA), serviceDate: "2026-08-25" });
+const locationScope = Object.freeze({ streamKind: "CURRENT_POSITION", scopeReference: companyFleetScope(syntheticIds.organizationA) });
 const verifier = createSyntheticTestVerifier();
 
 test("persisted Driver shift invalidations are supported by the closed realtime contract", () => {
@@ -48,7 +48,7 @@ test("encrypted cursors hide claims and fail closed on every binding and lifetim
   const token = codec.encode({ organizationId: auth.organizationId, principalId: auth.principalId, authorizationGeneration: 1,
     purpose: auth.purpose, scope: auth.scope, vectors: [{ streamId: "11111111-1111-4111-8111-111111111111", epoch: 1, sequence: 4 }], lifetimeMilliseconds: 60_000 });
   assert.match(token, /^rtc1\./);
-  for (const readable of [auth.organizationId, auth.principalId, "DISPATCH_CONTROL", "branch:synthetic-all"]) assert.equal(token.includes(readable), false);
+  for (const readable of [auth.organizationId, auth.principalId, "DISPATCH_CONTROL", companyBranchScope(syntheticIds.organizationA)]) assert.equal(token.includes(readable), false);
   const decoded = codec.decode(token, { organizationId: auth.organizationId, principalId: auth.principalId, authorizationGeneration: 1, purpose: auth.purpose, scope: auth.scope });
   assert.equal(decoded.vectors[0].sequence, 4);
   assert.throws(() => codec.decode(`${token.slice(0, -1)}A`, { organizationId: auth.organizationId, principalId: auth.principalId, authorizationGeneration: 1, purpose: auth.purpose, scope: auth.scope }), CursorRejected);

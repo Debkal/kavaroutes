@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 const tenant='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const base='http://127.0.0.1:58080';
 const headers={authorization:'Synthetic principal_dispatcher','content-type':'application/json'};
-const scope={streamKind:'DISPATCH_DAY',scopeReference:'branch:synthetic-all',serviceDate:'2026-09-12'};
+const scope={streamKind:'DISPATCH_DAY',scopeReference:`branch:${tenant}`,serviceDate:'2026-09-12'};
 const tripId=randomUUID();
 let socket;
 const deadline=setTimeout(()=>{console.error('CLOUD_REALTIME_TIMEOUT');process.exit(1);},30000);

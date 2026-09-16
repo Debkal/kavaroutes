@@ -11,7 +11,7 @@ const assignmentId = "40000000-0000-4000-8000-000000000001";
 const idempotencyKey = "driver-shift-shift_synthetic000001";
 const driverHeaders = Object.freeze({ authorization: "Synthetic principal_driver", accept: "application/json" });
 const dispatcherHeaders = Object.freeze({ authorization: "Synthetic principal_dispatcher", accept: "application/json" });
-const scope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: "branch:synthetic-all", serviceDate });
+const scope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: `branch:${organizationId}`, serviceDate });
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function json(response, expectedStatus) {

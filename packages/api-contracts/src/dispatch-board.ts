@@ -2,7 +2,7 @@ import {randomUUID} from 'node:crypto';
 import type {Pool} from 'pg';
 import {Type,type Static} from 'typebox';
 import {createDispatchBoardReader,createPostgresPersistence,PersistenceConflict} from '@kavaroutes/postgres-persistence';
-import {authorize,type SyntheticPrincipal} from './security.js';
+import {authorize,companyBranchScope,companyFleetScope,type SyntheticPrincipal} from './security.js';
 import {requestFingerprint} from './protocol.js';
 
 const id=()=>Type.String({format:'uuid'});
@@ -19,7 +19,7 @@ export const DispatchBoardSchema=Type.Object({serviceDate:Type.String({format:'d
 },{additionalProperties:false,$id:'DispatchBoard'});
 export function createPostgresDispatchService(pool:Pool,options:{etag:(id:string,version:number,projection:string)=>string}) {
  const persistence=createPostgresPersistence(pool),reader=createDispatchBoardReader(pool);
- const access=(organizationId:string,principal:SyntheticPrincipal,command:boolean)=>authorize(principal,organizationId,{capability:command?'dispatch:command':'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'});
+ const access=(organizationId:string,principal:SyntheticPrincipal,command:boolean)=>authorize(principal,organizationId,{capability:command?'dispatch:command':'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)});
  return {
   async read(organizationId:string,principal:SyntheticPrincipal,serviceDate:string){
    access(organizationId,principal,false);

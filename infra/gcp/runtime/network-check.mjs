@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import WebSocket from 'ws';
-import { tenantId, riderId } from './config.mjs';
+import { tenantId, riderId, branchScopeReference } from './config.mjs';
 
 async function bounded(promise, milliseconds = 15000, phase = 'UNKNOWN') {
   let timer;
@@ -28,7 +28,7 @@ export async function checkLiveNetwork(configFor) {
   const sockets = [];
   const headers = { authorization: 'Synthetic principal_dispatcher', 'content-type': 'application/json' };
   const tripId = randomUUID();
-  const scope = { streamKind: 'DISPATCH_DAY', scopeReference: 'branch:synthetic-all', serviceDate: '2026-09-12' };
+  const scope = { streamKind: 'DISPATCH_DAY', scopeReference: branchScopeReference, serviceDate: '2026-09-12' };
   async function start(role, port = null) {
     const config = { ...configFor(role), port: port ?? await freePort() };
     const path = join(directory, `${role}.json`);

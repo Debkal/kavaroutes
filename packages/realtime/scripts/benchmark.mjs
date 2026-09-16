@@ -2,13 +2,13 @@ import { performance, monitorEventLoopDelay } from "node:perf_hooks";
 import { cpus } from "node:os";
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
+import { companyBranchScope, companyFleetScope, createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
 import {
   authorizeRealtimeSubscription, createAuthorizationGenerationSource, createInMemoryRealtimeStore, createRealtimeGateway,
   createTestOnlyCursorCodec, locationShard, REALTIME_PROTOCOL, SELECTED_LOCATION_SHARDS,
 } from "../dist/index.js";
 
-const scope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: "branch:synthetic-all", serviceDate: "2026-08-25" });
+const scope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: companyBranchScope(syntheticIds.organizationA), serviceDate: "2026-08-25" });
 const verifier = createSyntheticTestVerifier();
 const basePrincipal = await verifier.verify("Synthetic principal_dispatcher");
 if (!basePrincipal) throw new Error("SYNTHETIC_PRINCIPAL_MISSING");
@@ -85,13 +85,13 @@ async function runLocationProfile() {
   const codec = createTestOnlyCursorCodec();
   const store = createInMemoryRealtimeStore(codec, { locationShardCount: SELECTED_LOCATION_SHARDS });
   const auth = authorizeRealtimeSubscription({ principal: basePrincipal, organizationId: syntheticIds.organizationA, authorizationGeneration: 1,
-    purpose: "DISPATCH_CURRENT_POSITION", scope: { streamKind: "CURRENT_POSITION", scopeReference: "fleet:synthetic-all" } });
+    purpose: "DISPATCH_CURRENT_POSITION", scope: { streamKind: "CURRENT_POSITION", scopeReference: companyFleetScope(syntheticIds.organizationA) } });
   const snapshot = await store.snapshot(auth);
   const started = performance.now();
   for (let sample = 0; sample < 100; sample += 1) {
     const driver = `driver:synthetic:${String(sample % 25).padStart(3, "0")}`;
     await store.append({ organizationId: syntheticIds.organizationA, sourceEventId: `event:location:${sample}`, purpose: "DISPATCH_CURRENT_POSITION",
-      scope: { streamKind: "CURRENT_POSITION", scopeReference: "fleet:synthetic-all", shard: locationShard(driver, SELECTED_LOCATION_SHARDS) },
+      scope: { streamKind: "CURRENT_POSITION", scopeReference: companyFleetScope(syntheticIds.organizationA), shard: locationShard(driver, SELECTED_LOCATION_SHARDS) },
       committedAt: new Date(1_777_118_400_000 + sample), delta: { kind: "CURRENT_POSITION", driverReference: driver, latitude: 34.1,
         longitude: -118.2, accuracyMeters: 5, capturedAt: new Date(1_777_118_400_000 + sample).toISOString(), resourceVersion: Math.floor(sample / 25) + 1 } });
   }

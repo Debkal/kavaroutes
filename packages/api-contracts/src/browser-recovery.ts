@@ -1,7 +1,7 @@
 import type {Pool} from 'pg';
 import {Type,type Static,type TSchema} from 'typebox';
 import {createBrowserCommandRecoveryStore,type BrowserCommandRecord,type JsonValue} from '@kavaroutes/postgres-persistence';
-import {authorize,type SyntheticPrincipal,type Capability} from './security.js';
+import {authorize,companyBranchScope,companyFleetScope,type SyntheticPrincipal,type Capability} from './security.js';
 import {ProtocolError} from './protocol.js';
 import {mappedError} from './api-lifecycle.js';
 import type {Wp007Application} from './application.js';
@@ -31,7 +31,7 @@ type Context={organizationId:string;principal:SyntheticPrincipal};
 type Services={application:Wp007Application;dispatchService:DispatchService;routeProposalService:RouteProposalService;driverClosureService:DriverClosureService};
 const permissions:Record<BrowserCommandEnvelope['kind'],Capability>={CREATE_TRIP:'trips:write',CANCEL_TRIP:'trips:command',ASSIGN_RUN:'dispatch:command',DECIDE_ROUTE:'dispatch:command',OVERRIDE_RETURN:'driver-policy:override'};
 function access(c:Context,kind:BrowserCommandEnvelope['kind']){
- authorize(c.principal,c.organizationId,{capability:permissions[kind],purpose:kind==='CREATE_TRIP'||kind==='CANCEL_TRIP'?'RIDER_INTAKE':'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'});
+ authorize(c.principal,c.organizationId,{capability:permissions[kind],purpose:kind==='CREATE_TRIP'||kind==='CANCEL_TRIP'?'RIDER_INTAKE':'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(c.organizationId),fleetScope:companyFleetScope(c.organizationId)});
 }
 function view(record:BrowserCommandRecord){return {id:record.id,envelope:record.envelope,result:record.result,expired:record.expired,acknowledged:record.acknowledged};}
 export function createPostgresBrowserRecoveryService(pool:Pool,services:Services){

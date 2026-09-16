@@ -11,7 +11,7 @@ COMPOSE = ['docker', 'compose', '--env-file', '/opt/kavaroutes/runtime/vm.env',
 TENANT = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 TRIP = str(uuid.uuid4())
 KEY = str(uuid.uuid4())
-SCOPE = {'streamKind': 'DISPATCH_DAY', 'scopeReference': 'branch:synthetic-all', 'serviceDate': '2026-09-12'}
+SCOPE = {'streamKind': 'DISPATCH_DAY', 'scopeReference': f'branch:{TENANT}', 'serviceDate': '2026-09-12'}
 PAYLOAD = {'tripId': TRIP, 'riderId': '11111111-1111-4111-8111-111111111112',
            'serviceDate': '2026-09-12', 'serviceTimezone': 'America/Los_Angeles',
            'localServiceTime': '08:00:00', 'resolvedServiceAt': '2026-09-12T15:00:00.000Z',

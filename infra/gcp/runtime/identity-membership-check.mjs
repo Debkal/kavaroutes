@@ -7,6 +7,8 @@ import Fastify from 'fastify';
 import { registerPostgresBrowserAuth } from '../../../apps/api-host/dist/postgres-browser-auth.js';
 import {createBrowserPrincipalVerifier} from '../../../apps/api-host/dist/browser-principal.js';
 import {createWp007Api} from '@kavaroutes/api-contracts';
+import {companyBranchScope,companyFleetScope} from '../../../packages/api-contracts/dist/security.js';
+import {authorizeRealtimeSubscription} from '../../../packages/realtime/dist/authorization.js';
 
 export async function checkIdentityMembership(pool) {
   const tenant = '71000000-0000-4000-8000-000000000001';
@@ -142,4 +144,130 @@ export async function checkIdentityMembership(pool) {
   await withTenantTransaction(pool,tenant,'kavaroutes_migration',c =>
     c.query('UPDATE platform.application_user SET active=true WHERE tenant_id=$1 AND id=$2',[tenant,user]));
   assert.equal(await reopened.resolve(tenant,'1'.repeat(64)),null,'user reactivation cannot revive sessions');
+
+  // ---- CQ-002: explicit company-scoped grants, elevated capability grants and
+  // multi-company isolation on real PostgreSQL.
+  const companyB = '72000000-0000-4000-8000-000000000002';
+  const userB = '72000000-0000-4000-8000-000000000021';
+  const principalB = '72000000-0000-4000-8000-000000000013';
+  const subjectB = 'verified-subject-b';
+  const grantedSubject = 'granted-subject';
+  const branchScope = companyBranchScope(tenant), fleetScope = companyFleetScope(tenant);
+  const generationOf = async organizationId => Number((await withTenantTransaction(pool, organizationId, 'kavaroutes_api',
+    c => c.query('SELECT authorization_generation FROM platform.application_membership WHERE tenant_id=$1', [organizationId]))).rows[0].authorization_generation);
+  await withTenantTransaction(pool, companyB, 'kavaroutes_migration', async c => {
+    await c.query("INSERT INTO platform.organization(tenant_id,id,synthetic_name) VALUES($1,$1,'Pony second company')", [companyB]);
+    await c.query("INSERT INTO platform.application_user(tenant_id,id,display_name,active) VALUES($1,$2,'PonyDispatch second',true)", [companyB, userB]);
+    await c.query('INSERT INTO platform.identity_binding(tenant_id,user_id,issuer,subject,active) VALUES($1,$2,$3,$4,true)', [companyB, userB, issuer, subjectB]);
+    await c.query("INSERT INTO platform.application_membership(tenant_id,user_id,principal_id,active,role) VALUES($1,$2,$3,true,'DISPATCHER')", [companyB, userB, principalB]);
+    for (const kind of ['BRANCH','FLEET']) await c.query('INSERT INTO platform.membership_scope_grant(tenant_id,user_id,scope_kind,active) VALUES($1,$2,$3,true)', [companyB, userB, kind]);
+  });
+  // Both companies are real tenants with the same role shape; only the grant rows differ.
+  const authorityKey = randomBytes(32);
+  const authorityCreds = createBrowserCredentials({origin:'https://app.kavaroutes.com',signingKey:authorityKey});
+  const authorityVerifier = createBrowserPrincipalVerifier({origin:'https://app.kavaroutes.com',signingKey:authorityKey,resolve:sessions.resolve});
+  const authorityApi = await createWp007Api({verifier:authorityVerifier});
+  const sessionFor = async (organizationId, userId, principalId, subject) => {
+    const issued = authorityCreds.issue(organizationId);
+    await sessions.issue({organizationId, userId, principalId, issuer, subject,
+      authorizationGeneration: await generationOf(organizationId), tokenHash: issued.tokenHash, csrfHash: issued.csrfHash});
+    return {headers:{cookie:issued.cookie.split(';')[0],'sec-fetch-site':'same-origin'}, tokenHash:issued.tokenHash};
+  };
+  const principalFor = headers => authorityVerifier.verifyRequest({method:'GET',headers});
+  try {
+    // Company A holds no grants yet: role defaults still work, scoped authority does not.
+    await withTenantTransaction(pool, tenant, 'kavaroutes_migration', c =>
+      c.query('UPDATE platform.identity_binding SET subject=$2 WHERE tenant_id=$1 AND user_id=$3', [tenant, grantedSubject, user]));
+    const ungranted = await sessionFor(tenant, user, principal, grantedSubject);
+    assert.equal((await authorityApi.inject({url:'/v1/me', headers:ungranted.headers})).statusCode, 200);
+    assert.equal((await authorityApi.inject({url:`/v1/organizations/${tenant}/dispatch-board/2026-09-16`, headers:ungranted.headers})).statusCode, 404,
+      'no branch grant means the scoped board is hidden');
+    const ungrantedPrincipal = await principalFor(ungranted.headers);
+    assert.equal(ungrantedPrincipal.branchScopes.size, 0);
+    assert.equal(ungrantedPrincipal.fleetScopes.size, 0);
+    assert.equal(ungrantedPrincipal.capabilities.has('driver-policy:override'), false, 'override is never implied by a role');
+    const ungrantedGeneration = await generationOf(tenant);
+    assert.throws(() => authorizeRealtimeSubscription({principal:ungrantedPrincipal, organizationId:tenant,
+      authorizationGeneration:ungrantedGeneration, purpose:'DISPATCH_CONTROL',
+      scope:{streamKind:'DISPATCH_DAY',scopeReference:branchScope,serviceDate:'2026-09-16'}}), /REALTIME_AUTHORIZATION_DENIED/);
+    // The API role can read grants and can never write them.
+    await assert.rejects(withTenantTransaction(pool, tenant, 'kavaroutes_api', c =>
+      c.query('UPDATE platform.membership_scope_grant SET active=true WHERE tenant_id=$1', [tenant])));
+    await assert.rejects(withTenantTransaction(pool, tenant, 'kavaroutes_api', c =>
+      c.query("INSERT INTO platform.membership_capability_grant(tenant_id,user_id,capability,active) VALUES($1,$2,'audit:read',true)", [tenant, user])));
+    // Administrator provisioning grants exactly the two company scopes.
+    await withTenantTransaction(pool, tenant, 'kavaroutes_migration', async c => {
+      for (const kind of ['BRANCH','FLEET']) await c.query('INSERT INTO platform.membership_scope_grant(tenant_id,user_id,scope_kind,active) VALUES($1,$2,$3,true)', [tenant, user, kind]);
+    });
+    assert.equal(await sessions.resolve(tenant, ungranted.tokenHash), null, 'a grant change invalidates live sessions');
+    const granted = await sessionFor(tenant, user, principal, grantedSubject);
+    const grantedPrincipal = await principalFor(granted.headers);
+    assert.deepEqual([...grantedPrincipal.branchScopes], [branchScope]);
+    assert.deepEqual([...grantedPrincipal.fleetScopes], [fleetScope]);
+    const board = await authorityApi.inject({url:`/v1/organizations/${tenant}/dispatch-board/2026-09-16`, headers:granted.headers});
+    assert.equal(board.statusCode, 503, 'authorized scoped request reaches the unpromoted runtime path');
+    assert.equal((await authorityApi.inject({url:`/v1/organizations/${companyB}/dispatch-board/2026-09-16`, headers:granted.headers})).statusCode, 404,
+      'another company stays hidden');
+    const grantedGeneration = await generationOf(tenant);
+    assert.equal(authorizeRealtimeSubscription({principal:grantedPrincipal, organizationId:tenant,
+      authorizationGeneration:grantedGeneration, purpose:'DISPATCH_CONTROL',
+      scope:{streamKind:'DISPATCH_DAY',scopeReference:branchScope,serviceDate:'2026-09-16'}}).purpose, 'DISPATCH_CONTROL');
+    assert.equal(authorizeRealtimeSubscription({principal:grantedPrincipal, organizationId:tenant,
+      authorizationGeneration:grantedGeneration, purpose:'DISPATCH_CURRENT_POSITION',
+      scope:{streamKind:'CURRENT_POSITION',scopeReference:fleetScope}}).purpose, 'DISPATCH_CURRENT_POSITION');
+    assert.throws(() => authorizeRealtimeSubscription({principal:grantedPrincipal, organizationId:tenant,
+      authorizationGeneration:grantedGeneration, purpose:'DISPATCH_CONTROL',
+      scope:{streamKind:'DISPATCH_DAY',scopeReference:companyBranchScope(companyB),serviceDate:'2026-09-16'}}), /REALTIME_AUTHORIZATION_DENIED/);
+    // Elevated capability requires its own grant, and it also bumps the generation.
+    assert.equal(grantedPrincipal.capabilities.has('driver-policy:override'), false);
+    await withTenantTransaction(pool, tenant, 'kavaroutes_migration', c =>
+      c.query("INSERT INTO platform.membership_capability_grant(tenant_id,user_id,capability,active) VALUES($1,$2,'driver-policy:override',true)", [tenant, user]));
+    assert.equal(await sessions.resolve(tenant, granted.tokenHash), null, 'capability grant changes invalidate live sessions');
+    const elevatedSession = await sessionFor(tenant, user, principal, grantedSubject);
+    const elevated = await principalFor(elevatedSession.headers);
+    assert.equal(elevated.capabilities.has('driver-policy:override'), true);
+    assert.equal(elevated.capabilities.has('audit:read'), false);
+    // Company B resolves only against its own membership and grants; company A's
+    // grants are invisible to it (forced RLS on both grant tables).
+    const companyBSession = await sessionFor(companyB, userB, principalB, subjectB);
+    assert.equal(await sessions.resolve(companyB, (await sessionFor(tenant, user, principal, grantedSubject)).tokenHash), null);
+    await withTenantTransaction(pool, companyB, 'kavaroutes_api', async c => {
+      const scopes = await c.query('SELECT scope_kind FROM platform.membership_scope_grant');
+      assert.equal(scopes.rowCount, 2);
+      assert.equal((await c.query('SELECT * FROM platform.membership_capability_grant')).rowCount, 0, 'company A capability grants stay invisible');
+    });
+    assert.equal((await authorityApi.inject({url:`/v1/organizations/${tenant}/dispatch-board/2026-09-16`, headers:companyBSession.headers})).statusCode, 404);
+    assert.equal((await authorityApi.inject({url:`/v1/organizations/${companyB}/dispatch-board/2026-09-16`, headers:companyBSession.headers})).statusCode, 503);
+    // Concurrent revocation against an in-flight authorized transaction. Ordering
+    // rule: authority is decided from the persisted generation when the request is
+    // authenticated, so a revocation committed after that snapshot does not abort
+    // the already-authorized transaction, but the next request, socket upgrade or
+    // revalidation denies because the generation no longer matches.
+    const reader = await pool.connect(), revoker = await pool.connect();
+    try {
+      await reader.query('BEGIN'); await reader.query("SELECT set_config('app.tenant_id',$1,true)", [tenant]);
+      // Plain MVCC read: no lock is held, so the concurrent revocation cannot block.
+      const observed = Number((await reader.query('SELECT authorization_generation FROM platform.application_membership WHERE tenant_id=$1', [tenant])).rows[0].authorization_generation);
+      await revoker.query('BEGIN'); await revoker.query("SELECT set_config('app.tenant_id',$1,true)", [tenant]);
+      await revoker.query("UPDATE platform.membership_scope_grant SET active=false WHERE tenant_id=$1 AND scope_kind='BRANCH'", [tenant]);
+      await revoker.query('COMMIT');
+      await reader.query('COMMIT');
+      assert.ok(await generationOf(tenant) > observed, 'revocation advanced the membership generation');
+    } finally { reader.release(); revoker.release(); }
+    assert.equal(await sessions.resolve(tenant, elevatedSession.tokenHash), null,
+      'the session authorized before the revocation is now unusable');
+    const revokedPrincipal = await principalFor((await sessionFor(tenant, user, principal, grantedSubject)).headers);
+    const revokedGeneration = await generationOf(tenant);
+    assert.equal(revokedPrincipal.branchScopes.size, 0, 'revoked branch scope is gone');
+    assert.deepEqual([...revokedPrincipal.fleetScopes], [fleetScope], 'the unrelated fleet grant survives');
+    assert.throws(() => authorizeRealtimeSubscription({principal:revokedPrincipal, organizationId:tenant,
+      authorizationGeneration:revokedGeneration, purpose:'DISPATCH_CONTROL',
+      scope:{streamKind:'DISPATCH_DAY',scopeReference:branchScope,serviceDate:'2026-09-16'}}), /REALTIME_AUTHORIZATION_DENIED/);
+    // Deactivating the membership denies everything even with grants in place:
+    // no new session can be admitted at all.
+    await withTenantTransaction(pool, tenant, 'kavaroutes_migration', c =>
+      c.query('UPDATE platform.application_membership SET active=false WHERE tenant_id=$1', [tenant]));
+    await assert.rejects(sessionFor(tenant, user, principal, grantedSubject), /SESSION_ADMISSION_DENIED/);
+    assert.equal(await sessions.resolve(tenant, elevatedSession.tokenHash), null);
+  } finally { await authorityApi.close(); }
 }

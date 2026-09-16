@@ -6,6 +6,12 @@ export const schema = 'kavaroutes_cloud_boss';
 export const tenantId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 export const riderId = '11111111-1111-4111-8111-111111111112';
 export const routes = Object.freeze(['projection', 'realtime-signal']);
+// Canonical company scope references. Membership grants persist the same strings;
+// a principal holds no scope nobody provisioned.
+export const branchScopeReference = `branch:${tenantId}`;
+export const fleetScopeReference = `fleet:${tenantId}`;
+/** Hard bound on how many enrolled tenants one worker cycle will process. */
+export const enrollmentBound = 25;
 
 // Deliberately not a production profile. No provider selection or arbitrary DB host.
 export function validateConfig(input) {

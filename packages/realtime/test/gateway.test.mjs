@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
+import { companyBranchScope, createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
 import {
   authorizeRealtimeSubscription, createAuthorizationGenerationSource, createInMemoryRealtimeStore,
   createNotificationPollFanout, createRealtimeGateway, createTestOnlyCursorCodec, REALTIME_LIMITS, REALTIME_PROTOCOL,
 } from "../dist/index.js";
 
-const scope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: "branch:synthetic-all", serviceDate: "2026-08-25" });
+const scope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: companyBranchScope(syntheticIds.organizationA), serviceDate: "2026-08-25" });
 const verifier = createSyntheticTestVerifier();
 
 function transport(failures = {}) {

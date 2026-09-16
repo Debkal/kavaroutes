@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createRealtimeGateway} from '../dist/gateway.js';
-import {createSyntheticTestVerifier} from '@kavaroutes/api-contracts';
+import {companyBranchScope,createSyntheticTestVerifier,syntheticIds} from '@kavaroutes/api-contracts';
 import {createAuthorizationGenerationSource,REALTIME_PROTOCOL} from '../dist/index.js';
 
 async function setup(store){
@@ -25,7 +25,7 @@ test('revocation during replay suppresses the awaited batch and live acknowledge
   const id=f.gateway.open({...f.input,revalidateSession:async()=>valid});
   await f.gateway.receive(id,JSON.stringify({type:'subscription.subscribe',messageId:'message:synthetic:001',subscriptionId:'subscription:synthetic:001',
     organizationId:f.input.principal.organizationId,purpose:'DISPATCH_CONTROL',
-    scope:{streamKind:'DISPATCH_DAY',scopeReference:'branch:synthetic-all',serviceDate:'2026-08-25'},cursor:'rtc1.'+'x'.repeat(100)}));
+    scope:{streamKind:'DISPATCH_DAY',scopeReference:companyBranchScope(syntheticIds.organizationA),serviceDate:'2026-08-25'},cursor:'rtc1.'+'x'.repeat(100)}));
   assert.equal(replays,1);assert.equal(f.gateway.activeConnections(),0);
   assert.deepEqual(f.frames.map(frame=>frame.type),['connection.ready']);
 });

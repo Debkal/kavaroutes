@@ -2,7 +2,7 @@ import {randomUUID} from 'node:crypto';
 import type {Pool} from 'pg';
 import {Type,type Static} from 'typebox';
 import {createPostgresPersistence,createShiftClosureReader,PersistenceConflict,withTenantTransaction,type TenantMutationTransaction} from '@kavaroutes/postgres-persistence';
-import {authorize,type SyntheticPrincipal} from './security.js';
+import {authorize,companyBranchScope,companyFleetScope,type SyntheticPrincipal} from './security.js';
 import {ProtocolError,requestFingerprint} from './protocol.js';
 const id=()=>Type.String({format:'uuid'}),closed={additionalProperties:false};
 export const DriverClosureRequestSchema=Type.Object({commandId:id(),shiftGeneration:id(),expectedVersion:Type.Integer({minimum:1}),kind:Type.Union([Type.Literal('SIGN_OFF'),Type.Literal('EMERGENCY_STOP')]),reason:Type.Union([Type.Literal('NORMAL_SIGN_OFF'),Type.Literal('SAFETY'),Type.Literal('PRIVACY'),Type.Literal('DEVICE_PROBLEM'),Type.Literal('OTHER')]),sampleId:Type.Optional(id()),parkedAttestation:Type.Boolean()},{...closed,$id:'DriverClosureRequest'});
@@ -20,7 +20,7 @@ export const DriverClosureViewSchema=Type.Object({driverId:id(),shiftReference:i
 type Base={organizationId:string;principal:SyntheticPrincipal;shiftId:string;key:string};
 export function createPostgresDriverClosureService(pool:Pool){
  const db=createPostgresPersistence(pool),reader=createShiftClosureReader(pool);
- const access=(i:Pick<Base,'principal'|'organizationId'>,dispatcher=false)=>authorize(i.principal,i.organizationId,dispatcher?{capability:'dispatch:location:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'}:{capability:'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY'});
+ const access=(i:Pick<Base,'principal'|'organizationId'>,dispatcher=false)=>authorize(i.principal,i.organizationId,dispatcher?{capability:'dispatch:location:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(i.organizationId),fleetScope:companyFleetScope(i.organizationId)}:{capability:'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY'});
  async function publish(tx:TenantMutationTransaction,input:Base,version:number,kind:string,shift:{assignmentId:string;policyDigest:string}){
   await tx.appendAudit({auditId:randomUUID(),aggregateKind:'driver-shift',aggregateId:input.shiftId,aggregateVersion:version,actionReference:kind,actorReference:input.principal.id});
   const now=new Date(),retainUntil=new Date(Date.now()+2_592_100_000),messageId=randomUUID();
@@ -29,7 +29,7 @@ export function createPostgresDriverClosureService(pool:Pool){
  }
  return {
   async review(input:Pick<Base,'organizationId'|'principal'|'shiftId'>){
-   authorize(input.principal,input.organizationId,{capability:'driver-policy:override',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'});
+   authorize(input.principal,input.organizationId,{capability:'driver-policy:override',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(input.organizationId),fleetScope:companyFleetScope(input.organizationId)});
    return withTenantTransaction(pool,input.organizationId,'kavaroutes_api',async client=>{
     const row=(await client.query(`SELECT s.driver_id,s.shift_generation,s.aggregate_version,s.lifecycle,s.effective_policy,c.command_id,c.return_result
      FROM execution.shift_policy_snapshot s LEFT JOIN LATERAL(SELECT command_id,return_result FROM execution.driver_shift_closure WHERE tenant_id=s.tenant_id AND shift_id=s.id AND kind='RETURN_EXCEPTION' ORDER BY aggregate_version DESC LIMIT 1)c ON true WHERE s.tenant_id=$1 AND s.id=$2`,[input.organizationId,input.shiftId])).rows[0];
@@ -38,7 +38,7 @@ export function createPostgresDriverClosureService(pool:Pool){
    },'serializable');
   },
   async override(input:Base&{request:Static<typeof DriverReturnOverrideRequestSchema>}){
-   authorize(input.principal,input.organizationId,{capability:'driver-policy:override',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'});
+   authorize(input.principal,input.organizationId,{capability:'driver-policy:override',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(input.organizationId),fleetScope:companyFleetScope(input.organizationId)});
    const view=await reader(input.organizationId,input.shiftId);if(!view||view.driverId===input.principal.subjectId)throw new ProtocolError(404,'RESOURCE_NOT_FOUND','separate authorized reviewer required');
    const req=input.request;
    return db.executeIdempotentMutation({tenantId:input.organizationId,actorReference:input.principal.id,operationId:'overrideDriverReturn',key:input.key,fingerprint:requestFingerprint({shift:input.shiftId,request:req}),recordId:randomUUID(),expiresAt:new Date(Date.now()+86_700_000),isolationLevel:'serializable'},async tx=>{

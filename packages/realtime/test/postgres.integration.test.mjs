@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
-import { createWp007Api, createWp007PostgresApplication, createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
+import { companyBranchScope, companyFleetScope, createWp007Api, createWp007PostgresApplication, createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
 import { withTenantTransaction } from "@kavaroutes/postgres-persistence";
 import { withFreshDatabase } from "../../postgres-persistence/scripts/database-fixture.mjs";
 import { authorizeRealtimeSubscription, createTestOnlyCursorCodec, locationShard } from "../dist/index.js";
@@ -10,8 +10,8 @@ import { createPostgresRealtimeStore, createPostgresWakeSource } from "../dist/p
 const connectionString = process.env.WP009_DATABASE_URL ?? process.env.WP008_DATABASE_URL;
 const tenantId = syntheticIds.organizationA;
 const riderId = "11111111-1111-4111-8111-111111111112";
-const scope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: "branch:synthetic-all", serviceDate: "2026-08-25" });
-const locationBaseScope = Object.freeze({ streamKind: "CURRENT_POSITION", scopeReference: "fleet:synthetic-all" });
+const scope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: companyBranchScope(syntheticIds.organizationA), serviceDate: "2026-08-25" });
+const locationBaseScope = Object.freeze({ streamKind: "CURRENT_POSITION", scopeReference: companyFleetScope(syntheticIds.organizationA) });
 
 async function seed(pool) {
   await withTenantTransaction(pool, tenantId, "kavaroutes_api", async (client) => {

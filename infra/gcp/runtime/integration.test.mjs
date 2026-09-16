@@ -15,7 +15,7 @@ import { checkProcesses } from './process-check.mjs';
 import { checkDatabaseGuards } from './database-check.mjs';
 import { checkLiveNetwork } from './network-check.mjs';
 import { checkContainers } from './container-check.mjs';
-import { tenantId, riderId, schema } from './config.mjs';
+import { tenantId, riderId, schema, branchScopeReference } from './config.mjs';
 import {verifyRouteProposals} from '../../../packages/api-contracts/test/helpers/route-proposals.mjs';
 import {verifyDriverPostcheck} from '../../../packages/api-contracts/test/helpers/driver-postcheck.mjs';
 import {verifyDriverClosure} from '../../../packages/api-contracts/test/helpers/driver-closure.mjs';
@@ -94,7 +94,7 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     await api.close();
     api = await createRuntimeApi(cfg('api', passwords.kr_cloud_api));
     const replay = await api.app.inject({ method: 'POST', url: `/v1/organizations/${tenantId}/realtime-change-queries`, headers: auth,
-      payload: { purpose: 'DISPATCH_CONTROL', scope: { streamKind: 'DISPATCH_DAY', scopeReference: 'branch:synthetic-all', serviceDate: '2026-09-11' }, cursor: snapshot.json().cursor, limit: 100 } });
+      payload: { purpose: 'DISPATCH_CONTROL', scope: { streamKind: 'DISPATCH_DAY', scopeReference: branchScopeReference, serviceDate: '2026-09-11' }, cursor: snapshot.json().cursor, limit: 100 } });
     assert.equal(replay.statusCode, 200, replay.body);
     assert.equal(replay.json().changes.length, 1);
     assert.equal(replay.json().changes[0].delta.resourceVersion, 2);
@@ -132,12 +132,29 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     for (const job of fetched) await worker.boss.fail('kr.projection.v1', job.id, { code: job.id === transientId ? 'TRANSIENT_DEPENDENCY' : 'PERMANENT_VALIDATION' });
     await control.query(`UPDATE ${schema}.job SET completed_on=now()-interval '10 seconds' WHERE state='failed'`);
     const recovery = createRecovery(worker.pool, worker.boss);
-    assert.equal((await recovery.reconcile('kr.projection.v1')).processed, 50);
-    assert.equal((await recovery.reconcile('kr.projection.v1')).processed, 2);
-    assert.equal((await recovery.reconcile('kr.projection.v1')).processed, 0);
+    assert.equal((await recovery.reconcile('kr.projection.v1', [tenantId])).processed, 50);
+    assert.equal((await recovery.reconcile('kr.projection.v1', [tenantId])).processed, 2);
+    assert.equal((await recovery.reconcile('kr.projection.v1', [tenantId])).processed, 0);
     assert.equal((await control.query("SELECT count(*)::int AS n FROM outbox.consumer_transport_journal WHERE action='DEAD_LETTER'")).rows[0].n, 51);
     await worker.runOnce();
     assert.equal(worker.healthy(), false, 'terminal jobs must keep readiness degraded');
+    // Worker tenant enrollment is explicit, bounded and enforced per job. The
+    // runtime role can read the bound through the definer function and can never
+    // enroll itself.
+    await worker.runOnce();
+    const enrolledTenants = async () => (await worker.pool.query('SELECT platform.enrolled_tenants(25) AS tenant_id')).rows.map(row => row.tenant_id);
+    assert.deepEqual(await enrolledTenants(), [tenantId]);
+    assert.equal((await worker.pool.query('SELECT platform.enrolled_tenants(1000) AS tenant_id')).rowCount, 0, 'the bound is enforced in SQL');
+    await assert.rejects(() => worker.pool.query("INSERT INTO platform.worker_enrollment(tenant_id) VALUES('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')"), /permission denied/);
+    const foreignPayload = { ...jobs.rows[0].data, tenantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', route: 'realtime-signal',
+      jobType: 'kr.realtime-signal.trip.v1', purposeReference: 'RIDER_INTAKE' };
+    await assert.rejects(() => worker.consume(foreignPayload), /CONSUMER_AUTHORIZATION_DENIED/);
+    await control.query("INSERT INTO platform.worker_enrollment(tenant_id) VALUES('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')");
+    await worker.runOnce();
+    assert.deepEqual((await enrolledTenants()).sort(), [tenantId, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'].sort(), 'enrollment is refreshed each cycle');
+    await assert.rejects(() => worker.consume(foreignPayload), /MESSAGE_REFERENCE_NOT_FOUND/, 'an enrolled tenant is processed, not silently skipped');
+    await control.query("DELETE FROM platform.worker_enrollment WHERE tenant_id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'");
+    await worker.runOnce();
     // pg-boss start_after/backoff uses database time. A single immediate cycle
     // need not make a freshly re-enrolled retry eligible, especially after image checks.
     for(let attempt=0;attempt<80;attempt++){
@@ -147,24 +164,25 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     assert.equal((await control.query(`SELECT state FROM ${schema}.job WHERE id=$1`, [transientId])).rows[0].state, 'completed');
     const replayRequest = { tenantId, queue: 'kr.projection.v1', jobId: terminalIds[0], requestId: randomUUID(),
       actorReference: 'synthetic.operator', reasonCode: 'OPERATOR_REVIEWED' };
-    await assert.rejects(() => recovery.replay(replayRequest), /REPLAY_AUTHORIZATION_DENIED/);
+    await assert.rejects(() => recovery.replay(replayRequest, [tenantId]), /REPLAY_AUTHORIZATION_DENIED/);
+    await assert.rejects(() => recovery.replay(replayRequest), /RECOVERY_SCOPE_DENIED/, 'a replay without an explicit enrolled tenant set is refused');
     const authorized = input => input.actorReference === 'synthetic.operator';
     const brokenRecovery = createRecovery(worker.pool, { retry: async (...args) => { await worker.boss.retry(...args); throw new Error('TEST_AFTER_RETRY_BEFORE_COMMIT'); } }, authorized);
-    await assert.rejects(() => brokenRecovery.replay(replayRequest), /TEST_AFTER_RETRY_BEFORE_COMMIT/);
+    await assert.rejects(() => brokenRecovery.replay(replayRequest, [tenantId]), /TEST_AFTER_RETRY_BEFORE_COMMIT/);
     assert.equal((await control.query(`SELECT state FROM ${schema}.job WHERE id=$1`, [replayRequest.jobId])).rows[0].state, 'failed');
     assert.equal((await control.query('SELECT count(*)::int AS n FROM outbox.consumer_transport_journal WHERE id=$1', [replayRequest.requestId])).rows[0].n, 0);
     const allowedRecovery = createRecovery(worker.pool, worker.boss, authorized);
     await control.query(`INSERT INTO outbox.route_control(tenant_id,route,paused,kill_switch,reason_code,actor_reference)
       VALUES ($1,'projection',true,false,'SYNTHETIC_PAUSE','synthetic.operator')`, [tenantId]);
-    await assert.rejects(() => allowedRecovery.replay(replayRequest), /REPLAY_ROUTE_STOPPED/);
+    await assert.rejects(() => allowedRecovery.replay(replayRequest, [tenantId]), /REPLAY_ROUTE_STOPPED/);
     await control.query("UPDATE outbox.route_control SET paused=false,kill_switch=true WHERE tenant_id=$1 AND route='projection'", [tenantId]);
-    await assert.rejects(() => allowedRecovery.replay(replayRequest), /REPLAY_ROUTE_STOPPED/);
+    await assert.rejects(() => allowedRecovery.replay(replayRequest, [tenantId]), /REPLAY_ROUTE_STOPPED/);
     assert.equal((await control.query('SELECT count(*)::int AS n FROM outbox.consumer_transport_journal WHERE id=$1', [replayRequest.requestId])).rows[0].n, 0);
     await control.query("UPDATE outbox.route_control SET kill_switch=false WHERE tenant_id=$1 AND route='projection'", [tenantId]);
-    assert.equal(await allowedRecovery.replay(replayRequest), 'ENROLLED');
-    assert.equal(await allowedRecovery.replay(replayRequest), 'REPLAYED');
-    await assert.rejects(() => allowedRecovery.replay({ ...replayRequest, jobId: terminalIds[1] }), /REPLAY_IDEMPOTENCY_MISMATCH/);
-    await assert.rejects(() => allowedRecovery.replay({ ...replayRequest, tenantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }), /REPLAY_AUTHORIZATION_DENIED/);
+    assert.equal(await allowedRecovery.replay(replayRequest, [tenantId]), 'ENROLLED');
+    assert.equal(await allowedRecovery.replay(replayRequest, [tenantId]), 'REPLAYED');
+    await assert.rejects(() => allowedRecovery.replay({ ...replayRequest, jobId: terminalIds[1] }, [tenantId]), /REPLAY_IDEMPOTENCY_MISMATCH/);
+    await assert.rejects(() => allowedRecovery.replay({ ...replayRequest, tenantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }, [tenantId]), /REPLAY_AUTHORIZATION_DENIED/);
     await worker.runOnce();
     assert.equal((await control.query(`SELECT state FROM ${schema}.job WHERE id=$1`, [replayRequest.jobId])).rows[0].state, 'completed');
     assert.equal((await control.query('SELECT status FROM outbox.delivery WHERE id=$1', [jobs.rows[0].data.deliveryId])).rows[0].status, 'PUBLISHED');

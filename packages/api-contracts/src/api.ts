@@ -18,7 +18,7 @@ import { createDocumentationApplication, createOfflineBatchService, syntheticRea
 import { createSyntheticDriverPolicyService, policyVersionFromEtag, type DriverPolicyService } from "./driver-policy.js";
 import { createCursorCodec, IdempotencyKeySchema, parseStrictJson, ProblemSchema, ProtocolError, StrongEtagSchema } from "./index-internal.js";
 import type { SafeTelemetryEvent } from "./protocol.js";
-import { createSyntheticTestVerifier, type PrincipalVerifier, syntheticIds } from "./security.js";
+import { companyBranchScope, companyFleetScope, createSyntheticTestVerifier, type PrincipalVerifier, syntheticIds } from "./security.js";
 import { DriverItinerarySchema, type DriverItineraryReader } from "./driver-itinerary.js";
 import type { DriverActionService } from "./driver-actions.js";
 import { DriverSignatureRequestSchema,DriverSignatureReceiptSchema,type DriverSignatureService,type DriverSignatureRequest } from "./driver-service-proof.js";
@@ -361,14 +361,14 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   const dispatchRoutes: FastifyPluginAsync = async (routes) => {
   routes.get('/v1/organizations/:organizationId/dispatch-board/:serviceDate',{schema:{operationId:'getDispatchBoard',tags:['dispatch'],security,headers:AuthorizationHeaders,params:DispatchDayParams,response:responseWithErrors({200:jsonResponse(DispatchBoardSchema,'Authorized persisted service-day board')},[400,401,404,406,429,500,503])}},async(request,reply)=>{
     const {organizationId,serviceDate}=request.params as {organizationId:string;serviceDate:string};
-    const principal=await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'},'getDispatchBoard');
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchBoard');
     if(!options.dispatchService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','persisted dispatch unavailable');
     const board=await options.dispatchService.read(organizationId,principal,serviceDate);
     request.wp007Context.resultCode='DISPATCH_BOARD_RETURNED';return reply.send(board);
   });
   routes.post('/v1/organizations/:organizationId/dispatch/runs/:runId/commands/assign',{bodyLimit:16*1024,schema:{operationId:'assignDispatchRun',tags:['dispatch'],security,headers:CommandHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),runId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),body:AssignDispatchRunRequestSchema,response:responseWithErrors({200:jsonResponse(AssignDispatchRunReceiptSchema,'Committed assignment receipt')},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
     const {organizationId,runId}=request.params as {organizationId:string;runId:string};
-    const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'},'assignDispatchRun');
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'assignDispatchRun');
     const ifMatch=request.headers['if-match'];if(typeof ifMatch!=='string')throw new ProtocolError(428,'PRECONDITION_REQUIRED','current strong tag required');
     if(!options.dispatchService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','persisted dispatch unavailable');
     const result=await options.dispatchService.assign({organizationId,principal,runId,ifMatch,key:String(request.headers['idempotency-key']),request:request.body as AssignDispatchRunRequest});

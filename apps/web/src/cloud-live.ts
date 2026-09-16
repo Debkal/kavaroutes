@@ -1,3 +1,7 @@
+import { companyBranchScope } from "@kavaroutes/api-contracts/security";
+
+const dispatchOrganizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
 /** Socket frames invalidate REST state; they never supply trip or shift authority. */
 export function connectCloudDispatch(options: {
   origin: string;
@@ -59,8 +63,8 @@ export function connectCloudDispatch(options: {
           if (!frame || typeof frame !== "object") throw new Error("INVALID_FRAME");
           if (frame.type === "connection.ready" && frame.protocol === "kavaroutes.realtime.v1") {
             connection.send(JSON.stringify({ type: "subscription.subscribe", messageId: "message:web:subscribe", subscriptionId,
-              organizationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", purpose: "DISPATCH_CONTROL",
-              scope: { streamKind: "DISPATCH_DAY", scopeReference: "branch:synthetic-all", serviceDate: options.serviceDate }, cursor }));
+              organizationId: dispatchOrganizationId, purpose: "DISPATCH_CONTROL",
+              scope: { streamKind: "DISPATCH_DAY", scopeReference: companyBranchScope(dispatchOrganizationId), serviceDate: options.serviceDate }, cursor }));
           } else if (frame.type === "subscription.live" && frame.subscriptionId === subscriptionId && frame.code === "LIVE") {
             clearTimeout(watchdog); attempt = 0; options.status("live");
           } else if (frame.type === "change.batch" && frame.subscriptionId === subscriptionId && validCursor(frame.cursor) &&

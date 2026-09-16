@@ -10,3 +10,4 @@ export * from './facility-day.js';
 export * from './browser-command-recovery.js';
 export * from './identity-membership.js';
 export * from './application-sessions.js';
+export * from './worker-enrollment.js';

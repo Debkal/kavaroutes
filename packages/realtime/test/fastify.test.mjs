@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import WebSocket from "ws";
-import { createWp007Api, createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
+import { companyBranchScope, createWp007Api, createSyntheticTestVerifier, syntheticIds } from "@kavaroutes/api-contracts";
 import {
   authorizeRealtimeSubscription, createAuthorizationGenerationSource, createInMemoryRealtimeStore,
   createTestOnlyCursorCodec, REALTIME_PROTOCOL,
 } from "../dist/index.js";
 import { registerWp009Realtime } from "../dist/fastify.js";
 
-const scope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: "branch:synthetic-all", serviceDate: "2026-08-25" });
+const scope = Object.freeze({ streamKind: "DISPATCH_DAY", scopeReference: companyBranchScope(syntheticIds.organizationA), serviceDate: "2026-08-25" });
 
 async function fixture() {
   const verifier = createSyntheticTestVerifier();

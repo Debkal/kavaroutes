@@ -3,7 +3,7 @@ import type {Pool} from 'pg';
 import {Type,type Static} from 'typebox';
 import {createPostgresPersistence,createRouteProposalReader,PersistenceConflict,type TenantMutationTransaction} from '@kavaroutes/postgres-persistence';
 import {RouteProposalConflict} from '@kavaroutes/platform-engine/domain';
-import {authorize,type SyntheticPrincipal} from './security.js';
+import {authorize,companyBranchScope,companyFleetScope,type SyntheticPrincipal} from './security.js';
 import {ProtocolError,requestFingerprint} from './protocol.js';
 
 const id=()=>Type.String({format:'uuid'}),closed={additionalProperties:false};
@@ -30,7 +30,7 @@ export function createPostgresRouteProposalService(pool:Pool){
  }
  return {
   async read(input:{organizationId:string;principal:SyntheticPrincipal;shiftId:string;dispatcher:boolean}){
-   authorize(input.principal,input.organizationId,input.dispatcher?{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'}:{capability:'driver:manifest:read',purpose:'ASSIGNED_SERVICE_DELIVERY'});
+   authorize(input.principal,input.organizationId,input.dispatcher?{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(input.organizationId),fleetScope:companyFleetScope(input.organizationId)}:{capability:'driver:manifest:read',purpose:'ASSIGNED_SERVICE_DELIVERY'});
    if(!input.dispatcher&&!input.principal.subjectId)throw new ProtocolError(404,'RESOURCE_NOT_FOUND','driver subject required');
    return createRouteProposalReader(pool)(input.organizationId,input.shiftId,input.dispatcher?undefined:input.principal.subjectId).catch(mapError);
   },
@@ -44,7 +44,7 @@ export function createPostgresRouteProposalService(pool:Pool){
    }).catch(mapError);
   },
   async decide(input:{organizationId:string;principal:SyntheticPrincipal;proposalId:string;key:string;request:DecisionRequest}){
-   authorize(input.principal,input.organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:'branch:synthetic-all',fleetScope:'fleet:synthetic-all'});
+   authorize(input.principal,input.organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(input.organizationId),fleetScope:companyFleetScope(input.organizationId)});
    const fingerprint=requestFingerprint({proposalId:input.proposalId,...input.request});
    return persistence.executeIdempotentMutation({tenantId:input.organizationId,actorReference:input.principal.id,operationId:'decideRouteProposal',key:input.key,fingerprint,recordId:randomUUID(),expiresAt:new Date(Date.now()+86_700_000),isolationLevel:'serializable'},async tx=>{
     const receipt=await tx.decideRouteProposal({proposalId:input.proposalId,actorId:input.principal.id,...input.request});

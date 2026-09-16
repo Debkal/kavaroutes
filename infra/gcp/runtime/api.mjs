@@ -6,7 +6,7 @@ import { createTestOnlyCursorCodec, createAuthorizationGenerationSource, authori
 import { createPostgresRealtimeStore } from '@kavaroutes/realtime/postgres';
 import { registerWp009Realtime } from '@kavaroutes/realtime/fastify';
 import { makePool, verifyRuntimeDatabase } from './database.mjs';
-import { validateConfig, tenantId } from './config.mjs';
+import { validateConfig, tenantId, branchScopeReference } from './config.mjs';
 
 export async function createRuntimeApi(input) {
   const config = validateConfig(input);
@@ -63,7 +63,7 @@ export async function createRuntimeApi(input) {
       try {
         const authorization = authorizeRealtimeSubscription({ principal: request.wp007Context.principal,
           organizationId: request.params.organizationId, authorizationGeneration: 1, purpose: 'DISPATCH_CONTROL',
-          scope: { streamKind: 'DISPATCH_DAY', scopeReference: 'branch:synthetic-all', serviceDate } });
+          scope: { streamKind: 'DISPATCH_DAY', scopeReference: branchScopeReference, serviceDate } });
         reply.header('cache-control', 'no-store');
         return await store.snapshot(authorization);
       } catch { return reply.code(404).send({ code: 'RESOURCE_NOT_FOUND' }); }

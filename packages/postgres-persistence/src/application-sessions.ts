@@ -34,10 +34,17 @@ export function createApplicationSessionStore(pool: Pool) {
         return { expiresAt: new Date(result.rows[0].expires_at).toISOString() };
       },'serializable');
     },
+    /** Resolves the session together with its explicit persisted scope and
+     * capability grants. A membership without grants resolves with empty sets
+     * and therefore holds no scoped authority. */
     async resolve(organizationId: string, tokenHash: string, csrfHash?: string) {
       checkDigest(tokenHash); if(csrfHash!==undefined) checkDigest(csrfHash);
       return withTenantTransaction(pool,organizationId,'kavaroutes_api',async c => {
-        const row=(await c.query(`SELECT m.user_id,m.principal_id,m.role,m.driver_id,m.authorization_generation,s.expires_at
+        const row=(await c.query(`SELECT m.user_id,m.principal_id,m.role,m.driver_id,m.authorization_generation,s.expires_at,
+            COALESCE((SELECT array_agg(g.scope_kind ORDER BY g.scope_kind) FROM platform.membership_scope_grant g
+              WHERE g.tenant_id=m.tenant_id AND g.user_id=m.user_id AND g.active),'{}') AS scope_kinds,
+            COALESCE((SELECT array_agg(g.capability ORDER BY g.capability) FROM platform.membership_capability_grant g
+              WHERE g.tenant_id=m.tenant_id AND g.user_id=m.user_id AND g.active),'{}') AS capability_grants
           FROM platform.application_session s
           JOIN platform.application_membership m ON m.tenant_id=s.tenant_id AND m.user_id=s.user_id
           JOIN platform.application_user u ON u.tenant_id=m.tenant_id AND u.id=m.user_id
@@ -49,9 +56,15 @@ export function createApplicationSessionStore(pool: Pool) {
         if(!row) return null;
         const generation=Number(row.authorization_generation);
         if(!Number.isSafeInteger(generation)||generation<1) throw new Error('SESSION_GENERATION_INVALID');
+        const rawKinds:unknown=row.scope_kinds;
+        const scopeKinds:string[]=Array.isArray(rawKinds)?rawKinds.map(value=>String(value)):[];
+        if(scopeKinds.some(kind=>!['BRANCH','FLEET'].includes(kind))) throw new Error('SESSION_SCOPE_INVALID');
+        const rawCapabilities:unknown=row.capability_grants;
+        const capabilityGrants:string[]=Array.isArray(rawCapabilities)?rawCapabilities.map(value=>String(value)):[];
         return { organizationId,userId:String(row.user_id),principalId:String(row.principal_id),
           role:row.role as 'DRIVER'|'DISPATCHER',driverId:row.driver_id===null?null:String(row.driver_id),
-          authorizationGeneration:generation,expiresAt:new Date(row.expires_at).toISOString() };
+          authorizationGeneration:generation,expiresAt:new Date(row.expires_at).toISOString(),
+          scopeKinds,capabilityGrants };
       });
     },
     async revoke(organizationId: string,tokenHash: string) {

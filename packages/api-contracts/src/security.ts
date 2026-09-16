@@ -38,10 +38,37 @@ export interface ApiPrincipal {
 export type SyntheticPrincipal = ApiPrincipal;
 
 const allDispatcherCapabilities: readonly Capability[] = ["profile:read", "riders:read", "riders:write", "trips:read", "trips:write", "trips:command", "dispatch:read", "dispatch:command", "dispatch:location:read", "fleet:read", "fleet:command", "driver-policy:read", "driver-policy:write"];
+
+/** Role defaults are server-owned. A browser can never submit a role, capability
+ * or scope; elevated capabilities outside these defaults are separate explicit
+ * membership grants persisted per company. */
+export const roleCapabilities: Readonly<Record<"DRIVER" | "DISPATCHER", readonly Capability[]>> = Object.freeze({
+  DISPATCHER: Object.freeze(["profile:read", "riders:read", "riders:write", "trips:read", "trips:write", "trips:command",
+    "dispatch:read", "dispatch:command", "dispatch:location:read", "fleet:read", "driver-policy:read"] as Capability[]),
+  DRIVER: Object.freeze(["profile:read", "driver:manifest:read", "driver:execute", "driver:location:write", "driver:notifications:write"] as Capability[]),
+});
+export const rolePurposes: Readonly<Record<"DRIVER" | "DISPATCHER", readonly Purpose[]>> = Object.freeze({
+  DISPATCHER: Object.freeze(["RIDER_INTAKE", "ASSIGNED_SERVICE_DELIVERY"] as Purpose[]),
+  DRIVER: Object.freeze(["ASSIGNED_SERVICE_DELIVERY"] as Purpose[]),
+});
+/** Capabilities that are never implied by a role and must be granted explicitly. */
+export const grantableCapabilities: readonly Capability[] = Object.freeze([
+  "driver-policy:write", "driver-policy:override", "driver-route:self-approve", "fleet:command",
+  "facility:trip-status:read", "facility:coordinate", "billing:read", "billing:command",
+  "integrations:read", "integrations:write", "audit:read",
+]);
+
+/** Prototype companies have exactly one branch and one fleet, both identified by
+ * the company id, and a membership holds an explicit persisted grant for each.
+ * Multi-branch expansion would add per-branch references without changing the
+ * rule that a principal only ever holds scopes somebody provisioned. */
+export const companyBranchScope = (organizationId: string): string => `branch:${organizationId}`;
+export const companyFleetScope = (organizationId: string): string => `fleet:${organizationId}`;
 const fixture = (input: Omit<SyntheticPrincipal, "capabilities" | "purposes" | "branchScopes" | "fleetScopes"> & { capabilities: readonly Capability[]; purposes: readonly Purpose[]; branchScopes?: readonly string[]; fleetScopes?: readonly string[] }): SyntheticPrincipal => Object.freeze({
   ...input,
   capabilities: new Set(input.capabilities), purposes: new Set(input.purposes),
-  branchScopes: new Set(input.branchScopes ?? ["branch:synthetic-all"]), fleetScopes: new Set(input.fleetScopes ?? ["fleet:synthetic-all"]),
+  branchScopes: new Set(input.branchScopes ?? [companyBranchScope(input.organizationId)]),
+  fleetScopes: new Set(input.fleetScopes ?? [companyFleetScope(input.organizationId)]),
 });
 
 const principals = new Map<string, SyntheticPrincipal>([
