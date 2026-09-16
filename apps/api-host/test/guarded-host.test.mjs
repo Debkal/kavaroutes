@@ -21,7 +21,11 @@ function stubPool() {
 
 const host = (pool, overrides = {}) => createGuardedApiHost({ config: config(overrides.config), activate: overrides.activate ?? (async () => {}),
   verifyProviderToken: async () => ({ issuer: 'https://securetoken.google.com/kavaroutes', subject: randomUUID(),
-    audience: 'kavaroutes', authenticatedAt: new Date().toISOString() }), pool, ...overrides.options });
+    audience: 'kavaroutes', authenticatedAt: new Date().toISOString() }), pool,
+  // Provider account state is a required port for this profile: a host that
+  // cannot answer "disabled?" and "authentication revoked?" must not compose.
+  providerAccounts: overrides.providerAccounts ?? { checkAccount: async () => 'ACTIVE', revokedAt: async () => null },
+  ...overrides.options });
 
 test('the reviewed guarded profile refuses a test-marked application key', () => {
   const pool = stubPool();

@@ -40,7 +40,7 @@ export function createApplicationSessionStore(pool: Pool) {
     async resolve(organizationId: string, tokenHash: string, csrfHash?: string) {
       checkDigest(tokenHash); if(csrfHash!==undefined) checkDigest(csrfHash);
       return withTenantTransaction(pool,organizationId,'kavaroutes_api',async c => {
-        const row=(await c.query(`SELECT m.user_id,m.principal_id,m.role,m.driver_id,m.authorization_generation,s.expires_at,
+        const row=(await c.query(`SELECT m.user_id,m.principal_id,m.role,m.driver_id,m.authorization_generation,s.expires_at,s.subject,s.created_at,
             COALESCE((SELECT array_agg(g.scope_kind ORDER BY g.scope_kind) FROM platform.membership_scope_grant g
               WHERE g.tenant_id=m.tenant_id AND g.user_id=m.user_id AND g.active),'{}') AS scope_kinds,
             COALESCE((SELECT array_agg(g.capability ORDER BY g.capability) FROM platform.membership_capability_grant g
@@ -64,7 +64,12 @@ export function createApplicationSessionStore(pool: Pool) {
         return { organizationId,userId:String(row.user_id),principalId:String(row.principal_id),
           role:row.role as 'DRIVER'|'DISPATCHER',driverId:row.driver_id===null?null:String(row.driver_id),
           authorizationGeneration:generation,expiresAt:new Date(row.expires_at).toISOString(),
-          scopeKinds,capabilityGrants };
+          scopeKinds,capabilityGrants,
+          // Provider subject and the session's own creation time: provider
+          // revocation propagation compares the provider's `validSince` with
+          // this timestamp, and never treats "account enabled" as "authentication
+          // still valid".
+          subject:String(row.subject),createdAt:new Date(row.created_at).toISOString() };
       });
     },
     async revoke(organizationId: string,tokenHash: string) {

@@ -82,6 +82,9 @@ export async function initializeDatabase(adminConfig, passwords) {
     // Bounded worker tenant enrollment: the runtime worker may read the enrolled
     // set and may never write it. Roles are NOINHERIT, so the grant is direct.
     await pool.query('GRANT EXECUTE ON FUNCTION platform.enrolled_tenants(integer) TO kr_cloud_worker');
+    // The guarded API host needs the same bounded reader to sweep provider
+    // revocation across the enrolled tenant set (role grant in migration 0028).
+    await pool.query('GRANT EXECUTE ON FUNCTION platform.enrolled_tenants(integer) TO kr_cloud_api');
     await pool.query('GRANT SELECT ON platform.worker_enrollment TO kr_cloud_worker');
     await pool.query('GRANT USAGE ON SCHEMA intake TO kavaroutes_outbox_consumer');
     await pool.query('GRANT SELECT (tenant_id,id,service_date) ON intake.trip_request TO kavaroutes_outbox_consumer');

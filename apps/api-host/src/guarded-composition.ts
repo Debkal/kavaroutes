@@ -18,7 +18,9 @@ import {createWp007Api,createWp007PostgresApplication,createPostgresBrowserRecov
 import {createIdentityAdmission,type VerifiedIdentity} from '@kavaroutes/api-contracts/identity-admission';
 import {createApplicationSessionStore,createIdentityMembershipReader} from '@kavaroutes/postgres-persistence';
 import {createGuardedDriverItineraryReader} from './guarded-driver-itinerary.js';
-import {contextPrincipal,type RequestGuard} from '@kavaroutes/api-contracts';
+import {contextPrincipal,ProtocolError,type RequestGuard} from '@kavaroutes/api-contracts';
+import {createProviderRevocationSweeper} from './provider-session-revocation.js';
+import {createGuardedProviderRevocationPorts,subjectHandle,type GuardedProviderAccounts} from './guarded-provider-revocation.js';
 import {authorizeRealtimeSubscription,createAuthorizationGenerationSource,createTestOnlyCursorCodec,type RealtimeStore} from '@kavaroutes/realtime';
 import {companyBranchScope} from '@kavaroutes/api-contracts/security';
 import {registerWp009Realtime} from '@kavaroutes/realtime/fastify';
@@ -79,6 +81,17 @@ export interface GuardedApiHostOptions {
   /** Must resolve only after explicit human-approved activation. */
   readonly activate:()=>Promise<void>;
   readonly verifyProviderToken:(token:string)=>Promise<VerifiedIdentity>;
+  /** Provider account state and token-revocation timestamps. Required: a guarded
+   * host that cannot answer both "is the account disabled" and "was this
+   * authentication revoked" must not be composed, because an enabled account is
+   * not proof of unrevoked authentication. */
+  readonly providerAccounts?:GuardedProviderAccounts;
+  readonly providerRevocation?:{
+    readonly maximumStalenessMilliseconds?:number;
+    readonly batchSize?:number;
+    readonly checkDeadlineMilliseconds?:number;
+    readonly sweepIntervalMilliseconds?:number;
+  };
   readonly pool:DatabasePool;
   /** Injectable for tests; the default persists to PostgreSQL. */
   readonly realtimeStore?:RealtimeStore;
@@ -94,10 +107,32 @@ export async function createGuardedApiHost(options:GuardedApiHostOptions) {
   const now=options.now??(()=>new Date());
   const clock=options.clock??(()=>Math.floor(Date.now()/1000));
   const sessions=createApplicationSessionStore(options.pool);
+  if(!options.providerAccounts)throw new Error('GUARDED_PROVIDER_ACCOUNTS_REQUIRED');
+  const revocation=createProviderRevocationSweeper(
+    createGuardedProviderRevocationPorts(options.pool,{accounts:options.providerAccounts}),{
+      maximumStalenessMilliseconds:options.providerRevocation?.maximumStalenessMilliseconds??900_000,
+      ...(options.providerRevocation?.batchSize===undefined?{}:{batchSize:options.providerRevocation.batchSize}),
+      ...(options.providerRevocation?.checkDeadlineMilliseconds===undefined?{}:{checkDeadlineMilliseconds:options.providerRevocation.checkDeadlineMilliseconds}),
+      now:()=>now().getTime()});
+  const sweepIntervalMilliseconds=options.providerRevocation?.sweepIntervalMilliseconds??60_000;
+  // Every persisted session is resolved through the provider gate: a disabled
+  // account or a revoked authentication loses the session (401), and a provider
+  // this host cannot verify at admission time fails closed (503) instead of
+  // being read as still valid.
+  const verifySession=async(organizationId:string,tokenHash:string,csrfHash:string)=>{
+    const row=await sessions.resolve(organizationId,tokenHash,csrfHash);
+    if(!row)return null;
+    // Admission and the sweep must use the same tenant-scoped handle, otherwise
+    // the gate would look up evidence the sweeper never recorded.
+    const decision=await revocation.authorize({subject:subjectHandle(organizationId,row.subject),sessionAuthenticatedAt:row.createdAt});
+    if(decision.allowed)return row;
+    if(decision.reason==='PROVIDER_ACCOUNT_DISABLED'||decision.reason==='PROVIDER_AUTHENTICATION_REVOKED')return null;
+    throw new ProtocolError(503,'PROVIDER_VERIFICATION_UNAVAILABLE','provider verification unavailable');
+  };
   const admission=createIdentityAdmission({verifyToken:options.verifyProviderToken,findMembership:createIdentityMembershipReader(options.pool)},
     {issuer:config.issuer,audience:config.audience,now:clock,maximumAuthenticationAgeSeconds:config.maximumAuthenticationAgeSeconds});
   // No Authorization-header or synthetic principal is ever interpreted here.
-  const verifier=createBrowserPrincipalVerifier({origin:config.origin,signingKey:config.signingKey,resolve:sessions.resolve});
+  const verifier=createBrowserPrincipalVerifier({origin:config.origin,signingKey:config.signingKey,resolve:verifySession});
   // The guarded scope below authenticates every request with the same persisted
   // browser-session verifier the wp007 lifecycle plugin uses. Fail closed at
   // construction if that verifier cannot resolve a request at all.
@@ -185,14 +220,21 @@ export async function createGuardedApiHost(options:GuardedApiHostOptions) {
     ports:{admit:admission.admit,issue:sessions.issue,resolve:sessions.resolve,revoke:sessions.revoke}});
   let stopped=false;
   let timer:ReturnType<typeof setTimeout>|undefined;
+  let sweepTimer:ReturnType<typeof setInterval>|undefined;
+  const stopSweeps=()=>{if(sweepTimer)clearInterval(sweepTimer);sweepTimer=undefined;};
+  const startSweeps=()=>{ if(stopped||sweepTimer)return;
+    void revocation.runOnce().catch(()=>{});
+    sweepTimer=setInterval(()=>{void revocation.runOnce().catch(()=>{});},sweepIntervalMilliseconds);
+    // Never hold the process (or a test runner) open for the sweep.
+    sweepTimer.unref?.(); };
   const tick=async()=>{ if(stopped)return;
     try{await gateway.fanOut();gateway.heartbeatSweep();gateway.authorizationSweep();}
     catch{gateway.drain();}
     finally{if(!stopped)timer=setTimeout(()=>void tick(),1000);} };
-  app.addHook('onClose',async()=>{stopped=true;if(timer)clearTimeout(timer);gateway.drain();});
+  app.addHook('onClose',async()=>{stopped=true;if(timer)clearTimeout(timer);stopSweeps();gateway.drain();});
   await app.ready();
-  return Object.freeze({app,config,gateway,origin:config.origin,
-    async start(){await app.listen({host:config.host,port:config.port});void tick();},
+  return Object.freeze({app,config,gateway,revocation,origin:config.origin,
+    async start(){await app.listen({host:config.host,port:config.port});void tick();startSweeps();},
     /** Closes the host's own resources. The caller-owned pool is left untouched. */
-    async close(){stopped=true;if(timer)clearTimeout(timer);gateway.drain();await app.close();}});
+    async close(){stopped=true;if(timer)clearTimeout(timer);stopSweeps();gateway.drain();await app.close();}});
 }
