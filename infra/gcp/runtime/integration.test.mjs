@@ -26,6 +26,8 @@ import {withTenantTransaction} from '@kavaroutes/postgres-persistence';
 import {authorizeRealtimeSubscription,createTestOnlyCursorCodec} from '@kavaroutes/realtime';
 import {createPostgresRealtimeStore} from '@kavaroutes/realtime/postgres';
 import {companyBranchScope} from '@kavaroutes/api-contracts/security';
+import {createWp007PostgresApplication} from '@kavaroutes/api-contracts';
+import {validateEventEnvelope,validateThinJobPayload} from '@kavaroutes/durable-execution';
 
 // Explicit opt-in: creates and removes only this randomly named, disposable local container.
 test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_CLOUD_LOCAL_TEST !== '1', timeout: 120000 }, async () => {
@@ -170,7 +172,8 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
       actorReference: 'synthetic.operator', reasonCode: 'OPERATOR_REVIEWED' };
     await assert.rejects(() => recovery.replay(replayRequest, [tenantId]), /REPLAY_AUTHORIZATION_DENIED/);
     await assert.rejects(() => recovery.replay(replayRequest), /RECOVERY_SCOPE_DENIED/, 'a replay without an explicit enrolled tenant set is refused');
-    const authorized = input => input.actorReference === 'synthetic.operator';
+    // Tenant-scoped on purpose: an actor name alone is not tenant authority.
+    const authorized = input => input.tenantId === tenantId && input.actorReference === 'synthetic.operator';
     const brokenRecovery = createRecovery(worker.pool, { retry: async (...args) => { await worker.boss.retry(...args); throw new Error('TEST_AFTER_RETRY_BEFORE_COMMIT'); } }, authorized);
     await assert.rejects(() => brokenRecovery.replay(replayRequest, [tenantId]), /TEST_AFTER_RETRY_BEFORE_COMMIT/);
     assert.equal((await control.query(`SELECT state FROM ${schema}.job WHERE id=$1`, [replayRequest.jobId])).rows[0].state, 'failed');
@@ -194,40 +197,53 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     await assert.rejects(() => control.query("UPDATE outbox.consumer_transport_journal SET actor_reference='synthetic.changed'"), /IMMUTABLE/);
     assert.equal((await worker.pool.query('SELECT count(*)::int AS n FROM outbox.consumer_transport_journal')).rows[0].n, 0, 'unscoped runtime read must be empty');
     // ---- Audit repairs A-001 and A-002 (audit of f079c78) -------------------
-    // A second company with real source rows, a real delivery and a real job, so
-    // the repaired multi-company paths are exercised against PostgreSQL rather
-    // than a mock. Fixture rows are written by the migration role inside the
-    // company's own tenant context, exactly like the other fixtures.
+    // A second company whose trip, aggregate versions, outbox messages and
+    // deliveries are written by the real domain service, so the multi-company
+    // runtime consumes exactly what production writes (TripCreated/TripCancelled)
+    // instead of authored event names, and every thin job payload is derived from
+    // the stored row rather than restated here.
     const companyB = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
     const bRiderId = randomUUID(), bTripId = randomUUID();
-    const bSignalMessageId = randomUUID(), bSignalDeliveryId = randomUUID(), bSignalEventId = randomUUID();
-    const bSecondMessageId = randomUUID(), bSecondDeliveryId = randomUUID(), bSecondEventId = randomUUID();
-    const bProjectionMessageId = randomUUID(), bProjectionDeliveryId = randomUUID(), bProjectionEventId = randomUUID();
-    const thinPayload = (route, jobType, deliveryId, eventId) => ({ tenantId: companyB, deliveryId, eventId, route, jobType,
-      eventType: 'TripRequestRecorded', schemaVersion: 'v1', aggregateType: 'TRIP_REQUEST', aggregateId: bTripId, aggregateVersion: 1,
-      correlationId: randomUUID(), classificationReference: 'SYNTHETIC', purposeReference: 'RIDER_INTAKE', policyReference: 'synthetic.policy' });
-    const insertMessage = async (client, id, eventId, aggregateVersion, eventType) => client.query(`INSERT INTO outbox.message
-      (tenant_id,id,event_id,aggregate_type,aggregate_id,aggregate_version,event_type,schema_version,occurred_at,command_id,
-       idempotency_reference_hash,correlation_id,source,classification_reference,purpose_reference,policy_reference,payload)
-      VALUES($1,$2,$3,'TRIP_REQUEST',$4,$5,$6,'v1',now(),$7,repeat('b',64),$8,'cloud.synthetic','SYNTHETIC','RIDER_INTAKE','synthetic.policy','{}'::jsonb)`,
-      [companyB, id, eventId, bTripId, aggregateVersion, eventType, randomUUID(), randomUUID()]);
     await withTenantTransaction(control, companyB, 'kavaroutes_migration', async client => {
       await client.query("INSERT INTO platform.organization(tenant_id,id,synthetic_name) VALUES($1,$1,'Pony second company')", [companyB]);
       await client.query("INSERT INTO intake.rider(tenant_id,id,synthetic_reference) VALUES($1,$2,'Synthetic second-company rider')", [companyB, bRiderId]);
-      await client.query(`INSERT INTO intake.trip_request(tenant_id,id,rider_id,service_date,service_timezone,local_service_time,resolved_service_at,
-        resolved_utc_offset_seconds,ambiguity_policy,ambiguity_policy_version,aggregate_version,lifecycle_reference)
-        VALUES($1,$2,$3,'2026-09-11','America/Los_Angeles','08:00:00','2026-09-11T15:00:00.000Z',-25200,'reject','synthetic.v1',1,'synthetic.lifecycle')`,
-        [companyB, bTripId, bRiderId]);
-      await insertMessage(client, bSignalMessageId, bSignalEventId, 1, 'TripRequestRecorded');
-      await insertMessage(client, bProjectionMessageId, bProjectionEventId, 1, 'TripRequestRecorded');
-      await client.query("INSERT INTO outbox.delivery(tenant_id,id,message_id,route,job_type,status) VALUES($1,$2,$3,'realtime-signal','kr.realtime-signal.trip.v1','PENDING')",
-        [companyB, bSignalDeliveryId, bSignalMessageId]);
-      // Already published, so the publisher never claims it; it exists to give the
-      // projection job a real outbox source row.
-      await client.query("INSERT INTO outbox.delivery(tenant_id,id,message_id,route,job_type,status,transport_reference) VALUES($1,$2,$3,'projection','kr.projection.trip.v1','PUBLISHED','synthetic.published')",
-        [companyB, bProjectionDeliveryId, bProjectionMessageId]);
     });
     await control.query('INSERT INTO platform.worker_enrollment(tenant_id) VALUES($1) ON CONFLICT DO NOTHING', [companyB]);
+    const bMutationPool = new Pool({ connectionString: cfg('api', passwords.kr_cloud_api).databaseUrl, connectionTimeoutMillis: 1000 });
+    const bApplication = createWp007PostgresApplication(bMutationPool, { etagSecret: `synthetic-etag-secret-${randomBytes(24).toString('base64url')}` });
+    const bMutationActor = Object.freeze({ id: 'synthetic.cloudbuilder-second-company' });
+    const bCreated = await bApplication.createTrip({ organizationId: companyB, principal: bMutationActor, key: 'cloud-second-company-create-0001',
+      request: { tripId: bTripId, riderId: bRiderId, serviceDate: '2026-09-11', serviceTimezone: 'America/Los_Angeles', localServiceTime: '08:00:00',
+        resolvedServiceAt: '2026-09-11T15:00:00.000Z', resolvedUtcOffsetSeconds: -25200, ambiguityPolicy: 'reject' } });
+    assert.equal(bCreated.statusCode, 201, 'the second company trip is created by the real domain service');
+    const bSources = async () => (await control.query(`SELECT m.event_id,m.event_type,m.schema_version,m.aggregate_type,m.aggregate_id,m.aggregate_version,
+        m.occurred_at,m.command_id,m.idempotency_reference_hash,m.correlation_id,m.source,m.classification_reference,m.purpose_reference,
+        m.policy_reference,m.payload,d.id AS delivery_id,d.route,d.job_type FROM outbox.message m
+        JOIN outbox.delivery d ON d.tenant_id=m.tenant_id AND d.message_id=m.id WHERE m.tenant_id=$1
+        ORDER BY m.aggregate_version,d.route`, [companyB])).rows;
+    const bSource = async (aggregateVersion, route) => (await bSources()).find(row => Number(row.aggregate_version) === aggregateVersion && row.route === route);
+    const bThinJob = row => ({ tenantId: companyB, deliveryId: row.delivery_id, eventId: row.event_id, route: row.route, jobType: row.job_type,
+      eventType: row.event_type, schemaVersion: row.schema_version, aggregateType: row.aggregate_type, aggregateId: row.aggregate_id,
+      aggregateVersion: Number(row.aggregate_version), correlationId: row.correlation_id, classificationReference: row.classification_reference,
+      purposeReference: row.purpose_reference, policyReference: row.policy_reference });
+    const bEnvelope = row => ({ eventId: row.event_id, aggregateType: row.aggregate_type, aggregateId: row.aggregate_id,
+      aggregateVersion: Number(row.aggregate_version), eventType: row.event_type, schemaVersion: row.schema_version,
+      occurredAt: new Date(row.occurred_at).toISOString(), commandId: row.command_id, idempotencyReferenceHash: row.idempotency_reference_hash,
+      correlationId: row.correlation_id, source: row.source, classificationReference: row.classification_reference,
+      purposeReference: row.purpose_reference, policyReference: row.policy_reference, payload: row.payload });
+    // A-005: the stored source envelope and the thin job payload built from it must
+    // both pass the unchanged domain validators before the worker ever sees them.
+    // An unsupported event name, an invented payload or a mismatched version fails
+    // here instead of silently producing no invalidation.
+    const bValidated = async row => {
+      assert.deepEqual(validateEventEnvelope(bEnvelope(row)), bEnvelope(row), `${row.event_type} source envelope`);
+      assert.deepEqual(validateThinJobPayload(bThinJob(row)), bThinJob(row), `${row.event_type} thin job payload`);
+    };
+    assert.equal((await bSources()).length, 2, 'the real create mutation writes one message and one delivery per route');
+    for (const row of await bSources()) await bValidated(row);
+    // The projection delivery is published by nobody: the reconciliation
+    // regression sends its own job against this real outbox row.
+    await control.query("UPDATE outbox.delivery SET status='PUBLISHED',transport_reference='synthetic.published' WHERE tenant_id=$1 AND route='projection'", [companyB]);
     await worker.runOnce();
     // A-002: the second company's own invalidation is published once, to its own
     // canonical branch scope, and never to the fixture company's scope.
@@ -259,15 +275,17 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
       purpose: 'DISPATCH_CONTROL', scope: { streamKind: 'DISPATCH_DAY', scopeReference: companyBranchScope(tenantId), serviceDate: '2026-09-11' } }));
     assert.equal(Object.values(aProjection.projection).some(delta => delta.resourceReference === `trip:${bTripId}`), false,
       'the fixture company never observes the second company invalidation');
-    // Version two of the same aggregate, inserted only after the first event was
-    // observed, so each cycle has exactly one eligible delivery: exactly one
-    // further change, and the earlier cursor replays it without duplicating
-    // anything.
-    await withTenantTransaction(control, companyB, 'kavaroutes_migration', async client => {
-      await insertMessage(client, bSecondMessageId, bSecondEventId, 2, 'TripCancelledCommitted');
-      await client.query("INSERT INTO outbox.delivery(tenant_id,id,message_id,route,job_type,status) VALUES($1,$2,$3,'realtime-signal','kr.realtime-signal.trip.v1','PENDING')",
-        [companyB, bSecondDeliveryId, bSecondMessageId]);
-    });
+    // Version two of the same aggregate, cancelled through the real domain service
+    // only after the first event was observed, so each cycle has exactly one
+    // eligible delivery: exactly one further change, and the earlier cursor
+    // replays it without duplicating anything.
+    const bCancelled = await bApplication.cancelTrip({ organizationId: companyB, principal: bMutationActor, tripId: bTripId,
+      key: 'cloud-second-company-cancel-0001', ifMatch: bCreated.headers.etag, request: { tripId: bTripId } });
+    assert.equal(bCancelled.statusCode, 200, 'the second company trip is cancelled by the real domain service');
+    assert.equal(bCancelled.body.trip.version, 2, 'the second event carries aggregate version two');
+    await control.query("UPDATE outbox.delivery SET status='PUBLISHED',transport_reference='synthetic.published' WHERE tenant_id=$1 AND route='projection' AND status='PENDING'", [companyB]);
+    const bCancelledRow = await bSource(2, 'realtime-signal');
+    await bValidated(bCancelledRow);
     for (let attempt = 0; attempt < 10; attempt++) {
       if (Number((await control.query('SELECT count(*)::int AS n FROM realtime.change WHERE tenant_id=$1', [companyB])).rows[0].n) >= 2) break;
       await worker.runOnce();
@@ -276,29 +294,34 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     const bReplay = await readStore.replay(bAuthorization, bSnapshot.cursor);
     assert.equal(bReplay.changes.length, 1, 'the authorized cursor recovers exactly one new change');
     assert.equal(bReplay.changes[0].delta.resourceVersion, 2);
-    assert.equal(await worker.consume(thinPayload('realtime-signal', 'kr.realtime-signal.trip.v1', bSecondDeliveryId, bSecondEventId)), 'DUPLICATE',
-      'a replayed delivery does not duplicate the business effect');
+    assert.equal(await worker.consume(bThinJob(bCancelledRow)), 'DUPLICATE', 'a replayed delivery does not duplicate the business effect');
     await worker.close();
     worker = await createRuntimeWorker(cfg('worker', passwords.kr_cloud_worker));
     await worker.runOnce();
     const bAfterRestart = await readStore.snapshot(bAuthorization);
     assert.equal(Object.values(bAfterRestart.projection)[0].resourceVersion, 2, 'the second company invalidation survives worker reconstruction');
     // ---- A-001: enrollment is not actor authorization ----------------------
-    const recoveryCurrent = createRecovery(worker.pool, worker.boss);
-    const bJobId = await worker.boss.send('kr.projection.v1', thinPayload('projection', 'kr.projection.trip.v1', bProjectionDeliveryId, bProjectionEventId), { retryLimit: 0 });
+    // Authorization for these regressions is tenant-scoped: enrollment alone is
+    // never authority, and the default callback still denies everything.
+    const recoveryForA = createRecovery(worker.pool, worker.boss, async input => input.tenantId === tenantId);
+    const recoveryForB = createRecovery(worker.pool, worker.boss, async input => input.tenantId === companyB);
+    const defaultDenyRecovery = createRecovery(worker.pool, worker.boss);
+    const bJobId = await worker.boss.send('kr.projection.v1', bThinJob(await bSource(1, 'projection')), { retryLimit: 0 });
     await control.query(`UPDATE ${schema}.job SET state='failed', output=$2::jsonb, completed_on=now()-interval '10 seconds' WHERE id=$1`,
       [bJobId, JSON.stringify({ code: 'PERMANENT_VALIDATION' })]);
-    assert.ok((await recoveryCurrent.reconcile('kr.projection.v1', [companyB])).processed >= 1, 'the second company job reconciles under its own authority');
+    assert.ok((await recoveryForB.reconcile('kr.projection.v1', [companyB])).processed >= 1, 'the second company job reconciles under its own authority');
     const bJobBefore = (await control.query(`SELECT state,retry_count,output FROM ${schema}.job WHERE id=$1`, [bJobId])).rows[0];
     assert.equal(bJobBefore.state, 'failed');
     const bJournalCount = async () => Number((await control.query('SELECT count(*)::int AS n FROM outbox.consumer_transport_journal WHERE tenant_id=$1 AND transport_id=$2',
       [companyB, bJobId])).rows[0].n);
     assert.equal(await bJournalCount(), 1, 'the second company job has its own dead-letter journal entry');
-    await assert.rejects(() => recoveryCurrent.replay({ ...replayRequest, jobId: bJobId }, [tenantId, companyB]), /REPLAY_NOT_FOUND/,
+    await assert.rejects(() => defaultDenyRecovery.replay({ ...replayRequest, jobId: bJobId }, [tenantId, companyB]), /REPLAY_AUTHORIZATION_DENIED/,
+      'the default callback denies every replay before any tenant lookup');
+    await assert.rejects(() => recoveryForA.replay({ ...replayRequest, jobId: bJobId }, [tenantId, companyB]), /REPLAY_NOT_FOUND/,
       'authority for the fixture company cannot replay the second company job');
-    await assert.rejects(() => recoveryCurrent.replay({ ...replayRequest, tenantId: companyB, jobId: replayRequest.jobId }, [tenantId, companyB]), /REPLAY_NOT_FOUND/,
+    await assert.rejects(() => recoveryForB.replay({ ...replayRequest, tenantId: companyB, jobId: replayRequest.jobId }, [tenantId, companyB]), /REPLAY_NOT_FOUND/,
       'authority for the second company cannot replay the fixture company job or reuse its receipt');
-    await assert.rejects(() => recoveryCurrent.replay({ ...replayRequest, jobId: bJobId, tenantId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }, [tenantId, companyB]),
+    await assert.rejects(() => recoveryForB.replay({ ...replayRequest, jobId: bJobId, tenantId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }, [tenantId, companyB]),
       /REPLAY_AUTHORIZATION_DENIED/, 'an unenrolled company is still refused');
     assert.deepEqual((await control.query(`SELECT state,retry_count,output FROM ${schema}.job WHERE id=$1`, [bJobId])).rows[0], bJobBefore,
       'a rejected cross-company replay changes nothing about the job');
@@ -307,13 +330,27 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
       [companyB, replayRequest.requestId])).rows[0].n), 0, 'a rejected cross-company replay writes no receipt');
     assert.equal((await control.query(`SELECT state FROM ${schema}.job WHERE id=$1`, [replayRequest.jobId])).rows[0].state, 'completed',
       'the fixture company job is untouched by the swapped attempt');
-    // The same job is replayable by the company that owns it. The transport is
-    // stubbed so this check observes the authorization/journal path only.
-    const ownerRecovery = createRecovery(worker.pool, { retry: async () => {} }, authorized);
-    assert.equal(await ownerRecovery.replay({ ...replayRequest, tenantId: companyB, jobId: bJobId }, [tenantId, companyB]), 'ENROLLED');
-    assert.equal(await ownerRecovery.replay({ ...replayRequest, tenantId: companyB, jobId: bJobId }, [tenantId, companyB]), 'REPLAYED');
+    // The same job is replayable by the company that owns it, through the real
+    // pg-boss transport inside the recovery transaction, and the enrolled retry is
+    // then executed by the worker rather than only asserted.
+    const bOwnerRequest = { tenantId: companyB, queue: 'kr.projection.v1', jobId: bJobId, requestId: randomUUID(),
+      actorReference: 'synthetic.cloudbuilder-second-company', reasonCode: 'OPERATOR_REVIEWED' };
+    assert.equal(await recoveryForB.replay(bOwnerRequest, [companyB]), 'ENROLLED', 'the owning company enrolls exactly one retry');
+    assert.equal((await control.query('SELECT action,actor_reference FROM outbox.consumer_transport_journal WHERE tenant_id=$1 AND id=$2',
+      [companyB, bOwnerRequest.requestId])).rows[0].action, 'REPLAY');
+    assert.equal(await recoveryForB.replay(bOwnerRequest, [companyB]), 'REPLAYED', 'the same request replays idempotently');
+    for (let attempt = 0; attempt < 20; attempt++) {
+      if ((await control.query(`SELECT state FROM ${schema}.job WHERE id=$1`, [bJobId])).rows[0].state === 'completed') break;
+      await worker.runOnce();
+      await delay(100);
+    }
+    assert.equal((await control.query(`SELECT state FROM ${schema}.job WHERE id=$1`, [bJobId])).rows[0].state, 'completed',
+      'the enrolled retry runs through the real transport and completes');
+    assert.equal((await control.query("SELECT safe_state FROM outbox.consumer_projection WHERE tenant_id=$1 AND consumer_name='projection.trip' AND aggregate_id=$2",
+      [companyB, bTripId])).rows[0].safe_state, 'DRAFT', 'the replayed projection applied the second company event exactly once');
     await control.query('DELETE FROM platform.worker_enrollment WHERE tenant_id=$1', [companyB]);
     await worker.runOnce();
+    await bMutationPool.end();
     await readPool.end();
     // SOL-005: use an existing explicit synthetic fixture in this disposable database.
     await control.query(readFileSync(new URL('./seed-sol004-prototype.sql',import.meta.url),'utf8').replace(/^\\set ON_ERROR_STOP on\n/,''));
