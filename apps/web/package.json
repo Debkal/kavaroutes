@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b && vite build",
+    "build:harness": "tsc -b && VITE_KAVAROUTES_BACKEND=local-synthetic vite build",
     "dev": "vite --host 127.0.0.1",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",

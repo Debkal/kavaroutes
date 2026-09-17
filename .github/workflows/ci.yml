@@ -118,7 +118,17 @@ jobs:
       # The browsers in this image are the ones the recorded WP011 report used.
       # Pinned by digest because the repository pins every other dependency.
       image: mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
-      options: --ipc=host
+      # The pinned image ships only the "headless shell" runtime that
+      # @playwright/test 1.62.1 does not use, plus the browser revisions that
+      # `playwright install` would otherwise pre-install globally. Without this
+      # override the job resolves /home/pwuser/.cache/ms-playwright (owned by the
+      # image) while `npm ci` runs as root and looks in /root/.cache, so
+      # chromium-1440/narrow/wide die at launch (run 35183633879) and the global
+      # firefox/webkit revisions lack the OS libraries for this host
+      # (libgtk-4-1, libxslt1.1, libflite1, libgles2). Pointing the cache at a
+      # job-local directory makes `playwright install` idempotent: it downloads
+      # exactly the revisions 1.62.1 declares and installs their dependencies.
+      options: --ipc=host -e PLAYWRIGHT_BROWSERS_PATH=/tmp/ms-playwright
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -129,7 +139,17 @@ jobs:
           node-version: 24.19.0
           cache: npm
       - run: npm ci --ignore-scripts --no-audit
+      - name: Install the browser revisions this suite pins
+        run: |
+          # A fresh cache directory: the image's own browsers are not the
+          # revisions @playwright/test 1.62.1 launches (firefox 1538, webkit 2336).
+          npx playwright install --with-deps chromium firefox webkit
       - name: Build once
+        env:
+          # This job is the only place that asks for the fixture-backed
+          # `local-synthetic` surface, because it is the browser harness. The
+          # shipped bundle and `npm run dev` default to the persisted backend.
+          VITE_KAVAROUTES_BACKEND: local-synthetic
         run: |
           npm run build
           npm run kavaroutes:web:build

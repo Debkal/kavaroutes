@@ -1,20 +1,69 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-08-28T23:19:39.364Z",
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-17T05:33:10.648Z",
+  "source": {
+    "commit": null,
+    "workflowRun": null,
+    "image": null
+  },
+  "runner": "Playwright 1.62.1 JSON reporter",
   "result": "PASS",
-  "runner": "Playwright 1.62.1 official noble container",
-  "tests": 30,
-  "engines": [
-    "Chromium 151",
-    "Firefox 153",
-    "WebKit 26.5"
+  "tests": 35,
+  "executed": 35,
+  "passed": 35,
+  "failed": 0,
+  "skipped": 0,
+  "notRun": 0,
+  "browsers": [
+    "chromium",
+    "firefox",
+    "webkit"
   ],
-  "viewports": [
-    "1440x900",
-    "1280x720",
-    "1024x768",
-    "390x844",
-    "1920x1080"
+  "projects": [
+    {
+      "name": "chromium-1440",
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0
+    },
+    {
+      "name": "chromium-narrow",
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0
+    },
+    {
+      "name": "chromium-wide",
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0
+    },
+    {
+      "name": "firefox-1280",
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0
+    },
+    {
+      "name": "webkit-1024",
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "notRun": 0
+    }
   ],
-  "accessibility": "axe-core automation, keyboard focus, command dialog, and document reflow checks passed; branded Safari and assistive-technology UAT not claimed"
+  "accessibility": "axe-core automation and the keyboard-focus, command-dialog and document-reflow assertions in apps/web/test/browser/operations.spec.ts executed; branded-Safari, VoiceOver, NVDA and JAWS UAT are not claimed",
+  "limitations": [
+    "engine versions are not emitted by the Playwright JSON reporter and are therefore not asserted here",
+    "the browser build is pinned by the container image recorded in source.image"
+  ]
 }
