@@ -29,6 +29,8 @@ import {createBrowserCredentials} from './browser-credentials.js';
 import {createBrowserPrincipalVerifier,createBrowserRealtimeRevalidator} from './browser-principal.js';
 import {registerBrowserAuth} from './browser-auth.js';
 import {validateGuardedConfig,type GuardedRuntimeConfig} from './guarded-config.js';
+import {API_NETWORK_LIMITS} from './network-security.js';
+import {safePinoOptions} from './logging.js';
 
 type DatabasePool=Parameters<typeof createApplicationSessionStore>[0];
 
@@ -155,6 +157,11 @@ export async function createGuardedApiHost(options:GuardedApiHostOptions) {
   // Declared guarded profile: a test-marked key is still refused, and the
   // reviewed configuration above owns the strength rule for this secret.
   const application=createWp007PostgresApplication(options.pool,{etagSecret:config.etagSecret,secretProfile:'reviewed-guarded'});
+  // The reviewed redacting logger plus a telemetry sink that writes the safe
+  // per-request event through it. Without this the exposed profile produced no
+  // audit trail at all, and a later change that enabled logging without the
+  // reviewed redaction list would have gone unnoticed.
+  let guardedApp:FastifyInstance|undefined;
   const app:FastifyInstance=await createWp007Api({application,driverItineraryReader:createGuardedDriverItineraryReader(options.pool),
     browserRecoveryService:createPostgresBrowserRecoveryService(options.pool,{application,dispatchService:createPostgresDispatchService(options.pool,{etag:application.etag}),
       routeProposalService:createPostgresRouteProposalService(options.pool),driverClosureService:createPostgresDriverClosureService(options.pool)}),
@@ -169,7 +176,14 @@ export async function createGuardedApiHost(options:GuardedApiHostOptions) {
     driverClosureService:createPostgresDriverClosureService(options.pool),
     driverSignatureService:createPostgresDriverSignatureService(options.pool,{etag:application.etag}),
     verifier,etagSecret:config.etagSecret,cursorSecret:config.cursorSecret,secretProfile:'reviewed-guarded',
+    // Application-level connection/frame bounds, because the edge WAF does not
+    // inspect established WebSocket traffic. Opt-in so the deployed synthetic
+    // profile keeps its current behaviour.
+    serverLimits:API_NETWORK_LIMITS,
+    logger:safePinoOptions,
+    telemetrySink:(event)=>{guardedApp?.log.info(event);},
     requestGuards:[promotedPathGuard]});
+  guardedApp=app;
   // The same guard on this instance covers the routes this composition registers
   // itself below (`/auth/*`, readiness, realtime, the dispatch snapshot).
   app.addHook('onRequest',promotedPathGuard);

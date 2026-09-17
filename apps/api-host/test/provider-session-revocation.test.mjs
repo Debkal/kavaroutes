@@ -11,6 +11,7 @@ function fixture(options = {}) {
     listed: options.listed ?? ['subject-active', 'subject-disabled'],
     failListing: false,
     providerDown: options.providerDown === true,
+    revokeAllFails: options.revokeAllFails === true,
     revocationArgs: [],
     /** Fair traversal: a page starts strictly after the resumed cursor. */
     async listActiveSubjects(limit, after = null) {
@@ -21,14 +22,21 @@ function fixture(options = {}) {
     async checkAccount(subject) {
       if (this.providerDown) throw new Error('PROVIDER_UNREACHABLE');
       if (options.hangingSubjects?.includes(subject)) return new Promise(() => {});
-      return states.get(subject) ?? 'UNKNOWN';
+      return this.states?.get(subject) ?? states.get(subject) ?? 'UNKNOWN';
     },
     async providerRevokedAt(subject) {
       if (this.providerDown) throw new Error('PROVIDER_UNREACHABLE');
       return (options.revocations ?? {})[subject] ?? null;
     },
     async revokeSubject(subject, revokedAt) { revokedSubjects.push(subject); this.revocationArgs.push({ subject, revokedAt }); return 1; },
-    async revokeAllActive() { revokeAllCalls += 1; return 3; },
+    async revokeAllActive() {
+      revokeAllCalls += 1;
+      // Read the live flag, not the captured option, so a test can model the
+      // provider/database recovering between sweeps. A rejected mass revocation
+      // must not latch the durable marker.
+      if (this.revokeAllFails) throw new Error('REVOKE_ALL_UNREACHABLE');
+      return 3;
+    },
   };
   const sweeper = createProviderRevocationSweeper(ports, { maximumStalenessMilliseconds: 300_000, batchSize: options.batchSize ?? 10,
     ...(options.checkDeadlineMilliseconds === undefined ? {} : { checkDeadlineMilliseconds: options.checkDeadlineMilliseconds }),
@@ -168,4 +176,66 @@ test('fail-closed denies admission, and a restart denies until the provider answ
   const recovered = await restarted.authorize({ subject: 's', sessionAuthenticatedAt: new Date(f.clock.now).toISOString() });
   assert.deepEqual({ allowed: recovered.allowed, reason: recovered.reason }, { allowed: true, reason: 'PROVIDER_ACTIVE' });
   assert.equal(restarted.status().state, 'CURRENT');
+});
+
+test('a failed mass revocation stays pending, is retried, and reports honest state', async () => {
+  const f = fixture({ providerDown: true, revokeAllFails: true });
+  assert.equal((await f.sweeper.runOnce()).state, 'DEGRADED');
+  assert.equal(f.revokeAllCount(), 0, 'a short outage must not attempt the durable revocation');
+  f.clock.now += 300_000;
+  const first = await f.sweeper.runOnce();
+  assert.equal(first.state, 'FAILED_CLOSED');
+  // The expired sweep observes every enrolled subject, and each unknown subject
+  // re-enters the same fail-closed branch, so the durable attempt is made once per
+  // unknown subject in that sweep. All attempts in one outage are the same logical
+  // revocation and none of them may latch the durable marker unless one succeeds.
+  assert.ok(f.revokeAllCount() >= 1, 'the first expiry attempts the durable revocation');
+  assert.equal(f.sweeper.status().durableRevocationRecorded, false, 'a rejected mass revocation is not recorded as durable');
+  assert.equal(f.sweeper.status().durableRevocationPending, true);
+  const denied = await f.sweeper.authorize({ subject: 's', sessionAuthenticatedAt: new Date(f.clock.now).toISOString() });
+  assert.equal(denied.reason, 'PROVIDER_FAILED_CLOSED', 'admission stays denied while the durable revocation is unpersisted');
+  // The next sweep retries rather than waiting for a new state change.
+  const attemptsBeforeRetry = f.revokeAllCount();
+  assert.equal((await f.sweeper.runOnce()).state, 'FAILED_CLOSED');
+  assert.ok(f.revokeAllCount() > attemptsBeforeRetry, 'the retry is attempted on the following sweep');
+  // Once the persisted revocation succeeds the marker moves and stops repeating.
+  f.ports.revokeAllFails = false;
+  const recovered = await f.sweeper.runOnce();
+  assert.equal(recovered.state, 'FAILED_CLOSED', 'recovery of the durable step does not by itself restore authority');
+  const afterRecovery = f.revokeAllCount();
+  assert.equal(f.sweeper.status().durableRevocationRecorded, true);
+  assert.equal(f.sweeper.status().durableRevocationPending, false);
+  f.clock.now += 60_000;
+  assert.equal((await f.sweeper.runOnce()).state, 'FAILED_CLOSED');
+  assert.equal(f.revokeAllCount(), afterRecovery, 'a recorded mass revocation is not repeated inside the same outage');
+});
+
+test('a provider answer clears the durable marker and a later outage fails closed again', async () => {
+  const f = fixture({ providerDown: true, revokeAllFails: true });
+  await f.sweeper.runOnce();
+  f.clock.now += 300_000;
+  const closed = await f.sweeper.runOnce();
+  assert.equal(closed.state, 'FAILED_CLOSED');
+  assert.equal(f.sweeper.status().durableRevocationPending, true);
+  // A recovered provider must answer for the enrolled subjects. Reporting the
+  // default UNKNOWN is itself an outage reason and legitimately stays fail-closed,
+  // so recovery is only observable once the provider reports the subjects again.
+  f.ports.states = new Map(Object.entries({ 'subject-active': 'ACTIVE', 'subject-disabled': 'ACTIVE' }));
+  f.ports.providerDown = false;
+  f.ports.failListing = false;
+  // The durable fail-closed revocation was already persisted before the outage
+  // expired again; the provider answer alone clears the outage window.
+  f.ports.revokeAllFails = false;
+  assert.equal((await f.sweeper.runOnce()).state, 'CURRENT');
+  assert.equal(f.sweeper.status().durableRevocationRecorded, false);
+  assert.equal(f.sweeper.status().durableRevocationPending, false);
+  f.ports.states = new Map();
+  f.ports.providerDown = true;
+  f.ports.revokeAllFails = true;
+  // A fresh outage starts when the provider stops answering; the durable
+  // fail-closed revocation is then persisted once that outage exceeds the bound.
+  await f.sweeper.runOnce();
+  f.clock.now += 400_000;
+  assert.equal((await f.sweeper.runOnce()).state, 'FAILED_CLOSED');
+  assert.ok(f.revokeAllCount() >= 2, 'the next expired outage gets its own durable attempt');
 });

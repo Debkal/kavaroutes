@@ -34,6 +34,6 @@ await cp(`${source}/apps/api-host/package.json`, `${root}/apps/api-host/package.
 try { await access(`${source}/apps/api-host/dist`); await cp(`${source}/apps/api-host/dist`, `${root}/apps/api-host/dist`, { recursive: true }); }
 catch (error) { if (error.code !== 'ENOENT') throw error; }
 await mkdir(`${root}/infra/gcp/runtime`, { recursive: true });
-for (const name of ['api','config','database','health','init','main','manifest','recovery','worker']) {
+for (const name of ['api','config','database','guarded-main','health','init','main','manifest','recovery','worker']) {
   await cp(`${source}/infra/gcp/runtime/${name}.mjs`, `${root}/infra/gcp/runtime/${name}.mjs`);
 }

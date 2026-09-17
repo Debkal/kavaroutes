@@ -13,9 +13,11 @@
  *   (`validSince`)                        -> that subject's older sessions are revoked;
  * - provider UNKNOWN / timeout / listing failure -> the sweeper reports DEGRADED
  *   while the outage is shorter than `maximumStalenessMilliseconds`;
- * - outage longer than that bound        -> every active session is revoked exactly
- *   once (fail closed) and the sweeper reports FAILED_CLOSED until the provider
- *   answers again;
+ * - outage longer than that bound        -> every active session is revoked
+ *   (fail closed) and the sweeper reports FAILED_CLOSED until the provider
+ *   answers again. The durable marker is set only after `revokeAllActive()`
+ *   actually succeeds, so a failed or timed-out mass revocation is retried on
+ *   the next sweep while admission stays denied;
  * - provider answers again               -> the outage clears and the sweeper
  *   reports CURRENT.
  *
@@ -94,7 +96,8 @@ export function createProviderRevocationSweeper(ports: ProviderRevocationPorts, 
   }
   const now = options.now ?? (() => Date.now());
   let outageStartedAt: number | null = null;
-  let failedClosed = false;
+  let failClosedActive = false;
+  let durableRevocationRecorded = false;
   let cursor: string | null = null;
   let lastSweepAt: number | null = null;
   let passes = 0;
@@ -141,7 +144,7 @@ export function createProviderRevocationSweeper(ports: ProviderRevocationPorts, 
       }
       const cached = ledger.get(input.subject);
       if (cached && now() - cached.checkedAt <= options.maximumStalenessMilliseconds) return decide(cached, input.sessionAuthenticatedAt);
-      if (failedClosed) return denial('PROVIDER_FAILED_CLOSED', null, checkDeadlineMilliseconds);
+      if (failClosedActive) return denial('PROVIDER_FAILED_CLOSED', null, checkDeadlineMilliseconds);
       // No fresh evidence: the provider is authoritative for this request. One
       // bounded inline check, then refuse rather than trust a stale session.
       const observation = await observe(input.subject);
@@ -149,7 +152,8 @@ export function createProviderRevocationSweeper(ports: ProviderRevocationPorts, 
       return decide(observation, input.sessionAuthenticatedAt);
     },
     status() {
-      return Object.freeze({ state: stateFor(), outageStartedAt, failedClosed, cursor, passes, sweeps, lastSweepAt,
+      return Object.freeze({ state: stateFor(), outageStartedAt, failClosedActive, durableRevocationRecorded,
+        durableRevocationPending: failClosedActive && !durableRevocationRecorded, cursor, passes, sweeps, lastSweepAt,
         subjectsWithFreshEvidence: ledger.size });
     },
     /** Evidence currently held for one subject; `null` means never observed. */
@@ -161,7 +165,7 @@ export function createProviderRevocationSweeper(ports: ProviderRevocationPorts, 
 
   function stateFor(): ProviderRevocationState {
     if (outageStartedAt === null) return 'CURRENT';
-    return failedClosed ? 'FAILED_CLOSED' : 'DEGRADED';
+    return failClosedActive ? 'FAILED_CLOSED' : 'DEGRADED';
   }
   function decide(entry: LedgerEntry, sessionAuthenticatedAt: string | null): ProviderAuthorization {
     if (entry.state === 'DISABLED') return denial('PROVIDER_ACCOUNT_DISABLED', entry.checkedAt);
@@ -190,7 +194,7 @@ export function createProviderRevocationSweeper(ports: ProviderRevocationPorts, 
       if (revokedAt !== null && !Number.isFinite(Date.parse(revokedAt))) throw new Error('PROVIDER_REVOCATION_TIMESTAMP_INVALID');
     } catch {
       // Awaited: a concurrent, unawaited failure path could otherwise observe
-      // `failedClosed === false` twice and mass-revoke more than once per outage.
+      // the fail-closed state twice and mass-revoke more than once per outage.
       await record(true, false, 0, 0, 0, 1);
       return null;
     }
@@ -209,14 +213,27 @@ export function createProviderRevocationSweeper(ports: ProviderRevocationPorts, 
     const timestamp = now();
     if (!outage) {
       outageStartedAt = null;
-      failedClosed = false;
+      failClosedActive = false;
+      // The provider answered, so the previous outage's durable fail-closed
+      // revocation is complete for this outage; a later outage starts a new one.
+      durableRevocationRecorded = false;
       return result(checked, listedCount, revoked, unknown);
     }
     outageStartedAt ??= timestamp;
-    if (!failedClosed && timestamp - outageStartedAt >= options.maximumStalenessMilliseconds) {
-      try { revoked += await deadline(ports.revokeAllActive(), checkDeadlineMilliseconds, 'revoke-all'); }
-      catch { /* the mass revoke is retried on the next observation inside the window */ }
-      failedClosed = true;
+    if (timestamp - outageStartedAt >= options.maximumStalenessMilliseconds) {
+      // Admission is denied for the whole expired-outage window, whether or not
+      // the durable revocation has been persisted yet.
+      failClosedActive = true;
+      // Persist the fail-closed transition once per outage: the durable marker
+      // moves only after `revokeAllActive()` actually succeeds, so a rejected or
+      // timed-out mass revocation stays pending and is retried by the next sweep,
+      // while a success is never repeated inside the same outage.
+      if (!durableRevocationRecorded) {
+        try {
+          revoked += await deadline(ports.revokeAllActive(), checkDeadlineMilliseconds, 'revoke-all');
+          durableRevocationRecorded = true;
+        } catch { /* retried on the next sweep; admission stays denied meanwhile */ }
+      }
     }
     if (!listed) return result(0, 0, revoked, unknown);
     return result(checked, listedCount, revoked, unknown);
