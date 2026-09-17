@@ -18,6 +18,8 @@ export default function ShiftHomeScreen() {
     { label: "D2 · Drop-off", time: "8:48–9:03 AM", rider: "Synthetic Rider B", place: "Demo Arts Center" },
   ] as const; const node = nodes[Math.min(state.currentNode, nodes.length - 1)]!; const nodeKind = state.currentNode < 2 ? "PICKUP" : "DROPOFF";
   const smallBusiness = state.effectivePolicy?.commercialTier === "SMALL_BUSINESS";
+  const currentCloudLeg = itinerary?.legs.find(leg => !["COMPLETED", "CANCELLED", "NO_SHOW"].includes(leg.execution?.lifecycle ?? "")) ?? itinerary?.legs.at(-1);
+  const cloudRouteComplete = !!itinerary?.legs.length && itinerary.legs.every(leg => ["COMPLETED", "CANCELLED", "NO_SHOW"].includes(leg.execution?.lifecycle ?? ""));
   const start = async () => { const next = await startShift(); router.replace(next.effectivePolicy?.commercialTier === "SMALL_BUSINESS" ? "/" : "/inspection"); };
   const startSmallBusinessRoute = async () => {
     let next = state;
@@ -67,9 +69,10 @@ export default function ShiftHomeScreen() {
   </FeasibilityScreen>;
   if (cloudPrototype) return <FeasibilityScreen title="Today's cloud route" summary="Synthetic trips and server receipts are connected. Foreground test transmissions run every 20 seconds; suspension or lost connectivity causes Dispatch to show overdue updates. No real GPS is sent.">
     <StatusCard title="Private cloud shift" status={`${state.tracking === "TRACKING" ? "Synthetic transmission enabled" : state.tracking} · ${itinerary?.legs.length ?? 0} leg${itinerary?.legs.length === 1 ? "" : "s"}`}><Text>{state.lastReceipt}</Text></StatusCard>
-    {itinerary?.legs[0] ? <StatusCard title={`Current assignment · stop ${itinerary.legs[0].ordinal}`} status={itinerary.legs[0].runLifecycle.replaceAll("_", " ")}><Text>{itinerary.legs[0].riderLabel}</Text><Text>{itinerary.legs[0].pickupLabel} → {itinerary.legs[0].dropoffLabel}</Text></StatusCard> : null}
+    {currentCloudLeg ? <StatusCard title={`Current assignment · stop ${currentCloudLeg.ordinal}`} status={currentCloudLeg.execution?.lifecycle.replaceAll("_", " ") ?? currentCloudLeg.runLifecycle.replaceAll("_", " ")}><Text>{currentCloudLeg.riderLabel}</Text><Text>{currentCloudLeg.pickupLabel} → {currentCloudLeg.dropoffLabel}</Text></StatusCard> : null}
+    {currentCloudLeg && !cloudRouteComplete ? <PrimaryButton label="Continue current trip" disabled={state.moving} onPress={() => router.push({ pathname: "/stop/[reference]", params: { reference: currentCloudLeg.tripLegId } })} /> : null}
     <PrimaryButton label="Review persisted itinerary" onPress={() => router.push("/manifest")} />
-    <PrimaryButton label="Return vehicle and finish shift" disabled={state.moving} onPress={() => router.push('/return')} />
+    <PrimaryButton label={cloudRouteComplete ? "Return vehicle and finish shift" : "Finish assigned trips before return"} disabled={state.moving || !cloudRouteComplete} onPress={() => router.push('/return')} />
     {error ? <StatusCard title="Cloud recovery" status={error} /> : null}
     <PrimaryButton label="Recover saved trip submissions" onPress={syncCloudActions} />
     <PrimaryButton label="Emergency: stop location sharing" onPress={() => dispatch({ type: "EMERGENCY_STOP", reason: "SAFETY" })} />

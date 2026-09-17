@@ -7,8 +7,10 @@ import {connectCloudDispatch} from '../cloud-live';
 import {CloudRouteReview} from './CloudRouteReview';
 import {CloudTrackingStatus} from './CloudTrackingStatus';
 
-export function CloudBoard({api,enabled}:{api:ReturnType<typeof createCloudApi>;enabled:boolean}){
- const [day,setDay]=useState('2026-09-14'),[filter,setFilter]=useState('all'),[selected,setSelected]=useState('');
+export function CloudBoard({api,enabled,serviceDate,onServiceDateChange}:{api:ReturnType<typeof createCloudApi>;enabled:boolean;serviceDate?:string;onServiceDateChange?:(value:string)=>void}){
+ const [localDay,setLocalDay]=useState('2026-09-14'),[filter,setFilter]=useState('all'),[selected,setSelected]=useState('');
+ const day=serviceDate??localDay;
+ const changeDay=(value:string)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return;(onServiceDateChange??setLocalDay)(value);setSelected('');setDriver('');setVehicle('');setMessage('');};
  const [driver,setDriver]=useState(''),[vehicle,setVehicle]=useState(''),[message,setMessage]=useState(''),[live,setLive]=useState('connecting'),[busy,setBusy]=useState(false);
  const pending=useRef<CloudAssignmentCommand|null>(null),flight=useRef(false);
  const board=useQuery({queryKey:['private-cloud','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','dispatch','ASSIGNED_SERVICE_DELIVERY',day],queryFn:({signal})=>api.board(day,signal),enabled,retry:false,refetchInterval:5000});
@@ -47,7 +49,7 @@ export function CloudBoard({api,enabled}:{api:ReturnType<typeof createCloudApi>;
  };
  return <section aria-label="Cloud dispatch board">
   <h2>Dispatch board</h2><p>Private synthetic service day. Map unavailable; all assignments and stops remain usable below.</p>
-  <label>Service date <input type="date" value={day} disabled={busy||!!pending.current} onChange={e=>{if(/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)){setDay(e.target.value);setSelected('');}}}/></label>
+  <label>Service date <input type="date" value={day} disabled={busy||!!pending.current} onChange={e=>changeDay(e.target.value)}/></label>
   <label>Assignments <select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All runs</option><option value="assigned">Assigned</option><option value="unassigned">Unassigned</option></select></label>
   <button disabled={!enabled||busy} onClick={()=>void board.refetch()}>Refresh dispatch board</button>
   <p role="status">Dispatch updates: {live}. {data?.runs.length??0} runs.</p>

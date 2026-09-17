@@ -7,9 +7,26 @@ import { connectCloudDispatch } from "../cloud-live";
 import {CloudBoard} from '../components/CloudBoard';
 import {CloudCommandRecovery} from '../components/CloudCommandRecovery';
 
+function syntheticNineAm(serviceDate: string) {
+  const localClock = Date.parse(`${serviceDate}T09:00:00.000Z`);
+  if (!Number.isFinite(localClock)) throw new Error("INVALID_SERVICE_DATE");
+  let resolved = localClock;
+  let offsetSeconds = 0;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const offset = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", timeZoneName: "longOffset" })
+      .formatToParts(new Date(resolved)).find(part => part.type === "timeZoneName")?.value;
+    const match = /^GMT([+-])(\d{2}):(\d{2})$/.exec(offset ?? "");
+    if (!match) throw new Error("SERVICE_TIMEZONE_UNAVAILABLE");
+    offsetSeconds = (match[1] === "+" ? 1 : -1) * (Number(match[2]) * 3600 + Number(match[3]) * 60);
+    resolved = localClock - offsetSeconds * 1000;
+  }
+  return { resolvedServiceAt: new Date(resolved).toISOString(), resolvedUtcOffsetSeconds: offsetSeconds };
+}
+
 export function Component() {
   const api = useMemo(() => createCloudApi(window.location.origin, window.fetch.bind(window)), []);
   const [cursor, setCursor] = useState<string | null>(null);
+  const [serviceDate, setServiceDate] = useState("2026-09-14");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [liveStatus, setLiveStatus] = useState("connecting");
@@ -17,8 +34,8 @@ export function Component() {
   const cancelPending = useRef<{ tripId: string; etag: string; key: string } | null>(null);
   const session = useQuery({ queryKey: ["private-cloud", "session"], queryFn: ({ signal }) => api.authenticate(signal), retry: false });
   const trips = useQuery({ queryKey: ["private-cloud", "trips", cursor], queryFn: ({ signal }) => api.list(cursor, signal), enabled: session.isSuccess, retry: false, refetchInterval: 5000 });
-  const dispatchSnapshot = useQuery({ queryKey: ["private-cloud", "dispatch-snapshot", "2026-09-13"],
-    queryFn: ({ signal }) => api.dispatchSnapshot("2026-09-13", signal), enabled: session.isSuccess,
+  const dispatchSnapshot = useQuery({ queryKey: ["private-cloud", "dispatch-snapshot", serviceDate],
+    queryFn: ({ signal }) => api.dispatchSnapshot(serviceDate, signal), enabled: session.isSuccess,
     retry: false, refetchInterval: 5000 });
   const refreshRef = useRef(async () => {});
   refreshRef.current = async () => {
@@ -27,20 +44,21 @@ export function Component() {
   };
   useEffect(() => {
     if (!session.isSuccess) return;
-    return connectCloudDispatch({ origin: window.location.origin, serviceDate: "2026-09-13",
-      snapshot: async () => (await api.dispatchSnapshot("2026-09-13")).value.cursor,
+    return connectCloudDispatch({ origin: window.location.origin, serviceDate,
+      snapshot: async () => (await api.dispatchSnapshot(serviceDate)).value.cursor,
       refresh: () => refreshRef.current(), status: setLiveStatus });
-  }, [api, session.isSuccess]);
+  }, [api, serviceDate, session.isSuccess]);
   const report = (error: unknown) => setMessage(error instanceof DevelopmentApiError && error.code === "OUTCOME_UNKNOWN"
     ? "Outcome unknown. Retry the same command to recover its receipt; do not create a replacement."
     : error instanceof DevelopmentApiError ? error.code.replaceAll("_", " ") : "Request unavailable.");
   const create = async () => {
     if (busy || cancelPending.current) return;
+    const resolved = syntheticNineAm(serviceDate);
     setBusy(true);
     pending.current ??= { key: `web-create-${crypto.randomUUID()}`, request: {
       tripId: crypto.randomUUID(), riderId: "11111111-1111-4111-8111-111111111112",
-      serviceDate: "2026-09-13", serviceTimezone: "America/Los_Angeles", localServiceTime: "09:00:00",
-      resolvedServiceAt: "2026-09-13T16:00:00.000Z", resolvedUtcOffsetSeconds: -25200, ambiguityPolicy: "reject",
+      serviceDate, serviceTimezone: "America/Los_Angeles", localServiceTime: "09:00:00",
+      ...resolved, ambiguityPolicy: "reject",
     } };
     try { await api.create(pending.current.request, pending.current.key); pending.current = null; setMessage("Trip saved in cloud PostgreSQL."); await trips.refetch(); }
     catch (error) { report(error); }
@@ -67,10 +85,10 @@ export function Component() {
     <section className="page-title"><div><p className="eyebrow">Private cloud · Prototype · Synthetic data only</p><h1>Cloud trip workspace</h1>
       <p>These trips come from the retained backend. This is not the final Dispatch client.</p></div></section>
     <CloudCommandRecovery recovery={api.recovery} enabled={session.isSuccess}/>
-    <CloudBoard api={api} enabled={session.isSuccess}/>
+    <CloudBoard api={api} enabled={session.isSuccess} serviceDate={serviceDate} onServiceDateChange={setServiceDate}/>
     <p>Facility status is available in the separate facility view. Tracking is synthetic only; real location remains disabled.</p>
     <section aria-label="Driver updates from cloud">
-      <h2>Driver updates · September 13 prototype day</h2>
+      <h2>Driver updates · {serviceDate}</h2>
       <p role="status">Cloud updates: {liveStatus}</p>
       <p>Recorded shift updates from dispatch. Live notifications trigger a server refresh, with a five-second fallback. These records do not indicate current tracking or shift completion.</p>
       {dispatchSnapshot.isPending && <p role="status">Loading Driver updates…</p>}
