@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: "./test/browser",
   fullyParallel: true,
   forbidOnly: true,
-  reporter: "line",
+  reporter: [["line"], ["json", { outputFile: "test-results/playwright-results.json" }]],
   use: { baseURL: "http://127.0.0.1:4312", trace: "retain-on-failure" },
   webServer: {
     command: "npm run preview",
