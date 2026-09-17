@@ -19,9 +19,9 @@ test("map-off mode preserves the trip board and command", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Assign Driver 042" })).toBeVisible();
 });
 
-test("facility view exposes only its scoped projection", async ({ page }) => {
-  await page.goto("/facility");
-  await expect(page.getByRole("heading", { name: "Today’s arrivals" })).toBeVisible();
+test("client view exposes only its scoped projection", async ({ page }) => {
+  await page.goto("/clients");
+  await expect(page.getByRole("heading", { name: "Client arrivals" })).toBeVisible();
   await expect(page.getByText("This view does not request fleet positions, driver availability, breadcrumbs, billing, claims, or administration data.")).toBeVisible();
   await expect(page.getByText("Fleet map")).toHaveCount(0);
 });
@@ -47,4 +47,14 @@ test("layout reflows without document-level horizontal overflow", async ({ page 
   await page.goto("/dispatch");
   await expect(page.getByRole("table")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("Driver web entry is phone-ready, keyboard-operable, and clearly scoped", async ({ page }) => {
+  await page.goto("/driver");
+  await expect(page.getByRole("heading", { name: "Start your driving day" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in and start shift" })).toBeVisible();
+  await expect(page.getByText("Synthetic data only.")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
 });

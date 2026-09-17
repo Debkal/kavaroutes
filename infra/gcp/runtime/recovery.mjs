@@ -62,7 +62,7 @@ export function createRecovery(pool, boss, authorizeReplay = async () => false) 
           const selected = await client.query(`SELECT * FROM ${schema}.job j WHERE name=$1 AND state='failed'
             AND (j.data::jsonb->>'tenantId')=$3
             AND NOT EXISTS (SELECT 1 FROM outbox.consumer_transport_journal t
-              WHERE t.tenant_id=$2 AND t.transport_id=j.id AND t.transport_attempt=j.retry_count AND t.action='DEAD_LETTER')
+              WHERE t.tenant_id=$2 AND t.transport_id::text=j.id::text AND t.transport_attempt=j.retry_count AND t.action='DEAD_LETTER')
             AND completed_on <= now() - (LEAST(300,power(2,LEAST(retry_count+1,9))) * interval '1 second')
             ORDER BY completed_on,id FOR UPDATE OF j SKIP LOCKED LIMIT 50`, [queue, tenant, tenant]);
           for (const job of selected.rows) {
@@ -75,11 +75,69 @@ export function createRecovery(pool, boss, authorizeReplay = async () => false) 
             else await client.query('RESET ROLE');
           }
           processed += selected.rowCount;
-          const remaining = await client.query(`SELECT EXISTS(SELECT 1 FROM ${schema}.job WHERE name=$1 AND state='failed'
-            AND (data::jsonb->>'tenantId')=$2) AS failed`, [queue, tenant]);
+          // A job that has been dead-lettered in this pass is finished as far as the
+          // reconciler is concerned; only a failed job with no DEAD_LETTER journal row
+          // for its current attempt still counts as unresolved (audit WEB-A-019). An
+          // exhausted job therefore stops holding readiness false forever.
+          // $2 carries the uuid tenant and $3 the same tenant as text: one parameter
+          // cannot be both, and Postgres fixes a parameter to a single type per
+          // statement (the original query splits them the same way).
+          const remaining = await client.query(`SELECT EXISTS(SELECT 1 FROM ${schema}.job j WHERE j.name=$1 AND j.state='failed'
+            AND (j.data::jsonb->>'tenantId')=$3
+            AND NOT EXISTS (SELECT 1 FROM outbox.consumer_transport_journal t
+              WHERE t.tenant_id=$2 AND t.transport_id::text=j.id::text AND t.transport_attempt=j.retry_count AND t.action='DEAD_LETTER')) AS failed`, [queue, tenant, tenant]);
           unresolved ||= remaining.rows[0].failed;
         }
         return { processed, unresolved };
+      });
+    },
+    // A published (or dead-lettered) delivery whose transport job no longer exists has
+    // no replay handle: dead-lettering clears the job, incident recovery can delete it,
+    // and the consumer may never have recorded the event — so the read model stays behind
+    // forever (audit WEB-A-031). The operator backfill authorizes the request, proves the
+    // route's consumer holds no record of the event, journals the decision, and returns
+    // the delivery to PENDING so the ordinary publisher re-creates the job.
+    async backfill(input, tenants) {
+      checkTenants(tenants);
+      if (!input || !/^[a-z][a-z0-9._:-]{2,95}$/.test(input.actorReference ?? '') ||
+          !/^[0-9a-f-]{36}$/.test(input.requestId ?? '') || !uuid.test(input.deliveryId ?? '') ||
+          !tenants.includes(input.tenantId) || input.reasonCode !== 'OPERATOR_REVIEWED' ||
+          !(await authorizeReplay(input))) throw new Error('BACKFILL_AUTHORIZATION_DENIED');
+      const consumerName = { projection: 'projection.trip', 'realtime-signal': 'realtime.v1' };
+      return transaction(async client => {
+        await client.query('SET LOCAL ROLE kavaroutes_outbox_consumer');
+        await client.query("SELECT set_config('app.tenant_id',$1,true)", [input.tenantId]);
+        const delivery = (await client.query(`SELECT d.id,d.route,d.status,d.publish_attempts,d.lifecycle_version,m.event_id
+          FROM outbox.delivery d JOIN outbox.message m ON m.tenant_id=d.tenant_id AND m.id=d.message_id
+          WHERE d.tenant_id=$1 AND d.id=$2`, [input.tenantId, input.deliveryId])).rows[0];
+        if (!delivery) throw new Error('BACKFILL_DELIVERY_NOT_FOUND');
+        if (!routes.includes(delivery.route) || !consumerName[delivery.route]) throw new Error('BACKFILL_ROUTE_UNAVAILABLE');
+        const recorded = delivery.route === 'projection'
+          ? (await client.query(`SELECT 1 FROM outbox.consumer_inbox WHERE tenant_id=$1 AND consumer_name=$2 AND event_id=$3`,
+            [input.tenantId, consumerName[delivery.route], delivery.event_id])).rowCount > 0
+          : (await client.query(`SELECT 1 FROM realtime.consumer_checkpoint WHERE tenant_id=$1 AND consumer_name=$2 AND source_event_id=$3`,
+            [input.tenantId, consumerName[delivery.route], delivery.event_id])).rowCount > 0;
+        if (recorded) return { deliveryId: delivery.id, route: delivery.route, status: 'ALREADY_APPLIED' };
+        const transportId = delivery.id, attempt = Number(delivery.publish_attempts);
+        const prior = (await client.query(`SELECT id FROM outbox.consumer_transport_journal
+          WHERE tenant_id=$1 AND transport_id=$2 AND transport_attempt=$3 AND action='REPLAY'`,
+        [input.tenantId, transportId, attempt])).rows[0];
+        if (prior) return { deliveryId: delivery.id, route: delivery.route, status: 'REPLAYED' };
+        // Checked after the two answers that describe work already resolved, so a
+        // replayed decision and an applied event read as themselves rather than as an
+        // un-replayable state (the first backfill leaves the delivery PENDING).
+        if (!['PUBLISHED', 'DEAD_LETTERED'].includes(delivery.status)) throw new Error(`BACKFILL_DELIVERY_NOT_REPLAYABLE:${String(delivery.status)}`);
+        await client.query(`INSERT INTO outbox.consumer_transport_journal
+          (tenant_id,id,delivery_id,transport_id,transport_attempt,action,safe_code,actor_reference)
+          VALUES ($1,$2,$3,$4,$5,'REPLAY','OPERATOR_REVIEWED',$6)`,
+        [input.tenantId, input.requestId, delivery.id, transportId, attempt, input.actorReference]);
+        const requeued = await client.query(`UPDATE outbox.delivery
+          SET status='PENDING',lease_owner=NULL,lease_expires_at=NULL,available_at=now(),
+            lifecycle_version=lifecycle_version+1,reconciled_at=now()
+          WHERE tenant_id=$1 AND id=$2 RETURNING id`,
+        [input.tenantId, delivery.id]);
+        if (!requeued.rowCount) throw new Error('BACKFILL_NOT_REQUEUED');
+        return { deliveryId: delivery.id, route: delivery.route, status: 'REQUEUED' };
       });
     },
     async replay(input, tenants) {

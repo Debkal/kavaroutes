@@ -18,7 +18,12 @@ export async function verifyMigrationManifest(pool) {
   migrationManifest ??= readMigrations();
   const expected = await migrationManifest;
   const actual = (await pool.query('SELECT migration_name,sha256 FROM public.kavaroutes_schema_migration ORDER BY migration_name')).rows;
-  if (actual.length !== expected.length || actual.some((row,i) => row.migration_name !== expected[i].name || row.sha256 !== expected[i].checksum)) throw new Error('RUNTIME_MIGRATION_DRIFT');
+  // Name the drifted files instead of a bare code: the operator otherwise has to diff
+  // hashes by hand (audit WEB-A-023). Names are safe; no row content is included.
+  const drifted = actual.length === expected.length
+    ? actual.filter((row, i) => row.migration_name !== expected[i].name || row.sha256 !== expected[i].checksum).map(row => row.migration_name)
+    : [`count:${actual.length}/${expected.length}`];
+  if (drifted.length) throw new Error(`RUNTIME_MIGRATION_DRIFT:${drifted.slice(0, 5).join(',')}`);
 }
 
 export function makePool(config, applicationName = 'kavaroutes-private-synthetic') {

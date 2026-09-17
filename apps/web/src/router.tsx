@@ -1,18 +1,28 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createBrowserRouter, Link, Outlet, redirect, useRouteError } from "react-router";
+import { createBrowserRouter, Link, NavLink, Outlet, redirect, useRouteError } from "react-router";
 import { queryClient } from "./runtime";
 
-const privateCloud = import.meta.env.VITE_KAVAROUTES_BACKEND === "private-cloud";
-if (import.meta.env.VITE_KAVAROUTES_BACKEND && !["local-synthetic", "private-cloud"].includes(import.meta.env.VITE_KAVAROUTES_BACKEND)) throw new Error("INVALID_BACKEND_MODE");
+/** Baked at build time (vite define). The line lets an operator compare the served
+ * bundle with the API's /health/ready build field (audit WEB-A-004/WEB-A-009). */
+declare const __KR_WEB_BUILD__: string;
+const webBuild = typeof __KR_WEB_BUILD__ === "string" ? __KR_WEB_BUILD__ : "unknown";
+
+// One backend per build, and the default is the persisted one. The
+// fixture-backed `local-synthetic` surface is opt-in for the browser test
+// harness only, so no synthetic route ships unless a build asks for it.
+const backendMode = import.meta.env.VITE_KAVAROUTES_BACKEND ?? "private-cloud";
+if (!["local-synthetic", "private-cloud"].includes(backendMode)) throw new Error("INVALID_BACKEND_MODE");
+const privateCloud = backendMode === "private-cloud";
 
 function AppShell() {
   return <QueryClientProvider client={queryClient}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <header className="app-header">
       <div><span className="brand-mark" aria-hidden="true">KR</span><strong>KavaRoutes</strong><span className="environment">{privateCloud ? "Private cloud prototype" : "Local synthetic alpha"}</span></div>
-      <nav aria-label="Primary"><Link to="/dispatch">Dispatch</Link><Link to="/facility">Facility</Link></nav>
+      <nav aria-label="Primary"><NavLink to="/dispatch">Dispatch</NavLink><NavLink to="/driver">Driver</NavLink><NavLink to="/clients">Clients</NavLink></nav>
     </header>
     <Outlet />
+    <footer className="app-footer"><span>Web build {webBuild}</span></footer>
   </QueryClientProvider>;
 }
 
@@ -23,11 +33,18 @@ function RootError() {
 
 function NotFound() { return <main id="main-content" className="message-page"><h1>Page not found</h1><p>This local route is not part of the closed KavaRoutes catalog.</p><Link to="/dispatch">Open Dispatch</Link></main>; }
 
+function HydrateFallback() {
+  return <main id="main-content" className="message-page"><p role="status">Loading the KavaRoutes prototype…</p></main>;
+}
+
+// A lazy route hydrates before its module is ready; without this the router warns on
+// every page and the operator sees an empty root.
 export const router = createBrowserRouter([{
-  path: "/", element: <AppShell />, errorElement: <RootError />, children: [
+  path: "/", element: <AppShell />, errorElement: <RootError />, HydrateFallback, children: [
     { index: true, loader: () => redirect("/dispatch") },
     { path: "dispatch", lazy: () => privateCloud ? import("./routes/cloud-dispatch-route") : import("./routes/dispatch-route") },
-    { path: "facility", lazy: () => privateCloud ? import("./routes/cloud-facility-route") : import("./routes/facility-route") },
+    { path: "driver", lazy: () => privateCloud ? import("./routes/cloud-driver-route") : import("./routes/cloud-driver-route") },
+    { path: "clients", lazy: () => privateCloud ? import("./routes/cloud-clients-route") : import("./routes/facility-route") },
     { path: "forbidden", lazy: () => import("./routes/forbidden-route") },
     { path: "session-expired", lazy: () => import("./routes/session-expired-route") },
     { path: "*", element: <NotFound /> },

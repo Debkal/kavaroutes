@@ -15,6 +15,7 @@ import {createWp007Api,createWp007PostgresApplication,createPostgresBrowserRecov
   createPostgresDriverActionService,createPostgresDriverClosureService,createPostgresDriverPrecheckService,
   createPostgresDriverShiftService,createPostgresDriverShiftStateReader,createPostgresDriverSignatureService,
   createPostgresFacilityService,createPostgresRouteProposalService} from '@kavaroutes/api-contracts';
+import {createPostgresClientService,createPostgresDriverLoginService} from '@kavaroutes/api-contracts';
 import {createIdentityAdmission,type VerifiedIdentity} from '@kavaroutes/api-contracts/identity-admission';
 import {createApplicationSessionStore,createIdentityMembershipReader} from '@kavaroutes/postgres-persistence';
 import {createGuardedDriverItineraryReader} from './guarded-driver-itinerary.js';
@@ -44,7 +45,10 @@ const reviewedPaths:readonly RegExp[]=[
   /^\/v1\/organizations\/[^/]+\/realtime-change-queries$/,
   /^\/v1\/organizations\/[^/]+\/trips(?:\/[^/]+(?:\/commands\/cancel)?)?$/,
   /^\/v1\/organizations\/[^/]+\/dispatch-board\/\d{4}-\d{2}-\d{2}$/,
-  /^\/v1\/organizations\/[^/]+\/dispatch\/runs\/[^/]+\/commands\/assign$/,
+  /^\/v1\/organizations\/[^/]+\/dispatch\/runs\/[^/]+\/commands\/(?:assign|unassign)$/,
+  /^\/v1\/organizations\/[^/]+\/dispatch\/runs\/commands\/plan$/,
+  /^\/v1\/organizations\/[^/]+\/clients(?:\/commands\/create|\/[^/]+\/commands\/update)?$/,
+  /^\/v1\/organizations\/[^/]+\/driver-logins\/(?:commands\/(?:create|verify)|[^/]+\/commands\/claim)$/,
   /^\/v1\/organizations\/[^/]+\/dispatch\/route-proposals\/[^/]+\/commands\/decide$/,
   /^\/v1\/organizations\/[^/]+\/dispatch\/shifts\/[^/]+\/return-review$/,
   /^\/v1\/organizations\/[^/]+\/dispatch\/shifts\/[^/]+\/commands\/override-return$/,
@@ -131,6 +135,15 @@ export async function createGuardedApiHost(options:GuardedApiHostOptions) {
     if(decision.reason==='PROVIDER_ACCOUNT_DISABLED'||decision.reason==='PROVIDER_AUTHENTICATION_REVOKED')return null;
     throw new ProtocolError(503,'PROVIDER_VERIFICATION_UNAVAILABLE','provider verification unavailable');
   };
+  /** Logout-only existence check for the one path that must keep working while
+   * the provider is unreachable. It resolves the same durable row with the same
+   * tenant-scoped transaction, but deliberately skips the provider gate: a
+   * failed provider consultation must not trap a user in a session they asked
+   * to end. It grants nothing, and no other route is wired to it. */
+  const resolveForLogout=async(organizationId:string,tokenHash:string,csrfHash:string)=>{
+    const row=await sessions.resolve(organizationId,tokenHash,csrfHash);
+    return row===null?null:Object.freeze({organizationId});
+  };
   const admission=createIdentityAdmission({verifyToken:options.verifyProviderToken,findMembership:createIdentityMembershipReader(options.pool)},
     {issuer:config.issuer,audience:config.audience,now:clock,maximumAuthenticationAgeSeconds:config.maximumAuthenticationAgeSeconds});
   // No Authorization-header or synthetic principal is ever interpreted here.
@@ -168,6 +181,8 @@ export async function createGuardedApiHost(options:GuardedApiHostOptions) {
     dispatchService:createPostgresDispatchService(options.pool,{etag:application.etag}),
     routeProposalService:createPostgresRouteProposalService(options.pool),
     facilityService:createPostgresFacilityService(options.pool),
+    clientService:createPostgresClientService(options.pool),
+    driverLoginService:createPostgresDriverLoginService(options.pool),
     driverShiftService:createPostgresDriverShiftService(options.pool),
     driverShiftReader:createPostgresDriverShiftStateReader(options.pool),
     driverActionService:createPostgresDriverActionService(options.pool,{etag:application.etag}),
@@ -231,7 +246,7 @@ export async function createGuardedApiHost(options:GuardedApiHostOptions) {
     });
   });
   await registerBrowserAuth(app,{origin:config.origin,signingKey:config.signingKey,
-    ports:{admit:admission.admit,issue:sessions.issue,resolve:sessions.resolve,revoke:sessions.revoke}});
+    ports:{admit:admission.admit,issue:sessions.issue,resolve:verifySession,resolveForLogout,revoke:sessions.revoke}});
   let stopped=false;
   let timer:ReturnType<typeof setTimeout>|undefined;
   let sweepTimer:ReturnType<typeof setInterval>|undefined;

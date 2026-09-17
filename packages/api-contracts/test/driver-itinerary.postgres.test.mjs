@@ -276,8 +276,38 @@ test('persisted driver day enforces tenant, subject, date and cancellation bound
       audits: Number((await db.query("SELECT count(*) FROM audit.event WHERE tenant_id=$1 AND action_reference IN ('driver.action.applied','driver.action.rejected')", [tenantId])).rows[0].count),
     }));
     assert.deepEqual(actionEvidence, { events: 2, audits: 2 });
+    // A trip list must be able to tell a delivered trip from one that was never executed,
+    // so the record carries the state its legs imply (audit WEB-A-017).
+    const tripList = async () => (await app.inject({ url: `/v1/organizations/${tenantId}/trips?limit=50`,
+      headers: { authorization: 'Synthetic principal_dispatcher' } })).json().items;
+    assert.equal((await tripList()).find(item => item.tripId === tripId).recordState, 'IN_PROGRESS',
+      'a trip whose leg is at the pickup reads as in progress, not as a draft');
     await verifyDriverServiceProof({pool,app,tenantId,driverId,legId,tripId,runId,shift:nextShift,application,
       advanceClock:()=>{driverClockOffset+=16*60000;}});
+    // A trip whose only leg completed reads as delivered: the state that was invisible
+    // before (this fixture's walked trip keeps unresolved sibling legs, so it stays in
+    // progress — which is the honest aggregate).
+    const completedTripId = randomUUID(), completedLegId = randomUUID();
+    await withTenantTransaction(pool, tenantId, 'kavaroutes_api', async db => {
+      await db.query(`INSERT INTO intake.trip_request
+        (tenant_id,id,rider_id,service_date,service_timezone,local_service_time,resolved_service_at,
+         resolved_utc_offset_seconds,ambiguity_policy,ambiguity_policy_version,lifecycle_reference)
+        SELECT tenant_id,$2,rider_id,service_date,service_timezone,local_service_time,resolved_service_at,
+          resolved_utc_offset_seconds,ambiguity_policy,ambiguity_policy_version,'scheduled'
+        FROM intake.trip_request WHERE tenant_id=$1 AND id=$3`, [tenantId, completedTripId, tripId]);
+      await db.query(`INSERT INTO intake.trip_leg
+        (tenant_id,id,trip_request_id,ordinal,origin_address_id,destination_address_id,planned_start_at,planned_end_at)
+        SELECT tenant_id,$2,$3,1,origin_address_id,destination_address_id,planned_start_at,planned_end_at
+        FROM intake.trip_leg WHERE tenant_id=$1 AND trip_request_id=$4 LIMIT 1`, [tenantId, completedLegId, completedTripId, tripId]);
+      await db.query(`INSERT INTO execution.leg_execution (tenant_id,id,trip_leg_id,run_id,lifecycle_reference,occurred_at)
+        VALUES ($1,$2,$3,$4,'completed',now())`, [tenantId, randomUUID(), completedLegId, runId]);
+    });
+    const listed = await tripList();
+    assert.equal(listed.find(item => item.tripId === completedTripId).recordState, 'DELIVERED');
+    assert.equal(listed.find(item => item.tripId === completedTripId).lifecycle, 'DRAFT',
+      'the persisted record state the cancel command checks is unchanged');
+    assert.equal(listed.find(item => item.tripId === tripId).recordState, 'IN_PROGRESS',
+      'a trip with an unresolved leg is not reported as delivered');
     const createPolicyShift = async (prior, policyVersion, mode, label) => {
       await runTransaction(tx => tx.replaceDriverControlPolicy({ policyId: randomUUID(), organizationId: tenantId,
         expectedVersion: policyVersion, controls: { preInspection: mode, startOdometer: mode }, locks: {},

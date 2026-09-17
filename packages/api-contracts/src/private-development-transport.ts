@@ -22,8 +22,11 @@ export interface DevelopmentFetch {
 export class DevelopmentApiError extends Error {
   readonly status: number;
   readonly code: string;
-  constructor(status: number, code: string) {
+  /** The server's own request id when it stated one, so an operator can quote it. */
+  readonly requestId?: string;
+  constructor(status: number, code: string, requestId?: string) {
     super(code); this.name = "DevelopmentApiError"; this.status = status; this.code = code;
+    if (requestId !== undefined) this.requestId = requestId;
   }
 }
 export type DevelopmentPersona = "dispatcher" | "driver" | "facility" | "policy_override";
@@ -88,13 +91,19 @@ export function createPrivateDevelopmentTransport(options: {
           throw new DevelopmentApiError(0, command ? "OUTCOME_UNKNOWN" : "BACKEND_UNAVAILABLE");
         }
         if (response.status < 200 || response.status >= 300) {
-          // Do not copy untrusted response details (or patient data) into UI/log errors.
+          // The server states a closed reason code for a refused command. Only a
+          // code-shaped token and a request id are read out of the body; no message,
+          // field or identifier text is copied into the UI.
+          let stated: {code?: unknown; requestId?: unknown} | null = null;
+          try { stated = await response.json() as {code?: unknown; requestId?: unknown}; } catch { stated = null; }
+          const statedCode = typeof stated?.code === "string" && /^[A-Z][A-Z0-9_]{2,60}$/.test(stated.code) ? stated.code : null;
+          const requestId = typeof stated?.requestId === "string" && /^req_[A-Za-z0-9_-]{1,64}$/.test(stated.requestId) ? stated.requestId : null;
           const code = response.status === 401 ? "SESSION_EXPIRED" : response.status === 403 ? "CAPABILITY_DENIED"
             // A 409 can be a duplicate proof, a policy conflict, or a stale command.
             // Do not infer a version mismatch from status alone.
-            : response.status === 409 ? "REQUEST_CONFLICT" : response.status === 412 ? "VERSION_CONFLICT"
-            : response.status === 503 ? "BACKEND_UNAVAILABLE" : "API_REQUEST_REJECTED";
-          throw new DevelopmentApiError(response.status, code);
+            : response.status === 409 ? statedCode ?? "REQUEST_CONFLICT" : response.status === 412 ? "VERSION_CONFLICT"
+            : response.status === 503 ? "BACKEND_UNAVAILABLE" : statedCode ?? "API_REQUEST_REJECTED";
+          throw new DevelopmentApiError(response.status, code, requestId ?? undefined);
         }
         try {
           return { value: decode(await response.json()), etag: response.headers.get("etag"),

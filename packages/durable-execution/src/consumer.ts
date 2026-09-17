@@ -50,13 +50,26 @@ export function createOrderedConsumer(pool: Pool, options: { readonly consumerNa
         if (duplicate.rowCount) {
           outcome = "DUPLICATE";
         } else {
-          await client.query(`INSERT INTO outbox.consumer_checkpoint (tenant_id,consumer_name,aggregate_type,aggregate_id)
-            VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`, [payload.tenantId, options.consumerName, message.aggregate_type, message.aggregate_id]);
+          const created = await client.query(`INSERT INTO outbox.consumer_checkpoint (tenant_id,consumer_name,aggregate_type,aggregate_id)
+            VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING last_applied_version`,
+          [payload.tenantId, options.consumerName, message.aggregate_type, message.aggregate_id]);
           const checkpoint = await client.query(`SELECT last_applied_version FROM outbox.consumer_checkpoint
             WHERE tenant_id=$1 AND consumer_name=$2 AND aggregate_type=$3 AND aggregate_id=$4 FOR UPDATE`,
           [payload.tenantId, options.consumerName, message.aggregate_type, message.aggregate_id]);
-          const last = Number(checkpoint.rows[0].last_applied_version);
+          let last = Number(checkpoint.rows[0].last_applied_version);
           const received = Number(message.aggregate_version);
+          if (created.rowCount === 1 && last === 0) {
+            // First sight of this aggregate. Its earlier events may predate the outbox,
+            // have been published before this consumer existed, or have been purged after
+            // retention, so the first observed event may legitimately be version 2. A
+            // predecessor that still exists is a real gap and is refused; otherwise the
+            // expectation bootstraps to the observed version (audit WEB-A-031). Once a
+            // version has been applied the strict last+1 rule stands.
+            const predecessor = await client.query(`SELECT 1 FROM outbox.message
+              WHERE tenant_id=$1 AND aggregate_id=$2 AND aggregate_version<$3 LIMIT 1`,
+            [payload.tenantId, message.aggregate_id, received]);
+            if (predecessor.rowCount === 0) last = received - 1;
+          }
           if (received > last + 1) throw new AggregateGapError(last + 1, received);
           outcome = received <= last ? "OBSOLETE" : "APPLIED";
           if (outcome === "APPLIED") {

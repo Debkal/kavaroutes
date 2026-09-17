@@ -66,15 +66,16 @@ test('errors never fall back to local fixtures or expose server details', async 
     await assert.rejects(client.request('/v1/me', decode), error => error.code === code && !error.message.includes('sensitive'));
   }
 });
-test('duplicate-proof conflicts are not falsely identified as stale versions or retried', async () => {
+test('a refused command states its own closed reason code and a request id, without the body text', async () => {
   let attempts = 0;
   const client = make(async () => {
     attempts++;
-    return response(409, { code: 'PERSISTENCE_DUPLICATE', detail: 'RAW_SECRET_CANARY' });
+    return response(409, { code: 'PERSISTENCE_DUPLICATE', requestId: 'req_wp007_00000042', detail: 'RAW_SECRET_CANARY' });
   });
   await assert.rejects(client.request('/v1/commands/test', decode,
     { body: {}, idempotencyKey: 'original-proof' }), error =>
-    error.status === 409 && error.code === 'REQUEST_CONFLICT' && error.message === 'REQUEST_CONFLICT');
+    error.status === 409 && error.code === 'PERSISTENCE_DUPLICATE' && error.requestId === 'req_wp007_00000042' &&
+    !error.message.includes('RAW_SECRET_CANARY'));
   assert.equal(attempts, 1);
 });
 test('invalid success payload is not accepted as a receipt', async () => {

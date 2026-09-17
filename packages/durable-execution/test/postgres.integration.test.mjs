@@ -167,6 +167,42 @@ test("consumer applies exact next versions atomically and treats repeats, gaps, 
     assert.equal(await consumer.consume(payloads[0]), "DUPLICATE");
     assert.equal(await consumer.consume(payloads[1]), "APPLIED");
     assert.equal(await consumer.consume(payloads[1]), "DUPLICATE");
+    // A first observed event above version 1 is not a gap when no predecessor exists:
+    // the aggregate's earlier events predate the outbox or were purged after retention.
+    // The expectation bootstraps to the observed version instead of poisoning the queue
+    // forever (audit WEB-A-031).
+    const firstSightId = randomUUID();
+    const stage = async (aggregateId, version) => withTenantTransaction(pool, tenantId, "kavaroutes_api", async (client) => {
+      const source = (await client.query("SELECT * FROM outbox.message WHERE tenant_id=$1 AND aggregate_id=$2 AND aggregate_version=2",
+        [tenantId, tripId])).rows[0];
+      const messageId = randomUUID(), deliveryId = randomUUID(), eventId = randomUUID(), correlationId = randomUUID();
+      await client.query(`INSERT INTO outbox.message
+        (tenant_id,id,event_id,aggregate_type,aggregate_id,aggregate_version,event_type,schema_version,occurred_at,command_id,
+         idempotency_reference_hash,correlation_id,source,classification_reference,purpose_reference,policy_reference,payload,retain_until)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,now(),$9,$10,$11,$12,$13,$14,$15,$16,now()+interval '30 days 5 minutes')`,
+      [tenantId, messageId, eventId, source.aggregate_type, aggregateId, version, source.event_type, source.schema_version,
+       randomUUID(), source.idempotency_reference_hash, correlationId, source.source, source.classification_reference,
+       source.purpose_reference, source.policy_reference, source.payload]);
+      await client.query(`INSERT INTO outbox.delivery (tenant_id,id,message_id,route,job_type,retain_until)
+        VALUES ($1,$2,$3,'projection','kr.projection.trip.v1',now()+interval '30 days 5 minutes')`, [tenantId, deliveryId, messageId]);
+      return { tenantId, deliveryId, eventId, route: "projection", jobType: "kr.projection.trip.v1", eventType: source.event_type,
+        schemaVersion: source.schema_version, aggregateType: source.aggregate_type, aggregateId, aggregateVersion: version,
+        correlationId, classificationReference: source.classification_reference, purposeReference: source.purpose_reference,
+        policyReference: source.policy_reference };
+    });
+    const firstSight = await stage(firstSightId, 2);
+    assert.equal(await consumer.consume(firstSight), "APPLIED");
+    assert.equal(await consumer.consume(firstSight), "DUPLICATE");
+    await withTenantTransaction(pool, tenantId, "kavaroutes_outbox_consumer", async (client) => {
+      assert.equal((await client.query("SELECT applied_version::int AS version FROM outbox.consumer_projection WHERE aggregate_id=$1", [firstSightId])).rows[0].version, 2);
+    });
+    // The strict rule still holds once a version is known: a predecessor that is still in
+    // the outbox is a real gap, not first sight.
+    const gappedId = randomUUID();
+    await stage(gappedId, 2);
+    const gapped = await stage(gappedId, 3);
+    const gappedConsumer = createOrderedConsumer(pool, { consumerName: "projection.gapped", purposeReference: "RIDER_INTAKE", authorize: async () => true, handlerVersion: "v1" });
+    await assert.rejects(() => gappedConsumer.consume(gapped), (error) => error instanceof AggregateGapError && error.expectedVersion === 1 && error.receivedVersion === 3);
     await withTenantTransaction(pool, tenantId, "kavaroutes_outbox_consumer", async (client) => {
       const projection = await client.query("SELECT applied_version,safe_state FROM outbox.consumer_projection WHERE aggregate_id=$1", [tripId]);
       assert.deepEqual({ version: Number(projection.rows[0].applied_version), state: projection.rows[0].safe_state }, { version: 2, state: "CANCELLED" });

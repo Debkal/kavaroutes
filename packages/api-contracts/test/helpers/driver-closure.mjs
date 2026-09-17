@@ -23,7 +23,7 @@ export async function verifyDriverClosure(pool,tenantId,fixture,runtimeApp){
    assert.equal((await app.inject({url:reviewUrl,headers:{authorization:`Synthetic ${persona}`}})).statusCode,404);
    const denied=await app.inject({method:'POST',url:overrideUrl,headers:{authorization:`Synthetic ${persona}`,'idempotency-key':randomUUID()},payload:overrideRequest});assert.equal(denied.statusCode,404,denied.body);
   }
-  const review=await app.inject({url:reviewUrl,headers:{authorization:'Synthetic principal_policy_override'}});assert.equal(review.statusCode,200,review.body);assert.equal(review.json().exceptionCommandId,request.commandId);assert.deepEqual(Object.keys(review.json()).sort(),['exceptionCommandId','lifecycle','resourceVersion','returnMode','returnResult','shiftGeneration','shiftReference']);
+  const review=await app.inject({url:reviewUrl,headers:{authorization:'Synthetic principal_policy_override'}});assert.equal(review.statusCode,200,review.body);assert.equal(review.json().exceptionCommandId,request.commandId);assert.deepEqual(Object.keys(review.json()).sort(),['closurePath','exceptionCommandId','lifecycle','resourceVersion','returnMode','returnResult','shiftGeneration','shiftReference']);
   const wrongEvidence=await app.inject({method:'POST',url:overrideUrl,headers:{authorization:'Synthetic principal_policy_override','idempotency-key':randomUUID()},payload:{...overrideRequest,exceptionCommandId:randomUUID()}});assert.equal(wrongEvidence.statusCode,404,wrongEvidence.body);
   await pool.query("INSERT INTO execution.driver_return_configuration VALUES($1,$2,1,'AT_RETURN',60)",[tenantId,fixture.shiftId]);
   const sample={sampleId:randomUUID(),sequence:1,fixture:'AT_RETURN',capturedAt:new Date().toISOString()};

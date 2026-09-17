@@ -29,12 +29,14 @@ function config(signingKey) {
 /** Scripted pool: answers the guarded composition's own statements only. */
 function scriptedPool(session) {
   const state = { sessionUpdates: [], tenantReads: 0 };
+  const revoked = session.revoked === true;
   const sessionRow = () => ({ organization_id: tenantId, user_id: randomUUID(), principal_id: principalId, role: 'DISPATCHER',
     driver_id: null, authorization_generation: 1, expires_at: session.expiresAt, subject: session.subject,
     created_at: session.createdAt, scope_kinds: [], capability_grants: [] });
   const dispatch = async (text, params) => {
     if (/enrolled_tenants/.test(text)) { state.tenantReads += 1; return { rows: [{ tenant_id: tenantId }], rowCount: 1 }; }
-    if (/FROM platform\.application_session/.test(text)) return { rows: [sessionRow()], rowCount: 1 };
+    if (/FROM platform\.application_session/.test(text)) return revoked && /revoked_at IS NULL/.test(text)
+      ? { rows: [], rowCount: 0 } : { rows: [sessionRow()], rowCount: 1 };
     if (/UPDATE platform\.application_session/.test(text)) {
       state.sessionUpdates.push({ text, params });
       return { rows: [], rowCount: 1 };
@@ -57,7 +59,7 @@ function hostFor({ signingKey, session, accounts }) {
 
 function sessionFixture(overrides = {}) {
   return { subject: providerSubject, createdAt: new Date(Date.now() - 60_000).toISOString(),
-    expiresAt: new Date(Date.now() + 3_600_000).toISOString(), ...overrides };
+    expiresAt: new Date(Date.now() + 3_600_000).toISOString(), revoked: false, ...overrides };
 }
 
 function browserHeaders(signingKey, issued, method = 'GET') {
@@ -153,4 +155,67 @@ test('a guarded host cannot be composed without provider account ports, and reje
     verifyProviderToken: async () => ({ issuer: 'https://securetoken.google.com/kavaroutes', subject: randomUUID(),
       audience: 'kavaroutes', authenticatedAt: new Date().toISOString() }),
     providerAccounts: accountState('ACTIVE'), pool: scriptedPool(sessionFixture()) }), /ACTIVATION_DENIED/);
+});
+
+test('A-010: the browser session bootstrap obeys the same provider gate as REST', async () => {
+  const signingKey = randomBytes(32);
+  const issued = createBrowserCredentials({ origin, signingKey }).issue(tenantId);
+  const session = sessionFixture();
+  const sessionHeaders = { cookie: issued.cookie.split(';')[0], origin, 'x-kr-csrf': issued.csrf,
+    'x-forwarded-proto': 'https', 'sec-fetch-site': 'same-origin' };
+  const bootstrap = { method: 'POST', url: '/auth/session', headers: { cookie: issued.cookie.split(';')[0],
+    origin, 'x-forwarded-proto': 'https', 'sec-fetch-site': 'same-origin' } };
+
+  // Active provider: the bootstrap and the business route agree, and the
+  // bootstrap still hands back the CSRF the opaque cookie cannot carry.
+  const active = await hostFor({ signingKey, session, accounts: accountState('ACTIVE') });
+  const activeBootstrap = await active.app.inject(bootstrap);
+  assert.equal(activeBootstrap.statusCode, 200, activeBootstrap.body);
+  assert.equal(activeBootstrap.json().csrf, issued.csrf);
+  assert.equal((await active.app.inject({ url: '/v1/me', headers: sessionHeaders })).statusCode, 200);
+  await active.close();
+
+  // Disabled account: the bootstrap must be refused exactly like `/v1/me`, and
+  // the terminal invalidity must clear the session cookie so the browser stops
+  // presenting it.
+  const disabled = await hostFor({ signingKey, session, accounts: accountState('DISABLED') });
+  const disabledBootstrap = await disabled.app.inject(bootstrap);
+  assert.equal(disabledBootstrap.statusCode, 401, disabledBootstrap.body);
+  assert.match(String(disabledBootstrap.headers['set-cookie']), /Max-Age=0/);
+  assert.equal((await disabled.app.inject({ url: '/v1/me', headers: sessionHeaders })).statusCode, 401);
+  await disabled.close();
+
+  // Provider revocation at/after the session authentication.
+  const created = new Date(Date.now() - 3_600_000);
+  const revokedSession = sessionFixture({ createdAt: created.toISOString() });
+  const revoked = await hostFor({ signingKey, session: revokedSession,
+    accounts: accountState('ACTIVE', new Date(created.getTime() + 60_000).toISOString()) });
+  assert.equal((await revoked.app.inject(bootstrap)).statusCode, 401);
+  await revoked.close();
+
+  // Provider this host cannot consult: bounded safe failure, cookie preserved
+  // so the user can retry once the provider answers.
+  const unreachable = await hostFor({ signingKey, session,
+    accounts: { checkAccount: async () => { throw new Error('PROVIDER_UNREACHABLE'); },
+      revokedAt: async () => { throw new Error('PROVIDER_UNREACHABLE'); } } });
+  const unavailable = await unreachable.app.inject(bootstrap);
+  assert.equal(unavailable.statusCode, 503, unavailable.body);
+  assert.deepEqual(unavailable.json(), { error: 'SESSION_UNAVAILABLE' });
+  assert.equal(unavailable.headers['set-cookie'], undefined);
+  assert.equal((await unreachable.app.inject({ url: '/v1/me', headers: sessionHeaders })).statusCode, 503);
+  // Logout during the same outage is the one explicit exception: the user asked
+  // to end the session, so the durable row is revoked and the cookie cleared.
+  const logoutDuringOutage = await unreachable.app.inject({ method: 'POST', url: '/auth/logout',
+    headers: { ...sessionHeaders } });
+  assert.equal(logoutDuringOutage.statusCode, 204, logoutDuringOutage.body);
+  assert.match(String(logoutDuringOutage.headers['set-cookie']), /Max-Age=0/);
+  await unreachable.close();
+
+  // Already revoked locally: the row is gone, so bootstrap is refused and the
+  // cookie is cleared without any provider call.
+  const revokedLocally = await hostFor({ signingKey, session: sessionFixture({ revoked: true }), accounts: accountState('ACTIVE') });
+  const gone = await revokedLocally.app.inject(bootstrap);
+  assert.equal(gone.statusCode, 401, gone.body);
+  assert.match(String(gone.headers['set-cookie']), /Max-Age=0/);
+  await revokedLocally.close();
 });

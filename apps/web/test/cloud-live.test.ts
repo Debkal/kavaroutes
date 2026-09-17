@@ -25,6 +25,12 @@ it('uses the current private loopback port for Compose, never the cloud tunnel p
   await flush();expect(socket).toHaveBeenCalledWith('ws://127.0.0.1:8080/v1/realtime','kavaroutes.realtime.v1');stop();
 });
 
+it('uses secure WebSockets for the explicit HTTPS edge prototype', async()=>{
+  const socket=vi.fn(()=>({close:vi.fn()}) as unknown as WebSocket);
+  const stop=connectCloudDispatch({origin:'https://app.kavaroutes.com',serviceDate:'2026-09-15',snapshot:async()=>first,refresh:async()=>{},status:()=>{},socket});
+  await flush();expect(socket).toHaveBeenCalledWith('wss://app.kavaroutes.com/v1/realtime','kavaroutes.realtime.v1');stop();
+});
+
 it.each(['http://example.com:8080','http://localhost:8080','http://127.0.0.1','https://127.0.0.1:8080','http://127.0.0.1:8080/path','http://user@127.0.0.1:8080'])('rejects non-private socket origin %s',origin=>{
   expect(()=>connectCloudDispatch({origin,serviceDate:'2026-09-15',snapshot:async()=>first,refresh:async()=>{},status:()=>{}})).toThrow('PRIVATE_SOCKET_ORIGIN_REQUIRED');
 });

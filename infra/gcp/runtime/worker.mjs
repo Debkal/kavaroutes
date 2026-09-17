@@ -4,7 +4,7 @@ import { createTestOnlyCursorCodec } from '@kavaroutes/realtime';
 import { createPostgresRealtimeStore } from '@kavaroutes/realtime/postgres';
 import { makePool, makeBoss, verifyRuntimeDatabase } from './database.mjs';
 import { companyBranchScope } from '@kavaroutes/api-contracts/security';
-import { routes, validateConfig, classifyFailure, enrollmentBound } from './config.mjs';
+import { routes, schema, validateConfig, classifyFailure, enrollmentBound } from './config.mjs';
 import { createRecovery } from './recovery.mjs';
 import {createWorkerTenantReader,reconcileTrackingAlerts} from '@kavaroutes/postgres-persistence';
 
@@ -24,7 +24,15 @@ export async function createRuntimeWorker(input) {
     authorize: async input => enrolled.has(input.tenantId) });
   const realtime = createPostgresRealtimeStore(pool, createTestOnlyCursorCodec({ secret: config.cursorSecret }));
   const publisherId = `cloud.${randomUUID()}`;
-  let lastSuccess = 0;
+  // Readiness is a function of the current state, not of a remembered success: a cycle
+  // that completed with no unresolved work is what makes the worker ready, and a cycle
+  // that could not complete at all is what makes it unready (audit WEB-A-032).
+  let lastCycleCompleted = 0;
+  let lastCycleFailure = null;
+  let unresolvedWork = false;
+  // Terminal (exhausted-retry) failures are reported, not treated as unresolved work.
+  // The body names every queue that holds one, not only the last queue checked.
+  let terminalFailures = null;
   let inFlight;
   let stopped = false;
   let timer;
@@ -77,7 +85,6 @@ export async function createRuntimeWorker(input) {
   }
 
   async function cycle() {
-    lastSuccess = 0;
     await verifyRuntimeDatabase(pool, 'worker');
     // Bounded, operator-enrolled tenant set. An empty registry fails loudly so a
     // misconfigured deployment cannot look healthy while doing no work.
@@ -89,6 +96,7 @@ export async function createRuntimeWorker(input) {
       lastTrackingEvaluation=Date.now();
     }
     let unresolvedFailure = false;
+    const terminalQueues = [];
     for (const route of routes) {
       const queue = ROUTE_POLICIES[route].queue;
       for (const tenantId of activeTenants) {
@@ -119,9 +127,19 @@ export async function createRuntimeWorker(input) {
         try { await consume(job.data); await boss.complete(queue, job.id); }
         catch (error) { await boss.fail(queue, job.id, { code: classifyFailure(error) }); unresolvedFailure = true; }
       }
+      // An exhausted job can never be retried, so it must not hold readiness false
+      // forever: it is reported as a terminal failure instead (audit WEB-A-019). The
+      // operator still has to clear or replay it, but the environment starts. The count
+      // comes from the queue table directly; pg-boss's client has no size accessor in
+      // this version.
+      const terminal = Number((await pool.query(`SELECT count(*)::int AS count FROM ${schema}.job
+        WHERE name=$1 AND state='failed' AND retry_count>=retry_limit`, [queue])).rows[0]?.count ?? 0);
+      if (terminal > 0) terminalQueues.push({ queue, count: terminal });
     }
     await pool.query('SELECT 1');
-    if (!unresolvedFailure) lastSuccess = Date.now();
+    terminalFailures = terminalQueues.length ? terminalQueues : null;
+    unresolvedWork = unresolvedFailure;
+    lastCycleCompleted = Date.now();
   }
   function runOnce() {
     if (stopped) throw new Error('WORKER_STOPPED');
@@ -129,10 +147,23 @@ export async function createRuntimeWorker(input) {
     return inFlight;
   }
   const tick = async () => {
-    try { await runOnce(); } catch { lastSuccess = 0; }
+    try { await runOnce(); lastCycleFailure = null; }
+    catch (error) {
+      // A cycle that cannot complete leaves the worker unready, so it must say why in a
+      // closed vocabulary instead of failing silently (audit WEB-A-032).
+      lastCycleCompleted = 0; lastCycleFailure = classifyFailure(error);
+    }
     if (!stopped) timer = setTimeout(() => void tick(), 1000);
   };
   return { pool, boss, consume, runOnce, start() { void tick(); },
-    healthy() { return !stopped && lastSuccess > 0 && Date.now() - lastSuccess < 15000; },
+    /** Ready when a cycle completed within the readiness window and nothing in the
+     * current state is unresolved. Dead-lettered work is reported instead of holding
+     * readiness down, so the environment starts and the operator can replay (WEB-A-019,
+     * WEB-A-032). */
+    healthy() { return !stopped && lastCycleCompleted > 0 && Date.now() - lastCycleCompleted < 15000 && !unresolvedWork; },
+    /** Closed diagnostics for the health body: every queue holding terminal failures
+     * and how many, plus the closed code of the last cycle that could not complete. No
+     * payload, no job identity (audit WEB-A-019, WEB-A-032). */
+    diagnostics() { return { terminalFailures, lastCycleFailure, unresolvedWork }; },
     async close() { stopped = true; clearTimeout(timer); await inFlight?.catch(() => {}); await boss.stop(); await pool.end(); } };
 }

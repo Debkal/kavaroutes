@@ -493,6 +493,40 @@
               }
             ]
           },
+          "recordState": {
+            "anyOf": [
+              {
+                "enum": [
+                  "DRAFT"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "PLANNED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "IN_PROGRESS"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "DELIVERED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "CANCELLED"
+                ],
+                "type": "string"
+              }
+            ]
+          },
           "resolvedServiceAt": {
             "$ref": "#/components/schemas/def-2"
           },
@@ -3126,12 +3160,841 @@
       "def-55": {
         "additionalProperties": false,
         "properties": {
+          "dropoffLabel": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "dropoffRequired": {
+            "type": "boolean"
+          },
+          "localServiceTime": {
+            "pattern": "^\\d{2}:\\d{2}:\\d{2}$",
+            "type": "string"
+          },
+          "mobilitySecurementRequired": {
+            "type": "boolean"
+          },
+          "pickupLabel": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "pickupRequired": {
+            "type": "boolean"
+          },
+          "plannedEndAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "plannedStartAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "resolvedServiceAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "resolvedUtcOffsetSeconds": {
+            "maximum": 50400,
+            "minimum": -50400,
+            "type": "integer"
+          },
+          "riderReference": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "riderReference",
+          "pickupLabel",
+          "dropoffLabel",
+          "localServiceTime",
+          "resolvedServiceAt",
+          "resolvedUtcOffsetSeconds",
+          "plannedStartAt",
+          "plannedEndAt",
+          "pickupRequired",
+          "dropoffRequired",
+          "mobilitySecurementRequired"
+        ],
+        "title": "DispatchPlanLeg",
+        "type": "object"
+      },
+      "def-56": {
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "legs": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "dropoffLabel": {
+                  "maxLength": 512,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "dropoffRequired": {
+                  "type": "boolean"
+                },
+                "localServiceTime": {
+                  "pattern": "^\\d{2}:\\d{2}:\\d{2}$",
+                  "type": "string"
+                },
+                "mobilitySecurementRequired": {
+                  "type": "boolean"
+                },
+                "pickupLabel": {
+                  "maxLength": 512,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "pickupRequired": {
+                  "type": "boolean"
+                },
+                "plannedEndAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "plannedStartAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "resolvedServiceAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "resolvedUtcOffsetSeconds": {
+                  "maximum": 50400,
+                  "minimum": -50400,
+                  "type": "integer"
+                },
+                "riderReference": {
+                  "maxLength": 512,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "riderReference",
+                "pickupLabel",
+                "dropoffLabel",
+                "localServiceTime",
+                "resolvedServiceAt",
+                "resolvedUtcOffsetSeconds",
+                "plannedStartAt",
+                "plannedEndAt",
+                "pickupRequired",
+                "dropoffRequired",
+                "mobilitySecurementRequired"
+              ],
+              "type": "object"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "type": "array"
+          },
+          "plannedEndAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "plannedStartAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "seatsRequired": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "serviceDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "serviceTimezone": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "wheelchairSpacesRequired": {
+            "maximum": 20,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "serviceDate",
+          "serviceTimezone",
+          "plannedStartAt",
+          "plannedEndAt",
+          "legs"
+        ],
+        "title": "PlanDispatchRunRequest",
+        "type": "object"
+      },
+      "def-57": {
+        "additionalProperties": false,
+        "properties": {
+          "legCount": {
+            "maximum": 25,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "runId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "serviceDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "tripLegIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "type": "array"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runId",
+          "version",
+          "serviceDate",
+          "legCount",
+          "tripLegIds"
+        ],
+        "title": "PlanDispatchRunReceipt",
+        "type": "object"
+      },
+      "def-58": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expectedVersion"
+        ],
+        "title": "UnassignDispatchRunRequest",
+        "type": "object"
+      },
+      "def-59": {
+        "additionalProperties": false,
+        "properties": {
+          "releasedAssignmentId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "runId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "serviceDate": {
+            "format": "date",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runId",
+          "version",
+          "serviceDate",
+          "releasedAssignmentId"
+        ],
+        "title": "UnassignDispatchRunReceipt",
+        "type": "object"
+      },
+      "def-6": {
+        "maxLength": 72,
+        "pattern": "^\"kr1.[A-Za-z0-9_-]{32,64}\"$",
+        "title": "StrongEtag",
+        "type": "string"
+      },
+      "def-60": {
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "dropoffAddresses": {
+            "items": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "type": "array"
+          },
+          "entityName": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pickupAddress": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tripType": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ONE_WAY"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "ROUND_TRIP"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "displayName"
+        ],
+        "title": "ClientCreateRequest",
+        "type": "object"
+      },
+      "def-61": {
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "displayName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "dropoffCount": {
+            "maximum": 20,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clientId",
+          "version",
+          "displayName",
+          "dropoffCount"
+        ],
+        "title": "ClientCreateReceipt",
+        "type": "object"
+      },
+      "def-62": {
+        "additionalProperties": false,
+        "properties": {
+          "clients": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "clientId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "displayName": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "dropoffAddresses": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "addressLabel": {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "ordinal": {
+                        "maximum": 20,
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "ordinal",
+                      "addressLabel"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                "entityName": {
+                  "anyOf": [
+                    {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "notes": {
+                  "anyOf": [
+                    {
+                      "maxLength": 2000,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "phone": {
+                  "anyOf": [
+                    {
+                      "maxLength": 40,
+                      "minLength": 3,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "pickupAddress": {
+                  "anyOf": [
+                    {
+                      "maxLength": 512,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "routes": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "serviceDate": {
+                        "format": "date",
+                        "type": "string"
+                      },
+                      "tripId": {
+                        "format": "uuid",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "tripId",
+                      "serviceDate"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 25,
+                  "type": "array"
+                },
+                "tripType": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "ONE_WAY"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "ROUND_TRIP"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "version": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "clientId",
+                "displayName",
+                "entityName",
+                "phone",
+                "pickupAddress",
+                "dropoffAddresses",
+                "tripType",
+                "notes",
+                "version",
+                "routes"
+              ],
+              "type": "object"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
+          "nextAfter": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "clients",
+          "nextAfter"
+        ],
+        "title": "ClientRoster",
+        "type": "object"
+      },
+      "def-63": {
+        "additionalProperties": false,
+        "properties": {
+          "addDropoffAddresses": {
+            "items": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "type": "array"
+          },
+          "displayName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "entityName": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 3,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pickupAddress": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tripType": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ONE_WAY"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "ROUND_TRIP"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "displayName"
+        ],
+        "title": "ClientUpdateRequest",
+        "type": "object"
+      },
+      "def-64": {
+        "additionalProperties": false,
+        "properties": {
+          "driverId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "loginId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "driverId",
+          "loginId"
+        ],
+        "title": "DriverLoginCreateRequest",
+        "type": "object"
+      },
+      "def-65": {
+        "additionalProperties": false,
+        "properties": {
+          "driverId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "inviteCode": {
+            "maxLength": 64,
+            "minLength": 8,
+            "type": "string"
+          },
+          "loginId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "INVITED"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "driverId",
+          "loginId",
+          "inviteCode",
+          "status",
+          "version"
+        ],
+        "title": "DriverLoginReceipt",
+        "type": "object"
+      },
+      "def-66": {
+        "additionalProperties": false,
+        "properties": {
+          "driverId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "installation": {
+            "maxLength": 128,
+            "minLength": 4,
+            "type": "string"
+          },
+          "inviteCode": {
+            "maxLength": 64,
+            "minLength": 8,
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 200,
+            "minLength": 8,
+            "type": "string"
+          }
+        },
+        "required": [
+          "driverId",
+          "inviteCode",
+          "password"
+        ],
+        "title": "DriverLoginClaimRequest",
+        "type": "object"
+      },
+      "def-67": {
+        "additionalProperties": false,
+        "properties": {
+          "loginId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 200,
+            "minLength": 8,
+            "type": "string"
+          }
+        },
+        "required": [
+          "loginId",
+          "password"
+        ],
+        "title": "DriverLoginVerifyRequest",
+        "type": "object"
+      },
+      "def-68": {
+        "additionalProperties": false,
+        "properties": {
+          "claimedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "driverId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "loginId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "INVITED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "ACTIVE"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "LOCKED"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "driverId",
+          "loginId",
+          "status",
+          "claimedAt",
+          "lastLoginAt",
+          "version"
+        ],
+        "title": "DriverLoginState",
+        "type": "object"
+      },
+      "def-69": {
+        "additionalProperties": false,
+        "properties": {
           "assignmentId": {
             "$ref": "#/components/schemas/def-1"
           },
           "expectedAssignmentVersion": {
             "minimum": 1,
             "type": "integer"
+          },
+          "loginId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+            "type": "string"
           },
           "serviceDate": {
             "$ref": "#/components/schemas/def-3"
@@ -3145,7 +4008,28 @@
         "title": "StartDriverShiftRequest",
         "type": "object"
       },
-      "def-56": {
+      "def-7": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 64,
+            "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
+            "type": "string"
+          },
+          "pointer": {
+            "maxLength": 256,
+            "pattern": "^/(?:[A-Za-z0-9_-]+/?)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "pointer"
+        ],
+        "title": "ProblemError",
+        "type": "object"
+      },
+      "def-70": {
         "additionalProperties": false,
         "properties": {
           "effectivePolicy": {
@@ -3188,7 +4072,7 @@
         "title": "StartDriverShiftReceipt",
         "type": "object"
       },
-      "def-57": {
+      "def-71": {
         "additionalProperties": false,
         "properties": {
           "capturedAt": {
@@ -3592,7 +4476,7 @@
         "title": "DriverPrecheckRequest",
         "type": "object"
       },
-      "def-58": {
+      "def-72": {
         "additionalProperties": false,
         "properties": {
           "fuelLevel": {
@@ -3734,7 +4618,7 @@
         "title": "DriverPrecheckReceipt",
         "type": "object"
       },
-      "def-59": {
+      "def-73": {
         "additionalProperties": false,
         "properties": {
           "effectivePolicy": {
@@ -3940,13 +4824,7 @@
         "title": "DriverShiftState",
         "type": "object"
       },
-      "def-6": {
-        "maxLength": 72,
-        "pattern": "^\"kr1.[A-Za-z0-9_-]{32,64}\"$",
-        "title": "StrongEtag",
-        "type": "string"
-      },
-      "def-60": {
+      "def-74": {
         "additionalProperties": false,
         "properties": {
           "attestationPolicyVersion": {
@@ -4119,7 +4997,7 @@
         "title": "DriverSignatureRequest",
         "type": "object"
       },
-      "def-61": {
+      "def-75": {
         "additionalProperties": false,
         "properties": {
           "digest": {
@@ -4177,7 +5055,7 @@
         "title": "DriverSignatureReceipt",
         "type": "object"
       },
-      "def-62": {
+      "def-76": {
         "additionalProperties": false,
         "properties": {
           "facilityReference": {
@@ -4216,7 +5094,7 @@
         "title": "FacilityDay",
         "type": "object"
       },
-      "def-63": {
+      "def-77": {
         "additionalProperties": false,
         "properties": {
           "commandId": {
@@ -4300,7 +5178,7 @@
         "title": "DriverClosureRequest",
         "type": "object"
       },
-      "def-64": {
+      "def-78": {
         "additionalProperties": false,
         "properties": {
           "collectionStopped": {
@@ -4353,7 +5231,7 @@
         "title": "DriverClosureReceipt",
         "type": "object"
       },
-      "def-65": {
+      "def-79": {
         "additionalProperties": false,
         "properties": {
           "collectionStopped": {
@@ -4570,7 +5448,65 @@
         "title": "DriverClosureView",
         "type": "object"
       },
-      "def-66": {
+      "def-8": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 64,
+            "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
+            "type": "string"
+          },
+          "detail": {
+            "maxLength": 256,
+            "minLength": 3,
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/def-7"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "instance": {
+            "maxLength": 96,
+            "pattern": "^urn:kavaroutes:request:[a-z0-9_-]{8,64}$",
+            "type": "string"
+          },
+          "requestId": {
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]{7,63}$",
+            "type": "string"
+          },
+          "status": {
+            "maximum": 599,
+            "minimum": 400,
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 96,
+            "minLength": 3,
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 96,
+            "pattern": "^urn:kavaroutes:problem:[a-z0-9-]{2,64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "instance",
+          "code",
+          "requestId"
+        ],
+        "title": "Problem",
+        "type": "object"
+      },
+      "def-80": {
         "additionalProperties": false,
         "properties": {
           "samples": {
@@ -4636,7 +5572,7 @@
         "title": "DriverSyntheticLocationRequest",
         "type": "object"
       },
-      "def-67": {
+      "def-81": {
         "additionalProperties": false,
         "properties": {
           "items": {
@@ -4680,12 +5616,15 @@
         "title": "DriverSyntheticLocationReceipt",
         "type": "object"
       },
-      "def-68": {
+      "def-82": {
         "additionalProperties": false,
         "properties": {
           "commandId": {
             "format": "uuid",
             "type": "string"
+          },
+          "emergencyStopResolution": {
+            "type": "boolean"
           },
           "exceptionCommandId": {
             "format": "uuid",
@@ -4716,9 +5655,28 @@
         "title": "DriverReturnOverrideRequest",
         "type": "object"
       },
-      "def-69": {
+      "def-83": {
         "additionalProperties": false,
         "properties": {
+          "closurePath": {
+            "anyOf": [
+              {
+                "enum": [
+                  "RETURN_EXCEPTION"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "EMERGENCY_STOP"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "exceptionCommandId": {
             "anyOf": [
               {
@@ -4790,28 +5748,7 @@
         "title": "DriverReturnReview",
         "type": "object"
       },
-      "def-7": {
-        "additionalProperties": false,
-        "properties": {
-          "code": {
-            "maxLength": 64,
-            "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
-            "type": "string"
-          },
-          "pointer": {
-            "maxLength": 256,
-            "pattern": "^/(?:[A-Za-z0-9_-]+/?)*$",
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "pointer"
-        ],
-        "title": "ProblemError",
-        "type": "object"
-      },
-      "def-70": {
+      "def-84": {
         "additionalProperties": false,
         "properties": {
           "expectedRunVersion": {
@@ -4858,7 +5795,7 @@
         "title": "RouteProposalRequest",
         "type": "object"
       },
-      "def-71": {
+      "def-85": {
         "additionalProperties": false,
         "properties": {
           "decision": {
@@ -4889,7 +5826,7 @@
         "title": "RouteDecisionRequest",
         "type": "object"
       },
-      "def-72": {
+      "def-86": {
         "additionalProperties": false,
         "properties": {
           "proposalId": {
@@ -4948,7 +5885,7 @@
         "title": "RouteProposalReceipt",
         "type": "object"
       },
-      "def-73": {
+      "def-87": {
         "additionalProperties": false,
         "properties": {
           "expectedTag": {
@@ -5091,7 +6028,7 @@
         "title": "RouteProposalView",
         "type": "object"
       },
-      "def-74": {
+      "def-88": {
         "anyOf": [
           {
             "additionalProperties": false,
@@ -5172,7 +6109,7 @@
             "additionalProperties": false,
             "properties": {
               "body": {
-                "$ref": "#/components/schemas/def-71"
+                "$ref": "#/components/schemas/def-85"
               },
               "expectedTag": {
                 "$ref": "#/components/schemas/def-6"
@@ -5200,7 +6137,7 @@
             "additionalProperties": false,
             "properties": {
               "body": {
-                "$ref": "#/components/schemas/def-68"
+                "$ref": "#/components/schemas/def-82"
               },
               "kind": {
                 "enum": [
@@ -5223,11 +6160,11 @@
         ],
         "title": "BrowserCommandEnvelope"
       },
-      "def-75": {
+      "def-89": {
         "additionalProperties": false,
         "properties": {
           "envelope": {
-            "$ref": "#/components/schemas/def-74"
+            "$ref": "#/components/schemas/def-88"
           },
           "id": {
             "format": "uuid",
@@ -5241,14 +6178,37 @@
         "title": "BrowserCommandPrepare",
         "type": "object"
       },
-      "def-76": {
+      "def-9": {
+        "additionalProperties": false,
+        "properties": {
+          "capabilities": {
+            "items": {
+              "maxLength": 64,
+              "pattern": "^[a-z]+(?::[a-z-]+)+$",
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "organizationId": {
+            "$ref": "#/components/schemas/def-1"
+          }
+        },
+        "required": [
+          "organizationId",
+          "capabilities"
+        ],
+        "title": "OrganizationMembership",
+        "type": "object"
+      },
+      "def-90": {
         "additionalProperties": false,
         "properties": {
           "acknowledged": {
             "type": "boolean"
           },
           "envelope": {
-            "$ref": "#/components/schemas/def-74"
+            "$ref": "#/components/schemas/def-88"
           },
           "expired": {
             "type": "boolean"
@@ -5276,10 +6236,10 @@
                             "$ref": "#/components/schemas/def-54"
                           },
                           {
-                            "$ref": "#/components/schemas/def-72"
+                            "$ref": "#/components/schemas/def-86"
                           },
                           {
-                            "$ref": "#/components/schemas/def-64"
+                            "$ref": "#/components/schemas/def-78"
                           }
                         ]
                       },
@@ -5357,13 +6317,13 @@
         "title": "BrowserCommandView",
         "type": "object"
       },
-      "def-77": {
+      "def-91": {
         "additionalProperties": false,
         "properties": {
           "command": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/def-76"
+                "$ref": "#/components/schemas/def-90"
               },
               {
                 "type": "null"
@@ -5375,87 +6335,6 @@
           "command"
         ],
         "title": "BrowserCommandPending",
-        "type": "object"
-      },
-      "def-8": {
-        "additionalProperties": false,
-        "properties": {
-          "code": {
-            "maxLength": 64,
-            "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
-            "type": "string"
-          },
-          "detail": {
-            "maxLength": 256,
-            "minLength": 3,
-            "type": "string"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/def-7"
-            },
-            "maxItems": 20,
-            "type": "array"
-          },
-          "instance": {
-            "maxLength": 96,
-            "pattern": "^urn:kavaroutes:request:[a-z0-9_-]{8,64}$",
-            "type": "string"
-          },
-          "requestId": {
-            "maxLength": 64,
-            "pattern": "^[a-z0-9][a-z0-9_-]{7,63}$",
-            "type": "string"
-          },
-          "status": {
-            "maximum": 599,
-            "minimum": 400,
-            "type": "integer"
-          },
-          "title": {
-            "maxLength": 96,
-            "minLength": 3,
-            "type": "string"
-          },
-          "type": {
-            "maxLength": 96,
-            "pattern": "^urn:kavaroutes:problem:[a-z0-9-]{2,64}$",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "title",
-          "status",
-          "detail",
-          "instance",
-          "code",
-          "requestId"
-        ],
-        "title": "Problem",
-        "type": "object"
-      },
-      "def-9": {
-        "additionalProperties": false,
-        "properties": {
-          "capabilities": {
-            "items": {
-              "maxLength": 64,
-              "pattern": "^[a-z]+(?::[a-z-]+)+$",
-              "type": "string"
-            },
-            "maxItems": 32,
-            "type": "array"
-          },
-          "organizationId": {
-            "$ref": "#/components/schemas/def-1"
-          }
-        },
-        "required": [
-          "organizationId",
-          "capabilities"
-        ],
-        "title": "OrganizationMembership",
         "type": "object"
       }
     },
@@ -5600,7 +6479,7 @@
                 "additionalProperties": false,
                 "properties": {
                   "envelope": {
-                    "$ref": "#/components/schemas/def-74"
+                    "$ref": "#/components/schemas/def-88"
                   },
                   "id": {
                     "format": "uuid",
@@ -5622,7 +6501,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-76"
+                  "$ref": "#/components/schemas/def-90"
                 }
               }
             },
@@ -5838,7 +6717,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-77"
+                  "$ref": "#/components/schemas/def-91"
                 }
               }
             },
@@ -6082,7 +6961,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-76"
+                  "$ref": "#/components/schemas/def-90"
                 }
               }
             },
@@ -6326,7 +7205,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-76"
+                  "$ref": "#/components/schemas/def-90"
                 }
               }
             },
@@ -6502,6 +7381,775 @@
               }
             },
             "description": "Dependency timeout"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/clients": {
+      "get": {
+        "operationId": "getClients",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "query",
+            "name": "clientId",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maxLength": 3,
+              "pattern": "^(?:[1-9][0-9]?|100)$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-62"
+                }
+              }
+            },
+            "description": "Dispatch-authorized client roster",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/clients/commands/create": {
+      "post": {
+        "operationId": "createClient",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "displayName": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "dropoffAddresses": {
+                    "items": {
+                      "maxLength": 512,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "entityName": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notes": {
+                    "anyOf": [
+                      {
+                        "maxLength": 2000,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "phone": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "minLength": 3,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pickupAddress": {
+                    "anyOf": [
+                      {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tripType": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "ONE_WAY"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "ROUND_TRIP"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "displayName"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-61"
+                }
+              }
+            },
+            "description": "Created client receipt",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "schema": {
+                    "$id": "StrongEtag",
+                    "maxLength": 72,
+                    "pattern": "^\"kr1.[A-Za-z0-9_-]{32,64}\"$",
+                    "type": "string"
+                  }
+                }
+              },
+              "KavaRoutes-Idempotency-Replayed": {
+                "schema": {
+                  "schema": {
+                    "enum": [
+                      "true"
+                    ],
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Expired"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "428": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition required"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/clients/{clientId}/commands/update": {
+      "post": {
+        "operationId": "updateClient",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "addDropoffAddresses": {
+                    "items": {
+                      "maxLength": 512,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "displayName": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "entityName": {
+                    "anyOf": [
+                      {
+                        "maxLength": 200,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notes": {
+                    "anyOf": [
+                      {
+                        "maxLength": 2000,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "phone": {
+                    "anyOf": [
+                      {
+                        "maxLength": 40,
+                        "minLength": 3,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "pickupAddress": {
+                    "anyOf": [
+                      {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "tripType": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "ONE_WAY"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "ROUND_TRIP"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "displayName"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-61"
+                }
+              }
+            },
+            "description": "Updated client receipt",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Expired"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "428": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition required"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
           }
         },
         "security": [
@@ -6870,7 +8518,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-72"
+                  "$ref": "#/components/schemas/def-86"
                 }
               }
             },
@@ -6896,6 +8544,351 @@
               }
             },
             "description": "Authentication required"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Expired"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "428": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition required"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/dispatch/runs/commands/plan": {
+      "post": {
+        "operationId": "planDispatchRun",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "clientId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "legs": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "dropoffLabel": {
+                          "maxLength": 512,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "dropoffRequired": {
+                          "type": "boolean"
+                        },
+                        "localServiceTime": {
+                          "pattern": "^\\d{2}:\\d{2}:\\d{2}$",
+                          "type": "string"
+                        },
+                        "mobilitySecurementRequired": {
+                          "type": "boolean"
+                        },
+                        "pickupLabel": {
+                          "maxLength": 512,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "pickupRequired": {
+                          "type": "boolean"
+                        },
+                        "plannedEndAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "plannedStartAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "resolvedServiceAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "resolvedUtcOffsetSeconds": {
+                          "maximum": 50400,
+                          "minimum": -50400,
+                          "type": "integer"
+                        },
+                        "riderReference": {
+                          "maxLength": 512,
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "riderReference",
+                        "pickupLabel",
+                        "dropoffLabel",
+                        "localServiceTime",
+                        "resolvedServiceAt",
+                        "resolvedUtcOffsetSeconds",
+                        "plannedStartAt",
+                        "plannedEndAt",
+                        "pickupRequired",
+                        "dropoffRequired",
+                        "mobilitySecurementRequired"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 25,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "plannedEndAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "plannedStartAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "seatsRequired": {
+                    "maximum": 100,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "serviceDate": {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "serviceTimezone": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "wheelchairSpacesRequired": {
+                    "maximum": 20,
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "serviceDate",
+                  "serviceTimezone",
+                  "plannedStartAt",
+                  "plannedEndAt",
+                  "legs"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-57"
+                }
+              }
+            },
+            "description": "Planned run receipt",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "schema": {
+                    "$id": "StrongEtag",
+                    "maxLength": 72,
+                    "pattern": "^\"kr1.[A-Za-z0-9_-]{32,64}\"$",
+                    "type": "string"
+                  }
+                }
+              },
+              "KavaRoutes-Idempotency-Replayed": {
+                "schema": {
+                  "schema": {
+                    "enum": [
+                      "true"
+                    ],
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -7278,6 +9271,257 @@
         ]
       }
     },
+    "/v1/organizations/{organizationId}/dispatch/runs/{runId}/commands/unassign": {
+      "post": {
+        "operationId": "unassignDispatchRun",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "runId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          },
+          {
+            "in": "header",
+            "name": "if-match",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/def-6"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "expectedVersion": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "expectedVersion"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-59"
+                }
+              }
+            },
+            "description": "Released run receipt",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "schema": {
+                    "$id": "StrongEtag",
+                    "maxLength": 72,
+                    "pattern": "^\"kr1.[A-Za-z0-9_-]{32,64}\"$",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Expired"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "428": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition required"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
     "/v1/organizations/{organizationId}/dispatch/shifts/{shiftId}/commands/override-return": {
       "post": {
         "operationId": "overrideDriverReturn",
@@ -7327,6 +9571,9 @@
                     "format": "uuid",
                     "type": "string"
                   },
+                  "emergencyStopResolution": {
+                    "type": "boolean"
+                  },
                   "exceptionCommandId": {
                     "format": "uuid",
                     "type": "string"
@@ -7364,7 +9611,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-64"
+                  "$ref": "#/components/schemas/def-78"
                 }
               }
             },
@@ -7548,7 +9795,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-69"
+                  "$ref": "#/components/schemas/def-83"
                 }
               }
             },
@@ -7672,7 +9919,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-73"
+                  "$ref": "#/components/schemas/def-87"
                 }
               }
             },
@@ -7826,7 +10073,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-65"
+                  "$ref": "#/components/schemas/def-79"
                 }
               }
             },
@@ -8305,6 +10552,714 @@
               }
             },
             "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "driver"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/driver-logins/commands/create": {
+      "post": {
+        "operationId": "createDriverLogin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "driverId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "loginId": {
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "driverId",
+                  "loginId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-65"
+                }
+              }
+            },
+            "description": "Invited driver login; the invite code is returned once",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Expired"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "428": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition required"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/driver-logins/commands/verify": {
+      "post": {
+        "operationId": "verifyDriverLogin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "loginId": {
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+                    "type": "string"
+                  },
+                  "password": {
+                    "maxLength": 200,
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "loginId",
+                  "password"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-68"
+                }
+              }
+            },
+            "description": "Driver login verified for this phone",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Expired"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "428": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition required"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "driver"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/driver-logins/{driverId}/commands/claim": {
+      "post": {
+        "operationId": "claimDriverLogin",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "driverId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "driverId": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "installation": {
+                    "maxLength": 128,
+                    "minLength": 4,
+                    "type": "string"
+                  },
+                  "inviteCode": {
+                    "maxLength": 64,
+                    "minLength": 8,
+                    "type": "string"
+                  },
+                  "password": {
+                    "maxLength": 200,
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "driverId",
+                  "inviteCode",
+                  "password"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-68"
+                }
+              }
+            },
+            "description": "Driver login claimed; the driver set this password",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Expired"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "428": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition required"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
           }
         },
         "security": [
@@ -9510,7 +12465,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-59"
+                  "$ref": "#/components/schemas/def-73"
                 }
               }
             },
@@ -9642,6 +12597,10 @@
                     "minimum": 1,
                     "type": "integer"
                   },
+                  "loginId": {
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+                    "type": "string"
+                  },
                   "serviceDate": {
                     "$ref": "#/components/schemas/def-3"
                   }
@@ -9663,7 +12622,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-56"
+                  "$ref": "#/components/schemas/def-70"
                 }
               }
             },
@@ -9946,7 +12905,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-64"
+                  "$ref": "#/components/schemas/def-78"
                 }
               }
             },
@@ -10549,7 +13508,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-58"
+                  "$ref": "#/components/schemas/def-72"
                 }
               }
             },
@@ -11142,7 +14101,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-58"
+                  "$ref": "#/components/schemas/def-72"
                 }
               }
             },
@@ -11512,7 +14471,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-61"
+                  "$ref": "#/components/schemas/def-75"
                 }
               }
             },
@@ -11686,7 +14645,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-73"
+                  "$ref": "#/components/schemas/def-87"
                 }
               }
             },
@@ -11907,7 +14866,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-72"
+                  "$ref": "#/components/schemas/def-86"
                 }
               }
             },
@@ -12101,7 +15060,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-65"
+                  "$ref": "#/components/schemas/def-79"
                 }
               }
             },
@@ -12305,7 +15264,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-67"
+                  "$ref": "#/components/schemas/def-81"
                 }
               }
             },
@@ -12507,7 +15466,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-62"
+                  "$ref": "#/components/schemas/def-76"
                 }
               }
             },

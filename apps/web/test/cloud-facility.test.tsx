@@ -13,16 +13,16 @@ it('clears previous role cache and hides details after facility access is revoke
  mocks.authenticate.mockResolvedValue({value:{}});mocks.day.mockResolvedValue({value:{items:[trip],nextAfter:null}});mocks.trip.mockResolvedValue({value:trip});
  render(<QueryClientProvider client={queryClient}><Component/></QueryClientProvider>);
  fireEvent.click(await screen.findByText('View trip 1'));
- await screen.findByRole('region',{name:'Selected facility trip'});
+ await screen.findByRole('region',{name:'Selected client trip'});
  await waitFor(()=>expect(mocks.trip).toHaveBeenCalled());
  mocks.day.mockResolvedValue({value:{items:[],nextAfter:null}});mocks.trip.mockRejectedValue(new Error('revoked'));
- fireEvent.click(screen.getByText('Refresh facility trips'));
- await screen.findByText('Trip no longer available to this facility. Previous details are hidden.');
+ fireEvent.click(screen.getByText('Refresh client trips'));
+ await screen.findByText('Trip no longer available to this client. Previous details are hidden.');
  expect(screen.queryByText('View trip 1')).not.toBeInTheDocument();expect(screen.queryByText(/COMPLETED/)).not.toBeInTheDocument();
 });
 it('authentication failure never requests or renders a facility projection and URL context is rejected',async()=>{
  mocks.authenticate.mockRejectedValue(new Error('expired'));
  expect(()=>loader({request:new Request('http://127.0.0.1/facility?trip=foreign')} as any)).toThrow();
  render(<QueryClientProvider client={queryClient}><Component/></QueryClientProvider>);
- await screen.findByText('Facility session unavailable. No previous trip data is shown.');expect(mocks.day).not.toHaveBeenCalled();
+ await screen.findByText('Client session unavailable. No previous trip data is shown.');expect(mocks.day).not.toHaveBeenCalled();
 });

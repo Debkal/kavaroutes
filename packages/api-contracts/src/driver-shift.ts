@@ -12,6 +12,10 @@ const TypeRef = <T extends TSchema>(schema: T) => Type.Unsafe<Static<T>>({ $ref:
 export const StartDriverShiftRequestSchema = Type.Object({
   assignmentId: TypeRef(OpaqueIdSchema), serviceDate: TypeRef(ServiceDateSchema),
   expectedAssignmentVersion: Type.Integer({ minimum: 1 }),
+  /** The driver's claimed login id. When present the server refuses a start whose
+   * credential is not ACTIVE for this driver, so the login gates the shift
+   * (audit WEB-A-026). Optional until the native client sends it. */
+  loginId: Type.Optional(Type.String({ pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$" })),
 }, { additionalProperties: false, $id: "StartDriverShiftRequest", title: "StartDriverShiftRequest" });
 export const StartDriverShiftReceiptSchema = Type.Object({
   outcome: Type.Union([Type.Literal("APPLIED"), Type.Literal("REPLAYED")]),
@@ -77,6 +81,12 @@ export function createPostgresDriverShiftService(pool: Pool, options: { now?: ()
         operationId: "startDriverShift", key: input.key, fingerprint, recordId: idFactory(),
         expiresAt: new Date(now().getTime() + 86_700_000), isolationLevel: "serializable" }, async transaction => {
         if (!input.principal.subjectId) throw new Error("DRIVER_SUBJECT_REQUIRED");
+        if (input.request.loginId) {
+          const credential = await transaction.readDriverCredentialForLogin({ loginId: input.request.loginId });
+          if (!credential) throw new ProtocolError(403, "DRIVER_LOGIN_REQUIRED", "verify a driver login before starting work");
+          if (credential.driverId !== input.principal.subjectId) throw new ProtocolError(403, "DRIVER_LOGIN_MISMATCH", "this login belongs to another driver");
+          if (credential.status !== "ACTIVE") throw new ProtocolError(403, "DRIVER_LOGIN_REQUIRED", "this driver login has not been claimed");
+        }
         const context = await transaction.readDriverShiftContext({ assignmentId: input.request.assignmentId,
           driverId: input.principal.subjectId, serviceDate: input.request.serviceDate });
         if (!context) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");

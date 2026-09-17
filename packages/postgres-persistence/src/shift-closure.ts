@@ -2,7 +2,7 @@ import type {Pool,PoolClient} from 'pg';
 import {PersistenceConflict,withTenantTransaction} from './repositories.js';
 import {evaluateSyntheticReturn,assessTrackingFreshness} from '@kavaroutes/platform-engine/domain';
 export type SyntheticLocationInput={shiftId:string;generation:string;samples:readonly {sampleId:string;sequence:number;fixture:'AT_RETURN'|'OUTSIDE_RETURN'|'INACCURATE';capturedAt:string}[]};
-export type ShiftClosureInput={shiftId:string;commandId:string;actorId:string;kind:'SIGN_OFF'|'EMERGENCY_STOP'|'DISPATCH_OVERRIDE';reason:'NORMAL_SIGN_OFF'|'SAFETY'|'PRIVACY'|'DEVICE_PROBLEM'|'OTHER'|'RETURN_EXCEPTION_REVIEWED';sampleId?:string;evidenceReference?:string};
+export type ShiftClosureInput={shiftId:string;commandId:string;actorId:string;kind:'SIGN_OFF'|'EMERGENCY_STOP'|'DISPATCH_OVERRIDE';reason:'NORMAL_SIGN_OFF'|'SAFETY'|'PRIVACY'|'DEVICE_PROBLEM'|'OTHER'|'RETURN_EXCEPTION_REVIEWED'|'EMERGENCY_STOP_RESOLVED';sampleId?:string;evidenceReference?:string};
 const conflict=(text:string):never=>{throw new PersistenceConflict('relationship',text);};
 export async function recordSyntheticLocations(db:PoolClient,tenantId:string,input:SyntheticLocationInput){
  const shift=(await db.query('SELECT lifecycle,shift_generation,collection_stopped,pinned_at FROM execution.shift_policy_snapshot WHERE tenant_id=$1 AND id=$2 FOR UPDATE',[tenantId,input.shiftId])).rows[0];
@@ -27,8 +27,13 @@ export async function closeDriverShift(db:PoolClient,tenantId:string,input:Shift
  const emergency=input.kind==='EMERGENCY_STOP',override=input.kind==='DISPATCH_OVERRIDE';
  const mode=s.effective_policy.returnVerification.mode;
  if(mode==='DISABLED'&&input.sampleId)conflict('disabled return cannot collect a return sample');
- if(override&&(!input.evidenceReference||input.reason!=='RETURN_EXCEPTION_REVIEWED'))conflict('override evidence required');
- if(override&&!(await db.query("SELECT 1 FROM execution.driver_shift_closure WHERE tenant_id=$1 AND shift_id=$2 AND command_id=$3 AND kind='RETURN_EXCEPTION'",[tenantId,input.shiftId,input.evidenceReference])).rowCount)conflict('recorded return exception required');
+ if(override&&(!input.evidenceReference||!['RETURN_EXCEPTION_REVIEWED','EMERGENCY_STOP_RESOLVED'].includes(input.reason)))conflict('override evidence required');
+ // An ordinary override must cite the recorded return exception. The emergency
+ // resolution cites the recorded emergency stop instead, which is the only case where
+ // dispatch may end a shift whose legs are not all terminal (audit WEB-A-028).
+ const citedKind=input.reason==='EMERGENCY_STOP_RESOLVED'?'EMERGENCY_STOP':'RETURN_EXCEPTION';
+ if(override&&!(await db.query(`SELECT 1 FROM execution.driver_shift_closure WHERE tenant_id=$1 AND shift_id=$2 AND command_id=$3 AND kind=$4`,[tenantId,input.shiftId,input.evidenceReference,citedKind])).rowCount)
+  conflict(input.reason==='EMERGENCY_STOP_RESOLVED'?'recorded emergency stop required':'recorded return exception required');
  if(!override&&input.evidenceReference)conflict('driver cannot submit override evidence');
  if(emergency&&input.sampleId)conflict('emergency stop does not require location');
  const config=mode==='DISABLED'||emergency?null:(await db.query('SELECT * FROM execution.driver_return_configuration WHERE tenant_id=$1 AND shift_id=$2',[tenantId,input.shiftId])).rows[0];

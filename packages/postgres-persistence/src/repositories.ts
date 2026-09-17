@@ -2,14 +2,21 @@ import { randomUUID } from "node:crypto";
 import { drizzle } from "drizzle-orm/node-postgres";
 import type { Pool, PoolClient } from "pg";
 import { auditEvents, idempotencyRecords, organizations, runs } from "./schema.js";
-import {applyDispatchAssignment,type DispatchAssignmentInput} from "./dispatch-authority.js";
+import {applyDispatchAssignment,releaseDispatchAssignment,type DispatchAssignmentInput,type DispatchReleaseInput,type DispatchReleaseReceipt} from "./dispatch-authority.js";
+import {planDispatchRun,type DispatchPlanInput,type DispatchPlanReceipt} from "./dispatch-planning.js";
+import {createClientRecord,updateClientRecord,type ClientIntakeInput,type ClientIntakeReceipt,type ClientUpdateInput} from "./client-intake.js";
+import {createDriverCredential,claimDriverCredential,verifyDriverLogin,type DriverCredentialInvite,type DriverCredentialState,type DriverLoginAttempt} from "./driver-credentials.js";
 import {submitRouteProposal,decideRouteProposal,type RouteProposalInput} from './route-proposals.js';
 import {recordSyntheticLocations,closeDriverShift,type SyntheticLocationInput,type ShiftClosureInput} from './shift-closure.js';
 
 export type RuntimeRole = "kavaroutes_api" | "kavaroutes_worker" | "kavaroutes_import" | "kavaroutes_outbox_publisher" | "kavaroutes_outbox_consumer" | "kavaroutes_realtime" | "kavaroutes_push_worker";
 
 export class PersistenceConflict extends Error {
-  readonly kind: "stale-version" | "duplicate" | "resource-overlap" | "relationship" | "tenant" | "idempotency-mismatch" | "idempotency-in-progress" | "idempotency-expired";
+  /** Dispatch refusals name the constraint that fired, so the operator sees which
+   * check refused the command instead of one generic assignment failure. Each kind
+   * maps to its own problem code in `api-lifecycle.ts`. */
+  readonly kind: "stale-version" | "duplicate" | "resource-overlap" | "relationship" | "tenant" | "idempotency-mismatch" | "idempotency-in-progress" | "idempotency-expired"
+    | "feasibility" | "qualification" | "vehicle-blocked" | "work-started" | "shift-active" | "leg-window" | "shift-open";
   constructor(kind: PersistenceConflict["kind"], message: string) {
     super(message);
     this.name = "PersistenceConflict";
@@ -31,6 +38,13 @@ export interface TenantMutationTransaction {
   recordSyntheticLocations(input:SyntheticLocationInput):ReturnType<typeof recordSyntheticLocations>;
   closeDriverShift(input:ShiftClosureInput):ReturnType<typeof closeDriverShift>;
   assignDispatchRun(input:DispatchAssignmentInput):ReturnType<typeof applyDispatchAssignment>;
+  releaseDispatchAssignment(input:DispatchReleaseInput):Promise<DispatchReleaseReceipt>;
+  planDispatchRun(input:DispatchPlanInput):Promise<DispatchPlanReceipt>;
+  createClientRecord(input:ClientIntakeInput):Promise<ClientIntakeReceipt>;
+  updateClientRecord(input:ClientUpdateInput):Promise<ClientIntakeReceipt>;
+  createDriverCredential(input:{driverId:string;loginId:string}):Promise<DriverCredentialInvite>;
+  claimDriverCredential(input:{driverId:string;inviteCode:string;password:string;installation?:string}):Promise<DriverCredentialState>;
+  verifyDriverLogin(input:{loginId:string;password:string}):Promise<DriverLoginAttempt>;
   submitRouteProposal(input:RouteProposalInput):ReturnType<typeof submitRouteProposal>;
   decideRouteProposal(input:Parameters<typeof decideRouteProposal>[2]):ReturnType<typeof decideRouteProposal>;
   readDriverPrecheck(shiftId: string,stage?:'PRE'|'POST'): Promise<StoredDriverPrecheck | null>;
@@ -62,6 +76,14 @@ export interface TenantMutationTransaction {
   updateDriverServiceControl(shiftId: string,tripLegId: string,field: "rider_verified" | "boarding_secure" | "safely_unloaded" | "incident_open"): Promise<void>;
   recordDriverPickupArrival(shiftId: string,tripLegId: string,occurredAt: Date): Promise<void>;
   appendDriverServiceProof(input: { shiftId: string;tripLegId: string;evidenceId: string;event: string;policyVersion: number;policyDigest: string;digest: string;strokeDigest: string | null;role: string;unsignedPayload: JsonValue;supersedesEvidenceId?: string }): Promise<void>;
+  /** The active proof for one event on one leg, if any. Lets a repeated attestation be
+   * answered with the stored receipt instead of a conflict (audit WEB-A-022). */
+  readActiveDriverServiceProof(input: { shiftId: string;tripLegId: string;event: string }): Promise<{ evidenceId: string; digest: string } | null>;
+  /** Whether this stroke digest is already stored for a different evidence id. The
+   * anti-replay index is tenant-wide, so the refusal needs its own name. */
+  strokeDigestOwner(input: { strokeDigest: string; evidenceId: string }): Promise<string | null>;
+  /** The claimed driver login for an id, so a shift start can be bound to it. */
+  readDriverCredentialForLogin(input: { loginId: string }): Promise<{ driverId: string; status: string } | null>;
   appendDriverLegException(input: { shiftId: string;tripLegId: string;actionId: string;kind: string;documentation: JsonValue }): Promise<void>;
   readDriverShiftContext(input: { assignmentId: string; driverId: string; serviceDate: string }): Promise<{
     assignmentVersion: number; commercialTier: string; relationship: string; policyVersion: number;
@@ -99,13 +121,26 @@ export interface StoredDriverPrecheck {
   fuelLevel: string | null;
 }
 
-function rowToTrip(row: { id: string; rider_id: string; service_date: string | Date; service_timezone: string; resolved_service_at: Date; lifecycle_reference: string; aggregate_version: string }): {
-  tripId: string; riderId: string; serviceDate: string; serviceTimezone: string; resolvedServiceAt: string; lifecycle: "DRAFT" | "CANCELLED"; version: number;
+/** A trip row plus the executed state its legs imply. A delivered trip must not read
+ * like one that was never executed, and `lifecycle` alone cannot say that: the executed
+ * state lives on the leg execution (audit WEB-A-017). */
+const tripRecordStateSql = `(SELECT CASE
+    WHEN count(e.id)=0 THEN 'DRAFT'
+    WHEN count(*) FILTER (WHERE e.lifecycle_reference='completed')=count(e.id) THEN 'DELIVERED'
+    WHEN count(*) FILTER (WHERE e.lifecycle_reference NOT IN ('planned','dispatched','completed'))>0 THEN 'IN_PROGRESS'
+    ELSE 'PLANNED' END
+  FROM intake.trip_leg l LEFT JOIN execution.leg_execution e ON e.tenant_id=l.tenant_id AND e.trip_leg_id=l.id
+  WHERE l.tenant_id=t.tenant_id AND l.trip_request_id=t.id)`;
+const tripColumns = `t.id,t.rider_id,t.service_date,t.service_timezone,t.resolved_service_at,t.lifecycle_reference,t.aggregate_version,
+  CASE WHEN t.lifecycle_reference='cancelled' THEN 'CANCELLED' ELSE ${tripRecordStateSql} END AS record_state`;
+function rowToTrip(row: { id: string; rider_id: string; service_date: string | Date; service_timezone: string; resolved_service_at: Date; lifecycle_reference: string; aggregate_version: string; record_state?: string | null }): {
+  tripId: string; riderId: string; serviceDate: string; serviceTimezone: string; resolvedServiceAt: string; lifecycle: "DRAFT" | "CANCELLED"; recordState?: string; version: number;
 } {
   const serviceDate = row.service_date instanceof Date ? row.service_date.toISOString().slice(0, 10) : row.service_date;
   return {
     tripId: row.id, riderId: row.rider_id, serviceDate, serviceTimezone: row.service_timezone,
     resolvedServiceAt: row.resolved_service_at.toISOString(), lifecycle: row.lifecycle_reference === "cancelled" ? "CANCELLED" : "DRAFT",
+    ...(row.record_state ? { recordState: String(row.record_state) } : {}),
     version: Number(row.aggregate_version),
   };
 }
@@ -117,6 +152,13 @@ function transactionAdapter(client: PoolClient, tenantId: string): TenantMutatio
     recordSyntheticLocations:(input:SyntheticLocationInput)=>{if(!lockedActionShifts.has(input.shiftId))throw new Error('DRIVER_SHIFT_LOCK_REQUIRED');return recordSyntheticLocations(client,tenantId,input);},
     closeDriverShift:(input:ShiftClosureInput)=>{if(!lockedActionShifts.has(input.shiftId))throw new Error('DRIVER_SHIFT_LOCK_REQUIRED');return closeDriverShift(client,tenantId,input);},
     assignDispatchRun:(input:DispatchAssignmentInput)=>applyDispatchAssignment(client,tenantId,input),
+    releaseDispatchAssignment:(input:DispatchReleaseInput)=>releaseDispatchAssignment(client,tenantId,input),
+    planDispatchRun:(input:DispatchPlanInput)=>planDispatchRun(client,tenantId,input),
+    createClientRecord:(input:ClientIntakeInput)=>createClientRecord(client,tenantId,input),
+    updateClientRecord:(input:ClientUpdateInput)=>updateClientRecord(client,tenantId,input),
+    createDriverCredential:(input:{driverId:string;loginId:string})=>createDriverCredential(client,tenantId,input),
+    claimDriverCredential:(input:{driverId:string;inviteCode:string;password:string;installation?:string})=>claimDriverCredential(client,tenantId,input),
+    verifyDriverLogin:(input:{loginId:string;password:string})=>verifyDriverLogin(client,tenantId,input),
     submitRouteProposal:(input:RouteProposalInput)=>submitRouteProposal(client,tenantId,input),
     decideRouteProposal:(input:Parameters<typeof decideRouteProposal>[2])=>decideRouteProposal(client,tenantId,input),
     async hasUnfinishedDriverLegs(shiftId:string){
@@ -244,6 +286,23 @@ function transactionAdapter(client: PoolClient, tenantId: string): TenantMutatio
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12,$13)`,[tenantId,input.evidenceId,input.shiftId,execution.executionId,input.event,input.policyVersion,input.policyDigest,input.digest,input.strokeDigest,input.role,JSON.stringify(input.unsignedPayload),recordId,revision]);
       if(input.supersedesEvidenceId) await client.query("INSERT INTO execution.driver_proof_supersession(tenant_id,evidence_id,supersedes_evidence_id) VALUES($1,$2,$3)",[tenantId,input.evidenceId,input.supersedesEvidenceId]);
     },
+    async readActiveDriverServiceProof(input: Parameters<TenantMutationTransaction["readActiveDriverServiceProof"]>[0]) {
+      const execution=lockedExecutions.get(`${input.shiftId}:${input.tripLegId}`);if(!execution) throw new Error("DRIVER_EXECUTION_LOCK_REQUIRED");
+      const row=(await client.query(`SELECT p.evidence_id,p.digest FROM execution.driver_service_proof p
+        WHERE p.tenant_id=$1 AND p.execution_id=$2 AND p.shift_id=$3 AND p.event=$4
+          AND NOT EXISTS(SELECT 1 FROM execution.driver_proof_supersession s WHERE s.tenant_id=p.tenant_id AND s.supersedes_evidence_id=p.evidence_id)
+        ORDER BY p.revision_number DESC LIMIT 1`,[tenantId,execution.executionId,input.shiftId,input.event])).rows[0];
+      return row ? { evidenceId: String(row.evidence_id), digest: String(row.digest) } : null;
+    },
+    async readDriverCredentialForLogin(input: Parameters<TenantMutationTransaction["readDriverCredentialForLogin"]>[0]) {
+      const row=(await client.query("SELECT driver_id,status FROM platform.driver_credential WHERE tenant_id=$1 AND login_id=$2",[tenantId,input.loginId])).rows[0];
+      return row ? { driverId: String(row.driver_id), status: String(row.status) } : null;
+    },
+    async strokeDigestOwner(input: Parameters<TenantMutationTransaction["strokeDigestOwner"]>[0]) {
+      const row=(await client.query(`SELECT evidence_id FROM execution.driver_service_proof
+        WHERE tenant_id=$1 AND stroke_digest=$2 AND evidence_id<>$3 LIMIT 1`,[tenantId,input.strokeDigest,input.evidenceId])).rows[0];
+      return row ? String(row.evidence_id) : null;
+    },
     async appendDriverLegException(input: Parameters<TenantMutationTransaction["appendDriverLegException"]>[0]) {
       const execution=lockedExecutions.get(`${input.shiftId}:${input.tripLegId}`);if(!execution) throw new Error("DRIVER_EXECUTION_LOCK_REQUIRED");
       await client.query("INSERT INTO execution.driver_leg_exception(tenant_id,action_id,shift_id,execution_id,kind,documentation) VALUES($1,$2,$3,$4,$5,$6::jsonb)",[tenantId,input.actionId,input.shiftId,execution.executionId,input.kind,JSON.stringify(input.documentation)]);
@@ -320,7 +379,7 @@ function transactionAdapter(client: PoolClient, tenantId: string): TenantMutatio
         AND (effective_until IS NULL OR effective_until>now()) FOR SHARE`, [tenantId]);
       const shifts = await client.query(`SELECT id FROM execution.shift_policy_snapshot WHERE tenant_id=$1
         AND driver_id=$2 AND lifecycle<>'SHIFT_ENDED' LIMIT 1`, [tenantId, input.driverId]);
-      if (shifts.rowCount) throw new PersistenceConflict("duplicate", "driver already has an active shift");
+      if (shifts.rowCount) throw new PersistenceConflict("shift-open", "driver already has an active shift");
       return { assignmentVersion: Number(row.aggregate_version), commercialTier: String(row.commercial_tier),
         relationship: String(row.relationship), policyVersion: Number(policy.policy_version), controls: policy.controls,
         locks: policy.locks, externalFloors: floors.rows.map(floor => floor.controls) };
@@ -332,8 +391,8 @@ function transactionAdapter(client: PoolClient, tenantId: string): TenantMutatio
         input.driverId, input.shiftGeneration, input.policyVersion, input.policyDigest, JSON.stringify(input.effectivePolicy),input.assignmentVersion]);
     },
     async readTrip(tripId: string) {
-      const result = await client.query(`SELECT id,rider_id,service_date,service_timezone,resolved_service_at,lifecycle_reference,aggregate_version
-        FROM intake.trip_request WHERE tenant_id=$1 AND id=$2 FOR UPDATE`, [tenantId, tripId]);
+      const result = await client.query(`SELECT ${tripColumns}
+        FROM intake.trip_request t WHERE t.tenant_id=$1 AND t.id=$2 FOR UPDATE`, [tenantId, tripId]);
       return result.rows[0] ? rowToTrip(result.rows[0]) : null;
     },
     async createTripDraft(input: Parameters<TenantMutationTransaction["createTripDraft"]>[0]) {
@@ -403,6 +462,9 @@ function mapDatabaseError(error: unknown): never {
   if (code === "23P01") throw new PersistenceConflict("resource-overlap", "resource reservation overlaps another run");
   if (code === "23505") throw new PersistenceConflict("duplicate", "tenant-scoped uniqueness conflict");
   if (code === "23503") throw new PersistenceConflict("relationship", "tenant-scoped relationship conflict");
+  // A violated CHECK is a refused value, not an internal fault: surface it as a
+  // closed relationship conflict so the caller sees a 4xx code instead of a 500.
+  if (code === "23514") throw new PersistenceConflict("relationship", "a stored value violates a column constraint");
   if (code === "42501") throw new PersistenceConflict("tenant", "tenant context denied");
   throw error;
 }
@@ -534,8 +596,8 @@ export function createPostgresPersistence(pool: Pool) {
 
     async listTrips(tenantId: string, input: { afterId?: string; limit: number }) {
       return withTenantTransaction(pool, tenantId, "kavaroutes_api", async (client) => {
-        const result = await client.query(`SELECT id,rider_id,service_date,service_timezone,resolved_service_at,lifecycle_reference,aggregate_version
-          FROM intake.trip_request WHERE tenant_id=$1 AND ($2::uuid IS NULL OR id>$2::uuid) ORDER BY id LIMIT $3`,
+        const result = await client.query(`SELECT ${tripColumns}
+          FROM intake.trip_request t WHERE t.tenant_id=$1 AND ($2::uuid IS NULL OR t.id>$2::uuid) ORDER BY t.id LIMIT $3`,
         [tenantId, input.afterId ?? null, input.limit + 1]);
         return result.rows.map(rowToTrip);
       });

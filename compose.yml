@@ -99,9 +99,10 @@ services:
       context: .
       dockerfile: infra/local/Web.Dockerfile
     network_mode: service:postgres
+    # The site depends on the API, not on the worker: a degraded worker must not take
+    # the whole environment down (audit WEB-A-019).
     depends_on:
       api: {condition: service_healthy}
-      worker: {condition: service_healthy}
     environment:
       KAVAROUTES_PORT: ${KAVAROUTES_PORT:-8080}
     user: "1000:1000"

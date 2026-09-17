@@ -40,8 +40,18 @@ describe('cloud dispatch authority',()=>{
   fireEvent.click(await screen.findByRole('button',{name:'View run 1'}));
   fireEvent.change(screen.getByLabelText('Driver'),{target:{value:driverId}});fireEvent.change(screen.getByLabelText('Vehicle'),{target:{value:vehicleId}});
   fireEvent.click(screen.getByRole('button',{name:'Confirm assignment'}));
-  await screen.findByText('Conflict. Refresh and review before assigning again.');
-  await waitFor(()=>expect(board.mock.calls.length).toBeGreaterThan(1));
-  expect(screen.queryByRole('button',{name:'Recover original assignment'})).not.toBeInTheDocument();client.clear();
+ await screen.findByText('Conflict. Refresh and review the current records before retrying.');
+ await waitFor(()=>expect(board.mock.calls.length).toBeGreaterThan(1));
+ expect(screen.queryByRole('button',{name:'Recover original assignment'})).not.toBeInTheDocument();client.clear();
+});
+ it('names the constraint the backend refused instead of one generic rejection',async()=>{
+  const board=vi.fn(async()=>({value:fixture()}));
+  const client=mount({board,assign:async()=>{throw new DevelopmentApiError(409,'PERSISTENCE_FEASIBILITY');}});
+  vi.spyOn(window,'confirm').mockReturnValue(true);
+  fireEvent.click(await screen.findByRole('button',{name:'View run 1'}));
+  fireEvent.change(screen.getByLabelText('Driver'),{target:{value:driverId}});fireEvent.change(screen.getByLabelText('Vehicle'),{target:{value:vehicleId}});
+  fireEvent.click(screen.getByRole('button',{name:'Confirm assignment'}));
+  await screen.findByText(/no usable capacity record/);
+  expect(screen.queryByText('Assignment rejected. Review driver, vehicle and run constraints.')).not.toBeInTheDocument();client.clear();
  });
 });

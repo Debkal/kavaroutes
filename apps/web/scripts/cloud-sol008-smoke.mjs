@@ -8,13 +8,13 @@ try{
  await page.goto(base+'/dispatch');
  await page.getByRole('heading',{name:'Driver transmission status',exact:true}).waitFor();
  // Dispatch may legitimately poll before navigation commits. Record requests
- // only once the browser has entered the facility route, including its load.
- page.on('request',request=>{if(new URL(page.url()).pathname==='/facility'&&request.url().includes('/v1/'))requests.push(new URL(request.url()).pathname);});
- await page.getByRole('link',{name:/Facility/}).click();
- await page.getByRole('heading',{name:'Facility arrivals',exact:true}).waitFor();
+ // only once the browser has entered the client route, including its load.
+ page.on('request',request=>{if(new URL(page.url()).pathname==='/clients'&&request.url().includes('/v1/'))requests.push(new URL(request.url()).pathname);});
+ await page.getByRole('link',{name:/Clients/}).click();
+ await page.getByRole('heading',{name:'Clients',exact:true}).waitFor();
  await page.getByRole('button',{name:'View trip 1',exact:true}).waitFor();
  await page.getByRole('button',{name:'View trip 1',exact:true}).click();
- await page.getByRole('region',{name:'Selected facility trip'}).getByText(/COMPLETED/).waitFor();
+ await page.getByRole('region',{name:'Selected client trip'}).getByText(/COMPLETED/).waitFor();
  await page.waitForTimeout(5500); // Cross the previous dispatch poll interval.
  assert.equal(requests.some(path=>path.includes('runtime-dispatch')||path.includes('/driver/')||path.includes('/dispatch/')),false,JSON.stringify(requests));
  const headers={authorization:'Synthetic principal_facility'};
@@ -29,9 +29,9 @@ try{
  await page.reload();await page.getByRole('button',{name:'View trip 1',exact:true}).waitFor();
  await page.route('**/facility/days/**',route=>route.fulfill({status:503,contentType:'application/problem+json',body:JSON.stringify({status:503,code:'SYNTHETIC_TEST_UNAVAILABLE'})}));
  await page.getByRole('button',{name:'Refresh facility trips',exact:true}).click();
- await page.getByRole('alert').filter({hasText:'Facility trips unavailable'}).waitFor();assert.equal(await page.getByRole('button',{name:'View trip 1',exact:true}).count(),0);
+ await page.getByRole('alert').filter({hasText:'Client trips unavailable'}).waitFor();assert.equal(await page.getByRole('button',{name:'View trip 1',exact:true}).count(),0);
  await page.unroute('**/facility/days/**');await page.getByRole('button',{name:'Refresh facility trips',exact:true}).click();await page.getByRole('button',{name:'View trip 1',exact:true}).waitFor();
  await page.route('**/v1/me',route=>route.fulfill({status:401,contentType:'application/problem+json',body:JSON.stringify({status:401,code:'SYNTHETIC_TEST_REVOKED'})}));
- await page.reload();await page.getByRole('alert').filter({hasText:'Facility session unavailable'}).waitFor();assert.equal(await page.getByRole('button',{name:'View trip 1',exact:true}).count(),0);
+ await page.reload();await page.getByRole('alert').filter({hasText:'Client session unavailable'}).waitFor();assert.equal(await page.getByRole('button',{name:'View trip 1',exact:true}).count(),0);
  console.log('SOL008_PRIVATE_FACILITY_SCOPE_PAGINATION_RELOAD_NARROW_RECOVERY_VERIFIED');
 }finally{await browser.close();}

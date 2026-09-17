@@ -113,6 +113,17 @@ test("migration, RLS, atomic consumer, stream ordering, snapshot race, replay, n
     assert.deepEqual(locationChanges.rows[0], { count: 1, version: 2 });
     assert.equal((await pool.query("SELECT count(*)::int AS count FROM realtime.consumer_checkpoint WHERE source_aggregate_id=$1", [locationAggregate])).rows[0].count, 2);
 
+    // A first observed event above version 1 is not a gap when no predecessor exists: the
+    // aggregate's earlier events predate the outbox or were purged after retention. The
+    // expectation bootstraps to the observed version instead of poisoning the stream
+    // forever (audit WEB-A-031). A predecessor that is still present remains a real gap,
+    // which the DISPATCH_DAY signal above proves.
+    const firstSightAggregate = randomUUID();
+    const firstSightSignal = await insertSignal(pool, firstSightAggregate, 2);
+    assert.ok(firstSightSignal);
+    assert.equal(await store.consume(firstSightSignal, position(2, 5_000)), "APPLIED");
+    assert.equal((await pool.query("SELECT count(*)::int AS count FROM realtime.consumer_checkpoint WHERE source_aggregate_id=$1", [firstSightAggregate])).rows[0].count, 1);
+
     const stream = await pool.query("SELECT id,last_sequence FROM realtime.stream WHERE purpose='DISPATCH_CONTROL'");
     await pool.query("UPDATE realtime.stream SET minimum_sequence=last_sequence+1,lifecycle='RESET_REQUIRED' WHERE id=$1", [stream.rows[0].id]);
     assert.equal((await store.replay(auth, snapshot.cursor)).outcome, "RESET_REQUIRED");

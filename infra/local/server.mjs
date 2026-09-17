@@ -15,7 +15,7 @@ const server=http.createServer(async(req,res)=>{
  res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('Cache-Control','no-store');
  if(!allowed(req)){res.writeHead(403);res.end();return;}
  const path=req.url??'';
- if(path==='/health/ready'){res.writeHead(200,{'Content-Type':'application/json'});res.end('{"status":"ready","mode":"local-synthetic"}');return;}
+ if(path==='/health/ready'){res.writeHead(200,{'Content-Type':'application/json'});res.end('{"status":"ready","mode":"private-cloud"}');return;}
  if(/^\/v1\/[A-Za-z0-9_/?=&.%:-]+$/.test(path)&&!path.includes('..')){
   const headers={...req.headers,host:'127.0.0.1:58080'};delete headers.cookie;
   const upstream=http.request({hostname:'127.0.0.1',port:58080,path,method:req.method,
@@ -26,10 +26,16 @@ const server=http.createServer(async(req,res)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
  const pathname=path.split('?')[0];
  const asset=/^\/assets\/[A-Za-z0-9_.-]+$/.test(pathname);
- if(!asset&&!['/','/dispatch','/facility','/forbidden','/session-expired'].includes(pathname)){res.writeHead(404);res.end();return;}
+ // Closed catalog, one entry per shipped route: the dispatcher, driver and client
+ // surfaces plus the two terminal message pages. /driver is a shipped route too.
+ // Closed catalog, one entry per shipped route. An out-of-catalog path is not an API
+ // error: the app shell is returned with status 404 so the router's own not-found view
+ // renders instead of a blank page (audit WEB-A-007).
+ const known=asset||['/','/dispatch','/driver','/clients','/forbidden','/session-expired'].includes(pathname);
+ const status=known?200:404;
  try{
   const body=await readFile(new URL('./public'+(asset?pathname:'/index.html'),import.meta.url));
-  const ext=pathname.split('.').at(-1);res.setHeader('Content-Type',asset?({js:'text/javascript',css:'text/css',svg:'image/svg+xml',png:'image/png',woff2:'font/woff2'}[ext]??'application/octet-stream'):'text/html');
+  const ext=pathname.split('.').at(-1);res.writeHead(status,{'Content-Type':asset?({js:'text/javascript',css:'text/css',svg:'image/svg+xml',png:'image/png',woff2:'font/woff2'}[ext]??'application/octet-stream'):'text/html'});
   res.end(req.method==='HEAD'?undefined:body);
  }catch{res.writeHead(404);res.end();}
 });

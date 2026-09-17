@@ -35,7 +35,9 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
   const adminPassword = randomBytes(32).toString('base64url');
   const passwords = { kr_cloud_api: randomBytes(32).toString('base64url'), kr_cloud_worker: randomBytes(32).toString('base64url') };
   const docker = args => {
-    try { return execFileSync('docker', args, { encoding: 'utf8', timeout: 30000, killSignal: 'SIGKILL', maxBuffer: 2 * 1024 * 1024,
+    // A busy host can take longer than 30 s to start or remove the disposable PostGIS
+    // container; 90 s keeps a slow daemon from failing an otherwise green suite.
+    try { return execFileSync('docker', args, { encoding: 'utf8', timeout: 90000, killSignal: 'SIGKILL', maxBuffer: 2 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, POSTGRES_PASSWORD: adminPassword } }); }
     catch (error) { throw new Error(error.code === 'ETIMEDOUT' ? 'DOCKER_COMMAND_TIMEOUT' : `DOCKER_COMMAND_FAILED_${args[0].toUpperCase()}`); }
   };
@@ -143,7 +145,37 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     assert.equal((await recovery.reconcile('kr.projection.v1', [tenantId])).processed, 0);
     assert.equal((await control.query("SELECT count(*)::int AS n FROM outbox.consumer_transport_journal WHERE action='DEAD_LETTER'")).rows[0].n, 51);
     await worker.runOnce();
-    assert.equal(worker.healthy(), false, 'terminal jobs must keep readiness degraded');
+    // Readiness is a function of the current unresolved predicate, not of a remembered
+    // success: dead-lettered work is reported instead of holding the worker down, so a
+    // poison job costs a replay, not an operator restart (audit WEB-A-019, WEB-A-032).
+    assert.equal(worker.healthy(), true, 'dead-lettered work must not hold readiness down');
+    assert.equal(worker.diagnostics().unresolvedWork, false);
+    assert.equal(worker.diagnostics().lastCycleFailure, null);
+    const terminalQueues = worker.diagnostics().terminalFailures;
+    assert.equal(terminalQueues?.[0]?.queue, 'kr.projection.v1');
+    assert.ok(terminalQueues[0].count >= 51, `the body must count every terminal job, saw ${terminalQueues[0].count}`);
+    // A first observed event above version 1 is not a gap when no predecessor exists:
+    // a run entered by dispatch publishes its trip's first message at the version the
+    // plan produced, so the consumer must bootstrap rather than poison both queues
+    // (audit WEB-A-031).
+    const firstSightId = randomUUID();
+    await control.query(`INSERT INTO outbox.message
+      (tenant_id,id,event_id,aggregate_type,aggregate_id,aggregate_version,event_type,schema_version,occurred_at,command_id,
+       idempotency_reference_hash,correlation_id,source,classification_reference,purpose_reference,policy_reference,payload,retain_until)
+      SELECT tenant_id,$1,$2,aggregate_type,$3,2,event_type,schema_version,now(),command_id,idempotency_reference_hash,$4,
+        source,classification_reference,purpose_reference,policy_reference,payload,now()+interval '30 days 5 minutes'
+      FROM outbox.message WHERE tenant_id=$5 AND aggregate_id=$6 AND aggregate_version=2`,
+    [randomUUID(), randomUUID(), firstSightId, randomUUID(), tenantId, tripId]);
+    await control.query(`INSERT INTO outbox.delivery (tenant_id,id,message_id,route,job_type,retain_until)
+      SELECT tenant_id,$1,id,'projection','kr.projection.trip.v1',now()+interval '30 days 5 minutes'
+      FROM outbox.message WHERE tenant_id=$2 AND aggregate_id=$3 AND aggregate_version=2`, [randomUUID(), tenantId, firstSightId]);
+    await worker.runOnce();
+    await worker.runOnce();
+    assert.equal((await control.query('SELECT count(*)::int AS n FROM outbox.consumer_inbox WHERE aggregate_id=$1', [firstSightId])).rows[0].n, 1,
+      'a first-sight event must be applied');
+    assert.equal((await control.query(`SELECT applied_version::int AS version FROM outbox.consumer_projection WHERE aggregate_id=$1`, [firstSightId])).rows[0].version, 2);
+    assert.equal((await control.query(`SELECT count(*)::int AS n FROM ${schema}.job WHERE data::jsonb->>'aggregateId'=$1 AND state='failed'`, [firstSightId])).rows[0].n, 0);
+    assert.equal(worker.healthy(), true, 'applying a first-sight event leaves the worker ready');
     // Worker tenant enrollment is explicit, bounded and enforced per job. The
     // runtime role can read the bound through the definer function and can never
     // enroll itself.
@@ -193,6 +225,47 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     await worker.runOnce();
     assert.equal((await control.query(`SELECT state FROM ${schema}.job WHERE id=$1`, [replayRequest.jobId])).rows[0].state, 'completed');
     assert.equal((await control.query('SELECT status FROM outbox.delivery WHERE id=$1', [jobs.rows[0].data.deliveryId])).rows[0].status, 'PUBLISHED');
+    // A published delivery whose transport job was deleted (incident recovery) has no
+    // replay handle: the delivery is finished from the publisher's side and no job exists,
+    // while the consumer never recorded the event. The operator backfill proves that, is
+    // authorized and journalled like every replay, and re-queues the delivery so the
+    // ordinary publisher re-creates the job (audit WEB-A-031).
+    const lostAggregateId = randomUUID(), lostMessageId = randomUUID(), lostDeliveryId = randomUUID();
+    await control.query(`INSERT INTO outbox.message
+      (tenant_id,id,event_id,aggregate_type,aggregate_id,aggregate_version,event_type,schema_version,occurred_at,command_id,
+       idempotency_reference_hash,correlation_id,source,classification_reference,purpose_reference,policy_reference,payload,retain_until)
+      SELECT tenant_id,$1,$2,aggregate_type,$3,2,event_type,schema_version,now(),command_id,idempotency_reference_hash,$4,
+        source,classification_reference,purpose_reference,policy_reference,payload,now()+interval '30 days 5 minutes'
+      FROM outbox.message WHERE tenant_id=$5 AND aggregate_id=$6 AND aggregate_version=2`,
+    [lostMessageId, randomUUID(), lostAggregateId, randomUUID(), tenantId, tripId]);
+    await control.query(`INSERT INTO outbox.delivery
+      (tenant_id,id,message_id,route,job_type,status,transport_reference,first_published_at,last_published_at,retain_until)
+      SELECT tenant_id,$1,id,'projection','kr.projection.trip.v1','PUBLISHED','transport.synthetic.lost',now(),now(),
+        now()+interval '30 days 5 minutes' FROM outbox.message WHERE tenant_id=$2 AND id=$3`,
+    [lostDeliveryId, tenantId, lostMessageId]);
+    assert.equal((await control.query(`SELECT count(*)::int AS n FROM ${schema}.job WHERE data::jsonb->>'deliveryId'=$1`, [lostDeliveryId])).rows[0].n, 0);
+    assert.equal((await control.query('SELECT status FROM outbox.delivery WHERE id=$1', [lostDeliveryId])).rows[0].status, 'PUBLISHED',
+      'the modelled post-incident delivery is published with no job');
+    const backfillRequest = { tenantId, deliveryId: lostDeliveryId, requestId: randomUUID(),
+      actorReference: 'synthetic.operator', reasonCode: 'OPERATOR_REVIEWED' };
+    await assert.rejects(() => recovery.backfill(backfillRequest, [tenantId]), /BACKFILL_AUTHORIZATION_DENIED/);
+    await assert.rejects(() => allowedRecovery.backfill(backfillRequest), /RECOVERY_SCOPE_DENIED/);
+    await assert.rejects(() => allowedRecovery.backfill({ ...backfillRequest, deliveryId: randomUUID() }, [tenantId]), /BACKFILL_DELIVERY_NOT_FOUND/);
+    await assert.rejects(() => allowedRecovery.backfill({ ...backfillRequest, tenantId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }, [tenantId]), /BACKFILL_AUTHORIZATION_DENIED/);
+    assert.equal((await allowedRecovery.backfill(backfillRequest, [tenantId])).status, 'REQUEUED');
+    // The same decision replayed is answered from the journal, not applied twice.
+    assert.equal((await allowedRecovery.backfill(backfillRequest, [tenantId])).status, 'REPLAYED');
+    assert.equal((await control.query('SELECT status FROM outbox.delivery WHERE id=$1', [lostDeliveryId])).rows[0].status, 'PENDING');
+    assert.deepEqual((await control.query('SELECT action,safe_code FROM outbox.consumer_transport_journal WHERE id=$1', [backfillRequest.requestId])).rows[0],
+      { action: 'REPLAY', safe_code: 'OPERATOR_REVIEWED' });
+    await worker.runOnce();
+    await worker.runOnce();
+    assert.equal((await control.query(`SELECT count(*)::int AS n FROM outbox.consumer_inbox WHERE event_id=$1 AND processing_state='COMPLETED'`,
+      [(await control.query('SELECT event_id FROM outbox.message WHERE id=$1', [lostMessageId])).rows[0].event_id])).rows[0].n, 1,
+      'the re-queued delivery is applied by the ordinary cycle');
+    assert.equal((await control.query(`SELECT applied_version::int AS version FROM outbox.consumer_projection WHERE aggregate_id=$1`, [lostAggregateId])).rows[0].version, 2);
+    // An event the route's consumer already holds is reported, never re-queued.
+    assert.equal((await allowedRecovery.backfill({ ...backfillRequest, requestId: randomUUID() }, [tenantId])).status, 'ALREADY_APPLIED');
     await assert.rejects(() => worker.pool.query("UPDATE outbox.consumer_transport_journal SET actor_reference='synthetic.changed'"), /permission denied/);
     await assert.rejects(() => control.query("UPDATE outbox.consumer_transport_journal SET actor_reference='synthetic.changed'"), /IMMUTABLE/);
     assert.equal((await worker.pool.query('SELECT count(*)::int AS n FROM outbox.consumer_transport_journal')).rows[0].n, 0, 'unscoped runtime read must be empty');
@@ -443,6 +516,9 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     assert.equal(worker.healthy(), false);
   } finally {
     await worker?.close(); await api?.close(); await control?.end();
-    docker(['rm', '--force', '--volumes', name]);
+    // A busy docker daemon can exceed the helper's 30 s command timeout on removal; the
+    // container is disposable either way, so one retry is enough to keep the suite green.
+    try { docker(['rm', '--force', '--volumes', name]); }
+    catch { try { docker(['rm', '--force', '--volumes', name]); } catch { /* left for the operator */ } }
   }
 });

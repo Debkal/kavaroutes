@@ -16,6 +16,8 @@ export * from "./schemas.js";
 export * from "./schema-registry.js";
 export * from "./security.js";
 export * from './dispatch-board.js';
+export * from './client-records.js';
+export * from './driver-logins.js';
 export * from './route-proposals.js';
 export * from './driver-closure.js';
 export * from './facility-day.js';

@@ -42,9 +42,13 @@ export async function checkIdentityMembership(pool, apiDatabaseUrl) {
   const sessions=createApplicationSessionStore(pool);
   const authApp=Fastify({logger:false});
   try {
+    // The provider gate is the same contract the live composition supplies: an
+    // active account with no revocation. This lane has no provider SDK, so it
+    // supplies the decision directly instead of asking the real one.
     await registerPostgresBrowserAuth(authApp,{origin:'https://app.kavaroutes.com',signingKey:randomBytes(32),pool},
       async()=>({issuer,audience:'kavaroutes',subject:'verified-subject',emailVerified:true,
-        authenticatedAt:Math.floor(Date.now()/1000),expiresAt:Math.floor(Date.now()/1000)+3600}));
+        authenticatedAt:Math.floor(Date.now()/1000),expiresAt:Math.floor(Date.now()/1000)+3600}),
+      {authorize:async()=>'ALLOWED'});
     const post=(url,headers={},payload)=>authApp.inject({method:'POST',url,
       headers:{origin:'https://app.kavaroutes.com',...headers},...(payload===undefined?{}:{payload})});
     const challenge=await post('/auth/challenge');

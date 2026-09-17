@@ -1,6 +1,8 @@
 name: kavaroutes-cloud
 x-host: &host
   image: ${KR_RUNTIME_IMAGE:?set the verified registry image digest}
+  environment:
+    KR_BUILD_ID: ${KR_BUILD_ID:-unknown}
   network_mode: host
   read_only: true
   user: "1000:1000"

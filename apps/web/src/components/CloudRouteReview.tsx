@@ -31,9 +31,9 @@ function Review({api,shift,enabled}:{api:Api;shift:string;enabled:boolean}){
  const nodeLabel=(id:string,v:RouteView)=>{const n=v.nodes.find(n=>n.nodeId===id);return n?`${n.kind} · stop ${v.nodes.indexOf(n)+1}${n.locked?' · locked':''}`:'Historical stop';};
  return <section aria-label="Selected shift route review">
   <button onClick={()=>void view.refetch()} disabled={busy}>Refresh proposals</button>
-  {view.isError&&<p role="alert">Route review unavailable. Planning facts may be missing or this shift may no longer be active. No approval inferred.</p>}
+  {view.isError&&<p role="alert">Route review unavailable. Planning facts may be missing or this shift may no longer be active. No approval inferred. Proposals are submitted from the driver's app; this view only reviews them.</p>}
   {data&&<><h3>Current route · version {data.runVersion}</h3><ol>{data.nodes.map(n=><li key={n.nodeId}>{nodeLabel(n.nodeId,data)}</li>)}</ol>
-   {!data.proposals.length&&<p>No saved proposals.</p>}
+   {!data.proposals.length&&<p>No saved proposals. The driver's app submits route proposals; dispatch reviews and decides them here.</p>}
    {data.proposals.map((p,i)=><article key={p.proposalId}><h4>Proposal {i+1} · {p.state}</h4><ol>{p.nodeOrder.map(id=><li key={id}>{nodeLabel(id,data)}</li>)}</ol>
     {p.state==='PENDING_DISPATCH_APPROVAL'&&<><button disabled={busy||!!pending.current||view.isError} onClick={()=>void decide(p.proposalId,'APPROVED')}>Approve proposal {i+1}</button><button disabled={busy||!!pending.current||view.isError} onClick={()=>void decide(p.proposalId,'REJECTED')}>Reject proposal {i+1}</button></>}
    </article>)}

@@ -7,6 +7,8 @@ export * from './route-proposals.js';
 export * from './shift-closure.js';
 export * from './tracking-alerts.js';
 export * from './facility-day.js';
+export * from './client-intake.js';
+export * from './driver-credentials.js';
 export * from './browser-command-recovery.js';
 export * from './identity-membership.js';
 export * from './application-sessions.js';

@@ -20,13 +20,13 @@ export async function verifyDispatchAuthority(pool,tenantId,sourceRunId) {
   await db.query('INSERT INTO dispatch.run_leg(tenant_id,id,run_id,trip_leg_id,ordinal) VALUES($1,$2,$3,$4,1)',[tenantId,randomUUID(),runId,legId]);
  });
  const assign=(expectedVersion,driver=driverId,assignmentId=randomUUID(),tenant=tenantId)=>withTenantTransaction(pool,tenant,'kavaroutes_api',db=>applyDispatchAssignment(db,tenant,{runId,expectedVersion,driverId:driver,vehicleId,assignmentId}),'serializable');
- await assert.rejects(()=>assign(1),e=>e.kind==='relationship','missing capacity/rules fail closed');
+ await assert.rejects(()=>assign(1),e=>e.kind==='feasibility','missing capacity/rules fail closed; a dispatch refusal is a state conflict (409), not a hidden resource');
  // Administrator resolves explicit synthetic constraints, not a tier-derived default.
  await pool.query("INSERT INTO dispatch.run_service_requirements VALUES($1,$2,1,2,1,ARRAY['transport'],ARRAY[]::text[])",[tenantId,runId]);
  await pool.query('INSERT INTO fleet.vehicle_capacity VALUES($1,$2,1,0)',[tenantId,vehicleId]);
- await assert.rejects(()=>assign(1),e=>e.kind==='relationship','insufficient vehicle capacity');
+ await assert.rejects(()=>assign(1),e=>e.kind==='feasibility','insufficient vehicle capacity');
  await pool.query('UPDATE fleet.vehicle_capacity SET seats=2,wheelchair_spaces=1 WHERE tenant_id=$1 AND vehicle_id=$2',[tenantId,vehicleId]);
- await assert.rejects(()=>assign(1),e=>e.kind==='relationship','missing driver qualification');
+ await assert.rejects(()=>assign(1),e=>e.kind==='qualification','missing driver qualification');
  await pool.query("INSERT INTO fleet.qualification(tenant_id,id,driver_id,qualification_kind,valid_during) VALUES($1,$2,$3,'transport','[2026-01-01,2027-01-01)'),($1,$4,$5,'transport','[2026-01-01,2027-01-01)')",[tenantId,randomUUID(),driverId,randomUUID(),otherDriver]);
  await assert.rejects(()=>assign(1,driverId,randomUUID(),randomUUID()),e=>e.kind==='relationship','cross tenant fails');
  const first=await assign(1,driverId,firstAssignment);
@@ -45,7 +45,7 @@ export async function verifyDispatchAuthority(pool,tenantId,sourceRunId) {
  await assert.rejects(()=>withTenantTransaction(pool,tenantId,'kavaroutes_api',db=>db.query('DELETE FROM dispatch.assignment_supersession WHERE tenant_id=$1',[tenantId])));
  await assert.rejects(()=>pool.query('UPDATE dispatch.assignment SET aggregate_version=aggregate_version+1 WHERE tenant_id=$1 AND id=$2',[tenantId,firstAssignment]),e=>e.code==='23514');
  await pool.query("UPDATE execution.leg_execution SET lifecycle_reference='onboard' WHERE tenant_id=$1 AND run_id=$2",[tenantId,runId]);
- await assert.rejects(()=>assign(3,driverId),e=>e.kind==='relationship','onboard reassignment requires recovery');
+ await assert.rejects(()=>assign(3,driverId),e=>e.kind==='work-started','onboard reassignment requires recovery');
  assert.equal((await pool.query('SELECT count(*) FROM dispatch.assignment WHERE tenant_id=$1 AND run_id=$2',[tenantId,runId])).rows[0].count,'2');
  // Exercise the HTTP authority and atomic receipt/audit/outbox path on pre-service work.
  await pool.query("UPDATE execution.leg_execution SET lifecycle_reference='dispatched' WHERE tenant_id=$1 AND run_id=$2",[tenantId,runId]);

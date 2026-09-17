@@ -112,6 +112,11 @@ export const DispatcherTripSchema = Type.Object({
   serviceTimezone: Type.Ref(IanaTimezoneSchema),
   resolvedServiceAt: Type.Ref(InstantSchema),
   lifecycle: Type.Union([Type.Literal("DRAFT"), Type.Literal("CANCELLED")]),
+  /** The trip's executed state, derived from its legs: a delivered trip must not read
+   * like one that was never executed. Optional and additive: `lifecycle` stays the
+   * persisted record state the cancel command checks (audit WEB-A-017). */
+  recordState: Type.Optional(Type.Union([Type.Literal("DRAFT"), Type.Literal("PLANNED"), Type.Literal("IN_PROGRESS"),
+    Type.Literal("DELIVERED"), Type.Literal("CANCELLED")])),
   version: Type.Integer({ minimum: 1 }),
 }, { ...closed, $id: "DispatcherTrip" });
 

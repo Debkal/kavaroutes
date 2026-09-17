@@ -1,0 +1,34 @@
+services:
+  api:
+    healthcheck:
+      test: [CMD, node, infra/gcp/runtime/health.mjs, "58082"]
+  gateway:
+    image: ${KR_RUNTIME_IMAGE:?set the verified registry image digest}
+    network_mode: host
+    read_only: true
+    user: "1000:1000"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: 0.5
+    stop_grace_period: 10s
+    restart: "no"
+    entrypoint: [node, /srv/kavaroutes-web/prototype-web-gateway.mjs]
+    command: []
+    environment:
+      KR_WEB_ROOT: /srv/kavaroutes-web/dist
+      KR_WEB_PORT: "58080"
+      KR_API_PORT: "58082"
+    volumes:
+      - /opt/kavaroutes/web:/srv/kavaroutes-web:ro
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, infra/gcp/runtime/health.mjs, "58080"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: "2"}

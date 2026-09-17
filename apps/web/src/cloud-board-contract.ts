@@ -29,3 +29,45 @@ export function decodeCloudAssignment(value:unknown,command:CloudAssignmentComma
  if(hasPrior)id(r.supersedes);
  return {assignmentId:id(r.assignmentId),runId:id(r.runId),version:integer(r.version),serviceDate:text(r.serviceDate)};
 }
+
+export type CloudPlanLeg={
+ riderReference:string;pickupLabel:string;dropoffLabel:string;localServiceTime:string;
+ resolvedServiceAt:string;resolvedUtcOffsetSeconds:number;plannedStartAt:string;plannedEndAt:string;
+ pickupRequired:boolean;dropoffRequired:boolean;mobilitySecurementRequired:boolean;
+};
+export type CloudPlanRequest={
+ serviceDate:string;serviceTimezone:string;plannedStartAt:string;plannedEndAt:string;
+ seatsRequired?:number;wheelchairSpacesRequired?:number;legs:CloudPlanLeg[];
+ /** The client record this run is entered for. Omitted when dispatch plans a run
+  * with no client, which stays the pre-client behaviour. */
+ clientId?:string;
+};
+/** A planned-run receipt is only accepted when it describes the run that was asked for. */
+export function decodeCloudPlanReceipt(value:unknown,request:CloudPlanRequest){
+ const r=object(value,['runId','version','serviceDate','legCount','tripLegIds']);
+ if(r.serviceDate!==request.serviceDate || r.legCount!==request.legs.length)throw new Error('PLAN_RECEIPT_MISMATCH');
+ const tripLegIds=list(r.tripLegIds,25,id);
+ if(tripLegIds.length!==request.legs.length || new Set(tripLegIds).size!==tripLegIds.length)throw new Error('PLAN_RECEIPT_MISMATCH');
+ return {runId:id(r.runId),version:integer(r.version),serviceDate:text(r.serviceDate),legCount:integer(r.legCount),tripLegIds};
+}
+
+/** The one-time invite for a driver login. The code is returned exactly once, by the
+ * command that creates it, and never again by any read. */
+export function decodeCloudDriverLogin(value:unknown){
+ const r=object(value,['driverId','loginId','inviteCode','status','version']);
+ if(r.status!=='INVITED')throw new Error('INVALID_DRIVER_LOGIN_RECEIPT');
+ const loginId=text(r.loginId);
+ if(!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(loginId))throw new Error('INVALID_DRIVER_LOGIN_RECEIPT');
+ const code=text(r.inviteCode);
+ if(code.length<8||code.length>64)throw new Error('INVALID_DRIVER_LOGIN_RECEIPT');
+ return {driverId:id(r.driverId),loginId,inviteCode:code,status:'INVITED' as const,version:integer(r.version)};
+}
+
+/** A released run receipt: the run it names, one version past the one we held, and the
+ * assignment that was removed. Nothing else is accepted. */
+export function decodeCloudRelease(value:unknown,request:{runId:string;expectedVersion:number;serviceDate:string}){
+ const r=object(value,['runId','version','serviceDate','releasedAssignmentId']);
+ if(id(r.runId)!==request.runId||r.serviceDate!==request.serviceDate)throw new Error('RELEASE_RECEIPT_MISMATCH');
+ if(integer(r.version)!==request.expectedVersion+1)throw new Error('RELEASE_RECEIPT_MISMATCH');
+ return {runId:request.runId,version:integer(r.version),serviceDate:text(r.serviceDate),releasedAssignmentId:id(r.releasedAssignmentId)};
+}

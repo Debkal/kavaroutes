@@ -1,6 +1,6 @@
 import { decodeDispatcherTrip, type DispatcherTrip, type TripCreateRequest } from "@kavaroutes/api-contracts/client-web";
 import {createCloudCommandRecovery} from './cloud-command-recovery';
-import {decodeCloudBoard,decodeCloudAssignment,type CloudAssignmentCommand} from './cloud-board-contract';
+import {decodeCloudBoard,decodeCloudAssignment,decodeCloudPlanReceipt,decodeCloudDriverLogin,decodeCloudRelease,type CloudAssignmentCommand,type CloudPlanRequest} from './cloud-board-contract';
 import {decodeRouteView,decodeRouteReceipt} from '@kavaroutes/api-contracts/client-route-proposals';
 import { createPrivateDevelopmentTransport, type DevelopmentFetch } from "@kavaroutes/api-contracts/private-development-transport";
 
@@ -14,9 +14,10 @@ function object(value: unknown): Record<string, unknown> {
 }
 
 export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
-  const transport = createPrivateDevelopmentTransport({ baseUrl, persona: "dispatcher", fetch: fetcher });
+  const browserSameOrigin = new URL(baseUrl).protocol === "https:";
+  const transport = createPrivateDevelopmentTransport({ baseUrl, persona: "dispatcher", fetch: fetcher, browserSameOrigin });
   // Explicitly selected synthetic reviewer, never a privilege added to the dispatcher.
-  const reviewer=createPrivateDevelopmentTransport({baseUrl,persona:'policy_override',fetch:fetcher});
+  const reviewer=createPrivateDevelopmentTransport({baseUrl,persona:'policy_override',fetch:fetcher,browserSameOrigin});
   const recovery=createCloudCommandRecovery(transport),reviewerRecovery=createCloudCommandRecovery(reviewer);
   return Object.freeze({
     recovery,reviewerRecovery,
@@ -24,11 +25,11 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
       if(!uuid.test(shift))throw new Error('INVALID_SHIFT');
       return reviewer.request(`${prefix}/dispatch/shifts/${shift}/return-review`,body=>{
         const v=object(body);
-        if(Object.keys(v).sort().join()!=='exceptionCommandId,lifecycle,resourceVersion,returnMode,returnResult,shiftGeneration,shiftReference'||v.shiftReference!==shift||typeof v.shiftGeneration!=='string'||!uuid.test(v.shiftGeneration)||!Number.isSafeInteger(v.resourceVersion)||Number(v.resourceVersion)<1||(v.exceptionCommandId!==null&&(typeof v.exceptionCommandId!=='string'||!uuid.test(v.exceptionCommandId)))||!['ACTIVE','SHIFT_ENDED','INVALIDATE_REVIEW'].includes(String(v.lifecycle))||!['DISABLED','ADVISORY','REQUIRED_WITH_AUDITED_OVERRIDE'].includes(String(v.returnMode))||(v.returnResult!==null&&!['NOT_REQUIRED','PASS','OUTSIDE','STALE','INACCURATE','UNAVAILABLE','OVERRIDDEN'].includes(String(v.returnResult))))throw new Error('INVALID_RETURN_REVIEW');
-        return {shiftReference:shift,shiftGeneration:v.shiftGeneration,resourceVersion:Number(v.resourceVersion),exceptionCommandId:v.exceptionCommandId as string|null,lifecycle:String(v.lifecycle),returnMode:String(v.returnMode),returnResult:v.returnResult as string|null};
+        const reviewKeys=Object.keys(v).sort().join();if(reviewKeys!=='closurePath,exceptionCommandId,lifecycle,resourceVersion,returnMode,returnResult,shiftGeneration,shiftReference'&&reviewKeys!=='exceptionCommandId,lifecycle,resourceVersion,returnMode,returnResult,shiftGeneration,shiftReference'||v.shiftReference!==shift||typeof v.shiftGeneration!=='string'||!uuid.test(v.shiftGeneration)||!Number.isSafeInteger(v.resourceVersion)||Number(v.resourceVersion)<1||(v.exceptionCommandId!==null&&(typeof v.exceptionCommandId!=='string'||!uuid.test(v.exceptionCommandId)))||!['ACTIVE','SHIFT_ENDED','INVALIDATE_REVIEW'].includes(String(v.lifecycle))||!['DISABLED','ADVISORY','REQUIRED_WITH_AUDITED_OVERRIDE'].includes(String(v.returnMode))||(v.returnResult!==null&&!['NOT_REQUIRED','PASS','OUTSIDE','STALE','INACCURATE','UNAVAILABLE','OVERRIDDEN'].includes(String(v.returnResult)))||(v.closurePath!==null&&!['RETURN_EXCEPTION','EMERGENCY_STOP'].includes(String(v.closurePath))))throw new Error('INVALID_RETURN_REVIEW');
+        return {shiftReference:shift,shiftGeneration:v.shiftGeneration,resourceVersion:Number(v.resourceVersion),exceptionCommandId:v.exceptionCommandId as string|null,lifecycle:String(v.lifecycle),returnMode:String(v.returnMode),returnResult:v.returnResult as string|null,closurePath:(v.closurePath??null) as 'RETURN_EXCEPTION'|'EMERGENCY_STOP'|null};
       });
     },
-    overrideReturn(shift:string,command:{commandId:string;shiftGeneration:string;expectedVersion:number;exceptionCommandId:string;reason:'RETURN_EXCEPTION_REVIEWED';key:string}){
+    overrideReturn(shift:string,command:{commandId:string;shiftGeneration:string;expectedVersion:number;exceptionCommandId:string;reason:'RETURN_EXCEPTION_REVIEWED';emergencyStopResolution?:boolean;key:string}){
       if([shift,command.commandId,command.shiftGeneration,command.exceptionCommandId].some(id=>!uuid.test(id)))throw new Error('INVALID_OVERRIDE_REFERENCE');
       const {key,...body}=command;
       return reviewerRecovery.run({kind:'OVERRIDE_RETURN',resourceId:shift,body},key,value=>{
@@ -56,6 +57,30 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
     assign(command:CloudAssignmentCommand){
       if(!uuid.test(command.runId)||!uuid.test(command.driverId)||!uuid.test(command.vehicleId))throw new Error('INVALID_ASSIGNMENT_REFERENCE');
       return recovery.run({kind:'ASSIGN_RUN',resourceId:command.runId,expectedTag:command.expectedTag,body:{expectedVersion:command.expectedVersion,driverId:command.driverId,vehicleId:command.vehicleId}},command.key,body=>decodeCloudAssignment(body,command));
+    },
+    /** Remove the driver and vehicle from a run. The server releases the assignment
+     * rather than superseding it, and refuses when work has started or the driver holds
+     * an open shift. The key is per-tab memory, so a retry replays the same command. */
+    unassignRun(runId:string,expectedVersion:number,ifMatch:string,idempotencyKey:string){
+      if(!uuid.test(runId)||!Number.isSafeInteger(expectedVersion)||expectedVersion<1)throw new Error('INVALID_RELEASE_REFERENCE');
+      return transport.request(`${prefix}/dispatch/runs/${runId}/commands/unassign`,body=>decodeCloudRelease(body,{runId,expectedVersion,serviceDate:String((body as {serviceDate?:unknown}).serviceDate)}),{body:{expectedVersion},idempotencyKey,etag:ifMatch});
+    },
+    /** A dispatch-authored run. Nothing is inferred from fixtures: the server
+     * persists the run, its legs, its addresses and its proof rules before the
+     * board shows it. The idempotency key is per-tab memory, so retrying an
+     * unknown outcome replays the original command instead of planning twice. */
+    planRun(request:CloudPlanRequest,idempotencyKey:string){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(request.serviceDate))throw new Error('INVALID_SERVICE_DATE');
+      if(!request.legs.length || request.legs.length>25)throw new Error('INVALID_PLAN_LEGS');
+      return transport.request(`${prefix}/dispatch/runs/commands/plan`,body=>decodeCloudPlanReceipt(body,request),{body:request,idempotencyKey});
+    },
+    /** Dispatch issues a driver login. The one-time code is returned once, here, and
+     * only its hash is stored; it has to be handed to the driver over a separate
+     * channel. */
+    createDriverLogin(request:{driverId:string;loginId:string},idempotencyKey:string){
+      if(!uuid.test(request.driverId))throw new Error('INVALID_DRIVER_REFERENCE');
+      if(!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(request.loginId))throw new Error('INVALID_DRIVER_LOGIN_ID');
+      return transport.request(`${prefix}/driver-logins/commands/create`,body=>decodeCloudDriverLogin(body),{body:request,idempotencyKey});
     },
     dispatchSnapshot(serviceDate: string, signal?: AbortSignal) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate)) throw new Error("INVALID_SERVICE_DATE");

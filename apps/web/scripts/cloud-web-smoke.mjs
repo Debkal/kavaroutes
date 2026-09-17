@@ -43,8 +43,8 @@ try {
   });
   assert.equal(persisted.status(), 200);
   assert.equal((await persisted.json()).lifecycle, 'CANCELLED');
-  await page.getByRole('link', { name: 'Facility', exact: true }).click();
+  await page.getByRole('link', { name: 'Clients', exact: true }).click();
   await page.getByRole('heading', { name: 'Facility cloud integration pending' }).waitFor();
-  assert.equal(await page.getByText('Today’s arrivals').count(), 0);
+  assert.equal(await page.getByText('Client arrivals').count(), 0);
   console.log(JSON.stringify({ result: 'CLOUD_WEB_TRIP_FLOW_PASSED', created: true, cancelled: true, persistedAfterReload: true, facilityFixtureFallback: false }));
 } finally { await browser.close(); }

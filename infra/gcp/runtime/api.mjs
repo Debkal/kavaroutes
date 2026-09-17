@@ -2,6 +2,8 @@ import { createWp007Api, createWp007PostgresApplication, createPostgresDriverShi
   createPostgresDriverActionService, createPostgresDriverPrecheckService, createPostgresDriverShiftStateReader, createPostgresDriverSignatureService, createPostgresDispatchService, createPostgresRouteProposalService, createPostgresDriverClosureService } from '@kavaroutes/api-contracts';
 import { createDriverItineraryReader } from '@kavaroutes/postgres-persistence';
 import {createPostgresFacilityService,createPostgresBrowserRecoveryService} from '@kavaroutes/api-contracts';
+import {createPostgresClientService} from '@kavaroutes/api-contracts';
+import {createPostgresDriverLoginService} from '@kavaroutes/api-contracts';
 import { createTestOnlyCursorCodec, createAuthorizationGenerationSource, authorizeRealtimeSubscription } from '@kavaroutes/realtime';
 import { createPostgresRealtimeStore } from '@kavaroutes/realtime/postgres';
 import { registerWp009Realtime } from '@kavaroutes/realtime/fastify';
@@ -20,6 +22,8 @@ export async function createRuntimeApi(input) {
     dispatchService: createPostgresDispatchService(pool,{etag:application.etag}),
     routeProposalService: createPostgresRouteProposalService(pool),
     facilityService:createPostgresFacilityService(pool),
+    clientService:createPostgresClientService(pool),
+    driverLoginService:createPostgresDriverLoginService(pool),
     driverShiftService: createPostgresDriverShiftService(pool),
     driverShiftReader: createPostgresDriverShiftStateReader(pool),
     driverActionService: createPostgresDriverActionService(pool,{etag:application.etag}),
@@ -40,13 +44,16 @@ export async function createRuntimeApi(input) {
     const routeProposalPath=/^\/v1\/organizations\/[^/]+\/(?:(?:driver|dispatch)\/shifts\/[^/]+\/route-proposals|dispatch\/route-proposals\/[^/]+\/commands\/decide)$/.test(path);
     const closurePath=/^\/v1\/organizations\/[^/]+\/(?:(?:driver|dispatch)\/shifts\/[^/]+\/status|driver\/shifts\/[^/]+\/(?:synthetic-location-batches|commands\/(?:postcheck|close))|dispatch\/shifts\/[^/]+\/(?:return-review|commands\/override-return))$/.test(path);
     if(closurePath)return; // Authentication/capability checks remain in the registered handlers.
-    if (!routeProposalPath && !/^\/(health\/ready|v1\/me|v1\/realtime|v1\/organizations\/[^/]+\/(trips(?:\/[^/]+(?:\/commands\/cancel)?)?|dispatch-board\/\d{4}-\d{2}-\d{2}|dispatch\/runs\/[^/]+\/commands\/assign|driver\/(?:itineraries\/\d{4}-\d{2}-\d{2}|action-batches|shifts\/(?:commands\/start|assignments\/[^/]+|[^/]+\/(?:commands\/precheck|legs\/[^/]+\/evidence\/signatures)))|runtime-dispatch-snapshot|realtime-change-queries))$/.test(path)) {
+    if (!routeProposalPath && !/^\/(health\/ready|v1\/me|v1\/realtime|v1\/organizations\/[^/]+\/(trips(?:\/[^/]+(?:\/commands\/cancel)?)?|clients(?:\/commands\/create|\/[^/]+\/commands\/update)?|driver-logins\/(?:commands\/(?:create|verify)|[^/]+\/commands\/claim)|dispatch-board\/\d{4}-\d{2}-\d{2}|dispatch\/runs\/(?:[^/]+\/commands\/(?:assign|unassign)|commands\/plan)|driver\/(?:itineraries\/\d{4}-\d{2}-\d{2}|action-batches|shifts\/(?:commands\/start|assignments\/[^/]+|[^/]+\/(?:commands\/precheck|legs\/[^/]+\/evidence\/signatures)))|runtime-dispatch-snapshot|realtime-change-queries))$/.test(path)) {
       return reply.code(503).send({ code: 'RUNTIME_PATH_NOT_PROMOTED' });
     }
   });
   app.get('/health/ready', async (_request, reply) => {
-    try { await checkDatabase(); return { status: 'ready', profile: 'private-synthetic' }; }
-    catch { return reply.code(503).send({ status: 'unavailable' }); }
+    // The build id is what the served bundle can be compared against, so a stale image
+    // is visible instead of presenting as broken data (audit WEB-A-004/WEB-A-009).
+    const build = process.env.KR_BUILD_ID ?? 'unknown';
+    try { await checkDatabase(); return { status: 'ready', profile: 'private-synthetic', build }; }
+    catch { return reply.code(503).send({ status: 'unavailable', build }); }
   });
   await app.register(async scope => {
     scope.decorateRequest('wp007Context');

@@ -15,6 +15,20 @@ INSERT INTO fleet.driver (tenant_id,id,synthetic_reference,workforce_relationshi
 VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','30000000-0000-4000-8000-000000000001','Synthetic Driver 042','EMPLOYEE') ON CONFLICT DO NOTHING;
 INSERT INTO fleet.vehicle (tenant_id,id,synthetic_reference)
 VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','31000000-0000-4000-8000-000000000006','Synthetic Van 12') ON CONFLICT DO NOTHING;
+-- Assignment refuses a vehicle with no feasibility record, so every fleet vehicle the
+-- prototype seeds carries its capacity. Van 12 shares the reviewed 4-seat, no-lift
+-- synthetic profile used by the SOL004 van.
+INSERT INTO fleet.vehicle_capacity (tenant_id,vehicle_id,seats,wheelchair_spaces)
+VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','31000000-0000-4000-8000-000000000006',4,0) ON CONFLICT DO NOTHING;
+-- A one-driver, one-vehicle fleet makes every second run unassignable, because a driver
+-- and a vehicle cannot hold overlapping windows. The prototype seeds a second driver and
+-- a second van so dispatch can plan more than one run for a service day.
+INSERT INTO fleet.driver (tenant_id,id,synthetic_reference,workforce_relationship)
+VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','30000000-0000-4000-8000-000000000002','Synthetic Driver 017','EMPLOYEE') ON CONFLICT DO NOTHING;
+INSERT INTO fleet.vehicle (tenant_id,id,synthetic_reference)
+VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','31000000-0000-4000-8000-000000000007','Synthetic Van 21') ON CONFLICT DO NOTHING;
+INSERT INTO fleet.vehicle_capacity (tenant_id,vehicle_id,seats,wheelchair_spaces)
+VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','31000000-0000-4000-8000-000000000007',4,0) ON CONFLICT DO NOTHING;
 INSERT INTO intake.trip_request
   (tenant_id,id,rider_id,service_date,service_timezone,local_service_time,resolved_service_at,resolved_utc_offset_seconds,ambiguity_policy,ambiguity_policy_version,lifecycle_reference)
 VALUES

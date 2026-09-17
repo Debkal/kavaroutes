@@ -3,7 +3,9 @@ import {BrowserCommandPrepareSchema,BrowserCommandViewSchema,BrowserCommandPendi
 import {FacilityDaySchema,type FacilityService} from './facility-day.js';
 import {DriverClosureRequestSchema,DriverClosureReceiptSchema,DriverClosureViewSchema,DriverSyntheticLocationRequestSchema,DriverSyntheticLocationReceiptSchema,DriverReturnOverrideRequestSchema,DriverReturnReviewSchema,type DriverClosureService} from './driver-closure.js';
 import {RouteProposalRequestSchema,RouteDecisionRequestSchema,RouteProposalReceiptSchema,RouteProposalViewSchema,type RouteProposalService} from './route-proposals.js';
-import {DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,type DispatchService,type AssignDispatchRunRequest} from './dispatch-board.js';
+import {DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,PlanDispatchRunRequestSchema,PlanDispatchRunReceiptSchema,UnassignDispatchRunRequestSchema,UnassignDispatchRunReceiptSchema,type DispatchService,type AssignDispatchRunRequest,type PlanDispatchRunRequest,type UnassignDispatchRunRequest} from './dispatch-board.js';
+import {ClientCreateRequestSchema,ClientCreateReceiptSchema,ClientRosterSchema,ClientUpdateRequestSchema,type ClientService,type ClientCreateRequest,type ClientUpdateRequest} from './client-records.js';
+import {DriverLoginClaimRequestSchema,DriverLoginCreateRequestSchema,DriverLoginReceiptSchema,DriverLoginStateSchema,DriverLoginVerifyRequestSchema,type DriverLoginService,type DriverLoginCreateRequest,type DriverLoginClaimRequest,type DriverLoginVerifyRequest} from './driver-logins.js';
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify, { LogController, type FastifyInstance, type FastifyPluginAsync, type FastifyReply, type FastifyRequest, type FastifyServerOptions } from "fastify";
 import { Type as TypeBox, type Static, type TSchema } from "typebox";
@@ -49,6 +51,8 @@ export interface Wp007ApiOptions {
   readonly facilityService?:FacilityService;
   readonly routeProposalService?: RouteProposalService;
   readonly dispatchService?: DispatchService;
+  readonly clientService?: ClientService;
+  readonly driverLoginService?: DriverLoginService;
   readonly application?: Wp007Application;
   readonly verifier?: PrincipalVerifier;
   readonly cursorSecret?: string;
@@ -408,6 +412,78 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     for(const[name,value]of Object.entries(result.headers))reply.header(name,value);
     if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');
     request.wp007Context.resultCode=result.replayed?'IDEMPOTENT_REPLAY':'DISPATCH_ASSIGNMENT_COMMITTED';return reply.send(result.body);
+  });
+  routes.post('/v1/organizations/:organizationId/dispatch/runs/:runId/commands/unassign',{bodyLimit:16*1024,schema:{operationId:'unassignDispatchRun',tags:['dispatch'],security,headers:CommandHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),runId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),body:UnassignDispatchRunRequestSchema,response:responseWithErrors({200:jsonResponse(UnassignDispatchRunReceiptSchema,'Released run receipt',{ETag:{schema:StrongEtagSchema}})},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+    const {organizationId,runId}=request.params as {organizationId:string;runId:string};
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'unassignDispatchRun');
+    const ifMatch=request.headers['if-match'];if(typeof ifMatch!=='string')throw new ProtocolError(428,'PRECONDITION_REQUIRED','current strong tag required');
+    if(!options.dispatchService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','persisted dispatch unavailable');
+    const result=await options.dispatchService.unassign({organizationId,principal,runId,ifMatch,key:String(request.headers['idempotency-key']),request:request.body as UnassignDispatchRunRequest});
+    for(const[name,value]of Object.entries(result.headers))reply.header(name,value);
+    if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');
+    request.wp007Context.resultCode=result.replayed?'IDEMPOTENT_REPLAY':'DISPATCH_ASSIGNMENT_RELEASED';return reply.send(result.body);
+  });
+  routes.post('/v1/organizations/:organizationId/dispatch/runs/commands/plan',{bodyLimit:128*1024,schema:{operationId:'planDispatchRun',tags:['dispatch'],security,headers:IdempotentHeaders,params:OrganizationParams,body:PlanDispatchRunRequestSchema,response:responseWithErrors({201:jsonResponse(PlanDispatchRunReceiptSchema,'Planned run receipt',{ETag:{schema:StrongEtagSchema},'KavaRoutes-Idempotency-Replayed':{schema:{type:'string',enum:['true']}}})},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+    const {organizationId}=request.params as {organizationId:string};
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'planDispatchRun');
+    if(!options.dispatchService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','persisted dispatch unavailable');
+    const result=await options.dispatchService.plan({organizationId,principal,key:String(request.headers['idempotency-key']),request:request.body as PlanDispatchRunRequest});
+    for(const[name,value]of Object.entries(result.headers))reply.header(name,value);
+    if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');
+    request.wp007Context.resultCode=result.replayed?'IDEMPOTENT_REPLAY':'DISPATCH_ROUTE_PLANNED';return reply.status(201).send(result.body);
+  });
+  routes.post('/v1/organizations/:organizationId/driver-logins/commands/create',{bodyLimit:16384,schema:{operationId:'createDriverLogin',tags:['dispatch'],security,headers:IdempotentHeaders,params:OrganizationParams,body:DriverLoginCreateRequestSchema,
+    response:responseWithErrors({201:jsonResponse(DriverLoginReceiptSchema,'Invited driver login; the invite code is returned once')},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+    const {organizationId}=request.params as {organizationId:string};
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'createDriverLogin');
+    if(!options.driverLoginService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','driver logins unavailable');
+    const result=await options.driverLoginService.create({organizationId,principal,key:String(request.headers['idempotency-key']),request:request.body as DriverLoginCreateRequest});
+    if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');
+    request.wp007Context.resultCode=result.replayed?'IDEMPOTENT_REPLAY':'DRIVER_LOGIN_INVITED';return reply.status(201).send(result.body);
+  });
+  routes.post('/v1/organizations/:organizationId/driver-logins/:driverId/commands/claim',{bodyLimit:16384,schema:{operationId:'claimDriverLogin',tags:['driver'],security,headers:IdempotentHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),driverId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),body:DriverLoginClaimRequestSchema,
+    response:responseWithErrors({200:jsonResponse(DriverLoginStateSchema,'Driver login claimed; the driver set this password')},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+    const {organizationId,driverId}=request.params as {organizationId:string;driverId:string};
+    const principal=await requireAccess(request,organizationId,{capability:'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY',subjectId:syntheticIds.driverSubject},'claimDriverLogin');
+    if(!options.driverLoginService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','driver logins unavailable');
+    const state=await options.driverLoginService.claim({organizationId,principal,driverId,key:String(request.headers['idempotency-key']),request:request.body as DriverLoginClaimRequest});
+    request.wp007Context.resultCode='DRIVER_LOGIN_CLAIMED';return reply.send(state);
+  });
+  routes.post('/v1/organizations/:organizationId/driver-logins/commands/verify',{bodyLimit:16384,schema:{operationId:'verifyDriverLogin',tags:['driver'],security,headers:IdempotentHeaders,params:OrganizationParams,body:DriverLoginVerifyRequestSchema,
+    response:responseWithErrors({200:jsonResponse(DriverLoginStateSchema,'Driver login verified for this phone')},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+    const {organizationId}=request.params as {organizationId:string};
+    const principal=await requireAccess(request,organizationId,{capability:'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY',subjectId:syntheticIds.driverSubject},'verifyDriverLogin');
+    if(!options.driverLoginService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','driver logins unavailable');
+    const state=await options.driverLoginService.verify({organizationId,principal,key:String(request.headers['idempotency-key']),request:request.body as DriverLoginVerifyRequest});
+    request.wp007Context.resultCode='DRIVER_LOGIN_VERIFIED';return reply.send(state);
+  });
+  routes.get('/v1/organizations/:organizationId/clients',{schema:{operationId:'getClients',tags:['dispatch'],security,headers:AuthorizationHeaders,params:OrganizationParams,
+    querystring:Type.Object({after:Type.Optional(Type.Ref(OpaqueIdSchema)),clientId:Type.Optional(Type.Ref(OpaqueIdSchema)),limit:Type.Optional(Type.String({pattern:'^(?:[1-9][0-9]?|100)$',maxLength:3}))},{additionalProperties:false}),
+    response:responseWithErrors({200:jsonResponse(ClientRosterSchema,'Dispatch-authorized client roster')},[400,401,404,406,429,500,503])}},async(request,reply)=>{
+    const {organizationId}=request.params as {organizationId:string},q=request.query as {after?:string;clientId?:string;limit?:string};
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getClients');
+    if(!options.clientService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','client intake unavailable');
+    return reply.send(await options.clientService.read(organizationId,principal,{limit:q.limit===undefined?100:Number(q.limit),...(q.after?{after:q.after}:{}),...(q.clientId?{clientId:q.clientId}:{})}));
+  });
+  routes.post('/v1/organizations/:organizationId/clients/:clientId/commands/update',{bodyLimit:16384,schema:{operationId:'updateClient',tags:['dispatch'],security,headers:IdempotentHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),clientId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),body:ClientUpdateRequestSchema,
+    response:responseWithErrors({200:jsonResponse(ClientCreateReceiptSchema,'Updated client receipt')},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+    const {organizationId,clientId}=request.params as {organizationId:string;clientId:string};
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'updateClient');
+    if(!options.clientService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','client intake unavailable');
+    const result=await options.clientService.update({organizationId,principal,clientId,key:String(request.headers['idempotency-key']),request:request.body as ClientUpdateRequest});
+    for(const[name,value]of Object.entries(result.headers))reply.header(name,value);
+    if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');
+    request.wp007Context.resultCode=result.replayed?'IDEMPOTENT_REPLAY':'CLIENT_INTAKE_UPDATED';return reply.send(result.body);
+  });
+  routes.post('/v1/organizations/:organizationId/clients/commands/create',{bodyLimit:16384,schema:{operationId:'createClient',tags:['dispatch'],security,headers:IdempotentHeaders,params:OrganizationParams,body:ClientCreateRequestSchema,
+    response:responseWithErrors({201:jsonResponse(ClientCreateReceiptSchema,'Created client receipt',{ETag:{schema:StrongEtagSchema},'KavaRoutes-Idempotency-Replayed':{schema:{type:'string',enum:['true']}}})},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+    const {organizationId}=request.params as {organizationId:string};
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'createClient');
+    if(!options.clientService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','client intake unavailable');
+    const result=await options.clientService.create({organizationId,principal,key:String(request.headers['idempotency-key']),request:request.body as ClientCreateRequest});
+    for(const[name,value]of Object.entries(result.headers))reply.header(name,value);
+    if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');
+    request.wp007Context.resultCode=result.replayed?'IDEMPOTENT_REPLAY':'CLIENT_INTAKE_CREATED';return reply.status(201).send(result.body);
   });
   routes.get("/v1/organizations/:organizationId/dispatch-days/:serviceDate", { schema: { operationId: "getDispatchDay", tags: ["dispatch"], security,
     headers: ConditionalHeaders, params: DispatchDayParams, response: responseWithErrors({ 200: jsonResponse(DispatchDaySchema, "Versioned dispatch-day snapshot", { ETag: { schema: StrongEtagSchema } }), 304: { description: "Not modified" } }, [400, 401, 404, 406, 429, 500]) } }, async (request, reply) => {

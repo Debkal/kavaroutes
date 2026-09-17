@@ -30,7 +30,7 @@ try{
  await page.getByText('Cloud updates: live',{exact:true}).waitFor();
  await page.getByRole('region',{name:'Cloud dispatch board'}).getByLabel('Service date',{exact:true}).fill('2026-09-15');
  await page.getByRole('button',{name:'View run 1',exact:true}).waitFor();
- await page.getByRole('link',{name:/Facility/}).click();await page.getByRole('heading',{name:'Facility arrivals',exact:true}).waitFor();
+ await page.getByRole('link',{name:/Clients/}).click();await page.getByRole('heading',{name:'Clients',exact:true}).waitFor();
  await page.getByRole('button',{name:'View trip 1',exact:true}).waitFor();await page.reload();await page.getByRole('button',{name:'View trip 1',exact:true}).waitFor();
  assert.equal(errors.length,0);assert.ok(sockets.length);assert.ok(sockets.every(s=>s===origin.replace('http:','ws:')+'/v1/realtime'));
  console.log('LOCAL_COMPOSE_REST_PERSISTENCE_WEBSOCKET_DISPATCH_FACILITY_VERIFIED');

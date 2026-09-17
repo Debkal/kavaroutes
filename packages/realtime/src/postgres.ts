@@ -106,11 +106,24 @@ export function createPostgresRealtimeStore(pool: Pool, codec: TestOnlyCursorCod
   }
 
   async function assertSourceSequence(client: PoolClient, payload: ThinJobPayload, message: DatabaseRow): Promise<void> {
-    const prior = await client.query(`SELECT COALESCE(max(source_aggregate_version),0)::bigint AS version FROM realtime.consumer_checkpoint
+    const prior = await client.query(`SELECT COALESCE(max(source_aggregate_version),0)::bigint AS version, count(*)::int AS seen
+      FROM realtime.consumer_checkpoint
       WHERE tenant_id=$1 AND consumer_name='realtime.v1' AND source_aggregate_type=$2 AND source_aggregate_id=$3`,
     [payload.tenantId, sourceAggregateType(message), message.aggregate_id]);
     const expected = Number(prior.rows[0].version) + 1;
-    if (Number(message.aggregate_version) !== expected) throw new Error(`REALTIME_SOURCE_VERSION_GAP:${expected}:${Number(message.aggregate_version)}`);
+    const received = Number(message.aggregate_version);
+    if (received === expected) return;
+    if (Number(prior.rows[0].seen) === 0) {
+      // First sight of this aggregate. Its earlier events may predate the outbox or have
+      // been purged after retention, so the first observed event may legitimately be
+      // version 2 — the same rule the ordered projection consumer applies (audit
+      // WEB-A-031). A predecessor that still exists remains a real gap.
+      const predecessor = await client.query(`SELECT 1 FROM outbox.message
+        WHERE tenant_id=$1 AND aggregate_id=$2 AND aggregate_version<$3 LIMIT 1`,
+      [payload.tenantId, message.aggregate_id, received]);
+      if (predecessor.rowCount === 0) return;
+    }
+    throw new Error(`REALTIME_SOURCE_VERSION_GAP:${expected}:${received}`);
   }
 
   async function ensureStream(client: PoolClient, payload: ThinJobPayload, decision: RealtimeProjectionDecision): Promise<DatabaseRow> {

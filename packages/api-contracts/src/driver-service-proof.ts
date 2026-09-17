@@ -70,6 +70,22 @@ export function createPostgresDriverSignatureService(pool: Pool,options: { etag(
       }
       const raw=signatureDigestInput(input.shiftId,input.legId,request);const digest=createHash("sha256").update(`SIGNATURE:${raw}`).digest("hex");
       if(digest!==request.digest) throw new ProtocolError(422,"SIGNATURE_DIGEST_MISMATCH","signature binding mismatch");
+      // A repeated attestation is a replay of work the server already holds, not an
+      // error: an interrupted submit that committed on the server must answer with the
+      // stored receipt so the client stops showing "internal error" (audit WEB-A-022).
+      const recorded=await tx.readActiveDriverServiceProof({shiftId:input.shiftId,tripLegId:input.legId,event:request.event});
+      if(recorded){
+        if(recorded.digest===digest){
+          const current=await tx.readDriverLegExecution({shiftId:input.shiftId,tripLegId:input.legId});
+          return { statusCode: 200,body: { evidenceId: recorded.evidenceId,shiftReference: input.shiftId,tripLegId: input.legId,event: request.event,status: "ACCEPTED_FOR_SERVICE_CONTROL" as const,resourceVersion: current?.version ?? execution.version,digest: recorded.digest },headers: {},resultReference: recorded.evidenceId };
+        }
+        // An explicit supersession stays available: it replaces the active proof and is
+        // validated against it by the persistence layer, so a re-drawn mark is not
+        // mistaken for a duplicate (the gated Postgres proof test exercises this).
+        if(!request.supersedesEvidenceId) throw new ProtocolError(409,"SIGNATURE_ALREADY_RECORDED","a different signature is already recorded for this event");
+      }
+      const strokeOwner=request.points.length ? await tx.strokeDigestOwner({strokeDigest:createHash("sha256").update(JSON.stringify(request.points)).digest("hex"),evidenceId:request.evidenceId}) : null;
+      if(strokeOwner) throw new ProtocolError(409,"SIGNATURE_STROKE_REUSED","this signature mark was already used on another proof; draw a different mark");
       await tx.appendDriverServiceProof({ shiftId: input.shiftId,tripLegId: input.legId,evidenceId: request.evidenceId,event: request.event,policyVersion: request.policyVersion,
         policyDigest: request.policyDigest,digest,strokeDigest: request.points.length ? createHash("sha256").update(JSON.stringify(request.points)).digest("hex") : null,
         role: request.role,unsignedPayload: JSON.parse(raw) as JsonValue,...(request.supersedesEvidenceId ? { supersedesEvidenceId: request.supersedesEvidenceId } : {}) });
@@ -80,6 +96,13 @@ export function createPostgresDriverSignatureService(pool: Pool,options: { etag(
         correlationId: randomUUID(),source: "kavaroutes.api",classificationReference: "OPERATIONAL_SENSITIVE",purposeReference: "ASSIGNED_SERVICE_DELIVERY",policyReference: "privacy-synthetic-v1",payload: { shiftReference: input.shiftId,driverId,assignmentId: shift.assignmentId,policyDigest: shift.policyDigest },retainUntil });
       await tx.appendOutboxDelivery({ deliveryId: randomUUID(),messageId,route: "realtime-signal",jobType: "kr.realtime-signal.driver-shift.v1",availableAt: occurredAt,retainUntil });
       return { statusCode: 200,body: { evidenceId: request.evidenceId,shiftReference: input.shiftId,tripLegId: input.legId,event: request.event,status: "ACCEPTED_FOR_SERVICE_CONTROL" as const,resourceVersion: version,digest },headers: {},resultReference: request.evidenceId };
+    }).catch((error: unknown) => {
+      // A concurrent submit aborts the serializable transaction; that is a retryable
+      // state conflict, not an internal fault (audit WEB-A-022).
+      if (error && typeof error === "object" && "code" in error && ["40001","40P01"].includes(String((error as {code?:unknown}).code))) {
+        throw new PersistenceConflict("stale-version","concurrent signature submit requires a re-read");
+      }
+      throw error;
     });
   } };
 }

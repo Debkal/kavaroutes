@@ -9,7 +9,17 @@ interface AuthPorts {
   // membership admission. The browser must not supply any returned field.
   admit(token:string,organizationId:string):Promise<AdmittedIdentity>;
   issue(input:AdmittedIdentity & {tokenHash:string;csrfHash:string}):Promise<{expiresAt:string}>;
+  /** Provider-gated persisted-session resolver. It returns the session row, or
+   * `null` for a session the provider has terminally invalidated (disabled
+   * account or revoked authentication), and **throws** (a `ProtocolError` with
+   * status 503) when the provider cannot be consulted at all. Bootstrap and
+   * business routes must both go through it, so a browser cannot be told it
+   * still holds authority that the guarded REST/WebSocket surface refuses. */
   resolve(organizationId:string,tokenHash:string,csrfHash:string):Promise<unknown|null>;
+  /** Ungated existence check, used **only** by `/auth/logout` when the gated
+   * resolver is unavailable. It must not perform provider verification and must
+   * not be reachable from any bootstrap or business path. */
+  resolveForLogout(organizationId:string,tokenHash:string,csrfHash:string):Promise<unknown|null>;
   revoke(organizationId:string,tokenHash:string):Promise<void>;
 }
 
@@ -63,7 +73,16 @@ export async function registerBrowserAuth(app:FastifyInstance,options:{
         if(typeof csrf!=='string')throw new Error();
         const session=credentials.read(request.headers.cookie,csrf);
         if(!session?.csrfHash)throw new Error();
-        if(!await options.ports.resolve(session.organizationId,session.tokenHash,session.csrfHash))throw new Error();
+        // Explicit logout-only rule: a provider this process cannot consult must
+        // not trap a signed-in user in a session they asked to end. This branch
+        // is *logout only* — it resolves the durable row itself, never through
+        // the provider gate — and it cannot mint, extend or advertise authority:
+        // the response is a 204 with cleared cookies. `/auth/session`, REST and
+        // realtime all keep the provider-gated resolver and stay closed.
+        let resolved=false;
+        try { resolved=(await options.ports.resolve(session.organizationId,session.tokenHash,session.csrfHash))!==null; }
+        catch { resolved=(await options.ports.resolveForLogout(session.organizationId,session.tokenHash,session.csrfHash))!==null; }
+        if(!resolved)throw new Error();
         await options.ports.revoke(session.organizationId,session.tokenHash);
         return reply.header('Set-Cookie',[credentials.clearSession,credentials.clearChallenge]).code(204).send();
       } catch {return reply.code(401).send({error:'SIGN_IN_NOT_AUTHORIZED'});}

@@ -29,8 +29,9 @@ try {
       if (request.method !== 'GET' || request.url !== '/health/ready') { response.writeHead(404).end(); return; }
       let ready = runtime.healthy();
       try { await runtime.pool.query('SELECT 1'); } catch { ready = false; }
+      const diagnostics = runtime.diagnostics?.() ?? {};
       response.writeHead(ready ? 200 : 503, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-      response.end(JSON.stringify({ status: ready ? 'ready' : 'unavailable' }));
+      response.end(JSON.stringify({ status: ready ? 'ready' : 'unavailable', build: process.env.KR_BUILD_ID ?? 'unknown', ...diagnostics }));
     });
     health.requestTimeout = 5000;
     health.headersTimeout = 5000;

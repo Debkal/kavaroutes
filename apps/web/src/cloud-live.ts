@@ -12,7 +12,9 @@ export function connectCloudDispatch(options: {
   socket?: (url: string, protocol: string) => WebSocket;
 }) {
   const origin = new URL(options.origin);
-  if (origin.protocol !== "http:" || origin.hostname !== "127.0.0.1" || !origin.port || Number(origin.port)<1024 || origin.pathname !== "/" ||
+  const loopback = origin.protocol === "http:" && origin.hostname === "127.0.0.1" && Boolean(origin.port) && Number(origin.port) >= 1024;
+  const edgePrototype = origin.protocol === "https:" && !origin.port;
+  if ((!loopback && !edgePrototype) || origin.pathname !== "/" ||
       origin.username || origin.password || origin.search || origin.hash || !/^\d{4}-\d{2}-\d{2}$/.test(options.serviceDate)) throw new Error("PRIVATE_SOCKET_ORIGIN_REQUIRED");
   const validCursor = (value: unknown): value is string => typeof value === "string" && /^rtc1\.[A-Za-z0-9_-]{48,8192}$/.test(value);
   const subscriptionId = "subscription:web:dispatch";
@@ -43,7 +45,7 @@ export function connectCloudDispatch(options: {
       }
       if (!active()) return;
       const connection = (options.socket ?? ((url, protocol) => new WebSocket(url, protocol)))(
-        `ws://${origin.host}/v1/realtime`, "kavaroutes.realtime.v1");
+        `${edgePrototype ? "wss" : "ws"}://${origin.host}/v1/realtime`, "kavaroutes.realtime.v1");
       socket = connection;
       let work = Promise.resolve();
       let queued = 0;

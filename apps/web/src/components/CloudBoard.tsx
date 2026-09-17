@@ -6,13 +6,17 @@ import type {CloudAssignmentCommand} from '../cloud-board-contract';
 import {connectCloudDispatch} from '../cloud-live';
 import {CloudRouteReview} from './CloudRouteReview';
 import {CloudTrackingStatus} from './CloudTrackingStatus';
+import {businessToday} from '../business-time';
+import {ServiceDatePicker} from './ServiceDatePicker';
+import {dispatchCommandMessage} from '../command-refusal';
 
 export function CloudBoard({api,enabled,serviceDate,onServiceDateChange}:{api:ReturnType<typeof createCloudApi>;enabled:boolean;serviceDate?:string;onServiceDateChange?:(value:string)=>void}){
- const [localDay,setLocalDay]=useState('2026-09-14'),[filter,setFilter]=useState('all'),[selected,setSelected]=useState('');
+ const [localDay,setLocalDay]=useState(()=>businessToday()),[filter,setFilter]=useState('all'),[selected,setSelected]=useState('');
  const day=serviceDate??localDay;
  const changeDay=(value:string)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return;(onServiceDateChange??setLocalDay)(value);setSelected('');setDriver('');setVehicle('');setMessage('');};
  const [driver,setDriver]=useState(''),[vehicle,setVehicle]=useState(''),[message,setMessage]=useState(''),[live,setLive]=useState('connecting'),[busy,setBusy]=useState(false);
  const pending=useRef<CloudAssignmentCommand|null>(null),flight=useRef(false);
+ const [releasePending,setReleasePending]=useState<{runId:string;expectedVersion:number;expectedTag:string;key:string}|null>(null);
  const board=useQuery({queryKey:['private-cloud','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','dispatch','ASSIGNED_SERVICE_DELIVERY',day],queryFn:({signal})=>api.board(day,signal),enabled,retry:false,refetchInterval:5000});
  const refresh=useRef(async()=>{});refresh.current=async()=>{const result=await board.refetch();if(result.isError)throw new Error('BOARD_REFRESH_FAILED');};
  useEffect(()=>{
@@ -30,7 +34,7 @@ export function CloudBoard({api,enabled,serviceDate,onServiceDateChange}:{api:Re
   if(!pending.current){
    if(!driver||!vehicle)return;
    if(!window.confirm('Commit this driver and vehicle assignment? The server will recheck availability and safety constraints.'))return;
-   pending.current={runId:run.runId,expectedVersion:run.version,expectedTag:run.expectedTag,driverId:driver,vehicleId:vehicle,key:`web-assign-${crypto.randomUUID()}`};
+ pending.current={runId:run.runId,expectedVersion:run.version,expectedTag:run.expectedTag,driverId:driver,vehicleId:vehicle,key:`web-assign-${crypto.randomUUID()}`};
   }
   flight.current=true;setBusy(true);setMessage('Submitting assignment…');
   try{
@@ -43,13 +47,30 @@ export function CloudBoard({api,enabled,serviceDate,onServiceDateChange}:{api:Re
    else setMessage('Assignment confirmed by the server. Driver itinerary updated.');
   }catch(error){
    if(error instanceof DevelopmentApiError && error.status>=400 && error.status<500 && error.code!=='OUTCOME_UNKNOWN'){
-    pending.current=null;setMessage(error.code==='VERSION_CONFLICT'?'Conflict. Refresh and review before assigning again.':'Assignment rejected. Review driver, vehicle and run constraints.');await board.refetch();
+    pending.current=null;setMessage(dispatchCommandMessage(error,'Assignment rejected. Review driver, vehicle and run constraints.'));await board.refetch();
    }else setMessage('Outcome unknown. Retry the original assignment here, or use Command recovery after reloading. Do not create a replacement.');
+  }finally{flight.current=false;setBusy(false);}
+ };
+ const release=async()=>{
+  if(flight.current||!run||!data||board.isError)return;
+  if(!window.confirm('Remove this driver and vehicle from the run? The run stays planned and can take another assignment.'))return;
+  const command=releasePending??{runId:run.runId,expectedVersion:run.version,expectedTag:run.expectedTag,key:`web-release-${crypto.randomUUID()}`};
+  setReleasePending(command);
+  flight.current=true;setBusy(true);setMessage('Removing the driver and vehicle…');
+  try{
+   const receipt=await api.unassignRun(command.runId,command.expectedVersion,command.expectedTag,command.key);
+   setReleasePending(null);
+   setMessage(`Driver and vehicle removed at version ${receipt.value.version}. The run is unassigned.`);
+   await board.refetch();
+  }catch(error){
+   if(error instanceof DevelopmentApiError&&error.status>=400&&error.status<500&&error.code!=='OUTCOME_UNKNOWN'){
+    setReleasePending(null);setMessage(dispatchCommandMessage(error,'Assignment rejected. Review driver, vehicle and run constraints.'));await board.refetch();
+   }else setMessage('Outcome unknown. Retry the same removal, or refresh the board before doing anything else.');
   }finally{flight.current=false;setBusy(false);}
  };
  return <section aria-label="Cloud dispatch board">
   <h2>Dispatch board</h2><p>Private synthetic service day. Map unavailable; all assignments and stops remain usable below.</p>
-  <label>Service date <input type="date" value={day} disabled={busy||!!pending.current} onChange={e=>changeDay(e.target.value)}/></label>
+  <ServiceDatePicker value={day} disabled={busy||!!pending.current} onChange={changeDay}/>
   <label>Assignments <select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All runs</option><option value="assigned">Assigned</option><option value="unassigned">Unassigned</option></select></label>
   <button disabled={!enabled||busy} onClick={()=>void board.refetch()}>Refresh dispatch board</button>
   <p role="status">Dispatch updates: {live}. {data?.runs.length??0} runs.</p>
@@ -62,7 +83,8 @@ export function CloudBoard({api,enabled,serviceDate,onServiceDateChange}:{api:Re
    <ol>{data.legs.filter(l=>l.runId===run.runId).map(l=><li key={l.tripLegId}>{l.riderLabel}: {l.pickupLabel} → {l.dropoffLabel} · {l.lifecycle} · trip {l.tripState}</li>)}</ol>
    <label>Driver <select value={driver} disabled={busy||!!pending.current} onChange={e=>setDriver(e.target.value)}><option value="">Choose driver</option>{data.drivers.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}</select></label>
    <label>Vehicle <select value={vehicle} disabled={busy||!!pending.current} onChange={e=>setVehicle(e.target.value)}><option value="">Choose vehicle</option>{data.vehicles.map(v=><option key={v.id} value={v.id}>{v.label}</option>)}</select></label>
-   <button disabled={busy||board.isError||!driver||!vehicle} onClick={()=>void assign()}>{pending.current?'Recover original assignment':'Confirm assignment'}</button>
+   <button disabled={busy||board.isError||!driver||!vehicle} onClick={()=>void assign()}>{pending.current?'Recover original assignment':run.assignmentId?'Replace driver and vehicle':'Confirm assignment'}</button>
+   {run.assignmentId&&<button disabled={busy||board.isError} onClick={()=>void release()}>{releasePending?'Retry the original removal':'Remove driver and vehicle'}</button>}
    <p>Availability, capacity, qualifications, critical defects and started work are rechecked by the backend.</p>
   </section>}
   <p role="status">{message}</p>

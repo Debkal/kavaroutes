@@ -5,28 +5,20 @@ import type { TripCreateRequest } from "@kavaroutes/api-contracts/client-web";
 import { DevelopmentApiError } from "@kavaroutes/api-contracts/private-development-transport";
 import { connectCloudDispatch } from "../cloud-live";
 import {CloudBoard} from '../components/CloudBoard';
+import {DispatchRouteForm} from '../components/DispatchRouteForm';
+import {DriverLoginForm} from '../components/DriverLoginForm';
 import {CloudCommandRecovery} from '../components/CloudCommandRecovery';
-
-function syntheticNineAm(serviceDate: string) {
-  const localClock = Date.parse(`${serviceDate}T09:00:00.000Z`);
-  if (!Number.isFinite(localClock)) throw new Error("INVALID_SERVICE_DATE");
-  let resolved = localClock;
-  let offsetSeconds = 0;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const offset = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", timeZoneName: "longOffset" })
-      .formatToParts(new Date(resolved)).find(part => part.type === "timeZoneName")?.value;
-    const match = /^GMT([+-])(\d{2}):(\d{2})$/.exec(offset ?? "");
-    if (!match) throw new Error("SERVICE_TIMEZONE_UNAVAILABLE");
-    offsetSeconds = (match[1] === "+" ? 1 : -1) * (Number(match[2]) * 3600 + Number(match[3]) * 60);
-    resolved = localClock - offsetSeconds * 1000;
-  }
-  return { resolvedServiceAt: new Date(resolved).toISOString(), resolvedUtcOffsetSeconds: offsetSeconds };
-}
+import {dispatchCommandMessage} from '../command-refusal';
+import {businessToday,businessTimezone} from '../business-time';
+import {resolveLocalServiceStart} from '../cloud-service-time';
+import {scheduledClientReference,clearClientScheduling} from '../scheduling-handoff';
 
 export function Component() {
+  const [initialClientId]=useState(()=>scheduledClientReference());
+  useEffect(()=>{clearClientScheduling();},[]);
   const api = useMemo(() => createCloudApi(window.location.origin, window.fetch.bind(window)), []);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [serviceDate, setServiceDate] = useState("2026-09-14");
+  const [serviceDate, setServiceDate] = useState(()=>businessToday());
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [liveStatus, setLiveStatus] = useState("connecting");
@@ -50,14 +42,15 @@ export function Component() {
   }, [api, serviceDate, session.isSuccess]);
   const report = (error: unknown) => setMessage(error instanceof DevelopmentApiError && error.code === "OUTCOME_UNKNOWN"
     ? "Outcome unknown. Retry the same command to recover its receipt; do not create a replacement."
-    : error instanceof DevelopmentApiError ? error.code.replaceAll("_", " ") : "Request unavailable.");
+    : dispatchCommandMessage(error, "Request unavailable."));
   const create = async () => {
     if (busy || cancelPending.current) return;
-    const resolved = syntheticNineAm(serviceDate);
+    const start = resolveLocalServiceStart(serviceDate,"09:00",businessTimezone);
+    const resolved = {resolvedServiceAt:start.instant,resolvedUtcOffsetSeconds:start.offsetSeconds};
     setBusy(true);
     pending.current ??= { key: `web-create-${crypto.randomUUID()}`, request: {
       tripId: crypto.randomUUID(), riderId: "11111111-1111-4111-8111-111111111112",
-      serviceDate, serviceTimezone: "America/Los_Angeles", localServiceTime: "09:00:00",
+      serviceDate, serviceTimezone: businessTimezone, localServiceTime: "09:00:00",
       ...resolved, ambiguityPolicy: "reject",
     } };
     try { await api.create(pending.current.request, pending.current.key); pending.current = null; setMessage("Trip saved in cloud PostgreSQL."); await trips.refetch(); }
@@ -82,12 +75,14 @@ export function Component() {
     } finally { setBusy(false); }
   };
   return <main id="main-content" className="dispatch-page">
-    <section className="page-title"><div><p className="eyebrow">Private cloud · Prototype · Synthetic data only</p><h1>Cloud trip workspace</h1>
-      <p>These trips come from the retained backend. This is not the final Dispatch client.</p></div></section>
+    <section className="page-title"><div><p className="eyebrow">KavaRoutes Dispatch · Demo</p><h1>Your transportation day</h1>
+      <p>Schedule client requests, assign drivers, and follow each trip from pickup to drop-off.</p></div></section>
     <CloudCommandRecovery recovery={api.recovery} enabled={session.isSuccess}/>
+    <section className="workspace-card schedule-panel" aria-label="Schedule transport"><DispatchRouteForm api={api} serviceDate={serviceDate} onServiceDateChange={setServiceDate} initialClientId={initialClientId}/></section>
+    <DriverLoginForm api={api} serviceDate={serviceDate}/>
     <CloudBoard api={api} enabled={session.isSuccess} serviceDate={serviceDate} onServiceDateChange={setServiceDate}/>
-    <p>Facility status is available in the separate facility view. Tracking is synthetic only; real location remains disabled.</p>
-    <section aria-label="Driver updates from cloud">
+    <p>Client status is available in the separate client view. Tracking is synthetic only; real location remains disabled.</p>
+    <details className="workspace-card"><summary>Driver update details</summary><section aria-label="Driver updates from cloud">
       <h2>Driver updates · {serviceDate}</h2>
       <p role="status">Cloud updates: {liveStatus}</p>
       <p>Recorded shift updates from dispatch. Live notifications trigger a server refresh, with a five-second fallback. These records do not indicate current tracking or shift completion.</p>
@@ -97,22 +92,24 @@ export function Component() {
           <li key={item.reference}>Shift recorded: <span>{item.reference}</span> · version {item.version}</li>)}</ul>
         {!dispatchSnapshot.data.value.resources.some(item => item.kind === "driver-shift") && <p>No recorded Driver updates for this service day.</p>}
       </>}
-    </section>
+    </section></details>
     {session.isPending && <p role="status">Connecting to cloud session…</p>}
     {(session.isError || trips.isError) && <p role="alert">Cloud connection unavailable. Check the private tunnel. No local data fallback is active.</p>}
+    <details className="workspace-card"><summary>Demo tools and trip records</summary>
     <button disabled={!session.isSuccess || busy || !!cancelPending.current} onClick={() => void create()}>{pending.current ? "Retry pending create" : "Create synthetic cloud trip"}</button>
     <button disabled={!session.isSuccess || busy} onClick={() => void trips.refetch()}>Refresh from server</button>
     <p role="status">{message}</p>
     {(pending.current || cancelPending.current) && <p>Retry this original request, or use Command recovery after reloading. No replacement command is needed.</p>}
     {cancelPending.current && <button disabled={busy} onClick={() => void cancel(cancelPending.current!.tripId)}>Retry pending cancellation</button>}
     {trips.isPending && session.isSuccess && <p role="status">Loading persisted trips…</p>}
-    {trips.data && <section aria-label="Persisted cloud trips"><table><thead><tr><th>Trip reference</th><th>Service date</th><th>State</th><th>Version</th><th>Action</th></tr></thead>
-      <tbody>{trips.data.value.items.map((trip) => <tr key={trip.tripId}><td>{trip.tripId}</td><td>{trip.serviceDate}</td><td>{trip.lifecycle}</td><td>{trip.version}</td><td>
+    {trips.data && <section aria-label="Persisted cloud trips"><table><thead><tr><th>Trip reference</th><th>Service date</th><th>Record state</th><th>Version</th><th>Action</th></tr></thead>
+      <tbody>{trips.data.value.items.map((trip) => <tr key={trip.tripId}><td>{trip.tripId}</td><td>{trip.serviceDate}</td><td>{trip.recordState ?? trip.lifecycle}</td><td>{trip.version}</td><td>
         <button disabled={trip.lifecycle !== "DRAFT" || busy || !!pending.current || !!cancelPending.current} onClick={() => { if (window.confirm("Cancel this synthetic cloud trip?")) void cancel(trip.tripId); }}>Cancel trip</button>
       </td></tr>)}</tbody></table>
       {trips.data.value.items.length === 0 && <p>No persisted trips on this page.</p>}
       <button disabled={!cursor || busy} onClick={() => setCursor(null)}>First page</button>
       <button disabled={!trips.data.value.nextCursor || busy} onClick={() => setCursor(trips.data!.value.nextCursor)}>Next page</button>
     </section>}
+    </details>
   </main>;
 }

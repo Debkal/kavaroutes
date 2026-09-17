@@ -28,11 +28,12 @@ export interface PostgresApplicationOptions {
   readonly failurePoint?: "before-audit" | "before-outbox-message" | "before-outbox-deliveries" | "after-first-outbox-delivery" | "before-commit";
 }
 
-function toDispatcherTrip(value: { tripId: string; riderId: string; serviceDate: string; serviceTimezone: string; resolvedServiceAt: string; lifecycle: "DRAFT" | "CANCELLED"; version: number }): DispatcherTrip {
+function toDispatcherTrip(value: { tripId: string; riderId: string; serviceDate: string; serviceTimezone: string; resolvedServiceAt: string; lifecycle: "DRAFT" | "CANCELLED"; recordState?: string; version: number }): DispatcherTrip {
   return {
     tripId: value.tripId, riderReference: value.riderId, serviceDate: value.serviceDate,
     serviceTimezone: value.serviceTimezone, resolvedServiceAt: value.resolvedServiceAt,
-    lifecycle: value.lifecycle, version: value.version,
+    lifecycle: value.lifecycle, ...(value.recordState ? { recordState: value.recordState as NonNullable<DispatcherTrip["recordState"]> } : {}),
+    version: value.version,
   };
 }
 

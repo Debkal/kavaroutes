@@ -41,8 +41,12 @@ export function contextPrincipal(request: FastifyRequest): SyntheticPrincipal {
 const allowedErrorStatuses = new Set([400, 401, 403, 404, 406, 409, 410, 412, 413, 415, 422, 428, 429, 500, 502, 503, 504]);
 
 function persistenceStatus(error: PersistenceConflict): number {
+  // A dispatch refusal is a state conflict, not a missing resource: the run, driver
+  // and vehicle exist and the request is well formed. 409 keeps that meaning instead
+  // of reporting a fleet feasibility refusal as 404.
   return ({ "stale-version": 412, "idempotency-mismatch": 422, "idempotency-in-progress": 409, "idempotency-expired": 410,
-    "resource-overlap": 409, duplicate: 409, relationship: 404, tenant: 404 }[error.kind] ?? 500);
+    "resource-overlap": 409, duplicate: 409, relationship: 404, tenant: 404,
+    feasibility: 409, qualification: 409, "vehicle-blocked": 409, "work-started": 409, "shift-open": 409, "shift-active": 409, "leg-window": 409 }[error.kind] ?? 500);
 }
 
 type RequestValidation = readonly { readonly instancePath?: string }[];

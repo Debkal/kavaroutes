@@ -141,6 +141,82 @@
     },
     {
       "method": "GET",
+      "path": "/v1/organizations/{organizationId}/clients",
+      "operationId": "getClients",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/clients/{clientId}/commands/update",
+      "operationId": "updateClient",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/clients/commands/create",
+      "operationId": "createClient",
+      "statuses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/v1/organizations/{organizationId}/dispatch-board/{serviceDate}",
       "operationId": "getDispatchBoard",
       "statuses": [
@@ -212,6 +288,62 @@
       "operationId": "assignDispatchRun",
       "statuses": [
         "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/runs/{runId}/commands/unassign",
+      "operationId": "unassignDispatchRun",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/runs/commands/plan",
+      "operationId": "planDispatchRun",
+      "statuses": [
+        "201",
         "400",
         "401",
         "403",
@@ -363,6 +495,90 @@
         "428",
         "429",
         "500"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver-logins/{driverId}/commands/claim",
+      "operationId": "claimDriverLogin",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver-logins/commands/create",
+      "operationId": "createDriverLogin",
+      "statuses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver-logins/commands/verify",
+      "operationId": "verifyDriverLogin",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "428",
+        "429",
+        "500",
+        "503"
       ],
       "security": [
         {

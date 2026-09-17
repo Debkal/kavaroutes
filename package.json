@@ -78,6 +78,7 @@
     "kavaroutes:driver:report": "node packages/driver-core/scripts/generate-report.mjs",
     "kavaroutes:driver:verify": "npm run build && npm run kavaroutes:driver:lint && npm run kavaroutes:driver:test && npm run kavaroutes:driver:test:ui && npm run kavaroutes:driver:config && npm run kavaroutes:driver:doctor && npm run kavaroutes:driver:prebuild && npm run kavaroutes:driver:bundle && npm run kavaroutes:driver:benchmark && npm run kavaroutes:driver:dependencies && npm run kavaroutes:driver:audit && npm run kavaroutes:driver:report && npm test && npm run kavaroutes:api:test && npm run kavaroutes:realtime:test",
     "kavaroutes:web:build": "npm run build --workspace=@kavaroutes/web",
+    "kavaroutes:web:build:harness": "npm run build:harness --workspace=@kavaroutes/web",
     "kavaroutes:web:test": "npm run test --workspace=@kavaroutes/web",
     "kavaroutes:web:test:browsers": "npm run test:browser --workspace=@kavaroutes/web",
     "kavaroutes:web:benchmark:browser": "npm run test:benchmark --workspace=@kavaroutes/web",
@@ -85,7 +86,7 @@
     "kavaroutes:web:dependencies": "npm run dependencies --workspace=@kavaroutes/web",
     "kavaroutes:web:report": "npm run report --workspace=@kavaroutes/web",
     "kavaroutes:web:audit": "npm audit --audit-level=moderate",
-    "kavaroutes:web:verify": "npm run kavaroutes:web:build && npm run check:architecture && npm run kavaroutes:web:test && npm run kavaroutes:web:test:browsers && npm run kavaroutes:web:benchmark:browser && npm run kavaroutes:web:benchmark && npm run kavaroutes:web:dependencies && npm run kavaroutes:web:report && npm run kavaroutes:web:audit && npm test && npm run kavaroutes:api:clients && npm run kavaroutes:api:test && npm run kavaroutes:realtime:test"
+    "kavaroutes:web:verify": "npm run kavaroutes:web:build && npm run check:architecture && npm run kavaroutes:web:test && npm run kavaroutes:web:build:harness && npm run kavaroutes:web:test:browsers && npm run kavaroutes:web:benchmark:browser && npm run kavaroutes:web:benchmark && npm run kavaroutes:web:dependencies && npm run kavaroutes:web:report && npm run kavaroutes:web:audit && npm test && npm run kavaroutes:api:clients && npm run kavaroutes:api:test && npm run kavaroutes:realtime:test"
   },
   "dependencies": {
     "@fastify/swagger": "9.8.1",
