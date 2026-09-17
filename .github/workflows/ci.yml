@@ -130,7 +130,9 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts --no-audit
       - name: Build once
-        run: npm run build
+        run: |
+          npm run build
+          npm run kavaroutes:web:build
       - name: Playwright chromium, firefox and webkit with axe accessibility checks
         env:
           # Recorded in apps/web/artifacts/browser-report.json so the retained
