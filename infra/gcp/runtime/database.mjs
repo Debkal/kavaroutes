@@ -21,9 +21,9 @@ export async function verifyMigrationManifest(pool) {
   if (actual.length !== expected.length || actual.some((row,i) => row.migration_name !== expected[i].name || row.sha256 !== expected[i].checksum)) throw new Error('RUNTIME_MIGRATION_DRIFT');
 }
 
-export function makePool(config) {
+export function makePool(config, applicationName = 'kavaroutes-private-synthetic') {
   const pool = new Pool({ connectionString: config.databaseUrl, max: 4, connectionTimeoutMillis: 3000,
-    statement_timeout: 10000, idle_in_transaction_session_timeout: 10000, application_name: 'kavaroutes-private-synthetic' });
+    statement_timeout: 10000, idle_in_transaction_session_timeout: 10000, application_name: applicationName });
   pool.on('error', () => {}); // Never log raw DB errors or credentials. Readiness actively queries the DB.
   return pool;
 }
@@ -85,7 +85,9 @@ export async function initializeDatabase(adminConfig, passwords) {
     // The guarded API host needs the same bounded reader to sweep provider
     // revocation across the enrolled tenant set (role grant in migration 0028).
     await pool.query('GRANT EXECUTE ON FUNCTION platform.enrolled_tenants(integer) TO kr_cloud_api');
-    await pool.query('GRANT SELECT ON platform.worker_enrollment TO kr_cloud_worker');
+    // No direct SELECT on platform.worker_enrollment: the bounded reader above is
+    // the only supported path (migration 0029 revokes the historical grant, and
+    // re-granting here would silently undo it on every boot).
     await pool.query('GRANT USAGE ON SCHEMA intake TO kavaroutes_outbox_consumer');
     await pool.query('GRANT SELECT (tenant_id,id,service_date) ON intake.trip_request TO kavaroutes_outbox_consumer');
     await pool.query(`REVOKE ALL ON SCHEMA ${schema} FROM PUBLIC`);
