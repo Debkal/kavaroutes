@@ -5,7 +5,7 @@ import {DriverClosureRequestSchema,DriverClosureReceiptSchema,DriverClosureViewS
 import {RouteProposalRequestSchema,RouteDecisionRequestSchema,RouteProposalReceiptSchema,RouteProposalViewSchema,type RouteProposalService} from './route-proposals.js';
 import {DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,type DispatchService,type AssignDispatchRunRequest} from './dispatch-board.js';
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import Fastify, { LogController, type FastifyInstance, type FastifyPluginAsync, type FastifyReply, type FastifyRequest } from "fastify";
+import Fastify, { LogController, type FastifyInstance, type FastifyPluginAsync, type FastifyReply, type FastifyRequest, type FastifyServerOptions } from "fastify";
 import { Type as TypeBox, type Static, type TSchema } from "typebox";
 import { Compile } from "typebox/compile";
 import { Value } from "typebox/value";
@@ -63,6 +63,25 @@ export interface Wp007ApiOptions {
   readonly telemetrySink?: (event: SafeTelemetryEvent) => void;
   readonly rateLimitPerOperation?: number;
   readonly admissionController?: AdmissionController;
+  /** Optional Node HTTP server limits. Omitted (the default) keeps this factory's
+   * historical behaviour, so the already-deployed synthetic profile is unchanged;
+   * the reviewed guarded profile passes its reviewed limits so an exposed host
+   * keeps application-level connection/frame bounds even though the edge WAF does
+   * not inspect established WebSocket traffic. */
+  readonly serverLimits?: {
+    readonly headersTimeoutMs: number;
+    readonly connectionTimeoutMs: number;
+    readonly requestTimeoutMs: number;
+    readonly handlerTimeoutMs: number;
+    readonly keepAliveTimeoutMs: number;
+    readonly maxRequestsPerSocket: number;
+  };
+  /** Fastify/pino logger configuration. Omitted (the default) keeps this factory
+   * silent, which is what the local synthetic profiles rely on; the reviewed
+   * guarded profile passes its reviewed redacting logger so rejected guarded
+   * requests leave an audit trail without any request body, cookie, URL or
+   * coordinate ever reaching the log. */
+  readonly logger?: FastifyServerOptions["logger"];
   readonly driverPolicyService?: DriverPolicyService;
   readonly driverItineraryReader?: DriverItineraryReader;
   readonly driverShiftService?: DriverShiftService;
@@ -152,9 +171,16 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     return [id, schema];
   }));
   const app = Fastify({
-    logger: false, bodyLimit: 1024 * 1024, requestIdHeader: false,
+    logger: options.logger === undefined ? false : options.logger, bodyLimit: 1024 * 1024, requestIdHeader: false,
     exposeHeadRoutes: false,
     genReqId: requestIdFactory, logController: new LogController({ disableRequestLogging: true }),
+    ...(options.serverLimits === undefined ? {} : {
+      connectionTimeout: options.serverLimits.connectionTimeoutMs,
+      requestTimeout: options.serverLimits.requestTimeoutMs,
+      handlerTimeout: options.serverLimits.handlerTimeoutMs,
+      keepAliveTimeout: options.serverLimits.keepAliveTimeoutMs,
+      maxRequestsPerSocket: options.serverLimits.maxRequestsPerSocket,
+    }),
     ajv: { customOptions: { removeAdditional: false, coerceTypes: false, allErrors: false } },
   }).setValidatorCompiler(({ schema, httpPart }) => {
     const typeCheck = Compile(schemaContext, schema as TSchema);
@@ -164,6 +190,10 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       return { error: typeCheck.Errors(converted) };
     };
   }).withTypeProvider<TypeBoxTypeProvider>();
+
+  // `headersTimeout` is a raw Node server property, not a Fastify option, so it
+  // is set here the same way the WP005 host sets it.
+  if (options.serverLimits !== undefined) app.server.headersTimeout = options.serverLimits.headersTimeoutMs;
 
   app.removeContentTypeParser("application/json");
   app.addContentTypeParser(/^application\/json(?:\s*;.*)?$/i, { parseAs: "string" }, (_request, body, done) => {

@@ -34,6 +34,16 @@ test('GET uses remote identity, no cookies, and preserves authoritative ETag', a
   });
   assert.deepEqual(await client.request('/v1/me', decode), { value: { version: 1 }, etag: '"opaque-server-tag"', replayed: false });
 });
+test('HTTPS web prototype explicitly uses its same-origin edge session', async () => {
+  const client = createPrivateDevelopmentTransport({ baseUrl: 'https://app.kavaroutes.com', persona: 'dispatcher', browserSameOrigin: true,
+    fetch: async (url, init) => {
+      assert.equal(url, 'https://app.kavaroutes.com/v1/me');
+      assert.equal(init.credentials, 'same-origin');
+      return response();
+    } });
+  await client.request('/v1/me', decode);
+  assert.throws(() => createPrivateDevelopmentTransport({ baseUrl: 'https://app.kavaroutes.com', persona: 'dispatcher', fetch: async () => response() }), /LOOPBACK_REQUIRED/);
+});
 test('rejects path escape before sending any request', async () => {
   const client = make(async () => assert.fail('must not fetch'));
   for (const path of ['https://example.com/v1/me', '//example.com', '/v1/../me', '/v1/%2e%2e/me', '/v1/me#secret', '/v1//me']) {

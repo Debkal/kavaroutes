@@ -15,7 +15,7 @@ export interface DevelopmentFetch {
     body?: string;
     signal: AbortSignal;
     redirect: "error";
-    credentials: "omit";
+    credentials: "omit" | "same-origin";
     cache: "no-store";
   }): Promise<DevelopmentResponse>;
 }
@@ -34,10 +34,15 @@ export function createPrivateDevelopmentTransport(options: {
   readonly ponyCompany?: string;
   readonly fetch: DevelopmentFetch;
   readonly timeoutMs?: number;
+  /** Explicitly permits the synthetic web prototype behind an HTTPS edge session.
+   * Native clients and local tools must leave this disabled.
+   */
+  readonly browserSameOrigin?: boolean;
 }) {
   const base = new URL(options.baseUrl);
-  if (base.protocol !== "http:" || base.hostname !== "127.0.0.1" || !base.port ||
-      base.pathname !== "/" || base.username || base.password || base.search || base.hash) {
+  const loopback = base.protocol === "http:" && base.hostname === "127.0.0.1" && Boolean(base.port);
+  const edgePrototype = options.browserSameOrigin === true && base.protocol === "https:" && !base.port;
+  if ((!loopback && !edgePrototype) || base.pathname !== "/" || base.username || base.password || base.search || base.hash) {
     throw new Error("PRIVATE_DEVELOPMENT_LOOPBACK_REQUIRED");
   }
   if (!["dispatcher", "driver", "facility", "policy_override"].includes(options.persona)) throw new Error("INVALID_DEVELOPMENT_PERSONA");
@@ -75,7 +80,8 @@ export function createPrivateDevelopmentTransport(options: {
           response = await options.fetch(new URL(path, base).href, {
             method: command ? "POST" : "GET", headers,
             ...(command ? { body: JSON.stringify(command.body) } : {}),
-            signal: controller.signal, redirect: "error", credentials: "omit", cache: "no-store",
+            signal: controller.signal, redirect: "error",
+            credentials: edgePrototype ? "same-origin" : "omit", cache: "no-store",
           });
         } catch {
           // A failed transport does not prove whether a submitted command committed.

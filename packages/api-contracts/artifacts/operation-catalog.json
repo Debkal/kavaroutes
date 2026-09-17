@@ -152,7 +152,7 @@
       "capability": "profile:read",
       "purpose": "SUPPORT_DIAGNOSTICS",
       "authorization": "AUTHENTICATED_PRINCIPAL",
-      "source": "packages/api-contracts/src/api.ts:192",
+      "source": "packages/api-contracts/src/api.ts:222",
       "implementationState": "REGISTERED"
     },
     {
@@ -242,7 +242,7 @@
       "capability": "dispatch:read",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:367",
+      "source": "packages/api-contracts/src/api.ts:397",
       "implementationState": "REGISTERED"
     },
     {
@@ -252,7 +252,7 @@
       "capability": "dispatch:read",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:385",
+      "source": "packages/api-contracts/src/api.ts:415",
       "implementationState": "REGISTERED"
     },
     {
@@ -262,7 +262,7 @@
       "capability": "dispatch:command",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:340",
+      "source": "packages/api-contracts/src/api.ts:370",
       "implementationState": "REGISTERED"
     },
     {
@@ -272,7 +272,7 @@
       "capability": "dispatch:command",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:374",
+      "source": "packages/api-contracts/src/api.ts:404",
       "implementationState": "REGISTERED"
     },
     {
@@ -282,7 +282,7 @@
       "capability": "driver-policy:override",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:298",
+      "source": "packages/api-contracts/src/api.ts:328",
       "implementationState": "REGISTERED"
     },
     {
@@ -292,7 +292,7 @@
       "capability": "driver-policy:override",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:293",
+      "source": "packages/api-contracts/src/api.ts:323",
       "implementationState": "REGISTERED"
     },
     {
@@ -306,7 +306,7 @@
       ],
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:321",
+      "source": "packages/api-contracts/src/api.ts:351",
       "implementationState": "REGISTERED"
     },
     {
@@ -320,7 +320,7 @@
       ],
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:304",
+      "source": "packages/api-contracts/src/api.ts:334",
       "implementationState": "REGISTERED"
     },
     {
@@ -330,7 +330,7 @@
       "capability": "driver-policy:read",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:492",
+      "source": "packages/api-contracts/src/api.ts:522",
       "implementationState": "REGISTERED"
     },
     {
@@ -344,7 +344,7 @@
       ],
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:504",
+      "source": "packages/api-contracts/src/api.ts:534",
       "implementationState": "REGISTERED"
     },
     {
@@ -354,7 +354,7 @@
       "capability": "driver:execute",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:518",
+      "source": "packages/api-contracts/src/api.ts:548",
       "implementationState": "REGISTERED"
     },
     {
@@ -364,7 +364,7 @@
       "capability": "driver:notifications:write",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:554",
+      "source": "packages/api-contracts/src/api.ts:584",
       "implementationState": "REGISTERED"
     },
     {
@@ -374,7 +374,7 @@
       "capability": "driver:notifications:write",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:573",
+      "source": "packages/api-contracts/src/api.ts:603",
       "implementationState": "REGISTERED"
     },
     {
@@ -384,7 +384,7 @@
       "capability": "driver:manifest:read",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:469",
+      "source": "packages/api-contracts/src/api.ts:499",
       "implementationState": "REGISTERED"
     },
     {
@@ -394,7 +394,7 @@
       "capability": "driver:location:write",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:540",
+      "source": "packages/api-contracts/src/api.ts:570",
       "implementationState": "REGISTERED"
     },
     {
@@ -404,7 +404,7 @@
       "capability": "driver:manifest:read",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:481",
+      "source": "packages/api-contracts/src/api.ts:511",
       "implementationState": "REGISTERED"
     },
     {
@@ -418,7 +418,7 @@
       ],
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:309",
+      "source": "packages/api-contracts/src/api.ts:339",
       "implementationState": "REGISTERED"
     },
     {
@@ -428,7 +428,7 @@
       "capability": "driver:execute",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:423",
+      "source": "packages/api-contracts/src/api.ts:453",
       "implementationState": "REGISTERED"
     },
     {
@@ -438,7 +438,7 @@
       "capability": "driver:execute",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:423",
+      "source": "packages/api-contracts/src/api.ts:453",
       "implementationState": "REGISTERED"
     },
     {
@@ -448,7 +448,7 @@
       "capability": "driver:execute",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:439",
+      "source": "packages/api-contracts/src/api.ts:469",
       "implementationState": "REGISTERED"
     },
     {
@@ -462,7 +462,7 @@
       ],
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:321",
+      "source": "packages/api-contracts/src/api.ts:351",
       "implementationState": "REGISTERED"
     },
     {
@@ -472,7 +472,7 @@
       "capability": "driver:execute",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:331",
+      "source": "packages/api-contracts/src/api.ts:361",
       "implementationState": "REGISTERED"
     },
     {
@@ -486,7 +486,7 @@
       ],
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:304",
+      "source": "packages/api-contracts/src/api.ts:334",
       "implementationState": "REGISTERED"
     },
     {
@@ -500,7 +500,7 @@
       ],
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:309",
+      "source": "packages/api-contracts/src/api.ts:339",
       "implementationState": "REGISTERED"
     },
     {
@@ -510,7 +510,7 @@
       "capability": "driver:manifest:read",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:454",
+      "source": "packages/api-contracts/src/api.ts:484",
       "implementationState": "REGISTERED"
     },
     {
@@ -520,7 +520,7 @@
       "capability": "driver:execute",
       "purpose": "ASSIGNED_SERVICE_DELIVERY",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:406",
+      "source": "packages/api-contracts/src/api.ts:436",
       "implementationState": "REGISTERED"
     },
     {
@@ -530,7 +530,7 @@
       "capability": "facility:trip-status:read",
       "purpose": "FACILITY_COORDINATION",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:279",
+      "source": "packages/api-contracts/src/api.ts:309",
       "implementationState": "REGISTERED"
     },
     {
@@ -540,7 +540,7 @@
       "capability": "facility:trip-status:read",
       "purpose": "FACILITY_COORDINATION",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:284",
+      "source": "packages/api-contracts/src/api.ts:314",
       "implementationState": "REGISTERED"
     },
     {
@@ -550,7 +550,7 @@
       "capability": "integrations:read",
       "purpose": "PARTNER_EXPORT",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:590",
+      "source": "packages/api-contracts/src/api.ts:620",
       "implementationState": "REGISTERED"
     },
     {
@@ -560,7 +560,7 @@
       "capability": "riders:read",
       "purpose": "RIDER_INTAKE",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:226",
+      "source": "packages/api-contracts/src/api.ts:256",
       "implementationState": "REGISTERED"
     },
     {
@@ -570,7 +570,7 @@
       "capability": "trips:read",
       "purpose": "RIDER_INTAKE",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:207",
+      "source": "packages/api-contracts/src/api.ts:237",
       "implementationState": "REGISTERED"
     },
     {
@@ -580,7 +580,7 @@
       "capability": "trips:write",
       "purpose": "RIDER_INTAKE",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:236",
+      "source": "packages/api-contracts/src/api.ts:266",
       "implementationState": "REGISTERED"
     },
     {
@@ -590,7 +590,7 @@
       "capability": "trips:read",
       "purpose": "RIDER_INTAKE",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:246",
+      "source": "packages/api-contracts/src/api.ts:276",
       "implementationState": "REGISTERED"
     },
     {
@@ -600,7 +600,7 @@
       "capability": "trips:read",
       "purpose": "RIDER_INTAKE",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:246",
+      "source": "packages/api-contracts/src/api.ts:276",
       "implementationState": "REGISTERED"
     },
     {
@@ -610,7 +610,7 @@
       "capability": "trips:command",
       "purpose": "RIDER_INTAKE",
       "authorization": "ROUTE_GUARD",
-      "source": "packages/api-contracts/src/api.ts:264",
+      "source": "packages/api-contracts/src/api.ts:294",
       "implementationState": "REGISTERED"
     }
   ],

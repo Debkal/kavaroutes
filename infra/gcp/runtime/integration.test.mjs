@@ -243,7 +243,24 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     for (const row of await bSources()) await bValidated(row);
     // The projection delivery is published by nobody: the reconciliation
     // regression sends its own job against this real outbox row.
-    await control.query("UPDATE outbox.delivery SET status='PUBLISHED',transport_reference='synthetic.published' WHERE tenant_id=$1 AND route='projection'", [companyB]);
+    // A fixture write into outbox.delivery must satisfy the table's own invariants:
+    // outbox.validate_delivery_transition() advances lifecycle_version by exactly one
+    // per row update and only allows PENDING->LEASED and LEASED->PUBLISHED, and the
+    // PUBLISHED check requires a transport reference. The two steps below therefore
+    // mirror the real publish path in packages/durable-execution/src/store.ts (lease,
+    // then publish) instead of forcing a state the schema does not permit. Each step
+    // asserts its row count so a fixture that matches nothing cannot pass silently.
+    const publishProjectionFixture = async () => {
+      const leased = await control.query(`UPDATE outbox.delivery SET status='LEASED',lease_owner='synthetic.fixture',
+        lease_expires_at=now()+interval '5 minutes',lifecycle_version=lifecycle_version+1
+        WHERE tenant_id=$1 AND route='projection' AND status='PENDING'`, [companyB]);
+      assert.equal(leased.rowCount, 1, 'the second company projection delivery is leased by the fixture');
+      const published = await control.query(`UPDATE outbox.delivery SET status='PUBLISHED',lease_owner=NULL,lease_expires_at=NULL,
+        transport_reference='synthetic.published',first_published_at=COALESCE(first_published_at,now()),last_published_at=now(),
+        lifecycle_version=lifecycle_version+1 WHERE tenant_id=$1 AND route='projection' AND status='LEASED'`, [companyB]);
+      assert.equal(published.rowCount, 1, 'the second company projection delivery is published by the fixture');
+    };
+    await publishProjectionFixture();
     await worker.runOnce();
     // A-002: the second company's own invalidation is published once, to its own
     // canonical branch scope, and never to the fixture company's scope.
@@ -253,10 +270,19 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     assert.equal(bStream.rows[0].purpose, 'DISPATCH_CONTROL');
     assert.equal(bStream.rows[0].scope_kind, 'DISPATCH_DAY');
     assert.equal(bStream.rows[0].resource_reference, `trip:${bTripId}`);
-    const aStreams = await control.query("SELECT scope_hash FROM realtime.stream WHERE tenant_id=$1 AND purpose='DISPATCH_CONTROL' AND scope_kind='DISPATCH_DAY'", [tenantId]);
-    assert.equal(aStreams.rowCount, 1, 'the fixture company keeps exactly its own dispatch stream');
-    assert.notEqual(Buffer.from(bStream.rows[0].scope_hash).toString('hex'), Buffer.from(aStreams.rows[0].scope_hash).toString('hex'),
-      'the second company must not publish into the fixture company branch scope');
+    // The fixture company legitimately owns more than one dispatch-day stream:
+    // checkLiveNetwork() drives two real trips on 2026-09-12 through the same
+    // disposable database, so the guarantee under test is not "exactly one stream
+    // per company" but "the fixture trip lives in exactly one stream, and the
+    // second company's stream is not any of the fixture company's streams".
+    const aOwnStreams = await control.query(`SELECT DISTINCT encode(s.scope_hash,'hex') AS scope_hash
+      FROM realtime.stream s JOIN realtime.change c ON c.tenant_id=s.tenant_id AND c.stream_id=s.id
+      WHERE s.tenant_id=$1 AND s.purpose='DISPATCH_CONTROL' AND s.scope_kind='DISPATCH_DAY' AND c.resource_reference=$2`,
+      [tenantId, `trip:${tripId}`]);
+    assert.equal(aOwnStreams.rowCount, 1, `the fixture trip is invalidated in exactly one fixture-company dispatch stream: ${JSON.stringify(aOwnStreams.rows)}`);
+    const aScopes = await control.query("SELECT DISTINCT encode(scope_hash,'hex') AS scope_hash FROM realtime.stream WHERE tenant_id=$1 AND purpose='DISPATCH_CONTROL' AND scope_kind='DISPATCH_DAY'", [tenantId]);
+    assert.equal(aScopes.rows.some(row => row.scope_hash === Buffer.from(bStream.rows[0].scope_hash).toString('hex')), false,
+      `the second company must not publish into any fixture company branch scope: ${JSON.stringify(aScopes.rows)}`);
     const readPool = new Pool({ connectionString: cfg('api', passwords.kr_cloud_api).databaseUrl, connectionTimeoutMillis: 1000 });
     const readStore = createPostgresRealtimeStore(readPool, createTestOnlyCursorCodec({ secret: randomBytes(32).toString('base64url') }));
     const bPrincipal = Object.freeze({ id: randomUUID(), kind: 'BROWSER_USER', organizationId: companyB, capabilities: new Set(['dispatch:read']),
@@ -283,7 +309,7 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
       key: 'cloud-second-company-cancel-0001', ifMatch: bCreated.headers.etag, request: { tripId: bTripId } });
     assert.equal(bCancelled.statusCode, 200, 'the second company trip is cancelled by the real domain service');
     assert.equal(bCancelled.body.trip.version, 2, 'the second event carries aggregate version two');
-    await control.query("UPDATE outbox.delivery SET status='PUBLISHED',transport_reference='synthetic.published' WHERE tenant_id=$1 AND route='projection' AND status='PENDING'", [companyB]);
+    await publishProjectionFixture();
     const bCancelledRow = await bSource(2, 'realtime-signal');
     await bValidated(bCancelledRow);
     for (let attempt = 0; attempt < 10; attempt++) {
