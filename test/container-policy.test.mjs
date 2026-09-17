@@ -37,3 +37,54 @@ test("local container definitions are pinned, non-root, bounded, health-checked,
   }
   assert.equal(files[4].split("\n").includes("vendor"), false, "local audited dependencies must remain in the Docker context");
 });
+
+
+// Dockerfile-specific ignore files are deny-all allow-lists: the context starts at
+// `**` and each path the Dockerfile copies must be re-included, together with its
+// parent directories (a child cannot be re-included through an excluded parent).
+// This is the failure that stopped the first real build of the runtime image:
+// `COPY apps/api-host ./apps/api-host` was added while the allow-list still listed
+// only packages/vendor/infra, so the build died with
+// `failed to compute cache key: ... "/apps/api-host": not found`
+// (docker compose build, 2026-09-17T00:09:34Z, HEAD 1f37ec42).
+const allowListDockerfiles = [
+  "../infra/gcp/runtime/Dockerfile",
+  "../infra/local/Web.Dockerfile"
+];
+
+function contextSources(dockerfile) {
+  const sources = [];
+  for (const rawLine of dockerfile.split("\n")) {
+    const line = rawLine.trim();
+    if (!line.startsWith("COPY ") || line.includes("--from=") || line.includes("[")) continue;
+    const tokens = line.slice("COPY ".length).split(/\s+/).filter(token => token && !token.startsWith("--"));
+    assert.ok(tokens.length >= 2, `COPY needs a source and a destination: ${line}`);
+    sources.push(...tokens.slice(0, -1));
+  }
+  return sources;
+}
+
+function parentDirectories(source) {
+  const parts = source.split("/").slice(0, -1);
+  return parts.map((_, index) => parts.slice(0, index + 1).join("/"));
+}
+
+test("deny-all Dockerfile ignore files re-include every copied path and its parents", async () => {
+  for (const relative of allowListDockerfiles) {
+    const dockerfile = await readFile(new URL(relative, import.meta.url), "utf8");
+    const ignore = await readFile(new URL(`${relative}.dockerignore`, import.meta.url), "utf8");
+    const patterns = new Set(ignore.split("\n").map(line => line.trim()).filter(line => line && !line.startsWith("#")));
+    assert.ok(patterns.has("**"), `${relative}.dockerignore must stay a deny-all allow-list`);
+    const sources = contextSources(dockerfile);
+    assert.ok(sources.length >= 4, `${relative}: expected to parse the build-stage COPY sources`);
+    for (const source of sources) {
+      assert.ok(
+        patterns.has(`!${source}`) || patterns.has(`!${source}/**`),
+        `${relative}.dockerignore does not re-include COPY source ${source}`
+      );
+      for (const parent of parentDirectories(source)) {
+        assert.ok(patterns.has(`!${parent}`), `${relative}.dockerignore does not re-include parent ${parent} of ${source}`);
+      }
+    }
+  }
+});

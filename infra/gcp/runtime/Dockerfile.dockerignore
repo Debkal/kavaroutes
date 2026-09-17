@@ -6,6 +6,9 @@
 !packages/**
 !vendor
 !vendor/**
+!apps
+!apps/api-host
+!apps/api-host/**
 !infra
 !infra/gcp
 !infra/gcp/runtime
