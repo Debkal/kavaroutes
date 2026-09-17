@@ -19,7 +19,7 @@ export const UnassignDispatchRunReceiptSchema=Type.Object({runId:id(),version:Ty
 export type UnassignDispatchRunReceipt=Static<typeof UnassignDispatchRunReceiptSchema>;
 export const DispatchBoardSchema=Type.Object({serviceDate:Type.String({format:'date'}),
  runs:Type.Array(Type.Object({runId:id(),version:Type.Integer({minimum:1}),expectedTag:Type.String(),lifecycle:label(),plannedStartAt:instant(),plannedEndAt:instant(),serviceTimezone:label(),assignmentId:nullableId(),driverId:nullableId(),vehicleId:nullableId()},{additionalProperties:false}),{maxItems:500}),
- legs:Type.Array(Type.Object({runId:id(),tripLegId:id(),tripId:id(),ordinal:Type.Integer({minimum:1}),riderLabel:label(),pickupLabel:label(),dropoffLabel:label(),plannedStartAt:instant(),plannedEndAt:instant(),tripState:label(),executionId:nullableId(),lifecycle:label(),version:Type.Integer({minimum:0})},{additionalProperties:false}),{maxItems:2000}),
+ legs:Type.Array(Type.Object({runId:id(),tripLegId:id(),tripId:id(),ordinal:Type.Integer({minimum:1}),riderLabel:label(),pickupLabel:label(),dropoffLabel:label(),plannedStartAt:instant(),plannedEndAt:instant(),appointmentLengthMinutes:Type.Optional(Type.Integer({minimum:0,maximum:1440})),tripState:label(),executionId:nullableId(),lifecycle:label(),version:Type.Integer({minimum:0})},{additionalProperties:false}),{maxItems:2000}),
  drivers:Type.Array(Type.Object({id:id(),label:label()},{additionalProperties:false}),{maxItems:500}),vehicles:Type.Array(Type.Object({id:id(),label:label()},{additionalProperties:false}),{maxItems:500}),
 },{additionalProperties:false,$id:'DispatchBoard'});
 export const DispatchPlanLegSchema=Type.Object({
@@ -27,7 +27,9 @@ export const DispatchPlanLegSchema=Type.Object({
  localServiceTime:Type.String({pattern:'^\\d{2}:\\d{2}:\\d{2}$'}),resolvedServiceAt:instant(),
  resolvedUtcOffsetSeconds:Type.Integer({minimum:-50400,maximum:50400}),
  plannedStartAt:instant(),plannedEndAt:instant(),
+ appointmentLengthMinutes:Type.Integer({minimum:0,maximum:1440}),
  pickupRequired:Type.Boolean(),dropoffRequired:Type.Boolean(),mobilitySecurementRequired:Type.Boolean(),
+ recordClientDropoff:Type.Boolean(),
 },{additionalProperties:false,$id:'DispatchPlanLeg'});
 export const PlanDispatchRunRequestSchema=Type.Object({
  serviceDate:Type.String({format:'date'}),serviceTimezone:label(),
@@ -130,7 +132,9 @@ export function createPostgresDispatchService(pool:Pool,options:{etag:(id:string
      legs:request.legs.map(leg=>({riderReference:leg.riderReference,pickupLabel:leg.pickupLabel,dropoffLabel:leg.dropoffLabel,
       localServiceTime:leg.localServiceTime,resolvedServiceAt:new Date(leg.resolvedServiceAt),resolvedUtcOffsetSeconds:leg.resolvedUtcOffsetSeconds,
       plannedStartAt:new Date(leg.plannedStartAt),plannedEndAt:new Date(leg.plannedEndAt),
-      pickupRequired:leg.pickupRequired,dropoffRequired:leg.dropoffRequired,mobilitySecurementRequired:leg.mobilitySecurementRequired})),
+      appointmentLengthMinutes:leg.appointmentLengthMinutes??0,
+      pickupRequired:leg.pickupRequired,dropoffRequired:leg.dropoffRequired,mobilitySecurementRequired:leg.mobilitySecurementRequired,
+      recordClientDropoff:leg.recordClientDropoff})),
     });
     const receipt:PlanDispatchRunReceipt={runId:planned.runId,version:planned.version,serviceDate:planned.serviceDate,legCount:planned.legCount,tripLegIds:[...planned.tripLegIds]};
     await tx.appendAudit({auditId:randomUUID(),aggregateKind:'run',aggregateId:receipt.runId,aggregateVersion:receipt.version,actionReference:'dispatch.route.planned',actorReference:input.principal.id});

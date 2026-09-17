@@ -45,8 +45,8 @@ test('persisted driver day enforces tenant, subject, date and cancellation bound
       await db.query("INSERT INTO fleet.vehicle(tenant_id,id,synthetic_reference) VALUES ($1,$2,'Synthetic vehicle')", [tenantId, vehicle]);
       await db.query("INSERT INTO intake.address(tenant_id,id,customer_label) VALUES ($1,$2,'Synthetic pickup'),($1,$3,'Synthetic dropoff')", [tenantId, origin, destination]);
       await db.query("INSERT INTO intake.rider(tenant_id,id,synthetic_reference) VALUES ($1,$2,'Synthetic rider')", [tenantId, rider]);
-      await db.query(`INSERT INTO intake.trip_request(tenant_id,id,rider_id,service_date,service_timezone,local_service_time,resolved_service_at,resolved_utc_offset_seconds,ambiguity_policy,ambiguity_policy_version,lifecycle_reference)
-        VALUES ($1,$2,$3,'2026-09-13','America/Los_Angeles','09:00','2026-09-13T16:00:00Z',-25200,'reject','civil-v1','draft')`, [tenantId, tripId, rider]);
+      await db.query(`INSERT INTO intake.trip_request(tenant_id,id,rider_id,service_date,service_timezone,local_service_time,resolved_service_at,resolved_utc_offset_seconds,appointment_length_minutes,ambiguity_policy,ambiguity_policy_version,lifecycle_reference)
+        VALUES ($1,$2,$3,'2026-09-13','America/Los_Angeles','09:00','2026-09-13T16:00:00Z',-25200,45,'reject','civil-v1','draft')`, [tenantId, tripId, rider]);
       await db.query(`INSERT INTO intake.trip_leg(tenant_id,id,trip_request_id,ordinal,origin_address_id,destination_address_id,planned_start_at,planned_end_at)
         VALUES ($1,$2,$3,1,$4,$5,'2026-09-13T16:00:00Z','2026-09-13T17:00:00Z')`, [tenantId, legId, tripId, origin, destination]);
       await db.query(`INSERT INTO dispatch.run(tenant_id,id,branch_id,service_date,service_timezone,planned_start_at,planned_end_at,lifecycle_reference)
@@ -58,6 +58,7 @@ test('persisted driver day enforces tenant, subject, date and cancellation bound
     const legs = await reader(tenantId, driverId, '2026-09-13');
     assert.equal(legs.length, 1); assert.equal(legs[0].tripLegId, legId); assert.equal(legs[0].pickupLabel, 'Synthetic pickup');
     assert.equal(legs[0].execution, null, 'an assignment must not fabricate dispatched execution');
+    assert.equal(legs[0].appointmentLengthMinutes, 45, 'the driver projection carries the planned appointment / wait the dispatcher entered');
     assert.deepEqual(await reader(tenantId, otherDriver, '2026-09-13'), []);
     assert.deepEqual(await reader(syntheticIds.organizationB, driverId, '2026-09-13'), []);
     assert.deepEqual(await reader(tenantId, driverId, '2026-09-14'), []);

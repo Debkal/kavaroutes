@@ -1,6 +1,6 @@
 import { decodeDispatcherTrip, type DispatcherTrip, type TripCreateRequest } from "@kavaroutes/api-contracts/client-web";
 import {createCloudCommandRecovery} from './cloud-command-recovery';
-import {decodeCloudBoard,decodeCloudAssignment,decodeCloudPlanReceipt,decodeCloudDriverLogin,decodeCloudRelease,type CloudAssignmentCommand,type CloudPlanRequest} from './cloud-board-contract';
+import {decodeCloudBoard,decodeCloudAssignment,decodeCloudPlanReceipt,decodeCloudDriverAccount,decodeCloudDriverLogin,decodeCloudRelease,type CloudAssignmentCommand,type CloudPlanRequest} from './cloud-board-contract';
 import {decodeRouteView,decodeRouteReceipt} from '@kavaroutes/api-contracts/client-route-proposals';
 import { createPrivateDevelopmentTransport, type DevelopmentFetch } from "@kavaroutes/api-contracts/private-development-transport";
 
@@ -81,6 +81,12 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
       if(!uuid.test(request.driverId))throw new Error('INVALID_DRIVER_REFERENCE');
       if(!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(request.loginId))throw new Error('INVALID_DRIVER_LOGIN_ID');
       return transport.request(`${prefix}/driver-logins/commands/create`,body=>decodeCloudDriverLogin(body),{body:request,idempotencyKey});
+    },
+    createDriverAccount(request:{displayName:string;loginId:string;workforceRelationship:'OWNER_OPERATOR'|'EMPLOYEE'|'CONTRACTOR'},idempotencyKey:string){
+      if(!request.displayName.trim()||request.displayName.trim().length>120)throw new Error('INVALID_DRIVER_NAME');
+      if(!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(request.loginId))throw new Error('INVALID_DRIVER_LOGIN_ID');
+      if(!['OWNER_OPERATOR','EMPLOYEE','CONTRACTOR'].includes(request.workforceRelationship))throw new Error('INVALID_WORKFORCE_RELATIONSHIP');
+      return transport.request(`${prefix}/fleet/drivers/commands/create`,body=>decodeCloudDriverAccount(body),{body:{...request,displayName:request.displayName.trim()},idempotencyKey});
     },
     dispatchSnapshot(serviceDate: string, signal?: AbortSignal) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate)) throw new Error("INVALID_SERVICE_DATE");

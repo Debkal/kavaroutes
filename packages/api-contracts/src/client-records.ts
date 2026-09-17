@@ -20,7 +20,7 @@ export const ClientCreateRequestSchema=Type.Object({
  entityName:optionalNull(bounded(200)),
  phone:optionalNull(Type.String({minLength:3,maxLength:40})),
  pickupAddress:optionalNull(bounded(512)),
- dropoffAddresses:Type.Optional(Type.Array(bounded(512),{minItems:1,maxItems:20})),
+ dropoffAddresses:Type.Optional(Type.Array(bounded(512),{minItems:1,maxItems:100})),
  tripType:Type.Optional(Type.Union([Type.Literal("ONE_WAY"),Type.Literal("ROUND_TRIP")])),
  notes:optionalNull(bounded(2000)),
 },{additionalProperties:false,$id:"ClientCreateRequest"});
@@ -33,17 +33,17 @@ export const ClientUpdateRequestSchema=Type.Object({
  tripType:Type.Optional(Type.Union([Type.Literal("ONE_WAY"),Type.Literal("ROUND_TRIP")])),
  notes:optionalNull(bounded(2000)),
  /** Drop-offs appended after the ones already recorded. */
- addDropoffAddresses:Type.Optional(Type.Array(bounded(512),{minItems:1,maxItems:20})),
+ addDropoffAddresses:Type.Optional(Type.Array(bounded(512),{minItems:1,maxItems:100})),
 },{additionalProperties:false,$id:"ClientUpdateRequest"});
 export type ClientUpdateRequest=Static<typeof ClientUpdateRequestSchema>;
-export const ClientCreateReceiptSchema=Type.Object({clientId:id(),version:Type.Integer({minimum:1}),displayName:bounded(200),dropoffCount:Type.Integer({minimum:0,maximum:20})},{additionalProperties:false,$id:"ClientCreateReceipt"});
+export const ClientCreateReceiptSchema=Type.Object({clientId:id(),version:Type.Integer({minimum:1}),displayName:bounded(200),dropoffCount:Type.Integer({minimum:0,maximum:100})},{additionalProperties:false,$id:"ClientCreateReceipt"});
 export type ClientCreateReceipt=Static<typeof ClientCreateReceiptSchema>;
-const ClientDropoffSchema=Type.Object({ordinal:Type.Integer({minimum:1,maximum:20}),addressLabel:bounded(512)},{additionalProperties:false});
+const ClientDropoffSchema=Type.Object({ordinal:Type.Integer({minimum:1,maximum:100}),addressLabel:bounded(512),usageCount:Type.Integer({minimum:0}),lastUsedAt:Type.Union([Type.String({format:"date-time"}),Type.Null()])},{additionalProperties:false});
 const ClientRouteSchema=Type.Object({tripId:id(),serviceDate:Type.String({format:"date"})},{additionalProperties:false});
 export const ClientRosterSchema=Type.Object({
  clients:Type.Array(Type.Object({clientId:id(),displayName:bounded(200),entityName:Type.Union([bounded(200),Type.Null()]),
   phone:Type.Union([Type.String({minLength:3,maxLength:40}),Type.Null()]),pickupAddress:Type.Union([bounded(512),Type.Null()]),
-  dropoffAddresses:Type.Array(ClientDropoffSchema,{maxItems:20}),
+  dropoffAddresses:Type.Array(ClientDropoffSchema,{maxItems:100}),
   tripType:Type.Union([Type.Literal("ONE_WAY"),Type.Literal("ROUND_TRIP"),Type.Null()]),
   notes:Type.Union([bounded(2000),Type.Null()]),version:Type.Integer({minimum:1}),routes:Type.Array(ClientRouteSchema,{maxItems:25})},{additionalProperties:false}),{maxItems:200}),
  nextAfter:Type.Union([id(),Type.Null()]),

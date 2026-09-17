@@ -32,6 +32,8 @@ export interface ClientRouteView {
 export interface ClientDropoffView {
   readonly ordinal: number;
   readonly addressLabel: string;
+  readonly usageCount: number;
+  readonly lastUsedAt: string | null;
 }
 export interface ClientRecordView {
   readonly clientId: string;
@@ -72,7 +74,8 @@ export function createClientRosterReader(pool: Pool) {
         coalesce(d.dropoffs,'[]'::json) AS dropoffs,coalesce(r.routes,'[]'::json) AS routes
        FROM intake.facility f
        JOIN intake.address a ON a.tenant_id=f.tenant_id AND a.id=f.address_id
-       LEFT JOIN LATERAL(SELECT json_agg(json_build_object('ordinal',d.ordinal,'addressLabel',da.customer_label) ORDER BY d.ordinal) AS dropoffs
+       LEFT JOIN LATERAL(SELECT json_agg(json_build_object('ordinal',d.ordinal,'addressLabel',da.customer_label,
+         'usageCount',d.usage_count,'lastUsedAt',d.last_used_at) ORDER BY d.usage_count DESC,d.last_used_at DESC NULLS LAST,d.ordinal) AS dropoffs
         FROM intake.client_dropoff d JOIN intake.address da ON da.tenant_id=d.tenant_id AND da.id=d.address_id
         WHERE d.tenant_id=f.tenant_id AND d.facility_id=f.id) d ON true
        LEFT JOIN LATERAL(SELECT json_agg(json_build_object('tripId',t.id,'serviceDate',t.service_date) ORDER BY t.service_date DESC,t.id) AS routes
@@ -89,7 +92,10 @@ export function createClientRosterReader(pool: Pool) {
         entityName: row.entity_name === null ? null : String(row.entity_name),
         phone: row.phone === null ? null : String(row.phone),
         pickupAddress: row.pickup_label === null ? null : String(row.pickup_label),
-        dropoffAddresses: (row.dropoffs as {ordinal: number; addressLabel: string}[]).map(dropoff => ({ordinal: Number(dropoff.ordinal), addressLabel: String(dropoff.addressLabel)})),
+        dropoffAddresses: (row.dropoffs as {ordinal: number; addressLabel: string; usageCount: number; lastUsedAt: Date | string | null}[]).map(dropoff => ({
+          ordinal: Number(dropoff.ordinal), addressLabel: String(dropoff.addressLabel), usageCount: Number(dropoff.usageCount),
+          lastUsedAt: dropoff.lastUsedAt === null ? null : new Date(dropoff.lastUsedAt).toISOString(),
+        })),
         tripType: row.trip_type === null ? null : String(row.trip_type),
         notes: row.notes === null ? null : String(row.notes),
         version: Number(row.aggregate_version),
@@ -128,7 +134,7 @@ export async function updateClientRecord(client: PoolClient, tenantId: string, i
     let ordinal = Number(highest?.ordinal ?? 0);
     for (const label of input.addDropoffAddresses) {
       ordinal += 1;
-      if (ordinal > 20) throw new PersistenceConflict("relationship", "a trip can carry at most 20 drop-off addresses");
+      if (ordinal > 100) throw new PersistenceConflict("relationship", "a client can retain at most 100 drop-off addresses");
       const addressId = randomUUID();
       await client.query("INSERT INTO intake.address(tenant_id,id,customer_label) VALUES($1,$2,$3)", [tenantId, addressId, label]);
       await client.query("INSERT INTO intake.client_dropoff(tenant_id,facility_id,ordinal,address_id) VALUES($1,$2,$3,$4)", [tenantId, input.clientId, ordinal, addressId]);

@@ -71,6 +71,26 @@ test("resource, collection, conditional, search, command, and response-projectio
   assert.equal(response.statusCode, 200);
 });
 
+test("Command creates a closed, capability-protected driver account", async (t) => {
+  const calls=[];
+  const driverLoginService={createAccount:async input=>{calls.push(input);return {replayed:false,statusCode:201,headers:{},body:{
+    driverId:"40000000-0000-4000-8000-000000000001",displayName:input.request.displayName,
+    workforceRelationship:input.request.workforceRelationship,loginId:input.request.loginId,
+    inviteCode:"FIRST-CODE-9",status:"INVITED",version:1,
+  }};}};
+  const app=await createWp007Api({application:memoryApplication(),driverLoginService});
+  t.after(()=>app.close());
+  const url=`/v1/organizations/${syntheticIds.organizationA}/fleet/drivers/commands/create`;
+  const payload={displayName:"River Driver",loginId:"river-driver",workforceRelationship:"CONTRACTOR"};
+  let response=await app.inject({method:"POST",url,headers:{...auth("principal_dispatcher"),"idempotency-key":"driver-account-create-001"},payload});
+  assert.equal(response.statusCode,201,response.body);assert.equal(response.json().inviteCode,"FIRST-CODE-9");
+  assert.equal(calls.length,1);assert.deepEqual(calls[0].request,payload);
+  response=await app.inject({method:"POST",url,headers:{...auth("principal_driver"),"idempotency-key":"driver-account-create-002"},payload});
+  assert.equal(response.statusCode,404);
+  response=await app.inject({method:"POST",url,headers:{...auth("principal_dispatcher"),"idempotency-key":"driver-account-create-003"},payload:{...payload,role:"admin"}});
+  assert.equal(response.statusCode,400);
+});
+
 test("strict bodies, driver batch limits/order/replay, operation access, and rate limits are enforced", async (t) => {
   let clock = new Date("2026-09-01T12:00:00.000Z");
   const app = await createWp007Api({ application: memoryApplication(), rateLimitPerOperation: 1, now: () => clock });

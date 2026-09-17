@@ -6,9 +6,10 @@ export function ServiceDatePicker({value,onChange,disabled=false,label="Service 
   const today=businessToday();
   return <fieldset className="service-date-picker" disabled={disabled}>
     <legend>{label}</legend>
+    <span className="date-caption" aria-hidden="true">{serviceDayLabel(value)}</span>
     <div className="date-navigation">
       <button type="button" aria-label="Previous day" onClick={()=>onChange(shiftServiceDay(value,-1))}>←</button>
-      <label className="date-field" htmlFor={id}><span className="date-caption">{serviceDayLabel(value)}</span>
+      <label className="date-field" htmlFor={id}><span className="sr-status">Choose {label.toLowerCase()}</span>
         <input id={id} aria-label={label} type="date" value={value} onChange={event=>{const next=event.target.value;if(/^\d{4}-\d{2}-\d{2}$/.test(next)&&Number.isFinite(Date.parse(next)))onChange(next);}}/>
       </label>
       <button type="button" aria-label="Next day" onClick={()=>onChange(shiftServiceDay(value,1))}>→</button>

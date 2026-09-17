@@ -15,7 +15,7 @@ function tag(v:unknown){const s=text(v);if(!/^"kr1\.[A-Za-z0-9_-]{43}"$/.test(s)
 export function decodeCloudBoard(value:unknown,serviceDate:string){
  const b=object(value,['serviceDate','runs','legs','drivers','vehicles']);if(b.serviceDate!==serviceDate)throw new Error('BOARD_DATE_MISMATCH');
  const runs=list(b.runs,500,v=>{const r=object(v,['runId','version','expectedTag','lifecycle','plannedStartAt','plannedEndAt','serviceTimezone','assignmentId','driverId','vehicleId']);return {runId:id(r.runId),version:integer(r.version),expectedTag:tag(r.expectedTag),lifecycle:text(r.lifecycle),plannedStartAt:instant(r.plannedStartAt),plannedEndAt:instant(r.plannedEndAt),serviceTimezone:text(r.serviceTimezone),assignmentId:nullableId(r.assignmentId),driverId:nullableId(r.driverId),vehicleId:nullableId(r.vehicleId)};});
- const legs=list(b.legs,2000,v=>{const l=object(v,['runId','tripLegId','tripId','ordinal','riderLabel','pickupLabel','dropoffLabel','plannedStartAt','plannedEndAt','tripState','executionId','lifecycle','version']);return {runId:id(l.runId),tripLegId:id(l.tripLegId),tripId:id(l.tripId),ordinal:integer(l.ordinal),riderLabel:text(l.riderLabel),pickupLabel:text(l.pickupLabel),dropoffLabel:text(l.dropoffLabel),plannedStartAt:instant(l.plannedStartAt),plannedEndAt:instant(l.plannedEndAt),tripState:text(l.tripState),executionId:nullableId(l.executionId),lifecycle:text(l.lifecycle),version:integer(l.version,0)};});
+ const legs=list(b.legs,2000,v=>{const raw=v as Row;const hasAppointment=!!raw&&typeof raw==='object'&&'appointmentLengthMinutes' in raw;const l=object(v,['runId','tripLegId','tripId','ordinal','riderLabel','pickupLabel','dropoffLabel','plannedStartAt','plannedEndAt',...(hasAppointment?['appointmentLengthMinutes']:[]),'tripState','executionId','lifecycle','version']);return {runId:id(l.runId),tripLegId:id(l.tripLegId),tripId:id(l.tripId),ordinal:integer(l.ordinal),riderLabel:text(l.riderLabel),pickupLabel:text(l.pickupLabel),dropoffLabel:text(l.dropoffLabel),plannedStartAt:instant(l.plannedStartAt),plannedEndAt:instant(l.plannedEndAt),appointmentLengthMinutes:hasAppointment?integer(l.appointmentLengthMinutes,0):0,tripState:text(l.tripState),executionId:nullableId(l.executionId),lifecycle:text(l.lifecycle),version:integer(l.version,0)};});
  const resource=(v:unknown)=>{const r=object(v,['id','label']);return {id:id(r.id),label:text(r.label)};};
  if(new Set(runs.map(r=>r.runId)).size!==runs.length || new Set(legs.map(l=>`${l.runId}:${l.tripLegId}`)).size!==legs.length || legs.some(l=>!runs.some(r=>r.runId===l.runId)))throw new Error('BOARD_AMBIGUITY');
  return {serviceDate,runs,legs,drivers:list(b.drivers,500,resource),vehicles:list(b.vehicles,500,resource)};
@@ -34,6 +34,8 @@ export type CloudPlanLeg={
  riderReference:string;pickupLabel:string;dropoffLabel:string;localServiceTime:string;
  resolvedServiceAt:string;resolvedUtcOffsetSeconds:number;plannedStartAt:string;plannedEndAt:string;
  pickupRequired:boolean;dropoffRequired:boolean;mobilitySecurementRequired:boolean;
+ appointmentLengthMinutes:number;
+ recordClientDropoff:boolean;
 };
 export type CloudPlanRequest={
  serviceDate:string;serviceTimezone:string;plannedStartAt:string;plannedEndAt:string;
@@ -61,6 +63,12 @@ export function decodeCloudDriverLogin(value:unknown){
  const code=text(r.inviteCode);
  if(code.length<8||code.length>64)throw new Error('INVALID_DRIVER_LOGIN_RECEIPT');
  return {driverId:id(r.driverId),loginId,inviteCode:code,status:'INVITED' as const,version:integer(r.version)};
+}
+export function decodeCloudDriverAccount(value:unknown){
+ const r=object(value,['driverId','displayName','workforceRelationship','loginId','inviteCode','status','version']);
+ const login=decodeCloudDriverLogin({driverId:r.driverId,loginId:r.loginId,inviteCode:r.inviteCode,status:r.status,version:r.version});
+ if(!['OWNER_OPERATOR','EMPLOYEE','CONTRACTOR'].includes(String(r.workforceRelationship)))throw new Error('INVALID_DRIVER_ACCOUNT_RECEIPT');
+ return {...login,displayName:text(r.displayName),workforceRelationship:r.workforceRelationship as 'OWNER_OPERATOR'|'EMPLOYEE'|'CONTRACTOR'};
 }
 
 /** A released run receipt: the run it names, one version past the one we held, and the

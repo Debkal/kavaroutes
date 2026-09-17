@@ -27,7 +27,7 @@ export function DriverLoginPanel({api,driverReference,onVerified}:{api:ReturnTyp
     try{
       const claimed=await api.claimLogin({driverId:driverReference,inviteCode:code.trim(),password},`web-claim-${crypto.randomUUID()}`);
       setCode("");setPassword("");onVerified(claimed.value.driverId,claimed.value.loginId);
-      setMessage("Your password is set. Sign in with your login ID and password from now on.");
+      setMessage("Your password is set. Opening today’s itinerary…");
     }catch(error){setMessage(fail(error,"Your password could not be set."));}
     finally{setBusy(false);}
   };
@@ -40,24 +40,24 @@ export function DriverLoginPanel({api,driverReference,onVerified}:{api:ReturnTyp
     try{
       const state=await api.verifyLogin({loginId:id,password:signInPassword},`web-verify-${crypto.randomUUID()}`);
       setSignInPassword("");onVerified(state.value.driverId,state.value.loginId);
-      setMessage(`Signed in as ${state.value.driverId} with login ${state.value.loginId}.`);
+      setMessage("Login accepted. Opening today’s itinerary…");
     }catch(error){setMessage(fail(error,"That driver login was not accepted."));}
     finally{setBusy(false);}
   };
-  return <section aria-label="Driver login">
+  return <section className="driver-login-panel" aria-label="Driver login">
     <h2>Driver login</h2>
     <p>First time here: enter the one-time code dispatch gave you and choose your own password. After that, sign in with your login ID and password.</p>
     <details>
       <summary>First login: set your password</summary>
       <label>One-time code <input value={code} disabled={busy} onChange={event=>setCode(event.target.value.trim())}/></label>
       <label>New password <input type="password" value={password} disabled={busy} onChange={event=>setPassword(event.target.value)}/></label>
-      <button disabled={busy} onClick={()=>void claim()}>Set my password</button>
+      <button className="driver-primary" disabled={busy} onClick={()=>void claim()}>Set password and open itinerary</button>
     </details>
     <fieldset disabled={busy}>
       <legend>Sign in with your password</legend>
       <label>Login ID <input value={loginId} placeholder="2223334444" onChange={event=>setLoginId(event.target.value.trim())}/></label>
       <label>Password <input type="password" value={signInPassword} onChange={event=>setSignInPassword(event.target.value)}/></label>
-      <button onClick={()=>void signIn()}>Check my driver login</button>
+      <button className="driver-primary" onClick={()=>void signIn()}>Sign in and open itinerary</button>
     </fieldset>
     <p role="status">{message}</p>
   </section>;

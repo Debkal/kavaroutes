@@ -5,7 +5,7 @@ import {DriverClosureRequestSchema,DriverClosureReceiptSchema,DriverClosureViewS
 import {RouteProposalRequestSchema,RouteDecisionRequestSchema,RouteProposalReceiptSchema,RouteProposalViewSchema,type RouteProposalService} from './route-proposals.js';
 import {DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,PlanDispatchRunRequestSchema,PlanDispatchRunReceiptSchema,UnassignDispatchRunRequestSchema,UnassignDispatchRunReceiptSchema,type DispatchService,type AssignDispatchRunRequest,type PlanDispatchRunRequest,type UnassignDispatchRunRequest} from './dispatch-board.js';
 import {ClientCreateRequestSchema,ClientCreateReceiptSchema,ClientRosterSchema,ClientUpdateRequestSchema,type ClientService,type ClientCreateRequest,type ClientUpdateRequest} from './client-records.js';
-import {DriverLoginClaimRequestSchema,DriverLoginCreateRequestSchema,DriverLoginReceiptSchema,DriverLoginStateSchema,DriverLoginVerifyRequestSchema,type DriverLoginService,type DriverLoginCreateRequest,type DriverLoginClaimRequest,type DriverLoginVerifyRequest} from './driver-logins.js';
+import {DriverAccountCreateRequestSchema,DriverAccountReceiptSchema,DriverLoginClaimRequestSchema,DriverLoginCreateRequestSchema,DriverLoginReceiptSchema,DriverLoginStateSchema,DriverLoginVerifyRequestSchema,type DriverLoginService,type DriverAccountCreateRequest,type DriverLoginCreateRequest,type DriverLoginClaimRequest,type DriverLoginVerifyRequest} from './driver-logins.js';
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify, { LogController, type FastifyInstance, type FastifyPluginAsync, type FastifyReply, type FastifyRequest, type FastifyServerOptions } from "fastify";
 import { Type as TypeBox, type Static, type TSchema } from "typebox";
@@ -431,6 +431,15 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     for(const[name,value]of Object.entries(result.headers))reply.header(name,value);
     if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');
     request.wp007Context.resultCode=result.replayed?'IDEMPOTENT_REPLAY':'DISPATCH_ROUTE_PLANNED';return reply.status(201).send(result.body);
+  });
+  routes.post('/v1/organizations/:organizationId/fleet/drivers/commands/create',{bodyLimit:16384,schema:{operationId:'createDriverAccount',tags:['command'],security,headers:IdempotentHeaders,params:OrganizationParams,body:DriverAccountCreateRequestSchema,
+    response:responseWithErrors({201:jsonResponse(DriverAccountReceiptSchema,'Created driver account; the invite code is returned once')},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
+    const {organizationId}=request.params as {organizationId:string};
+    const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'createDriverAccount');
+    if(!options.driverLoginService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','driver accounts unavailable');
+    const result=await options.driverLoginService.createAccount({organizationId,principal,key:String(request.headers['idempotency-key']),request:request.body as DriverAccountCreateRequest});
+    if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');
+    request.wp007Context.resultCode=result.replayed?'IDEMPOTENT_REPLAY':'DRIVER_ACCOUNT_CREATED';return reply.status(201).send(result.body);
   });
   routes.post('/v1/organizations/:organizationId/driver-logins/commands/create',{bodyLimit:16384,schema:{operationId:'createDriverLogin',tags:['dispatch'],security,headers:IdempotentHeaders,params:OrganizationParams,body:DriverLoginCreateRequestSchema,
     response:responseWithErrors({201:jsonResponse(DriverLoginReceiptSchema,'Invited driver login; the invite code is returned once')},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{

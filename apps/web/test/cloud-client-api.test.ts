@@ -3,7 +3,9 @@ import {createCloudClientApi,decodeClientRecord,decodeClientRoster} from "../src
 
 const clientId="8aac6384-8c64-4e27-b0ed-44ae2861983d",tripId="4db22a46-b8a3-4a97-94c9-7257740d2b51";
 const record={clientId,displayName:"Synthetic Sunrise Residence",entityName:"Sunrise Care Group",phone:"555-0100",
- pickupAddress:"100 Synthetic Sunrise Way",dropoffAddresses:[{ordinal:1,addressLabel:"Synthetic Public Library"},{ordinal:2,addressLabel:"Synthetic Day Program"}],
+ pickupAddress:"100 Synthetic Sunrise Way",dropoffAddresses:[
+  {ordinal:1,addressLabel:"Synthetic Public Library",usageCount:4,lastUsedAt:"2026-09-17T16:00:00.000Z"},
+  {ordinal:2,addressLabel:"Synthetic Day Program",usageCount:2,lastUsedAt:"2026-09-16T16:00:00.000Z"}],
  tripType:"ROUND_TRIP",notes:"Roleplay client",version:1,routes:[{tripId,serviceDate:"2026-09-17"}]};
 
 it("decodes a client trip pattern and refuses a response that carries extra fields",()=>{
@@ -11,7 +13,7 @@ it("decodes a client trip pattern and refuses a response that carries extra fiel
  expect(()=>decodeClientRecord({...record,driverId:tripId})).toThrow("INVALID_CLIENT_RESPONSE");
  expect(()=>decodeClientRecord({...record,tripType:"ROUNDABOUT"})).toThrow("INVALID_CLIENT_RESPONSE");
  expect(()=>decodeClientRecord({...record,dropoffAddresses:[{ordinal:1,label:"x"}]})).toThrow("INVALID_CLIENT_RESPONSE");
- expect(()=>decodeClientRecord({...record,dropoffAddresses:[{ordinal:0,addressLabel:"x"}]})).toThrow("INVALID_CLIENT_RESPONSE");
+ expect(()=>decodeClientRecord({...record,dropoffAddresses:[{ordinal:0,addressLabel:"x",usageCount:0,lastUsedAt:null}]})).toThrow("INVALID_CLIENT_RESPONSE");
  expect(()=>decodeClientRoster({clients:[record]})).toThrow("INVALID_CLIENT_RESPONSE");
 });
 

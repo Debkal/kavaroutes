@@ -28,6 +28,11 @@ export interface DriverCredentialState {
   readonly lastLoginAt: string | null;
   readonly version: number;
 }
+export type DriverWorkforceRelationship = "OWNER_OPERATOR" | "EMPLOYEE" | "CONTRACTOR";
+export interface DriverAccountInvite extends DriverCredentialInvite {
+  readonly displayName: string;
+  readonly workforceRelationship: DriverWorkforceRelationship;
+}
 
 const digest = (value: string) => createHash("sha256").update(value).digest("hex");
 export function hashDriverPassword(password: string, salt = randomBytes(16).toString("hex")) {
@@ -43,6 +48,23 @@ export function verifyDriverPassword(password: string, stored: string) {
 }
 /** Invite codes are handed over once; only their hash is persisted. */
 const newInviteCode = () => randomBytes(9).toString("base64url").replaceAll("-", "A").replaceAll("_", "B");
+
+/** Create the fleet resource and its initial credential in the caller's transaction.
+ * The account cannot exist without a driver and a driver created here cannot be left
+ * without its one-time login credential. */
+export async function createDriverAccount(client: PoolClient, tenantId: string, input: {
+  driverId: string; displayName: string; workforceRelationship: DriverWorkforceRelationship; loginId: string;
+}): Promise<DriverAccountInvite> {
+  try {
+    await client.query(`INSERT INTO fleet.driver(tenant_id,id,synthetic_reference,workforce_relationship)
+      VALUES($1,$2,$3,$4)`,[tenantId,input.driverId,input.displayName,input.workforceRelationship]);
+    const invite=await createDriverCredential(client,tenantId,{driverId:input.driverId,loginId:input.loginId});
+    return {...invite,displayName:input.displayName,workforceRelationship:input.workforceRelationship};
+  } catch(error) {
+    if((error as {code?:unknown})?.code==="23505")throw new PersistenceConflict("duplicate","driver name or login ID already exists");
+    throw error;
+  }
+}
 
 export async function createDriverCredential(client: PoolClient, tenantId: string, input: {driverId: string; loginId: string}): Promise<DriverCredentialInvite> {
   const driver = (await client.query("SELECT id FROM fleet.driver WHERE tenant_id=$1 AND id=$2", [tenantId, input.driverId])).rows[0];

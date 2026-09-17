@@ -13,7 +13,7 @@ export function Component(){const api=useMemo(()=>createCloudFacilityApi(window.
  const page=useQuery({queryKey:[...context,'day',day,after],queryFn:({signal})=>api.day(day,after,signal),enabled:session.isSuccess,retry:false,refetchInterval:5000});
  const detail=useQuery({queryKey:[...context,'trip',selected],queryFn:({signal})=>api.trip(selected!,signal),enabled:session.isSuccess&&!!selected,retry:false,refetchInterval:5000});
  useEffect(()=>()=>{void queryClient.cancelQueries({queryKey:context});queryClient.removeQueries({queryKey:context});},[]);
- return <main id="main-content" className="facility-page"><h1>Clients</h1><p>KavaRoutes Connect · private synthetic client list. This view requests only granted trip status and scheduled time. No live position or ETA is provided.</p>
+ return <main id="main-content" className="facility-page"><h1>Clients</h1><p>KavaRoutes Connect shows authorized trip status and scheduled time. Live position and ETA are not shared here.</p>
  {session.isError?<p role="alert">Client session unavailable. No previous trip data is shown.</p>:session.isPending?<p role="status">Checking client access…</p>:<>
  <ServiceDatePicker value={day} onChange={value=>{setDay(value);setAfter(null);setSelected(null);}}/>
  <button onClick={()=>{void page.refetch();if(selected)void detail.refetch();}}>Refresh client trips</button>

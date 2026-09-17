@@ -12,8 +12,8 @@ const request: CloudPlanRequest = {
   legs: [{
     riderReference: "Synthetic Rider", pickupLabel: "Synthetic Community Center", dropoffLabel: "Synthetic Public Library",
     localServiceTime: "09:00:00", resolvedServiceAt: "2026-09-17T16:00:00.000Z", resolvedUtcOffsetSeconds: -25200,
-    plannedStartAt: "2026-09-17T16:00:00.000Z", plannedEndAt: "2026-09-17T16:45:00.000Z",
-    pickupRequired: true, dropoffRequired: true, mobilitySecurementRequired: false,
+    plannedStartAt: "2026-09-17T16:00:00.000Z", plannedEndAt: "2026-09-17T16:45:00.000Z", appointmentLengthMinutes:60,
+    pickupRequired: true, dropoffRequired: true, mobilitySecurementRequired: false, recordClientDropoff: false,
   }],
 };
 const receipt = { runId: "10000000-0000-4000-8000-000000000020", version: 1, serviceDate: "2026-09-17", legCount: 1, tripLegIds: ["10000000-0000-4000-8000-000000000021"] };

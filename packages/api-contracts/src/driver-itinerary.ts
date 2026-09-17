@@ -21,7 +21,8 @@ export const DriverItinerarySchema = Type.Object({
     vehicleId: Type.Union([id(), Type.Null()]), vehicleLabel: Type.Union([label(), Type.Null()]),
     tripId: id(), tripLegId: id(), ordinal: Type.Integer({ minimum: 1 }),
     riderLabel: label(), pickupLabel: label(), dropoffLabel: label(),
-    plannedStartAt: Type.String({ format: "date-time" }), plannedEndAt: Type.String({ format: "date-time" }), serviceTimezone: label(),
+    plannedStartAt: Type.String({ format: "date-time" }), plannedEndAt: Type.String({ format: "date-time" }),
+    appointmentLengthMinutes: Type.Optional(Type.Integer({minimum:0,maximum:1440})), serviceTimezone: label(),
     // Optional during prototype rollout; null means no dispatched execution exists.
     execution: Type.Optional(Type.Union([Type.Null(), Type.Object({
       executionId: id(), lifecycle: Type.String({ pattern: "^[A-Z][A-Z_]{1,63}$", maxLength: 64 }),

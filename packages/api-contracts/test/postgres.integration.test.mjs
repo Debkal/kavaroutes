@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createWp007Api, createWp007PostgresApplication, requestFingerprint, syntheticIds } from "../dist/index.js";
+import { createPostgresClientService, createPostgresDispatchService, createPostgresDriverLoginService, createWp007Api, createWp007PostgresApplication, requestFingerprint, syntheticIds } from "../dist/index.js";
 import { withTenantTransaction } from "../../postgres-persistence/dist/index.js";
 import { withFreshDatabase } from "../../postgres-persistence/scripts/database-fixture.mjs";
 
@@ -17,6 +17,59 @@ async function seed(pool) {
     await client.query("INSERT INTO intake.rider (tenant_id,id,synthetic_reference) VALUES ($1,$2,'synthetic-rider-007')", [organizationId, riderId]);
   });
 }
+
+test("scheduled client destinations update the drop-off directory frequency and recency exactly once", {skip:!connectionString}, async()=>{
+  await withFreshDatabase(connectionString,"wp007_client_dropoff_usage",async pool=>{
+    await seed(pool);
+    await withTenantTransaction(pool,organizationId,"kavaroutes_api",client=>client.query(
+      "INSERT INTO platform.branch(tenant_id,id,organization_id,synthetic_label) VALUES($1,$2,$1,'Client directory branch')",
+      [organizationId,"11111111-1111-4111-8111-111111111120"]));
+    const application=createWp007PostgresApplication(pool,{etagSecret:"synthetic-etag-secret-dropoff-usage-1234"});
+    const app=await createWp007Api({application,clientService:createPostgresClientService(pool),dispatchService:createPostgresDispatchService(pool,{etag:application.etag})});
+    try{
+      const created=await app.inject({method:"POST",url:`/v1/organizations/${organizationId}/clients/commands/create`,headers:{...auth,"idempotency-key":"client-dropoff-create-001"},
+        payload:{displayName:"Alex Rider",pickupAddress:"100 Home Way",dropoffAddresses:["200 Clinic Way"]}});
+      assert.equal(created.statusCode,201,created.body);
+      const clientId=created.json().clientId;
+      const payload={serviceDate:"2026-09-18",serviceTimezone:"America/Los_Angeles",plannedStartAt:"2026-09-18T15:45:00.000Z",plannedEndAt:"2026-09-18T17:00:00.000Z",clientId,
+        legs:[{riderReference:"Alex Rider",pickupLabel:"100 Home Way",dropoffLabel:"200 Clinic Way",localServiceTime:"09:00:00",resolvedServiceAt:"2026-09-18T16:00:00.000Z",resolvedUtcOffsetSeconds:-25200,
+          plannedStartAt:"2026-09-18T16:00:00.000Z",plannedEndAt:"2026-09-18T16:45:00.000Z",appointmentLengthMinutes:60,pickupRequired:true,dropoffRequired:true,mobilitySecurementRequired:false,recordClientDropoff:true}]};
+      const headers={...auth,"idempotency-key":"client-dropoff-plan-001"};
+      const url=`/v1/organizations/${organizationId}/dispatch/runs/commands/plan`;
+      const first=await app.inject({method:"POST",url,headers,payload});
+      assert.equal(first.statusCode,201,first.body);
+      assert.equal((await app.inject({method:"POST",url,headers,payload})).headers["kavaroutes-idempotency-replayed"],"true");
+      const board=await app.inject({url:`/v1/organizations/${organizationId}/dispatch-board/2026-09-18`,headers:auth});
+      assert.equal(board.statusCode,200,board.body);assert.equal(board.json().legs[0].appointmentLengthMinutes,60);
+      const roster=await app.inject({url:`/v1/organizations/${organizationId}/clients?clientId=${clientId}`,headers:auth});
+      assert.equal(roster.statusCode,200,roster.body);
+      assert.deepEqual(roster.json().clients[0].dropoffAddresses,[{ordinal:1,addressLabel:"200 Clinic Way",usageCount:1,lastUsedAt:"2026-09-18T16:00:00.000Z"}]);
+    }finally{await app.close();}
+  });
+});
+
+test("driver account creation atomically persists fleet identity, credential, audit, and idempotent replay", {skip:!connectionString}, async()=>{
+  await withFreshDatabase(connectionString,"wp007_driver_account",async pool=>{
+    await seed(pool);
+    const app=await createWp007Api({application:createWp007PostgresApplication(pool,{etagSecret:"synthetic-etag-secret-driver-account-1234"}),driverLoginService:createPostgresDriverLoginService(pool)});
+    try{
+      const url=`/v1/organizations/${organizationId}/fleet/drivers/commands/create`;
+      const headers={...auth,"idempotency-key":"driver-account-create-postgres-001"};
+      const payload={displayName:"River Driver",loginId:"river-driver",workforceRelationship:"CONTRACTOR"};
+      const first=await app.inject({method:"POST",url,headers,payload});
+      assert.equal(first.statusCode,201,first.body);
+      const replay=await app.inject({method:"POST",url,headers,payload});
+      assert.equal(replay.statusCode,201,replay.body);assert.equal(replay.headers["kavaroutes-idempotency-replayed"],"true");assert.deepEqual(replay.json(),first.json());
+      await withTenantTransaction(pool,organizationId,"kavaroutes_api",async client=>{
+        assert.equal((await client.query("SELECT count(*)::int AS count FROM fleet.driver WHERE synthetic_reference='River Driver' AND workforce_relationship='CONTRACTOR'")).rows[0].count,1);
+        assert.equal((await client.query("SELECT count(*)::int AS count FROM platform.driver_credential WHERE login_id='river-driver' AND status='INVITED'")).rows[0].count,1);
+        assert.equal((await client.query("SELECT count(*)::int AS count FROM audit.event WHERE aggregate_id=$1",[first.json().driverId])).rows[0].count,1);
+      });
+      const duplicate=await app.inject({method:"POST",url,headers:{...auth,"idempotency-key":"driver-account-create-postgres-002"},payload:{...payload,loginId:"river-driver-2"}});
+      assert.equal(duplicate.statusCode,409,duplicate.body);
+    }finally{await app.close();}
+  });
+});
 
 test("PostgreSQL create/read/cancel is tenant-safe, idempotent, conditional, audited, and atomic", { skip: !connectionString }, async () => {
   await withFreshDatabase(connectionString, "wp007_vertical", async (pool) => {

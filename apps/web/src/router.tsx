@@ -18,8 +18,8 @@ function AppShell() {
   return <QueryClientProvider client={queryClient}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <header className="app-header">
-      <div><span className="brand-mark" aria-hidden="true">KR</span><strong>KavaRoutes</strong><span className="environment">{privateCloud ? "Private cloud prototype" : "Local synthetic alpha"}</span></div>
-      <nav aria-label="Primary"><NavLink to="/dispatch">Dispatch</NavLink><NavLink to="/driver">Driver</NavLink><NavLink to="/clients">Clients</NavLink></nav>
+      <div><span className="brand-mark" aria-hidden="true">KR</span><strong>KavaRoutes</strong><span className="environment">Product testing</span></div>
+      <nav aria-label="Primary"><NavLink to="/dispatch">Dispatch</NavLink><NavLink to="/clients">Clients</NavLink><NavLink to="/command">Command</NavLink><NavLink to="/driver">Driver</NavLink></nav>
     </header>
     <Outlet />
     <footer className="app-footer"><span>Web build {webBuild}</span></footer>
@@ -34,7 +34,7 @@ function RootError() {
 function NotFound() { return <main id="main-content" className="message-page"><h1>Page not found</h1><p>This local route is not part of the closed KavaRoutes catalog.</p><Link to="/dispatch">Open Dispatch</Link></main>; }
 
 function HydrateFallback() {
-  return <main id="main-content" className="message-page"><p role="status">Loading the KavaRoutes prototype…</p></main>;
+  return <main id="main-content" className="message-page"><p role="status">Loading KavaRoutes…</p></main>;
 }
 
 // A lazy route hydrates before its module is ready; without this the router warns on
@@ -45,6 +45,7 @@ export const router = createBrowserRouter([{
     { path: "dispatch", lazy: () => privateCloud ? import("./routes/cloud-dispatch-route") : import("./routes/dispatch-route") },
     { path: "driver", lazy: () => privateCloud ? import("./routes/cloud-driver-route") : import("./routes/cloud-driver-route") },
     { path: "clients", lazy: () => privateCloud ? import("./routes/cloud-clients-route") : import("./routes/facility-route") },
+    { path: "command", lazy: () => import("./routes/cloud-command-route") },
     { path: "forbidden", lazy: () => import("./routes/forbidden-route") },
     { path: "session-expired", lazy: () => import("./routes/session-expired-route") },
     { path: "*", element: <NotFound /> },

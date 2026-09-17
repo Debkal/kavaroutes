@@ -20,7 +20,7 @@ export function CloudReturnReview({api,shift}:{api:Api;shift:string}){
  // One reviewer panel is rendered per recorded shift, so the landmark name carries the
  // shift: two panels with the same region label are indistinguishable to a screen reader
  // (and fail axe's landmark-unique rule).
- return <section aria-label={`Authorized return review for shift ${shift}`}><button onClick={()=>setSelected(true)} disabled={selected}>Open synthetic authorized return reviewer</button>
+ return <section aria-label={`Authorized return review for shift ${shift}`}><button onClick={()=>setSelected(true)} disabled={selected}>Open authorized return review</button>
  {selected&&<Review api={api} shift={shift}/>}</section>;
 }
 
@@ -39,7 +39,7 @@ function Review({api,shift}:{api:Api;shift:string}){
    if(!emergency&&v.returnMode!=='REQUIRED_WITH_AUDITED_OVERRIDE')return;
    if(!window.confirm(emergency
      ? 'Resolve the emergency stop and end this shift? Legs are not all complete, so the unresolved riders are recorded with your acknowledgement.'
-     : 'As the synthetic authorized reviewer, record review of this neutral return exception and end the shift? Required vehicle checks and unresolved riders cannot be waived.'))return;
+     : 'Record review of this return exception and end the shift? Required vehicle checks and unresolved riders cannot be waived.'))return;
    try{
     command={...await returnReviewIdentity(shift,v.shiftGeneration,v.exceptionCommandId,v.resourceVersion),shiftGeneration:v.shiftGeneration,expectedVersion:v.resourceVersion,exceptionCommandId:v.exceptionCommandId,
       reason:'RETURN_EXCEPTION_REVIEWED',...(emergency?{emergencyStopResolution:true}:{})};

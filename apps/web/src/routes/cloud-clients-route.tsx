@@ -6,6 +6,8 @@ import {createCloudClientApi} from "../cloud-client-api";
 import {ClientIntakeForm} from "../components/ClientIntakeForm";
 import {ClientEditForm} from "../components/ClientEditForm";
 import {queryClient} from "../runtime";
+import {businessTimezone} from "../business-time";
+import {clientDirectoryRows,downloadCsv} from "../csv";
 
 const context=["private-cloud","clients"] as const;
 
@@ -27,9 +29,14 @@ export function Component(){
   const clients=session.isSuccess&&!roster.isError?roster.data?.value.clients??[]:[];
   const visible=clients.filter(client=>`${client.displayName} ${client.entityName??""} ${client.phone??""}`.toLowerCase().includes(search.toLowerCase().trim()));
   const active=clients.find(client=>client.clientId===selected)??clients[0];
+  // The directory exported as one counted sheet: destinations per client, how often each
+  // was scheduled, and the most used / most recent one.
+  const exportDirectory=()=>downloadCsv(`kavaroutes-clients-${new Date().toISOString().slice(0,10)}.csv`,clientDirectoryRows(clients));
+  const frequentDropoffs=active?[...active.dropoffAddresses].sort((a,b)=>b.usageCount-a.usageCount||Date.parse(b.lastUsedAt??"1970-01-01")-Date.parse(a.lastUsedAt??"1970-01-01")||a.addressLabel.localeCompare(b.addressLabel)):[];
   return <main id="main-content" className="clients-page">
     <section className="page-title"><div><p className="eyebrow">KavaRoutes · Client directory</p><h1>People you transport</h1>
-      <p>Contact details and home addresses in one place. Schedule destinations and trip requests in Dispatch.</p></div><Link className="action-link" to="/dispatch">Open Dispatch →</Link></section>
+      <p>Contact details and home addresses in one place. Schedule destinations and trip requests in Dispatch.</p></div>
+      <div className="section-heading-actions"><button disabled={!clients.length} onClick={exportDirectory}>Export directory CSV</button><Link className="action-link" to="/dispatch">Open Dispatch →</Link></div></section>
     <div className="clients-workspace">
     <details className="intake-panel"><summary>Add a client</summary>
     <ClientIntakeForm api={api} onCreated={receipt=>{setSelected(receipt.clientId);setMessage(`Client ${receipt.displayName} is selected.`);void roster.refetch();}}/>
@@ -60,7 +67,12 @@ export function Component(){
         <dt>Notes</dt><dd>{active.notes??"None"}</dd></dl>
       <h3>Transport requests</h3><p>Dispatch chooses the destination and pickup time for each trip. The home address stays with this client.</p>
       <button className="primary" onClick={()=>schedule(active.clientId)}>Schedule transport →</button>
-      {active.dropoffAddresses.length>0&&<details><summary>Previously recorded destinations</summary><ol>{active.dropoffAddresses.map(dropoff=><li key={dropoff.ordinal}>{dropoff.addressLabel}</li>)}</ol></details>}
+      <h3>Drop-off address directory</h3>
+      {frequentDropoffs.length===0?<p>No drop-off addresses recorded yet. The first destination scheduled in Dispatch will be added here.</p>
+       :<div className="table-scroll" tabIndex={0} role="group" aria-label="Drop-off addresses sorted by frequency"><table><caption>Most frequently used destinations first</caption>
+        <thead><tr><th scope="col">Drop-off address</th><th scope="col">Trips</th><th scope="col">Last used</th></tr></thead>
+        <tbody>{frequentDropoffs.map(dropoff=><tr key={dropoff.ordinal}><th scope="row">{dropoff.addressLabel}</th><td>{dropoff.usageCount}</td>
+          <td>{dropoff.lastUsedAt?new Date(dropoff.lastUsedAt).toLocaleDateString("en-US",{timeZone:businessTimezone}):"Not scheduled yet"}</td></tr>)}</tbody></table></div>}
       <ClientEditForm api={api} client={active} onSaved={version=>{setMessage(`Client ${active.displayName} saved at version ${version}.`);void roster.refetch();}}/>
       <h3>Scheduled trips</h3>
       {active.routes.length===0?<p>No routes planned for this client yet. Plan one in Dispatch and pick this client.</p>

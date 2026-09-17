@@ -10,7 +10,7 @@ const leg = {
   vehicleId: "42000000-0000-4000-8000-000000000003", vehicleLabel: "Synthetic Van",
   tripId: "42000000-0000-4000-8000-000000000004", tripLegId: "42000000-0000-4000-8000-000000000005", ordinal: 1,
   riderLabel: "Synthetic rider", pickupLabel: "Synthetic pickup", dropoffLabel: "Synthetic drop-off",
-  plannedStartAt: "2026-09-14T15:00:00.000Z", plannedEndAt: "2026-09-14T16:00:00.000Z", serviceTimezone: "America/Los_Angeles",
+  plannedStartAt: "2026-09-14T15:00:00.000Z", plannedEndAt: "2026-09-14T16:00:00.000Z", appointmentLengthMinutes:60, serviceTimezone: "America/Los_Angeles",
 };
 
 describe("Driver web cloud adapter", () => {

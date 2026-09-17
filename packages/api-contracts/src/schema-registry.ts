@@ -2,7 +2,7 @@ import type { TSchema } from "typebox";
 import { coreSchemas } from "./schemas.js";
 import { AssignDispatchRunRequestSchema, AssignDispatchRunReceiptSchema, DispatchBoardSchema, DispatchPlanLegSchema, PlanDispatchRunRequestSchema, PlanDispatchRunReceiptSchema, UnassignDispatchRunRequestSchema, UnassignDispatchRunReceiptSchema } from "./dispatch-board.js";
 import { ClientCreateReceiptSchema, ClientCreateRequestSchema, ClientRosterSchema, ClientUpdateRequestSchema } from "./client-records.js";
-import { DriverLoginClaimRequestSchema, DriverLoginCreateRequestSchema, DriverLoginReceiptSchema, DriverLoginStateSchema, DriverLoginVerifyRequestSchema } from "./driver-logins.js";
+import { DriverAccountCreateRequestSchema, DriverAccountReceiptSchema, DriverLoginClaimRequestSchema, DriverLoginCreateRequestSchema, DriverLoginReceiptSchema, DriverLoginStateSchema, DriverLoginVerifyRequestSchema } from "./driver-logins.js";
 import { FacilityDaySchema } from "./facility-day.js";
 import { RouteDecisionRequestSchema, RouteProposalReceiptSchema, RouteProposalRequestSchema, RouteProposalViewSchema } from "./route-proposals.js";
 import {
@@ -31,7 +31,7 @@ export const allSchemas: readonly TSchema[] = Object.freeze([
   /// A planned run carries its legs inline, so the leg object is registered too.
   DispatchPlanLegSchema, PlanDispatchRunRequestSchema, PlanDispatchRunReceiptSchema, UnassignDispatchRunRequestSchema, UnassignDispatchRunReceiptSchema,
   ClientCreateRequestSchema, ClientCreateReceiptSchema, ClientRosterSchema, ClientUpdateRequestSchema,
-  DriverLoginCreateRequestSchema, DriverLoginReceiptSchema, DriverLoginClaimRequestSchema, DriverLoginVerifyRequestSchema, DriverLoginStateSchema,
+  DriverAccountCreateRequestSchema, DriverAccountReceiptSchema, DriverLoginCreateRequestSchema, DriverLoginReceiptSchema, DriverLoginClaimRequestSchema, DriverLoginVerifyRequestSchema, DriverLoginStateSchema,
   StartDriverShiftRequestSchema, StartDriverShiftReceiptSchema,
   DriverPrecheckRequestSchema, DriverPrecheckReceiptSchema, DriverShiftStateSchema,
   DriverSignatureRequestSchema, DriverSignatureReceiptSchema,

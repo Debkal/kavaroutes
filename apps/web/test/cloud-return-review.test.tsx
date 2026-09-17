@@ -13,12 +13,12 @@ it('requires explicit reviewer selection and recovers exact original override af
  vi.stubGlobal('crypto',webcrypto);
  const api={returnReview:vi.fn(async()=>({value})),overrideReturn:vi.fn().mockRejectedValueOnce(new DevelopmentApiError(0,'OUTCOME_UNKNOWN')).mockResolvedValue({value:{shiftReference:shift,resourceVersion:4}})};
  const first=mount(api);expect(api.returnReview).not.toHaveBeenCalled();
- fireEvent.click(screen.getByText('Open synthetic authorized return reviewer'));
+ fireEvent.click(screen.getByText('Open authorized return review'));
  await waitFor(()=>expect(screen.getByText('Record audited return override')).toBeEnabled());
  fireEvent.click(screen.getByText('Record audited return override'));
  await screen.findByText(/Outcome unknown. Recover this original request/);
  const original=api.overrideReturn.mock.calls[0];first.unmount();first.client.clear();
- const second=mount(api);fireEvent.click(screen.getByText('Open synthetic authorized return reviewer'));
+ const second=mount(api);fireEvent.click(screen.getByText('Open authorized return review'));
  await waitFor(()=>expect(screen.getByText('Record audited return override')).toBeEnabled());
  fireEvent.click(screen.getByText('Record audited return override'));
  await screen.findByText('Server accepted audited override; shift ended and collection stopped.');
@@ -26,6 +26,6 @@ it('requires explicit reviewer selection and recovers exact original override af
 });
 it('no recorded exception or unavailable review cannot enable override',async()=>{
  const api={returnReview:async()=>({value:{...value,exceptionCommandId:null}}),overrideReturn:vi.fn()};const surface=mount(api);
- fireEvent.click(screen.getByText('Open synthetic authorized return reviewer'));
+ fireEvent.click(screen.getByText('Open authorized return review'));
  await screen.findByText(/Return policy:/);expect(screen.getByText('Record audited return override')).toBeDisabled();expect(api.overrideReturn).not.toHaveBeenCalled();surface.client.clear();
 });

@@ -9,12 +9,23 @@ const id=()=>Type.String({format:'uuid'});
 const instant=()=>Type.String({format:'date-time'});
 const loginId=()=>Type.String({pattern:'^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$'});
 const STATUSES=['INVITED','ACTIVE','LOCKED'] as const;
+const DriverWorkforceRelationshipSchema=Type.Union([Type.Literal('OWNER_OPERATOR'),Type.Literal('EMPLOYEE'),Type.Literal('CONTRACTOR')]);
 
 /** Driver logins for the synthetic prototype: dispatch issues the login, the driver
  * claims it on their designated phone and sets their own password, so each driver keeps
  * a separate credential. Only hashes are stored (see migration 0033). */
 export const DriverLoginCreateRequestSchema=Type.Object({driverId:id(),loginId:loginId()},{additionalProperties:false,$id:'DriverLoginCreateRequest'});
 export type DriverLoginCreateRequest=Static<typeof DriverLoginCreateRequestSchema>;
+export const DriverAccountCreateRequestSchema=Type.Object({
+ displayName:Type.String({minLength:1,maxLength:120}),loginId:loginId(),
+ workforceRelationship:DriverWorkforceRelationshipSchema,
+},{additionalProperties:false,$id:'DriverAccountCreateRequest'});
+export type DriverAccountCreateRequest=Static<typeof DriverAccountCreateRequestSchema>;
+export const DriverAccountReceiptSchema=Type.Object({driverId:id(),displayName:Type.String({minLength:1,maxLength:120}),
+ workforceRelationship:DriverWorkforceRelationshipSchema,loginId:loginId(),
+ inviteCode:Type.String({minLength:8,maxLength:64}),status:Type.Literal('INVITED'),version:Type.Integer({minimum:1})
+},{additionalProperties:false,$id:'DriverAccountReceipt'});
+export type DriverAccountReceipt=Static<typeof DriverAccountReceiptSchema>;
 export const DriverLoginReceiptSchema=Type.Object({driverId:id(),loginId:loginId(),inviteCode:Type.String({minLength:8,maxLength:64}),
  status:Type.Literal('INVITED'),version:Type.Integer({minimum:1})},{additionalProperties:false,$id:'DriverLoginReceipt'});
 export type DriverLoginReceipt=Static<typeof DriverLoginReceiptSchema>;
@@ -46,6 +57,22 @@ export function createPostgresDriverLoginService(pool:Pool){
   persistence.executeIdempotentMutation<T>({tenantId:input.organizationId,actorReference:input.principal.id,operationId:input.operationId,
    key:input.key,fingerprint:input.fingerprint,recordId:randomUUID(),expiresAt:new Date(Date.now()+86_700_000),isolationLevel:'serializable'},work);
  return Object.freeze({
+  async createAccount(input:{organizationId:string;principal:SyntheticPrincipal;key:string;request:DriverAccountCreateRequest}){
+   dispatchAccess(input.organizationId,input.principal);
+   const displayName=input.request.displayName.trim();
+   if(!displayName)throw new ProtocolError(422,'DRIVER_NAME_REQUIRED','driver display name is required');
+   const fingerprint=requestFingerprint({kind:'createDriverAccount',displayName,loginId:input.request.loginId,workforceRelationship:input.request.workforceRelationship});
+   return mutation<DriverAccountReceipt>({organizationId:input.organizationId,principal:input.principal,operationId:'createDriverAccount',
+    key:input.key,fingerprint},async tx=>{
+    const account=await tx.createDriverAccount({driverId:randomUUID(),displayName,loginId:input.request.loginId,
+      workforceRelationship:input.request.workforceRelationship});
+    const receipt:DriverAccountReceipt={driverId:account.driverId,displayName:account.displayName,
+      workforceRelationship:account.workforceRelationship,loginId:account.loginId,inviteCode:account.inviteCode,status:'INVITED',version:account.version};
+    await tx.appendAudit({auditId:randomUUID(),aggregateKind:'driver-account',aggregateId:account.driverId,aggregateVersion:1,
+      actionReference:'driver.account.created',actorReference:input.principal.id});
+    return {statusCode:201,body:receipt,headers:{},resultReference:account.driverId};
+   });
+  },
   async create(input:{organizationId:string;principal:SyntheticPrincipal;key:string;request:DriverLoginCreateRequest}){
    dispatchAccess(input.organizationId,input.principal);
    const fingerprint=requestFingerprint({kind:'createDriverLogin',...input.request});

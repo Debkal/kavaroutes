@@ -33,6 +33,7 @@ export function decodeDriverItinerary(value: unknown): DriverItinerary {
     const leg = object(raw);
     if (![leg.assignmentId, leg.runId, leg.tripId, leg.tripLegId].every(value => typeof value === "string" && uuid.test(value)) ||
       !Number.isSafeInteger(leg.assignmentVersion) || !Number.isSafeInteger(leg.runVersion) || !Number.isSafeInteger(leg.ordinal) ||
+      (leg.appointmentLengthMinutes!==undefined&&(!Number.isSafeInteger(leg.appointmentLengthMinutes) || Number(leg.appointmentLengthMinutes)<0 || Number(leg.appointmentLengthMinutes)>1440)) ||
       [leg.riderLabel, leg.pickupLabel, leg.dropoffLabel, leg.plannedStartAt, leg.plannedEndAt, leg.serviceTimezone].some(value => typeof value !== "string")) throw new Error("INVALID_DRIVER_ITINERARY");
     if (leg.execution !== undefined && leg.execution !== null) {
       const execution = object(leg.execution);

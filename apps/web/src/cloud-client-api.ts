@@ -29,7 +29,7 @@ const tripType = (value: unknown) => {
 
 export type ClientTripType = "ONE_WAY" | "ROUND_TRIP";
 export interface ClientRoute { readonly tripId: string; readonly serviceDate: string }
-export interface ClientDropoff { readonly ordinal: number; readonly addressLabel: string }
+export interface ClientDropoff { readonly ordinal: number; readonly addressLabel: string; readonly usageCount: number; readonly lastUsedAt: string | null }
 export interface ClientRecord {
   readonly clientId: string; readonly displayName: string; readonly entityName: string | null;
   readonly phone: string | null; readonly pickupAddress: string | null; readonly dropoffAddresses: readonly ClientDropoff[];
@@ -52,13 +52,16 @@ export function decodeClientRecord(value: unknown): ClientRecord {
   const source = object(value);
   keysAre(source, ["clientId", "displayName", "entityName", "phone", "pickupAddress", "dropoffAddresses", "tripType", "notes", "version", "routes"]);
   if (typeof source.clientId !== "string" || !uuid.test(source.clientId) || !Number.isSafeInteger(source.version) || Number(source.version) < 1) throw new Error("INVALID_CLIENT_RESPONSE");
-  if (!Array.isArray(source.dropoffAddresses) || source.dropoffAddresses.length > 20) throw new Error("INVALID_CLIENT_RESPONSE");
+  if (!Array.isArray(source.dropoffAddresses) || source.dropoffAddresses.length > 100) throw new Error("INVALID_CLIENT_RESPONSE");
   if (!Array.isArray(source.routes) || source.routes.length > 25) throw new Error("INVALID_CLIENT_RESPONSE");
   const dropoffs = source.dropoffAddresses.map(entry => {
     const dropoff = object(entry);
-    keysAre(dropoff, ["ordinal", "addressLabel"]);
-    if (!Number.isSafeInteger(dropoff.ordinal) || Number(dropoff.ordinal) < 1 || Number(dropoff.ordinal) > 20) throw new Error("INVALID_CLIENT_RESPONSE");
-    return {ordinal: Number(dropoff.ordinal), addressLabel: text(dropoff.addressLabel, 512)};
+    keysAre(dropoff, ["ordinal", "addressLabel", "usageCount", "lastUsedAt"]);
+    if (!Number.isSafeInteger(dropoff.ordinal) || Number(dropoff.ordinal) < 1 || Number(dropoff.ordinal) > 100 ||
+      !Number.isSafeInteger(dropoff.usageCount) || Number(dropoff.usageCount) < 0) throw new Error("INVALID_CLIENT_RESPONSE");
+    const lastUsedAt=dropoff.lastUsedAt===null?null:text(dropoff.lastUsedAt,64);
+    if(lastUsedAt!==null && !Number.isFinite(Date.parse(lastUsedAt)))throw new Error("INVALID_CLIENT_RESPONSE");
+    return {ordinal: Number(dropoff.ordinal), addressLabel: text(dropoff.addressLabel, 512), usageCount:Number(dropoff.usageCount), lastUsedAt};
   });
   const routes = source.routes.map(entry => {
     const route = object(entry);

@@ -101,6 +101,7 @@ export function Component() {
   const [selectedLeg, setSelectedLeg] = useState<string | null>(null);
   const [signatureEvent, setSignatureEvent] = useState<"PICKUP_ATTESTATION" | "DROPOFF_ATTESTATION" | null>(null);
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const [signedIn, setSignedIn] = useState(false);
+  const [verifiedLogin,setVerifiedLogin]=useState<{driverId:string;loginId:string}|null>(null);
   const assignmentId = shift?.effectivePolicy.assignmentId;
   const refresh = useCallback(async (selectedAssignment = assignmentId) => {
     if (!selectedAssignment) return;
@@ -117,7 +118,7 @@ export function Component() {
     return () => window.clearInterval(timer);
   }, [assignmentId, refresh, shift?.lifecycle, signedIn]);
 
-  const signIn = async () => {
+  const signIn = async (login=verifiedLogin) => {
     setBusy(true); setMessage("");
     try {
       await api.authenticate(); const manifest = (await api.itinerary(serviceDate)).value;
@@ -147,8 +148,9 @@ export function Component() {
       else {
         // The server refuses a start whose credential is not ACTIVE for this driver, so
         // the claimed login is what lets the shift begin (audit WEB-A-026).
-        if (!verifiedLogin) throw new Error("Verify your driver login above before starting a shift.");
-        await api.startShift(leg, manifest.serviceDate, savedKey(`start.${leg.assignmentId}`), verifiedLogin.loginId);
+        if (!login) throw new Error("Sign in with your driver account before starting a shift.");
+        if(login.driverId!==manifest.driverReference)throw new Error("This account belongs to another driver. Ask Command control to issue the correct login.");
+        await api.startShift(leg, manifest.serviceDate, savedKey(`start.${leg.assignmentId}`), login.loginId);
         state = (await api.shift(leg.assignmentId)).value;
       }
       if (state.lifecycle !== "ACTIVE") throw new Error("This assigned shift has already ended or requires dispatch review.");
@@ -299,15 +301,13 @@ export function Component() {
   const identity = useQuery({queryKey:["driver","identity",serviceDate],queryFn:({signal})=>api.itinerary(serviceDate,signal),retry:false,enabled:!signedIn});
   // The verified login identifies the driver *and* carries the login id the start
   // command must present; the driver id alone is refused by the server (audit WEB-A-029).
-  const [verifiedLogin,setVerifiedLogin]=useState<{driverId:string;loginId:string}|null>(null);
   if (!signedIn || !itinerary || !shift) return <main id="main-content" className="driver-shell">
-    <section className="driver-welcome"><p className="driver-step">KavaRoutes Driver · Web prototype</p><h1>Start your driving day</h1><p>Sign in, confirm your vehicle, follow today’s itinerary, collect required signatures, and sign off. Synthetic data only.</p>
+    <section className="driver-welcome"><p className="driver-step">KavaRoutes Driver</p><h1>Start your driving day</h1><p>Sign in, confirm your vehicle, follow today’s itinerary, collect required signatures, and sign off.</p>
       <ServiceDatePicker value={serviceDate} onChange={setServiceDate} disabled={busy}/>
       {message && <p role="alert" className="driver-error">{message}</p>}
-      <button className="driver-primary" disabled={busy || !verifiedLogin} onClick={() => void signIn()}>{busy ? "Connecting…" : verifiedLogin ? "Sign in and start shift" : "Verify your driver login to start"}</button>
-      <DriverLoginPanel api={api} driverReference={identity.data?.value.driverReference ?? null} onVerified={(driverId,loginId)=>setVerifiedLogin({driverId,loginId})}/>
-      {verifiedLogin&&<p role="status">Driver login verified: {verifiedLogin.driverId} as {verifiedLogin.loginId}.</p>}
-      <p className="driver-fineprint">This browser prototype reports shift state to Command control but cannot guarantee native background GPS when the browser is suspended.</p>
+      <DriverLoginPanel api={api} driverReference={identity.data?.value.driverReference ?? null} onVerified={(driverId,loginId)=>{const login={driverId,loginId};setVerifiedLogin(login);void signIn(login);}}/>
+      {verifiedLogin&&busy&&<p role="status">Login verified. Loading your assigned work…</p>}
+      <p className="driver-fineprint">Keep KavaRoutes open during your shift. Mobile browsers may pause location updates when the screen is locked.</p>
     </section>
   </main>;
 
@@ -327,19 +327,20 @@ export function Component() {
     {closure?.lifecycle === "SHIFT_ENDED" ? <section className="driver-card driver-complete"><p className="driver-step">Shift complete</p><h2>You’re signed off</h2><p>Command control has the final server receipt. Tracking is stopped.</p></section>
     : needsPrecheck ? <DriverInspectionForm stage="pre" shift={shift} vehicleId={assigned[0]?.vehicleId ?? ""} busy={busy} onSubmit={request => submitCheck(request, "pre")} />
     : needsPostcheck ? <DriverInspectionForm stage="post" shift={shift} vehicleId={assigned[0]?.vehicleId ?? ""} busy={busy} onSubmit={request => submitCheck(request, "post")} />
-    : allComplete ? <section className="driver-card driver-return"><p className="driver-step">Final step</p><h2>Return vehicle and sign off</h2><p>Confirm you are parked at the assigned vehicle return location. The prototype submits a synthetic return-location check, then stops tracking after server acceptance.</p>{returnExceptionRecorded?<p role="status">Return exception recorded and waiting on dispatch review. Do not press sign-off again; the reviewer ends the shift from that single request.</p>:null}<button className="driver-primary" disabled={busy||returnExceptionRecorded} onClick={() => void signOff()}>{busy ? "Signing off…" : returnExceptionRecorded ? "Waiting for dispatch review" : "Confirm return and sign off"}</button></section>
+    : allComplete ? <section className="driver-card driver-return"><p className="driver-step">Final step</p><h2>Return vehicle and sign off</h2><p>Confirm you are parked at the assigned vehicle return location. Location is checked before tracking stops.</p>{returnExceptionRecorded?<p role="status">Return exception recorded and waiting on dispatch review. Do not press sign-off again; the reviewer ends the shift from that single request.</p>:null}<button className="driver-primary" disabled={busy||returnExceptionRecorded} onClick={() => void signOff()}>{busy ? "Signing off…" : returnExceptionRecorded ? "Waiting for dispatch review" : "Confirm return and sign off"}</button></section>
     : <div className="driver-workspace">
       <section className="driver-card driver-itinerary" aria-labelledby="itinerary-title"><div className="driver-card-heading"><div><p className="driver-step">Step 3</p><h2 id="itinerary-title">Daily itinerary</h2></div><span className="driver-pill">{serviceDate}</span></div>
         <ol>{assigned.map(leg => <li key={leg.tripLegId}><button className={leg.tripLegId === active?.tripLegId ? "active" : ""} onClick={() => { setSelectedLeg(leg.tripLegId); setSignatureEvent(null); }}><span className="driver-stop-number">{leg.ordinal}</span><span><strong>{leg.riderLabel}</strong><small>{time(leg.plannedStartAt, leg.serviceTimezone)} · {leg.pickupLabel} → {leg.dropoffLabel}</small></span><span className={`driver-leg-state ${terminal.has(leg.execution?.lifecycle ?? "") ? "done" : ""}`}>{label(leg.execution?.lifecycle ?? leg.runLifecycle)}</span></button></li>)}</ol>
       </section>
       {active && <section className="driver-card driver-current"><p className="driver-step">Current client · Stop {active.ordinal}</p><h2>{active.riderLabel}</h2>
         <div className="driver-route-line"><div><span>Pickup</span><strong>{active.pickupLabel}</strong><small>{time(active.plannedStartAt, active.serviceTimezone)}</small></div><div><span>Drop-off</span><strong>{active.dropoffLabel}</strong><small>{time(active.plannedEndAt, active.serviceTimezone)}</small></div></div>
+        {(active.appointmentLengthMinutes??0)>0&&<p className="driver-notice">Appointment / planned wait: <strong>{active.appointmentLengthMinutes} minutes</strong></p>}
         <a className="driver-secondary driver-link" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(active.pickupLabel)}&destination=${encodeURIComponent(active.dropoffLabel)}`}>Open route in Google Maps</a>
         {!control && !terminal.has(active.execution?.lifecycle ?? "") && <p role="alert" className="driver-error">{blockedControlMessage(active)}</p>}
         {control?.signature && !signatureEvent && <button className="driver-primary" disabled={busy} onClick={() => setSignatureEvent(control.signature!)}>{control.label}</button>}
         {control?.command && <button className="driver-primary" disabled={busy} onClick={() => void submitAction(active, control.command!, control.details)}>{busy ? "Sending…" : control.label}</button>}
         {control?.workflow && <button className="driver-primary" disabled={busy} onClick={() => void submitWorkflow(active, control.workflow!)}>{busy ? "Sending update…" : control.label}</button>}
-        {control && <p className="driver-fineprint">Dispatch receives each accepted status immediately. GPS proximity confirmation is not enabled in this synthetic browser build, and the page holds no session of its own: reloading the tab asks you to sign in again even though the shift continues on the server.</p>}
+        {control && <p className="driver-fineprint">Dispatch receives each accepted status immediately. GPS proximity confirmation is not yet enabled, and reloading the tab asks you to sign in again even though the shift continues on the server.</p>}
         {signatureEvent && <DriverSignaturePad leg={active} shiftReference={shift.shiftReference} shiftGeneration={shift.shiftGeneration} event={signatureEvent} busy={busy} onSubmit={request => submitSignature(active, request)} />}
       </section>}
     </div>}

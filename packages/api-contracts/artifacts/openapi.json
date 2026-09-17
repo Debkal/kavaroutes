@@ -12,6 +12,11 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "appointmentLengthMinutes": {
+                  "maximum": 1440,
+                  "minimum": 0,
+                  "type": "integer"
+                },
                 "assignmentId": {
                   "format": "uuid",
                   "type": "string"
@@ -2893,6 +2898,11 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "appointmentLengthMinutes": {
+                  "maximum": 1440,
+                  "minimum": 0,
+                  "type": "integer"
+                },
                 "dropoffLabel": {
                   "maxLength": 512,
                   "minLength": 1,
@@ -3160,6 +3170,11 @@
       "def-55": {
         "additionalProperties": false,
         "properties": {
+          "appointmentLengthMinutes": {
+            "maximum": 1440,
+            "minimum": 0,
+            "type": "integer"
+          },
           "dropoffLabel": {
             "maxLength": 512,
             "minLength": 1,
@@ -3191,6 +3206,9 @@
             "format": "date-time",
             "type": "string"
           },
+          "recordClientDropoff": {
+            "type": "boolean"
+          },
           "resolvedServiceAt": {
             "format": "date-time",
             "type": "string"
@@ -3215,9 +3233,11 @@
           "resolvedUtcOffsetSeconds",
           "plannedStartAt",
           "plannedEndAt",
+          "appointmentLengthMinutes",
           "pickupRequired",
           "dropoffRequired",
-          "mobilitySecurementRequired"
+          "mobilitySecurementRequired",
+          "recordClientDropoff"
         ],
         "title": "DispatchPlanLeg",
         "type": "object"
@@ -3233,6 +3253,11 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "appointmentLengthMinutes": {
+                  "maximum": 1440,
+                  "minimum": 0,
+                  "type": "integer"
+                },
                 "dropoffLabel": {
                   "maxLength": 512,
                   "minLength": 1,
@@ -3264,6 +3289,9 @@
                   "format": "date-time",
                   "type": "string"
                 },
+                "recordClientDropoff": {
+                  "type": "boolean"
+                },
                 "resolvedServiceAt": {
                   "format": "date-time",
                   "type": "string"
@@ -3288,9 +3316,11 @@
                 "resolvedUtcOffsetSeconds",
                 "plannedStartAt",
                 "plannedEndAt",
+                "appointmentLengthMinutes",
                 "pickupRequired",
                 "dropoffRequired",
-                "mobilitySecurementRequired"
+                "mobilitySecurementRequired",
+                "recordClientDropoff"
               ],
               "type": "object"
             },
@@ -3439,7 +3469,7 @@
               "minLength": 1,
               "type": "string"
             },
-            "maxItems": 20,
+            "maxItems": 100,
             "minItems": 1,
             "type": "array"
           },
@@ -3527,7 +3557,7 @@
             "type": "string"
           },
           "dropoffCount": {
-            "maximum": 20,
+            "maximum": 100,
             "minimum": 0,
             "type": "integer"
           },
@@ -3570,19 +3600,36 @@
                         "minLength": 1,
                         "type": "string"
                       },
+                      "lastUsedAt": {
+                        "anyOf": [
+                          {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
                       "ordinal": {
-                        "maximum": 20,
+                        "maximum": 100,
                         "minimum": 1,
+                        "type": "integer"
+                      },
+                      "usageCount": {
+                        "minimum": 0,
                         "type": "integer"
                       }
                     },
                     "required": [
                       "ordinal",
-                      "addressLabel"
+                      "addressLabel",
+                      "usageCount",
+                      "lastUsedAt"
                     ],
                     "type": "object"
                   },
-                  "maxItems": 20,
+                  "maxItems": 100,
                   "type": "array"
                 },
                 "entityName": {
@@ -3724,7 +3771,7 @@
               "minLength": 1,
               "type": "string"
             },
-            "maxItems": 20,
+            "maxItems": 100,
             "minItems": 1,
             "type": "array"
           },
@@ -3807,6 +3854,115 @@
       "def-64": {
         "additionalProperties": false,
         "properties": {
+          "displayName": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "loginId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+            "type": "string"
+          },
+          "workforceRelationship": {
+            "anyOf": [
+              {
+                "enum": [
+                  "OWNER_OPERATOR"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "EMPLOYEE"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "CONTRACTOR"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "displayName",
+          "loginId",
+          "workforceRelationship"
+        ],
+        "title": "DriverAccountCreateRequest",
+        "type": "object"
+      },
+      "def-65": {
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "driverId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "inviteCode": {
+            "maxLength": 64,
+            "minLength": 8,
+            "type": "string"
+          },
+          "loginId": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "INVITED"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workforceRelationship": {
+            "anyOf": [
+              {
+                "enum": [
+                  "OWNER_OPERATOR"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "EMPLOYEE"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "CONTRACTOR"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "driverId",
+          "displayName",
+          "workforceRelationship",
+          "loginId",
+          "inviteCode",
+          "status",
+          "version"
+        ],
+        "title": "DriverAccountReceipt",
+        "type": "object"
+      },
+      "def-66": {
+        "additionalProperties": false,
+        "properties": {
           "driverId": {
             "format": "uuid",
             "type": "string"
@@ -3823,7 +3979,7 @@
         "title": "DriverLoginCreateRequest",
         "type": "object"
       },
-      "def-65": {
+      "def-67": {
         "additionalProperties": false,
         "properties": {
           "driverId": {
@@ -3860,7 +4016,7 @@
         "title": "DriverLoginReceipt",
         "type": "object"
       },
-      "def-66": {
+      "def-68": {
         "additionalProperties": false,
         "properties": {
           "driverId": {
@@ -3891,7 +4047,7 @@
         "title": "DriverLoginClaimRequest",
         "type": "object"
       },
-      "def-67": {
+      "def-69": {
         "additionalProperties": false,
         "properties": {
           "loginId": {
@@ -3911,7 +4067,28 @@
         "title": "DriverLoginVerifyRequest",
         "type": "object"
       },
-      "def-68": {
+      "def-7": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 64,
+            "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
+            "type": "string"
+          },
+          "pointer": {
+            "maxLength": 256,
+            "pattern": "^/(?:[A-Za-z0-9_-]+/?)*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "pointer"
+        ],
+        "title": "ProblemError",
+        "type": "object"
+      },
+      "def-70": {
         "additionalProperties": false,
         "properties": {
           "claimedAt": {
@@ -3982,7 +4159,7 @@
         "title": "DriverLoginState",
         "type": "object"
       },
-      "def-69": {
+      "def-71": {
         "additionalProperties": false,
         "properties": {
           "assignmentId": {
@@ -4008,28 +4185,7 @@
         "title": "StartDriverShiftRequest",
         "type": "object"
       },
-      "def-7": {
-        "additionalProperties": false,
-        "properties": {
-          "code": {
-            "maxLength": 64,
-            "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
-            "type": "string"
-          },
-          "pointer": {
-            "maxLength": 256,
-            "pattern": "^/(?:[A-Za-z0-9_-]+/?)*$",
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "pointer"
-        ],
-        "title": "ProblemError",
-        "type": "object"
-      },
-      "def-70": {
+      "def-72": {
         "additionalProperties": false,
         "properties": {
           "effectivePolicy": {
@@ -4072,7 +4228,7 @@
         "title": "StartDriverShiftReceipt",
         "type": "object"
       },
-      "def-71": {
+      "def-73": {
         "additionalProperties": false,
         "properties": {
           "capturedAt": {
@@ -4476,7 +4632,7 @@
         "title": "DriverPrecheckRequest",
         "type": "object"
       },
-      "def-72": {
+      "def-74": {
         "additionalProperties": false,
         "properties": {
           "fuelLevel": {
@@ -4618,7 +4774,7 @@
         "title": "DriverPrecheckReceipt",
         "type": "object"
       },
-      "def-73": {
+      "def-75": {
         "additionalProperties": false,
         "properties": {
           "effectivePolicy": {
@@ -4824,7 +4980,7 @@
         "title": "DriverShiftState",
         "type": "object"
       },
-      "def-74": {
+      "def-76": {
         "additionalProperties": false,
         "properties": {
           "attestationPolicyVersion": {
@@ -4997,7 +5153,7 @@
         "title": "DriverSignatureRequest",
         "type": "object"
       },
-      "def-75": {
+      "def-77": {
         "additionalProperties": false,
         "properties": {
           "digest": {
@@ -5055,7 +5211,7 @@
         "title": "DriverSignatureReceipt",
         "type": "object"
       },
-      "def-76": {
+      "def-78": {
         "additionalProperties": false,
         "properties": {
           "facilityReference": {
@@ -5094,7 +5250,7 @@
         "title": "FacilityDay",
         "type": "object"
       },
-      "def-77": {
+      "def-79": {
         "additionalProperties": false,
         "properties": {
           "commandId": {
@@ -5178,7 +5334,65 @@
         "title": "DriverClosureRequest",
         "type": "object"
       },
-      "def-78": {
+      "def-8": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 64,
+            "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
+            "type": "string"
+          },
+          "detail": {
+            "maxLength": 256,
+            "minLength": 3,
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/def-7"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "instance": {
+            "maxLength": 96,
+            "pattern": "^urn:kavaroutes:request:[a-z0-9_-]{8,64}$",
+            "type": "string"
+          },
+          "requestId": {
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]{7,63}$",
+            "type": "string"
+          },
+          "status": {
+            "maximum": 599,
+            "minimum": 400,
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 96,
+            "minLength": 3,
+            "type": "string"
+          },
+          "type": {
+            "maxLength": 96,
+            "pattern": "^urn:kavaroutes:problem:[a-z0-9-]{2,64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "instance",
+          "code",
+          "requestId"
+        ],
+        "title": "Problem",
+        "type": "object"
+      },
+      "def-80": {
         "additionalProperties": false,
         "properties": {
           "collectionStopped": {
@@ -5231,7 +5445,7 @@
         "title": "DriverClosureReceipt",
         "type": "object"
       },
-      "def-79": {
+      "def-81": {
         "additionalProperties": false,
         "properties": {
           "collectionStopped": {
@@ -5448,65 +5662,7 @@
         "title": "DriverClosureView",
         "type": "object"
       },
-      "def-8": {
-        "additionalProperties": false,
-        "properties": {
-          "code": {
-            "maxLength": 64,
-            "pattern": "^[A-Z][A-Z0-9_]{2,63}$",
-            "type": "string"
-          },
-          "detail": {
-            "maxLength": 256,
-            "minLength": 3,
-            "type": "string"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/def-7"
-            },
-            "maxItems": 20,
-            "type": "array"
-          },
-          "instance": {
-            "maxLength": 96,
-            "pattern": "^urn:kavaroutes:request:[a-z0-9_-]{8,64}$",
-            "type": "string"
-          },
-          "requestId": {
-            "maxLength": 64,
-            "pattern": "^[a-z0-9][a-z0-9_-]{7,63}$",
-            "type": "string"
-          },
-          "status": {
-            "maximum": 599,
-            "minimum": 400,
-            "type": "integer"
-          },
-          "title": {
-            "maxLength": 96,
-            "minLength": 3,
-            "type": "string"
-          },
-          "type": {
-            "maxLength": 96,
-            "pattern": "^urn:kavaroutes:problem:[a-z0-9-]{2,64}$",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "title",
-          "status",
-          "detail",
-          "instance",
-          "code",
-          "requestId"
-        ],
-        "title": "Problem",
-        "type": "object"
-      },
-      "def-80": {
+      "def-82": {
         "additionalProperties": false,
         "properties": {
           "samples": {
@@ -5572,7 +5728,7 @@
         "title": "DriverSyntheticLocationRequest",
         "type": "object"
       },
-      "def-81": {
+      "def-83": {
         "additionalProperties": false,
         "properties": {
           "items": {
@@ -5616,7 +5772,7 @@
         "title": "DriverSyntheticLocationReceipt",
         "type": "object"
       },
-      "def-82": {
+      "def-84": {
         "additionalProperties": false,
         "properties": {
           "commandId": {
@@ -5655,7 +5811,7 @@
         "title": "DriverReturnOverrideRequest",
         "type": "object"
       },
-      "def-83": {
+      "def-85": {
         "additionalProperties": false,
         "properties": {
           "closurePath": {
@@ -5748,7 +5904,7 @@
         "title": "DriverReturnReview",
         "type": "object"
       },
-      "def-84": {
+      "def-86": {
         "additionalProperties": false,
         "properties": {
           "expectedRunVersion": {
@@ -5795,7 +5951,7 @@
         "title": "RouteProposalRequest",
         "type": "object"
       },
-      "def-85": {
+      "def-87": {
         "additionalProperties": false,
         "properties": {
           "decision": {
@@ -5826,7 +5982,7 @@
         "title": "RouteDecisionRequest",
         "type": "object"
       },
-      "def-86": {
+      "def-88": {
         "additionalProperties": false,
         "properties": {
           "proposalId": {
@@ -5885,7 +6041,7 @@
         "title": "RouteProposalReceipt",
         "type": "object"
       },
-      "def-87": {
+      "def-89": {
         "additionalProperties": false,
         "properties": {
           "expectedTag": {
@@ -6028,7 +6184,30 @@
         "title": "RouteProposalView",
         "type": "object"
       },
-      "def-88": {
+      "def-9": {
+        "additionalProperties": false,
+        "properties": {
+          "capabilities": {
+            "items": {
+              "maxLength": 64,
+              "pattern": "^[a-z]+(?::[a-z-]+)+$",
+              "type": "string"
+            },
+            "maxItems": 32,
+            "type": "array"
+          },
+          "organizationId": {
+            "$ref": "#/components/schemas/def-1"
+          }
+        },
+        "required": [
+          "organizationId",
+          "capabilities"
+        ],
+        "title": "OrganizationMembership",
+        "type": "object"
+      },
+      "def-90": {
         "anyOf": [
           {
             "additionalProperties": false,
@@ -6109,7 +6288,7 @@
             "additionalProperties": false,
             "properties": {
               "body": {
-                "$ref": "#/components/schemas/def-85"
+                "$ref": "#/components/schemas/def-87"
               },
               "expectedTag": {
                 "$ref": "#/components/schemas/def-6"
@@ -6137,7 +6316,7 @@
             "additionalProperties": false,
             "properties": {
               "body": {
-                "$ref": "#/components/schemas/def-82"
+                "$ref": "#/components/schemas/def-84"
               },
               "kind": {
                 "enum": [
@@ -6160,11 +6339,11 @@
         ],
         "title": "BrowserCommandEnvelope"
       },
-      "def-89": {
+      "def-91": {
         "additionalProperties": false,
         "properties": {
           "envelope": {
-            "$ref": "#/components/schemas/def-88"
+            "$ref": "#/components/schemas/def-90"
           },
           "id": {
             "format": "uuid",
@@ -6178,37 +6357,14 @@
         "title": "BrowserCommandPrepare",
         "type": "object"
       },
-      "def-9": {
-        "additionalProperties": false,
-        "properties": {
-          "capabilities": {
-            "items": {
-              "maxLength": 64,
-              "pattern": "^[a-z]+(?::[a-z-]+)+$",
-              "type": "string"
-            },
-            "maxItems": 32,
-            "type": "array"
-          },
-          "organizationId": {
-            "$ref": "#/components/schemas/def-1"
-          }
-        },
-        "required": [
-          "organizationId",
-          "capabilities"
-        ],
-        "title": "OrganizationMembership",
-        "type": "object"
-      },
-      "def-90": {
+      "def-92": {
         "additionalProperties": false,
         "properties": {
           "acknowledged": {
             "type": "boolean"
           },
           "envelope": {
-            "$ref": "#/components/schemas/def-88"
+            "$ref": "#/components/schemas/def-90"
           },
           "expired": {
             "type": "boolean"
@@ -6236,10 +6392,10 @@
                             "$ref": "#/components/schemas/def-54"
                           },
                           {
-                            "$ref": "#/components/schemas/def-86"
+                            "$ref": "#/components/schemas/def-88"
                           },
                           {
-                            "$ref": "#/components/schemas/def-78"
+                            "$ref": "#/components/schemas/def-80"
                           }
                         ]
                       },
@@ -6317,13 +6473,13 @@
         "title": "BrowserCommandView",
         "type": "object"
       },
-      "def-91": {
+      "def-93": {
         "additionalProperties": false,
         "properties": {
           "command": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/def-90"
+                "$ref": "#/components/schemas/def-92"
               },
               {
                 "type": "null"
@@ -6479,7 +6635,7 @@
                 "additionalProperties": false,
                 "properties": {
                   "envelope": {
-                    "$ref": "#/components/schemas/def-88"
+                    "$ref": "#/components/schemas/def-90"
                   },
                   "id": {
                     "format": "uuid",
@@ -6501,7 +6657,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-90"
+                  "$ref": "#/components/schemas/def-92"
                 }
               }
             },
@@ -6717,7 +6873,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-91"
+                  "$ref": "#/components/schemas/def-93"
                 }
               }
             },
@@ -6961,7 +7117,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-90"
+                  "$ref": "#/components/schemas/def-92"
                 }
               }
             },
@@ -7205,7 +7361,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-90"
+                  "$ref": "#/components/schemas/def-92"
                 }
               }
             },
@@ -7583,7 +7739,7 @@
                       "minLength": 1,
                       "type": "string"
                     },
-                    "maxItems": 20,
+                    "maxItems": 100,
                     "minItems": 1,
                     "type": "array"
                   },
@@ -7906,7 +8062,7 @@
                       "minLength": 1,
                       "type": "string"
                     },
-                    "maxItems": 20,
+                    "maxItems": 100,
                     "minItems": 1,
                     "type": "array"
                   },
@@ -8518,7 +8674,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-86"
+                  "$ref": "#/components/schemas/def-88"
                 }
               }
             },
@@ -8721,6 +8877,11 @@
                     "items": {
                       "additionalProperties": false,
                       "properties": {
+                        "appointmentLengthMinutes": {
+                          "maximum": 1440,
+                          "minimum": 0,
+                          "type": "integer"
+                        },
                         "dropoffLabel": {
                           "maxLength": 512,
                           "minLength": 1,
@@ -8752,6 +8913,9 @@
                           "format": "date-time",
                           "type": "string"
                         },
+                        "recordClientDropoff": {
+                          "type": "boolean"
+                        },
                         "resolvedServiceAt": {
                           "format": "date-time",
                           "type": "string"
@@ -8776,9 +8940,11 @@
                         "resolvedUtcOffsetSeconds",
                         "plannedStartAt",
                         "plannedEndAt",
+                        "appointmentLengthMinutes",
                         "pickupRequired",
                         "dropoffRequired",
-                        "mobilitySecurementRequired"
+                        "mobilitySecurementRequired",
+                        "recordClientDropoff"
                       ],
                       "type": "object"
                     },
@@ -9611,7 +9777,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-78"
+                  "$ref": "#/components/schemas/def-80"
                 }
               }
             },
@@ -9795,7 +9961,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-83"
+                  "$ref": "#/components/schemas/def-85"
                 }
               }
             },
@@ -9919,7 +10085,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-87"
+                  "$ref": "#/components/schemas/def-89"
                 }
               }
             },
@@ -10073,7 +10239,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-79"
+                  "$ref": "#/components/schemas/def-81"
                 }
               }
             },
@@ -10625,7 +10791,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-65"
+                  "$ref": "#/components/schemas/def-67"
                 }
               }
             },
@@ -10855,7 +11021,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-68"
+                  "$ref": "#/components/schemas/def-70"
                 }
               }
             },
@@ -11104,7 +11270,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-68"
+                  "$ref": "#/components/schemas/def-70"
                 }
               }
             },
@@ -12465,7 +12631,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-73"
+                  "$ref": "#/components/schemas/def-75"
                 }
               }
             },
@@ -12622,7 +12788,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-70"
+                  "$ref": "#/components/schemas/def-72"
                 }
               }
             },
@@ -12905,7 +13071,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-78"
+                  "$ref": "#/components/schemas/def-80"
                 }
               }
             },
@@ -13508,7 +13674,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-72"
+                  "$ref": "#/components/schemas/def-74"
                 }
               }
             },
@@ -14101,7 +14267,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-72"
+                  "$ref": "#/components/schemas/def-74"
                 }
               }
             },
@@ -14471,7 +14637,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-75"
+                  "$ref": "#/components/schemas/def-77"
                 }
               }
             },
@@ -14645,7 +14811,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-87"
+                  "$ref": "#/components/schemas/def-89"
                 }
               }
             },
@@ -14866,7 +15032,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-86"
+                  "$ref": "#/components/schemas/def-88"
                 }
               }
             },
@@ -15060,7 +15226,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-79"
+                  "$ref": "#/components/schemas/def-81"
                 }
               }
             },
@@ -15264,7 +15430,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-81"
+                  "$ref": "#/components/schemas/def-83"
                 }
               }
             },
@@ -15466,7 +15632,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-76"
+                  "$ref": "#/components/schemas/def-78"
                 }
               }
             },
@@ -15675,6 +15841,259 @@
         ],
         "tags": [
           "facility"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/fleet/drivers/commands/create": {
+      "post": {
+        "operationId": "createDriverAccount",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "displayName": {
+                    "maxLength": 120,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "loginId": {
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
+                    "type": "string"
+                  },
+                  "workforceRelationship": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "OWNER_OPERATOR"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "EMPLOYEE"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "CONTRACTOR"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "displayName",
+                  "loginId",
+                  "workforceRelationship"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-65"
+                }
+              }
+            },
+            "description": "Created driver account; the invite code is returned once",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Expired"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "428": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition required"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "command"
         ]
       }
     },

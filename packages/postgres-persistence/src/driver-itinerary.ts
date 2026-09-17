@@ -21,6 +21,7 @@ export interface StoredDriverItineraryLeg {
   readonly dropoffLabel: string;
   readonly plannedStartAt: string;
   readonly plannedEndAt: string;
+  readonly appointmentLengthMinutes: number;
   readonly serviceTimezone: string;
   readonly execution?: { readonly executionId: string; readonly lifecycle: string; readonly version: number;readonly serviceControl?: StoredDriverServiceControl } | null;
 }
@@ -35,7 +36,7 @@ export function createDriverItineraryReader(pool: Pool) {
         a.vehicle_id, v.synthetic_reference AS vehicle_label,
         t.id AS trip_id, l.id AS trip_leg_id, rl.ordinal,
         rider.synthetic_reference AS rider_label, origin.customer_label AS pickup_label,
-        destination.customer_label AS dropoff_label, l.planned_start_at, l.planned_end_at, r.service_timezone,
+        destination.customer_label AS dropoff_label, l.planned_start_at, l.planned_end_at, t.appointment_length_minutes, r.service_timezone,
         execution.rows AS execution_rows
         FROM dispatch.assignment a
         JOIN fleet.driver d ON d.tenant_id=a.tenant_id AND d.id=a.driver_id
@@ -78,6 +79,7 @@ export function createDriverItineraryReader(pool: Pool) {
         tripId: String(row.trip_id), tripLegId: String(row.trip_leg_id), ordinal: Number(row.ordinal),
         riderLabel: String(row.rider_label), pickupLabel: String(row.pickup_label), dropoffLabel: String(row.dropoff_label),
         plannedStartAt: (row.planned_start_at as Date).toISOString(), plannedEndAt: (row.planned_end_at as Date).toISOString(),
+        appointmentLengthMinutes: Number(row.appointment_length_minutes),
         serviceTimezone: String(row.service_timezone),
     execution: executions?.[0] ?? null,
         };

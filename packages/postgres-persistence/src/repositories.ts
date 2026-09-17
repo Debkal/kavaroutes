@@ -5,7 +5,7 @@ import { auditEvents, idempotencyRecords, organizations, runs } from "./schema.j
 import {applyDispatchAssignment,releaseDispatchAssignment,type DispatchAssignmentInput,type DispatchReleaseInput,type DispatchReleaseReceipt} from "./dispatch-authority.js";
 import {planDispatchRun,type DispatchPlanInput,type DispatchPlanReceipt} from "./dispatch-planning.js";
 import {createClientRecord,updateClientRecord,type ClientIntakeInput,type ClientIntakeReceipt,type ClientUpdateInput} from "./client-intake.js";
-import {createDriverCredential,claimDriverCredential,verifyDriverLogin,type DriverCredentialInvite,type DriverCredentialState,type DriverLoginAttempt} from "./driver-credentials.js";
+import {createDriverAccount,createDriverCredential,claimDriverCredential,verifyDriverLogin,type DriverAccountInvite,type DriverCredentialInvite,type DriverCredentialState,type DriverLoginAttempt,type DriverWorkforceRelationship} from "./driver-credentials.js";
 import {submitRouteProposal,decideRouteProposal,type RouteProposalInput} from './route-proposals.js';
 import {recordSyntheticLocations,closeDriverShift,type SyntheticLocationInput,type ShiftClosureInput} from './shift-closure.js';
 
@@ -43,6 +43,7 @@ export interface TenantMutationTransaction {
   createClientRecord(input:ClientIntakeInput):Promise<ClientIntakeReceipt>;
   updateClientRecord(input:ClientUpdateInput):Promise<ClientIntakeReceipt>;
   createDriverCredential(input:{driverId:string;loginId:string}):Promise<DriverCredentialInvite>;
+  createDriverAccount(input:{driverId:string;displayName:string;workforceRelationship:DriverWorkforceRelationship;loginId:string}):Promise<DriverAccountInvite>;
   claimDriverCredential(input:{driverId:string;inviteCode:string;password:string;installation?:string}):Promise<DriverCredentialState>;
   verifyDriverLogin(input:{loginId:string;password:string}):Promise<DriverLoginAttempt>;
   submitRouteProposal(input:RouteProposalInput):ReturnType<typeof submitRouteProposal>;
@@ -157,6 +158,7 @@ function transactionAdapter(client: PoolClient, tenantId: string): TenantMutatio
     createClientRecord:(input:ClientIntakeInput)=>createClientRecord(client,tenantId,input),
     updateClientRecord:(input:ClientUpdateInput)=>updateClientRecord(client,tenantId,input),
     createDriverCredential:(input:{driverId:string;loginId:string})=>createDriverCredential(client,tenantId,input),
+    createDriverAccount:(input:{driverId:string;displayName:string;workforceRelationship:DriverWorkforceRelationship;loginId:string})=>createDriverAccount(client,tenantId,input),
     claimDriverCredential:(input:{driverId:string;inviteCode:string;password:string;installation?:string})=>claimDriverCredential(client,tenantId,input),
     verifyDriverLogin:(input:{loginId:string;password:string})=>verifyDriverLogin(client,tenantId,input),
     submitRouteProposal:(input:RouteProposalInput)=>submitRouteProposal(client,tenantId,input),
