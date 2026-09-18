@@ -26,12 +26,13 @@ const server=http.createServer(async(req,res)=>{
  if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}
  const pathname=path.split('?')[0];
  const asset=/^\/assets\/[A-Za-z0-9_.-]+$/.test(pathname);
- // Closed catalog, one entry per shipped route: the dispatcher, driver and client
+ // Closed catalog, one entry per shipped route: the dispatcher, client, accounting,
+ // command and driver surfaces plus the two terminal message pages.
  // surfaces plus the two terminal message pages. /driver is a shipped route too.
  // Closed catalog, one entry per shipped route. An out-of-catalog path is not an API
  // error: the app shell is returned with status 404 so the router's own not-found view
  // renders instead of a blank page (audit WEB-A-007).
- const known=asset||['/','/dispatch','/driver','/clients','/forbidden','/session-expired'].includes(pathname);
+ const known=asset||['/','/dispatch','/clients','/accounting','/command','/driver','/forbidden','/session-expired'].includes(pathname);
  const status=known?200:404;
  try{
   const body=await readFile(new URL('./public'+(asset?pathname:'/index.html'),import.meta.url));

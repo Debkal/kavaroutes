@@ -14,7 +14,8 @@
     "./identity-admission": "./dist/identity-admission.js",
     "./client-web": "./dist/client-web.generated.js",
     "./private-development-transport": "./dist/private-development-transport.js",
-    "./client-route-proposals": "./dist/client-route-proposals.js"
+    "./client-route-proposals": "./dist/client-route-proposals.js",
+    "./route-costing": "./dist/route-costing.js"
   },
   "types": "./dist/index.d.ts",
   "dependencies": {

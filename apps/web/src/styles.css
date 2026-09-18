@@ -208,3 +208,12 @@ td small, td span { display: block; }.route-arrow { display: inline !important; 
 .dispatch-map dl { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; margin: 0; }
 .dispatch-map dt { color: var(--muted); font-size: .78rem; }.dispatch-map dd { margin: 0; font-weight: 700; }
 @media (prefers-color-scheme: dark) { .dispatch-map .driver-track.lost { background: #3a2c10; } .driver-trace, .driver-trace-bg { background: #1b2a24; } }
+
+.accounting-page .accounting-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(13rem,1fr)); gap: .6rem .9rem; margin: .7rem 0; }
+.accounting-page .accounting-grid label { margin: 0; }
+.accounting-page .accounting-grid input, .accounting-page .accounting-grid select { width: 100%; min-height: 2.6rem; border: 1px solid #8c9a93; border-radius: .5rem; padding: .5rem .6rem; background: var(--surface); color: var(--ink); font: inherit; }
+.accounting-page table td input[type="number"] { width: 5.5rem; min-height: 2.4rem; border: 1px solid #8c9a93; border-radius: .5rem; padding: .35rem .5rem; background: var(--surface); color: var(--ink); font: inherit; }
+.accounting-page tfoot th, .accounting-page tfoot td { font-weight: 800; background: color-mix(in srgb, var(--surface) 92%, transparent); }
+.accounting-page .accounting-forward { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; margin-top: .5rem; }
+.accounting-page .accounting-forward label { margin: 0; font-size: .78rem; }
+.accounting-page th small { display: block; margin-top: .15rem; color: var(--muted); font-weight: 500; }

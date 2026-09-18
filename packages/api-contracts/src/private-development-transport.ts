@@ -29,7 +29,7 @@ export class DevelopmentApiError extends Error {
     if (requestId !== undefined) this.requestId = requestId;
   }
 }
-export type DevelopmentPersona = "dispatcher" | "driver" | "facility" | "policy_override";
+export type DevelopmentPersona = "dispatcher" | "driver" | "facility" | "billing" | "policy_override";
 
 export function createPrivateDevelopmentTransport(options: {
   readonly baseUrl: string;
@@ -48,7 +48,7 @@ export function createPrivateDevelopmentTransport(options: {
   if ((!loopback && !edgePrototype) || base.pathname !== "/" || base.username || base.password || base.search || base.hash) {
     throw new Error("PRIVATE_DEVELOPMENT_LOOPBACK_REQUIRED");
   }
-  if (!["dispatcher", "driver", "facility", "policy_override"].includes(options.persona)) throw new Error("INVALID_DEVELOPMENT_PERSONA");
+  if (!["dispatcher", "driver", "facility", "billing", "policy_override"].includes(options.persona)) throw new Error("INVALID_DEVELOPMENT_PERSONA");
   const token = options.ponyCompany === undefined ? `principal_${options.persona}`
     : selectPonyPersona(options.ponyCompany, options.persona).token;
   const timeoutMs = options.timeoutMs ?? 15_000;

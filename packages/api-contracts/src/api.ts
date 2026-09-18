@@ -36,6 +36,9 @@ import {
 import { allSchemas } from "./schema-registry.js";
 import type { CancelTripRequest, DriverActionBatch, LocationBatch, PushRegistrationRequest, PushUnregistrationRequest, TripCreateRequest, UpdateDriverControlPolicy } from "./schemas.js";
 import { DispatchTrackingSchema } from "./dispatch-tracking.js";
+import { ClientHistorySchema, CostProfileUpdateReceiptSchema, CostProfileUpdateRequestSchema, CostProfileViewSchema, InvoiceCreateRequestSchema,
+  InvoiceForwardReceiptSchema, InvoiceForwardRequestSchema, InvoiceListSchema, InvoiceReceiptSchema, InvoiceViewSchema, ServiceDayEstimatesSchema,
+  type AccountingApiService } from "./accounting.js";
 import { DriverLocationBatchRequestSchema, DriverLocationReceiptSchema, type DriverLocationService } from "./driver-locations.js";
 import type { DispatchTrackingReader } from "./dispatch-tracking.js";
 
@@ -101,6 +104,8 @@ export interface Wp007ApiOptions {
   readonly driverLocationService?: DriverLocationService;
   /** Live driver map data for dispatch: current position, trace, lost-signal duration. */
   readonly dispatchTrackingReader?: DispatchTrackingReader;
+  /** Route costing, payer invoices and client history: the money surface. */
+  readonly accountingService?: AccountingApiService;
   readonly pushRegistrationService?: ReturnType<typeof createRegistrationService>;
 }
 
@@ -564,6 +569,86 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     if(result.replayed) reply.header("kavaroutes-idempotency-replayed","true");request.wp007Context.resultCode=result.replayed ? "IDEMPOTENT_REPLAY" : "DRIVER_SERVICE_PROOF_RECORDED";
     return reply.send(result.body);
   });
+  routes.get("/v1/organizations/:organizationId/billing/cost-profile", { schema: {
+    operationId: "getRouteCostProfile", tags: ["billing"], security, headers: AuthorizationHeaders, params: OrganizationParams,
+    querystring: Type.Object({}, { additionalProperties: false }),
+    response: responseWithErrors({ 200: jsonResponse(CostProfileViewSchema, "Stored route costing profile, null before it is set") }, [400, 401, 403, 404, 406, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId } = request.params as { organizationId: string };
+    await requireAccess(request, organizationId, { capability: "billing:read", purpose: "BILLING_PROOF" }, "getRouteCostProfile");
+    if (!options.accountingService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "accounting unavailable");
+    request.wp007Context.resultCode = "ROUTE_COST_PROFILE_RETURNED";
+    return reply.send(await options.accountingService.costProfile(contextPrincipal(request), organizationId));
+  });
+  routes.post("/v1/organizations/:organizationId/billing/cost-profile/commands/update", { bodyLimit: 16384, schema: {
+    operationId: "updateRouteCostProfile", tags: ["billing"], security, headers: IdempotentHeaders, params: OrganizationParams,
+    body: CostProfileUpdateRequestSchema,
+    response: responseWithErrors({ 200: jsonResponse(CostProfileUpdateReceiptSchema, "Stored route costing profile version") }, [400, 401, 403, 404, 406, 409, 412, 413, 415, 422, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId } = request.params as { organizationId: string };
+    await requireAccess(request, organizationId, { capability: "billing:command", purpose: "BILLING_PROOF" }, "updateRouteCostProfile");
+    if (!options.accountingService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "accounting unavailable");
+    request.wp007Context.resultCode = "ROUTE_COST_PROFILE_UPDATED";
+    return reply.send(await options.accountingService.updateCostProfile(contextPrincipal(request), organizationId, request.body as Static<typeof CostProfileUpdateRequestSchema>));
+  });
+  routes.get("/v1/organizations/:organizationId/billing/estimates/:serviceDate", { schema: {
+    operationId: "getServiceDayEstimates", tags: ["billing"], security, headers: AuthorizationHeaders, params: DispatchDayParams,
+    querystring: Type.Object({}, { additionalProperties: false }),
+    response: responseWithErrors({ 200: jsonResponse(ServiceDayEstimatesSchema, "Costing inputs for the service day's trips") }, [400, 401, 403, 404, 406, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId, serviceDate } = request.params as { organizationId: string; serviceDate: string };
+    await requireAccess(request, organizationId, { capability: "billing:read", purpose: "BILLING_PROOF" }, "getServiceDayEstimates");
+    if (!options.accountingService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "accounting unavailable");
+    request.wp007Context.resultCode = "SERVICE_DAY_ESTIMATES_RETURNED";
+    return reply.send(await options.accountingService.estimates(contextPrincipal(request), organizationId, serviceDate));
+  });
+  routes.get("/v1/organizations/:organizationId/billing/invoices", { schema: {
+    operationId: "listPayerInvoices", tags: ["billing"], security, headers: AuthorizationHeaders, params: OrganizationParams,
+    querystring: Type.Object({ limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 200 })) }, { additionalProperties: false }),
+    response: responseWithErrors({ 200: jsonResponse(InvoiceListSchema, "Stored payer invoices") }, [400, 401, 403, 404, 406, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId } = request.params as { organizationId: string };
+    await requireAccess(request, organizationId, { capability: "billing:read", purpose: "BILLING_PROOF" }, "listPayerInvoices");
+    if (!options.accountingService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "accounting unavailable");
+    const { limit } = request.query as { limit?: number };
+    request.wp007Context.resultCode = "PAYER_INVOICES_RETURNED";
+    return reply.send(await options.accountingService.invoices(contextPrincipal(request), organizationId, limit ?? 50));
+  });
+  routes.get("/v1/organizations/:organizationId/billing/invoices/:invoiceId", { schema: {
+    operationId: "getPayerInvoice", tags: ["billing"], security, headers: AuthorizationHeaders,
+    params: Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), invoiceId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false }),
+    querystring: Type.Object({}, { additionalProperties: false }),
+    response: responseWithErrors({ 200: jsonResponse(InvoiceViewSchema, "Stored invoice with the trips it bills") }, [400, 401, 403, 404, 406, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId, invoiceId } = request.params as { organizationId: string; invoiceId: string };
+    await requireAccess(request, organizationId, { capability: "billing:read", purpose: "BILLING_PROOF" }, "getPayerInvoice");
+    if (!options.accountingService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "accounting unavailable");
+    request.wp007Context.resultCode = "PAYER_INVOICE_RETURNED";
+    return reply.send(await options.accountingService.invoice(contextPrincipal(request), organizationId, invoiceId));
+  });
+  routes.post("/v1/organizations/:organizationId/billing/invoices/commands/create", { bodyLimit: 16384, schema: {
+    operationId: "createPayerInvoice", tags: ["billing"], security, headers: IdempotentHeaders, params: OrganizationParams,
+    body: InvoiceCreateRequestSchema,
+    response: responseWithErrors({ 200: jsonResponse(InvoiceReceiptSchema, "Invoice created from delivered trips") }, [400, 401, 403, 404, 406, 409, 410, 412, 413, 415, 422, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId } = request.params as { organizationId: string };
+    await requireAccess(request, organizationId, { capability: "billing:command", purpose: "BILLING_PROOF" }, "createPayerInvoice");
+    if (!options.accountingService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "accounting unavailable");
+    request.wp007Context.resultCode = "PAYER_INVOICE_CREATED";
+    return reply.send(await options.accountingService.createInvoice(contextPrincipal(request), organizationId, request.body as Static<typeof InvoiceCreateRequestSchema>));
+  });
+  routes.post("/v1/organizations/:organizationId/billing/invoices/:invoiceId/commands/forward", { bodyLimit: 8192, schema: {
+    operationId: "forwardPayerInvoice", tags: ["billing"], security, headers: IdempotentHeaders,
+    params: Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), invoiceId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false }),
+    body: InvoiceForwardRequestSchema,
+    response: responseWithErrors({ 200: jsonResponse(InvoiceForwardReceiptSchema, "Invoice forwarding recorded") }, [400, 401, 403, 404, 406, 409, 410, 412, 413, 415, 422, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId, invoiceId } = request.params as { organizationId: string; invoiceId: string };
+    await requireAccess(request, organizationId, { capability: "billing:command", purpose: "BILLING_PROOF" }, "forwardPayerInvoice");
+    if (!options.accountingService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "accounting unavailable");
+    request.wp007Context.resultCode = "PAYER_INVOICE_FORWARDED";
+    return reply.send(await options.accountingService.forwardInvoice(contextPrincipal(request), organizationId, invoiceId, request.body as Static<typeof InvoiceForwardRequestSchema>));
+  });
   routes.post("/v1/organizations/:organizationId/driver/shifts/:shiftId/location-batches", { bodyLimit: 256 * 1024, schema: {
     operationId: "submitDriverShiftLocationBatch", tags: ["driver"], security, headers: IdempotentHeaders,
     params: Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), shiftId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false }),
@@ -582,6 +667,19 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
     request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "DRIVER_LOCATION_BATCH_STORED";
     return reply.send(result.body);
+  });
+  routes.get("/v1/organizations/:organizationId/clients/:clientId/history", { schema: {
+    operationId: "getClientRouteHistory", tags: ["billing"], security, headers: AuthorizationHeaders,
+    params: Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), clientId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false }),
+    querystring: Type.Object({ days: Type.Optional(Type.Integer({ minimum: 1, maximum: 3650 })) }, { additionalProperties: false }),
+    response: responseWithErrors({ 200: jsonResponse(ClientHistorySchema, "A client's route history over the chosen lookback") }, [400, 401, 403, 404, 406, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId, clientId } = request.params as { organizationId: string; clientId: string };
+    await requireAccess(request, organizationId, { capability: "billing:read", purpose: "BILLING_PROOF" }, "getClientRouteHistory");
+    if (!options.accountingService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "accounting unavailable");
+    const { days } = request.query as { days?: number };
+    request.wp007Context.resultCode = "CLIENT_ROUTE_HISTORY_RETURNED";
+    return reply.send(await options.accountingService.clientHistory(contextPrincipal(request), organizationId, clientId, days ?? 90));
   });
   routes.get("/v1/organizations/:organizationId/dispatch/tracking/:serviceDate", { schema: {
     operationId: "getDispatchTracking", tags: ["dispatch"], security, headers: AuthorizationHeaders, params: DispatchDayParams,

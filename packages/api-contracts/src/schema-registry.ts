@@ -17,6 +17,9 @@ import { StartDriverShiftReceiptSchema, StartDriverShiftRequestSchema } from "./
 import { DriverSignatureReceiptSchema, DriverSignatureRequestSchema } from "./driver-service-proof.js";
 import { DriverLocationBatchRequestSchema, DriverLocationReceiptSchema, DriverLocationSampleSchema } from "./driver-locations.js";
 import { DispatchShiftTrackSchema, DispatchTrackPointSchema, DispatchTrackingSchema } from "./dispatch-tracking.js";
+import { ClientHistorySchema, ClientHistoryTripSchema, CostProfileUpdateReceiptSchema, CostProfileUpdateRequestSchema, CostProfileViewSchema,
+  InvoiceCreateRequestSchema, InvoiceForwardReceiptSchema, InvoiceForwardRequestSchema, InvoiceListSchema, InvoiceReceiptSchema,
+  InvoiceLineSchema, InvoiceSummarySchema, InvoiceViewSchema, RouteCostProfileSchema, ServiceDayEstimateTripSchema, ServiceDayEstimatesSchema } from "./accounting.js";
 
 /** Every TypeBox schema this contract defines.
  *
@@ -44,6 +47,11 @@ export const allSchemas: readonly TSchema[] = Object.freeze([
   /// point/sample objects are registered by traversal, as other inline objects are.
   DriverLocationSampleSchema, DriverLocationBatchRequestSchema, DriverLocationReceiptSchema,
   DispatchTrackPointSchema, DispatchShiftTrackSchema, DispatchTrackingSchema,
+  /// Accounting: costing profile, service-day estimates, payer invoices, client history.
+  RouteCostProfileSchema, CostProfileViewSchema, CostProfileUpdateRequestSchema, CostProfileUpdateReceiptSchema,
+  ServiceDayEstimateTripSchema, ServiceDayEstimatesSchema, InvoiceCreateRequestSchema, InvoiceReceiptSchema,
+  InvoiceSummarySchema, InvoiceListSchema, InvoiceLineSchema, InvoiceViewSchema, InvoiceForwardRequestSchema, InvoiceForwardReceiptSchema,
+  ClientHistoryTripSchema, ClientHistorySchema,
   DriverReturnOverrideRequestSchema, DriverReturnReviewSchema,
   RouteProposalRequestSchema, RouteDecisionRequestSchema, RouteProposalReceiptSchema, RouteProposalViewSchema,
   BrowserCommandEnvelopeSchema, BrowserCommandPrepareSchema, BrowserCommandViewSchema, BrowserCommandPendingSchema,

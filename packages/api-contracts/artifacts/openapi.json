@@ -415,6 +415,855 @@
         "title": "MeResponse",
         "type": "object"
       },
+      "def-100": {
+        "additionalProperties": false,
+        "properties": {
+          "amountCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "authorizationNumber": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "maxLength": 300,
+            "type": "string"
+          },
+          "hcpcsCode": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z][0-9]{4}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "miles": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "ordinal": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "proofOfService": {
+            "enum": [
+              "SIGNATURE_ON_FILE",
+              "FACILITY_SIGNATURE",
+              "DRIVER_ATTESTED",
+              "NOT_REQUIRED",
+              "MISSING"
+            ],
+            "type": "string"
+          },
+          "serviceDate": {
+            "format": "date",
+            "maxLength": 10,
+            "type": "string"
+          },
+          "tripId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ordinal",
+          "tripId",
+          "serviceDate",
+          "description",
+          "miles",
+          "hcpcsCode",
+          "authorizationNumber",
+          "proofOfService",
+          "amountCents"
+        ],
+        "title": "InvoiceLine",
+        "type": "object"
+      },
+      "def-101": {
+        "additionalProperties": false,
+        "properties": {
+          "aggregateVersion": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "claimReference": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "clientId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "clientLabel": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "maxLength": 35,
+            "type": "string"
+          },
+          "forwardedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "maxLength": 35,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "forwardedMethod": {
+            "anyOf": [
+              {
+                "enum": [
+                  "EXPORT",
+                  "EMAIL",
+                  "PORTAL",
+                  "POST"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "forwardedTo": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "invoiceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lineCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "amountCents": {
+                  "maximum": 2000000000,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "authorizationNumber": {
+                  "anyOf": [
+                    {
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "description": {
+                  "maxLength": 300,
+                  "type": "string"
+                },
+                "hcpcsCode": {
+                  "anyOf": [
+                    {
+                      "pattern": "^[A-Z][0-9]{4}$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "miles": {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                "ordinal": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "proofOfService": {
+                  "enum": [
+                    "SIGNATURE_ON_FILE",
+                    "FACILITY_SIGNATURE",
+                    "DRIVER_ATTESTED",
+                    "NOT_REQUIRED",
+                    "MISSING"
+                  ],
+                  "type": "string"
+                },
+                "serviceDate": {
+                  "format": "date",
+                  "maxLength": 10,
+                  "type": "string"
+                },
+                "tripId": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "ordinal",
+                "tripId",
+                "serviceDate",
+                "description",
+                "miles",
+                "hcpcsCode",
+                "authorizationNumber",
+                "proofOfService",
+                "amountCents"
+              ],
+              "type": "object"
+            },
+            "maxItems": 500,
+            "type": "array"
+          },
+          "payerKind": {
+            "enum": [
+              "MEDICAID",
+              "BROKER",
+              "MCO",
+              "COMMERCIAL_INSURANCE",
+              "WORKERS_COMPENSATION",
+              "AUTO_LIABILITY",
+              "FACILITY",
+              "PATIENT",
+              "OTHER"
+            ],
+            "type": "string"
+          },
+          "payerName": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "periodEnd": {
+            "format": "date",
+            "maxLength": 10,
+            "type": "string"
+          },
+          "periodStart": {
+            "format": "date",
+            "maxLength": 10,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "READY",
+              "SENT",
+              "PAID",
+              "VOID"
+            ],
+            "type": "string"
+          },
+          "totalCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "totalMiles": {
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "invoiceId",
+          "clientId",
+          "clientLabel",
+          "payerKind",
+          "payerName",
+          "claimReference",
+          "periodStart",
+          "periodEnd",
+          "status",
+          "totalCents",
+          "totalMiles",
+          "lineCount",
+          "forwardedAt",
+          "forwardedMethod",
+          "forwardedTo",
+          "aggregateVersion",
+          "createdAt",
+          "lines"
+        ],
+        "title": "InvoiceView",
+        "type": "object"
+      },
+      "def-102": {
+        "additionalProperties": false,
+        "properties": {
+          "claimReference": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expectedVersion": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "forwardedTo": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "EXPORT",
+              "EMAIL",
+              "PORTAL",
+              "POST"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "method",
+          "forwardedTo",
+          "claimReference"
+        ],
+        "title": "InvoiceForwardRequest",
+        "type": "object"
+      },
+      "def-103": {
+        "additionalProperties": false,
+        "properties": {
+          "aggregateVersion": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "invoiceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "SENT"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoiceId",
+          "status",
+          "aggregateVersion"
+        ],
+        "title": "InvoiceForwardReceipt",
+        "type": "object"
+      },
+      "def-104": {
+        "additionalProperties": false,
+        "properties": {
+          "appointmentLengthMinutes": {
+            "maximum": 1440,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "driverLabel": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dropoffLabel": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "executionState": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "measuredMiles": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pickupLabel": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plannedStartAt": {
+            "format": "date-time",
+            "maxLength": 35,
+            "type": "string"
+          },
+          "proofCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "serviceDate": {
+            "format": "date",
+            "maxLength": 10,
+            "type": "string"
+          },
+          "tripId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "tripState": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "tripId",
+          "serviceDate",
+          "pickupLabel",
+          "dropoffLabel",
+          "plannedStartAt",
+          "appointmentLengthMinutes",
+          "tripState",
+          "executionState",
+          "driverLabel",
+          "measuredMiles",
+          "proofCount"
+        ],
+        "title": "ClientHistoryTrip",
+        "type": "object"
+      },
+      "def-105": {
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "days": {
+            "maximum": 3650,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "totals": {
+            "additionalProperties": false,
+            "properties": {
+              "appointmentMinutes": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "cancelled": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "delivered": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "measuredMiles": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "trips": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "tripsWithProof": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "trips",
+              "delivered",
+              "cancelled",
+              "measuredMiles",
+              "appointmentMinutes",
+              "tripsWithProof"
+            ],
+            "type": "object"
+          },
+          "trips": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "appointmentLengthMinutes": {
+                  "maximum": 1440,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "driverLabel": {
+                  "anyOf": [
+                    {
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dropoffLabel": {
+                  "anyOf": [
+                    {
+                      "maxLength": 512,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "executionState": {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                "measuredMiles": {
+                  "anyOf": [
+                    {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "pickupLabel": {
+                  "anyOf": [
+                    {
+                      "maxLength": 512,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "plannedStartAt": {
+                  "format": "date-time",
+                  "maxLength": 35,
+                  "type": "string"
+                },
+                "proofCount": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "serviceDate": {
+                  "format": "date",
+                  "maxLength": 10,
+                  "type": "string"
+                },
+                "tripId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "tripState": {
+                  "maxLength": 64,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "tripId",
+                "serviceDate",
+                "pickupLabel",
+                "dropoffLabel",
+                "plannedStartAt",
+                "appointmentLengthMinutes",
+                "tripState",
+                "executionState",
+                "driverLabel",
+                "measuredMiles",
+                "proofCount"
+              ],
+              "type": "object"
+            },
+            "maxItems": 500,
+            "type": "array"
+          }
+        },
+        "required": [
+          "clientId",
+          "days",
+          "trips",
+          "totals"
+        ],
+        "title": "ClientHistory",
+        "type": "object"
+      },
+      "def-106": {
+        "additionalProperties": false,
+        "properties": {
+          "commandId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "emergencyStopResolution": {
+            "type": "boolean"
+          },
+          "exceptionCommandId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "expectedVersion": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "reason": {
+            "enum": [
+              "RETURN_EXCEPTION_REVIEWED"
+            ],
+            "type": "string"
+          },
+          "shiftGeneration": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "commandId",
+          "shiftGeneration",
+          "expectedVersion",
+          "exceptionCommandId",
+          "reason"
+        ],
+        "title": "DriverReturnOverrideRequest",
+        "type": "object"
+      },
+      "def-107": {
+        "additionalProperties": false,
+        "properties": {
+          "closurePath": {
+            "anyOf": [
+              {
+                "enum": [
+                  "RETURN_EXCEPTION"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "EMERGENCY_STOP"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exceptionCommandId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lifecycle": {
+            "enum": [
+              "ACTIVE",
+              "SHIFT_ENDED",
+              "INVALIDATE_REVIEW"
+            ],
+            "type": "string"
+          },
+          "resourceVersion": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "returnMode": {
+            "enum": [
+              "DISABLED",
+              "ADVISORY",
+              "REQUIRED_WITH_AUDITED_OVERRIDE"
+            ],
+            "type": "string"
+          },
+          "returnResult": {
+            "anyOf": [
+              {
+                "enum": [
+                  "NOT_REQUIRED",
+                  "PASS",
+                  "OUTSIDE",
+                  "STALE",
+                  "INACCURATE",
+                  "UNAVAILABLE",
+                  "OVERRIDDEN"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shiftGeneration": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "shiftReference": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shiftReference",
+          "shiftGeneration",
+          "resourceVersion",
+          "exceptionCommandId",
+          "lifecycle",
+          "returnMode",
+          "returnResult"
+        ],
+        "title": "DriverReturnReview",
+        "type": "object"
+      },
+      "def-108": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedRunVersion": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "nodeOrder": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 500,
+            "minItems": 2,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "parkedAttestation": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          },
+          "policyDigest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "proposalId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "shiftGeneration": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposalId",
+          "shiftGeneration",
+          "policyDigest",
+          "expectedRunVersion",
+          "nodeOrder",
+          "parkedAttestation"
+        ],
+        "title": "RouteProposalRequest",
+        "type": "object"
+      },
+      "def-109": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "anyOf": [
+              {
+                "enum": [
+                  "APPROVED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "REJECTED"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "expectedRunVersion": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "decision",
+          "expectedRunVersion"
+        ],
+        "title": "RouteDecisionRequest",
+        "type": "object"
+      },
       "def-11": {
         "additionalProperties": false,
         "properties": {
@@ -477,6 +1326,494 @@
           "ambiguityPolicy"
         ],
         "title": "TripCreateRequest",
+        "type": "object"
+      },
+      "def-110": {
+        "additionalProperties": false,
+        "properties": {
+          "proposalId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "runId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "runVersion": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PENDING_DISPATCH_APPROVAL"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "APPROVED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "REJECTED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "EXPIRED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "CONFLICT"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "proposalId",
+          "runId",
+          "runVersion",
+          "state"
+        ],
+        "title": "RouteProposalReceipt",
+        "type": "object"
+      },
+      "def-111": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedTag": {
+            "type": "string"
+          },
+          "factsVersion": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "DISABLED",
+              "AUTHORIZED_SELF_APPROVE",
+              "DISPATCH_APPROVAL_REQUIRED"
+            ],
+            "type": "string"
+          },
+          "nodes": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "PICKUP",
+                    "DROPOFF",
+                    "BREAK",
+                    "RETURN"
+                  ],
+                  "type": "string"
+                },
+                "locked": {
+                  "type": "boolean"
+                },
+                "nodeId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "tripLegId": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "nodeId",
+                "tripLegId",
+                "kind",
+                "locked"
+              ],
+              "type": "object"
+            },
+            "maxItems": 500,
+            "type": "array"
+          },
+          "policyDigest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "proposals": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "expectedTag": {
+                  "type": "string"
+                },
+                "nodeOrder": {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "maxItems": 500,
+                  "type": "array"
+                },
+                "proposalId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "runVersion": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "state": {
+                  "enum": [
+                    "PENDING_DISPATCH_APPROVAL",
+                    "APPROVED",
+                    "REJECTED",
+                    "EXPIRED",
+                    "CONFLICT"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "proposalId",
+                "expectedTag",
+                "nodeOrder",
+                "runVersion",
+                "state"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "runId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "runVersion": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "shiftGeneration": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "shiftId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shiftId",
+          "runId",
+          "runVersion",
+          "factsVersion",
+          "shiftGeneration",
+          "policyDigest",
+          "expectedTag",
+          "mode",
+          "nodes",
+          "proposals"
+        ],
+        "title": "RouteProposalView",
+        "type": "object"
+      },
+      "def-112": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "$ref": "#/components/schemas/def-11"
+              },
+              "kind": {
+                "enum": [
+                  "CREATE_TRIP"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "body"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "$ref": "#/components/schemas/def-15"
+              },
+              "expectedTag": {
+                "$ref": "#/components/schemas/def-6"
+              },
+              "kind": {
+                "enum": [
+                  "CANCEL_TRIP"
+                ],
+                "type": "string"
+              },
+              "resourceId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "resourceId",
+              "expectedTag",
+              "body"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "$ref": "#/components/schemas/def-53"
+              },
+              "expectedTag": {
+                "$ref": "#/components/schemas/def-6"
+              },
+              "kind": {
+                "enum": [
+                  "ASSIGN_RUN"
+                ],
+                "type": "string"
+              },
+              "resourceId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "resourceId",
+              "expectedTag",
+              "body"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "$ref": "#/components/schemas/def-109"
+              },
+              "expectedTag": {
+                "$ref": "#/components/schemas/def-6"
+              },
+              "kind": {
+                "enum": [
+                  "DECIDE_ROUTE"
+                ],
+                "type": "string"
+              },
+              "resourceId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "resourceId",
+              "expectedTag",
+              "body"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "$ref": "#/components/schemas/def-106"
+              },
+              "kind": {
+                "enum": [
+                  "OVERRIDE_RETURN"
+                ],
+                "type": "string"
+              },
+              "resourceId": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "resourceId",
+              "body"
+            ],
+            "type": "object"
+          }
+        ],
+        "title": "BrowserCommandEnvelope"
+      },
+      "def-113": {
+        "additionalProperties": false,
+        "properties": {
+          "envelope": {
+            "$ref": "#/components/schemas/def-112"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "envelope"
+        ],
+        "title": "BrowserCommandPrepare",
+        "type": "object"
+      },
+      "def-114": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledged": {
+            "type": "boolean"
+          },
+          "envelope": {
+            "$ref": "#/components/schemas/def-112"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "body": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/components/schemas/def-12"
+                          },
+                          {
+                            "$ref": "#/components/schemas/def-14"
+                          },
+                          {
+                            "$ref": "#/components/schemas/def-54"
+                          },
+                          {
+                            "$ref": "#/components/schemas/def-110"
+                          },
+                          {
+                            "$ref": "#/components/schemas/def-80"
+                          }
+                        ]
+                      },
+                      "etag": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/components/schemas/def-6"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "outcome": {
+                        "enum": [
+                          "ACCEPTED"
+                        ],
+                        "type": "string"
+                      },
+                      "statusCode": {
+                        "maximum": 201,
+                        "minimum": 200,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "outcome",
+                      "statusCode",
+                      "body",
+                      "etag"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "code": {
+                        "pattern": "^[A-Z][A-Z0-9_]{0,127}$",
+                        "type": "string"
+                      },
+                      "outcome": {
+                        "enum": [
+                          "REJECTED"
+                        ],
+                        "type": "string"
+                      },
+                      "statusCode": {
+                        "maximum": 499,
+                        "minimum": 400,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "outcome",
+                      "statusCode",
+                      "code"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "envelope",
+          "result",
+          "expired",
+          "acknowledged"
+        ],
+        "title": "BrowserCommandView",
+        "type": "object"
+      },
+      "def-115": {
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/def-114"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "BrowserCommandPending",
         "type": "object"
       },
       "def-12": {
@@ -6375,65 +7712,313 @@
       "def-90": {
         "additionalProperties": false,
         "properties": {
-          "commandId": {
-            "format": "uuid",
-            "type": "string"
+          "averageTripMiles": {
+            "maximum": 500,
+            "minimum": 0.5,
+            "type": "number"
           },
-          "emergencyStopResolution": {
-            "type": "boolean"
+          "contractedBaseCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
           },
-          "exceptionCommandId": {
-            "format": "uuid",
-            "type": "string"
+          "contractedCentsPerMile": {
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "integer"
           },
-          "expectedVersion": {
+          "deadheadPercent": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "driverBurdenPercent": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "driverHourlyCents": {
+            "maximum": 20000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "fixedOverheadCentsPerMonth": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "fuelCentsPerGallon": {
+            "maximum": 5000,
             "minimum": 1,
             "type": "integer"
           },
-          "reason": {
-            "enum": [
-              "RETURN_EXCEPTION_REVIEWED"
-            ],
-            "type": "string"
+          "fuelEfficiencyMpg": {
+            "maximum": 60,
+            "minimum": 1,
+            "type": "number"
           },
-          "shiftGeneration": {
-            "format": "uuid",
-            "type": "string"
+          "insuranceCentsPerMonthPerVehicle": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "loadedMilesPerHour": {
+            "maximum": 80,
+            "minimum": 1,
+            "type": "number"
+          },
+          "maintenanceCentsPerMile": {
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "targetMarginPercent": {
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number"
           }
         },
         "required": [
-          "commandId",
-          "shiftGeneration",
-          "expectedVersion",
-          "exceptionCommandId",
-          "reason"
+          "fuelCentsPerGallon",
+          "fuelEfficiencyMpg",
+          "maintenanceCentsPerMile",
+          "driverHourlyCents",
+          "driverBurdenPercent",
+          "insuranceCentsPerMonthPerVehicle",
+          "fixedOverheadCentsPerMonth",
+          "deadheadPercent",
+          "targetMarginPercent",
+          "contractedBaseCents",
+          "contractedCentsPerMile",
+          "averageTripMiles",
+          "loadedMilesPerHour"
         ],
-        "title": "DriverReturnOverrideRequest",
+        "title": "RouteCostProfile",
         "type": "object"
       },
       "def-91": {
         "additionalProperties": false,
         "properties": {
-          "closurePath": {
+          "profile": {
             "anyOf": [
               {
-                "enum": [
-                  "RETURN_EXCEPTION"
+                "additionalProperties": false,
+                "properties": {
+                  "averageTripMiles": {
+                    "maximum": 500,
+                    "minimum": 0.5,
+                    "type": "number"
+                  },
+                  "contractedBaseCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "contractedCentsPerMile": {
+                    "maximum": 100000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "deadheadPercent": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "driverBurdenPercent": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "driverHourlyCents": {
+                    "maximum": 20000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "fixedOverheadCentsPerMonth": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "fuelCentsPerGallon": {
+                    "maximum": 5000,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "fuelEfficiencyMpg": {
+                    "maximum": 60,
+                    "minimum": 1,
+                    "type": "number"
+                  },
+                  "insuranceCentsPerMonthPerVehicle": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "loadedMilesPerHour": {
+                    "maximum": 80,
+                    "minimum": 1,
+                    "type": "number"
+                  },
+                  "maintenanceCentsPerMile": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "targetMarginPercent": {
+                    "maximum": 90,
+                    "minimum": 0,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "fuelCentsPerGallon",
+                  "fuelEfficiencyMpg",
+                  "maintenanceCentsPerMile",
+                  "driverHourlyCents",
+                  "driverBurdenPercent",
+                  "insuranceCentsPerMonthPerVehicle",
+                  "fixedOverheadCentsPerMonth",
+                  "deadheadPercent",
+                  "targetMarginPercent",
+                  "contractedBaseCents",
+                  "contractedCentsPerMile",
+                  "averageTripMiles",
+                  "loadedMilesPerHour"
                 ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "EMERGENCY_STOP"
-                ],
-                "type": "string"
+                "type": "object"
               },
               {
                 "type": "null"
               }
             ]
           },
-          "exceptionCommandId": {
+          "version": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "profile",
+          "version"
+        ],
+        "title": "CostProfileView",
+        "type": "object"
+      },
+      "def-92": {
+        "additionalProperties": false,
+        "properties": {
+          "averageTripMiles": {
+            "maximum": 500,
+            "minimum": 0.5,
+            "type": "number"
+          },
+          "contractedBaseCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "contractedCentsPerMile": {
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "deadheadPercent": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "driverBurdenPercent": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "driverHourlyCents": {
+            "maximum": 20000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "expectedVersion": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "fixedOverheadCentsPerMonth": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "fuelCentsPerGallon": {
+            "maximum": 5000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "fuelEfficiencyMpg": {
+            "maximum": 60,
+            "minimum": 1,
+            "type": "number"
+          },
+          "insuranceCentsPerMonthPerVehicle": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "loadedMilesPerHour": {
+            "maximum": 80,
+            "minimum": 1,
+            "type": "number"
+          },
+          "maintenanceCentsPerMile": {
+            "maximum": 1000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "targetMarginPercent": {
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "fuelCentsPerGallon",
+          "fuelEfficiencyMpg",
+          "maintenanceCentsPerMile",
+          "driverHourlyCents",
+          "driverBurdenPercent",
+          "insuranceCentsPerMonthPerVehicle",
+          "fixedOverheadCentsPerMonth",
+          "deadheadPercent",
+          "targetMarginPercent",
+          "contractedBaseCents",
+          "contractedCentsPerMile",
+          "averageTripMiles",
+          "loadedMilesPerHour",
+          "expectedVersion"
+        ],
+        "title": "CostProfileUpdateRequest",
+        "type": "object"
+      },
+      "def-93": {
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "CostProfileUpdateReceipt",
+        "type": "object"
+      },
+      "def-94": {
+        "additionalProperties": false,
+        "properties": {
+          "appointmentLengthMinutes": {
+            "maximum": 1440,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "clientId": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -6444,38 +8029,10 @@
               }
             ]
           },
-          "lifecycle": {
-            "enum": [
-              "ACTIVE",
-              "SHIFT_ENDED",
-              "INVALIDATE_REVIEW"
-            ],
-            "type": "string"
-          },
-          "resourceVersion": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "returnMode": {
-            "enum": [
-              "DISABLED",
-              "ADVISORY",
-              "REQUIRED_WITH_AUDITED_OVERRIDE"
-            ],
-            "type": "string"
-          },
-          "returnResult": {
+          "clientLabel": {
             "anyOf": [
               {
-                "enum": [
-                  "NOT_REQUIRED",
-                  "PASS",
-                  "OUTSIDE",
-                  "STALE",
-                  "INACCURATE",
-                  "UNAVAILABLE",
-                  "OVERRIDDEN"
-                ],
+                "maxLength": 200,
                 "type": "string"
               },
               {
@@ -6483,203 +8040,200 @@
               }
             ]
           },
-          "shiftGeneration": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "shiftReference": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "shiftReference",
-          "shiftGeneration",
-          "resourceVersion",
-          "exceptionCommandId",
-          "lifecycle",
-          "returnMode",
-          "returnResult"
-        ],
-        "title": "DriverReturnReview",
-        "type": "object"
-      },
-      "def-92": {
-        "additionalProperties": false,
-        "properties": {
-          "expectedRunVersion": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "nodeOrder": {
-            "items": {
-              "format": "uuid",
-              "type": "string"
-            },
-            "maxItems": 500,
-            "minItems": 2,
-            "type": "array",
-            "uniqueItems": true
-          },
-          "parkedAttestation": {
-            "enum": [
-              true
-            ],
-            "type": "boolean"
-          },
-          "policyDigest": {
-            "pattern": "^[a-f0-9]{64}$",
-            "type": "string"
-          },
-          "proposalId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "shiftGeneration": {
-            "format": "uuid",
-            "type": "string"
-          }
-        },
-        "required": [
-          "proposalId",
-          "shiftGeneration",
-          "policyDigest",
-          "expectedRunVersion",
-          "nodeOrder",
-          "parkedAttestation"
-        ],
-        "title": "RouteProposalRequest",
-        "type": "object"
-      },
-      "def-93": {
-        "additionalProperties": false,
-        "properties": {
-          "decision": {
+          "driverLabel": {
             "anyOf": [
               {
-                "enum": [
-                  "APPROVED"
-                ],
+                "maxLength": 200,
                 "type": "string"
               },
               {
-                "enum": [
-                  "REJECTED"
-                ],
-                "type": "string"
+                "type": "null"
               }
             ]
           },
-          "expectedRunVersion": {
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "decision",
-          "expectedRunVersion"
-        ],
-        "title": "RouteDecisionRequest",
-        "type": "object"
-      },
-      "def-94": {
-        "additionalProperties": false,
-        "properties": {
-          "proposalId": {
-            "format": "uuid",
+          "dropoffLabel": {
+            "maxLength": 512,
             "type": "string"
           },
-          "runId": {
-            "format": "uuid",
+          "executionState": {
+            "maxLength": 64,
             "type": "string"
           },
-          "runVersion": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "state": {
+          "measuredMiles": {
             "anyOf": [
               {
-                "enum": [
-                  "PENDING_DISPATCH_APPROVAL"
-                ],
-                "type": "string"
+                "maximum": 20000,
+                "minimum": 0,
+                "type": "number"
               },
               {
-                "enum": [
-                  "APPROVED"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "REJECTED"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "EXPIRED"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "CONFLICT"
-                ],
-                "type": "string"
+                "type": "null"
               }
             ]
+          },
+          "pickupLabel": {
+            "maxLength": 512,
+            "type": "string"
+          },
+          "plannedEndAt": {
+            "format": "date-time",
+            "maxLength": 35,
+            "type": "string"
+          },
+          "plannedStartAt": {
+            "format": "date-time",
+            "maxLength": 35,
+            "type": "string"
+          },
+          "recordState": {
+            "maxLength": 32,
+            "type": "string"
+          },
+          "riderLabel": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tripId": {
+            "format": "uuid",
+            "type": "string"
           }
         },
         "required": [
-          "proposalId",
-          "runId",
-          "runVersion",
-          "state"
+          "tripId",
+          "clientId",
+          "clientLabel",
+          "riderLabel",
+          "pickupLabel",
+          "dropoffLabel",
+          "plannedStartAt",
+          "plannedEndAt",
+          "appointmentLengthMinutes",
+          "measuredMiles",
+          "driverLabel",
+          "recordState",
+          "executionState"
         ],
-        "title": "RouteProposalReceipt",
+        "title": "ServiceDayEstimateTrip",
         "type": "object"
       },
       "def-95": {
         "additionalProperties": false,
         "properties": {
-          "expectedTag": {
+          "profile": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "averageTripMiles": {
+                    "maximum": 500,
+                    "minimum": 0.5,
+                    "type": "number"
+                  },
+                  "contractedBaseCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "contractedCentsPerMile": {
+                    "maximum": 100000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "deadheadPercent": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "driverBurdenPercent": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "driverHourlyCents": {
+                    "maximum": 20000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "fixedOverheadCentsPerMonth": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "fuelCentsPerGallon": {
+                    "maximum": 5000,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "fuelEfficiencyMpg": {
+                    "maximum": 60,
+                    "minimum": 1,
+                    "type": "number"
+                  },
+                  "insuranceCentsPerMonthPerVehicle": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "loadedMilesPerHour": {
+                    "maximum": 80,
+                    "minimum": 1,
+                    "type": "number"
+                  },
+                  "maintenanceCentsPerMile": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "targetMarginPercent": {
+                    "maximum": 90,
+                    "minimum": 0,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "fuelCentsPerGallon",
+                  "fuelEfficiencyMpg",
+                  "maintenanceCentsPerMile",
+                  "driverHourlyCents",
+                  "driverBurdenPercent",
+                  "insuranceCentsPerMonthPerVehicle",
+                  "fixedOverheadCentsPerMonth",
+                  "deadheadPercent",
+                  "targetMarginPercent",
+                  "contractedBaseCents",
+                  "contractedCentsPerMile",
+                  "averageTripMiles",
+                  "loadedMilesPerHour"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "serviceDate": {
+            "format": "date",
+            "maxLength": 10,
             "type": "string"
           },
-          "factsVersion": {
-            "minimum": 1,
-            "type": "integer"
-          },
-          "mode": {
-            "enum": [
-              "DISABLED",
-              "AUTHORIZED_SELF_APPROVE",
-              "DISPATCH_APPROVAL_REQUIRED"
-            ],
-            "type": "string"
-          },
-          "nodes": {
+          "trips": {
             "items": {
               "additionalProperties": false,
               "properties": {
-                "kind": {
-                  "enum": [
-                    "PICKUP",
-                    "DROPOFF",
-                    "BREAK",
-                    "RETURN"
-                  ],
-                  "type": "string"
+                "appointmentLengthMinutes": {
+                  "maximum": 1440,
+                  "minimum": 0,
+                  "type": "integer"
                 },
-                "locked": {
-                  "type": "boolean"
-                },
-                "nodeId": {
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "tripLegId": {
+                "clientId": {
                   "anyOf": [
                     {
                       "format": "uuid",
@@ -6689,385 +8243,588 @@
                       "type": "null"
                     }
                   ]
-                }
-              },
-              "required": [
-                "nodeId",
-                "tripLegId",
-                "kind",
-                "locked"
-              ],
-              "type": "object"
-            },
-            "maxItems": 500,
-            "type": "array"
-          },
-          "policyDigest": {
-            "pattern": "^[a-f0-9]{64}$",
-            "type": "string"
-          },
-          "proposals": {
-            "items": {
-              "additionalProperties": false,
-              "properties": {
-                "expectedTag": {
+                },
+                "clientLabel": {
+                  "anyOf": [
+                    {
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "driverLabel": {
+                  "anyOf": [
+                    {
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "dropoffLabel": {
+                  "maxLength": 512,
                   "type": "string"
                 },
-                "nodeOrder": {
-                  "items": {
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  "maxItems": 500,
-                  "type": "array"
+                "executionState": {
+                  "maxLength": 64,
+                  "type": "string"
                 },
-                "proposalId": {
+                "measuredMiles": {
+                  "anyOf": [
+                    {
+                      "maximum": 20000,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "pickupLabel": {
+                  "maxLength": 512,
+                  "type": "string"
+                },
+                "plannedEndAt": {
+                  "format": "date-time",
+                  "maxLength": 35,
+                  "type": "string"
+                },
+                "plannedStartAt": {
+                  "format": "date-time",
+                  "maxLength": 35,
+                  "type": "string"
+                },
+                "recordState": {
+                  "maxLength": 32,
+                  "type": "string"
+                },
+                "riderLabel": {
+                  "anyOf": [
+                    {
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "tripId": {
                   "format": "uuid",
                   "type": "string"
-                },
-                "runVersion": {
-                  "minimum": 1,
-                  "type": "integer"
-                },
-                "state": {
-                  "enum": [
-                    "PENDING_DISPATCH_APPROVAL",
-                    "APPROVED",
-                    "REJECTED",
-                    "EXPIRED",
-                    "CONFLICT"
-                  ],
-                  "type": "string"
                 }
               },
               "required": [
-                "proposalId",
-                "expectedTag",
-                "nodeOrder",
-                "runVersion",
-                "state"
+                "tripId",
+                "clientId",
+                "clientLabel",
+                "riderLabel",
+                "pickupLabel",
+                "dropoffLabel",
+                "plannedStartAt",
+                "plannedEndAt",
+                "appointmentLengthMinutes",
+                "measuredMiles",
+                "driverLabel",
+                "recordState",
+                "executionState"
               ],
               "type": "object"
             },
-            "maxItems": 100,
+            "maxItems": 300,
             "type": "array"
           },
-          "runId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "runVersion": {
-            "minimum": 1,
+          "version": {
+            "minimum": 0,
             "type": "integer"
+          }
+        },
+        "required": [
+          "serviceDate",
+          "version",
+          "profile",
+          "trips"
+        ],
+        "title": "ServiceDayEstimates",
+        "type": "object"
+      },
+      "def-96": {
+        "additionalProperties": false,
+        "properties": {
+          "authorizationNumber": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
-          "shiftGeneration": {
-            "format": "uuid",
+          "claimReference": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "clientId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hcpcsCode": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z][0-9]{4}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "payerKind": {
+            "enum": [
+              "MEDICAID",
+              "BROKER",
+              "MCO",
+              "COMMERCIAL_INSURANCE",
+              "WORKERS_COMPENSATION",
+              "AUTO_LIABILITY",
+              "FACILITY",
+              "PATIENT",
+              "OTHER"
+            ],
             "type": "string"
           },
-          "shiftId": {
-            "format": "uuid",
+          "payerName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "periodEnd": {
+            "format": "date",
+            "maxLength": 10,
+            "type": "string"
+          },
+          "periodStart": {
+            "format": "date",
+            "maxLength": 10,
+            "type": "string"
+          },
+          "proofOfService": {
+            "enum": [
+              "SIGNATURE_ON_FILE",
+              "FACILITY_SIGNATURE",
+              "DRIVER_ATTESTED",
+              "NOT_REQUIRED",
+              "MISSING"
+            ],
             "type": "string"
           }
         },
         "required": [
-          "shiftId",
-          "runId",
-          "runVersion",
-          "factsVersion",
-          "shiftGeneration",
-          "policyDigest",
-          "expectedTag",
-          "mode",
-          "nodes",
-          "proposals"
+          "periodStart",
+          "periodEnd",
+          "clientId",
+          "payerKind",
+          "payerName",
+          "claimReference",
+          "hcpcsCode",
+          "authorizationNumber",
+          "proofOfService"
         ],
-        "title": "RouteProposalView",
+        "title": "InvoiceCreateRequest",
         "type": "object"
-      },
-      "def-96": {
-        "anyOf": [
-          {
-            "additionalProperties": false,
-            "properties": {
-              "body": {
-                "$ref": "#/components/schemas/def-11"
-              },
-              "kind": {
-                "enum": [
-                  "CREATE_TRIP"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "kind",
-              "body"
-            ],
-            "type": "object"
-          },
-          {
-            "additionalProperties": false,
-            "properties": {
-              "body": {
-                "$ref": "#/components/schemas/def-15"
-              },
-              "expectedTag": {
-                "$ref": "#/components/schemas/def-6"
-              },
-              "kind": {
-                "enum": [
-                  "CANCEL_TRIP"
-                ],
-                "type": "string"
-              },
-              "resourceId": {
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "kind",
-              "resourceId",
-              "expectedTag",
-              "body"
-            ],
-            "type": "object"
-          },
-          {
-            "additionalProperties": false,
-            "properties": {
-              "body": {
-                "$ref": "#/components/schemas/def-53"
-              },
-              "expectedTag": {
-                "$ref": "#/components/schemas/def-6"
-              },
-              "kind": {
-                "enum": [
-                  "ASSIGN_RUN"
-                ],
-                "type": "string"
-              },
-              "resourceId": {
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "kind",
-              "resourceId",
-              "expectedTag",
-              "body"
-            ],
-            "type": "object"
-          },
-          {
-            "additionalProperties": false,
-            "properties": {
-              "body": {
-                "$ref": "#/components/schemas/def-93"
-              },
-              "expectedTag": {
-                "$ref": "#/components/schemas/def-6"
-              },
-              "kind": {
-                "enum": [
-                  "DECIDE_ROUTE"
-                ],
-                "type": "string"
-              },
-              "resourceId": {
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "kind",
-              "resourceId",
-              "expectedTag",
-              "body"
-            ],
-            "type": "object"
-          },
-          {
-            "additionalProperties": false,
-            "properties": {
-              "body": {
-                "$ref": "#/components/schemas/def-90"
-              },
-              "kind": {
-                "enum": [
-                  "OVERRIDE_RETURN"
-                ],
-                "type": "string"
-              },
-              "resourceId": {
-                "format": "uuid",
-                "type": "string"
-              }
-            },
-            "required": [
-              "kind",
-              "resourceId",
-              "body"
-            ],
-            "type": "object"
-          }
-        ],
-        "title": "BrowserCommandEnvelope"
       },
       "def-97": {
         "additionalProperties": false,
         "properties": {
-          "envelope": {
-            "$ref": "#/components/schemas/def-96"
-          },
-          "id": {
+          "invoiceId": {
             "format": "uuid",
             "type": "string"
+          },
+          "lineCount": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "sumMinutes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "totalCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "totalMiles": {
+            "minimum": 0,
+            "type": "number"
           }
         },
         "required": [
-          "id",
-          "envelope"
+          "invoiceId",
+          "totalCents",
+          "totalMiles",
+          "lineCount",
+          "sumMinutes"
         ],
-        "title": "BrowserCommandPrepare",
+        "title": "InvoiceReceipt",
         "type": "object"
       },
       "def-98": {
         "additionalProperties": false,
         "properties": {
-          "acknowledged": {
-            "type": "boolean"
+          "aggregateVersion": {
+            "minimum": 1,
+            "type": "integer"
           },
-          "envelope": {
-            "$ref": "#/components/schemas/def-96"
-          },
-          "expired": {
-            "type": "boolean"
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "result": {
+          "claimReference": {
             "anyOf": [
               {
-                "anyOf": [
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "body": {
-                        "anyOf": [
-                          {
-                            "$ref": "#/components/schemas/def-12"
-                          },
-                          {
-                            "$ref": "#/components/schemas/def-14"
-                          },
-                          {
-                            "$ref": "#/components/schemas/def-54"
-                          },
-                          {
-                            "$ref": "#/components/schemas/def-94"
-                          },
-                          {
-                            "$ref": "#/components/schemas/def-80"
-                          }
-                        ]
-                      },
-                      "etag": {
-                        "anyOf": [
-                          {
-                            "$ref": "#/components/schemas/def-6"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ]
-                      },
-                      "outcome": {
-                        "enum": [
-                          "ACCEPTED"
-                        ],
-                        "type": "string"
-                      },
-                      "statusCode": {
-                        "maximum": 201,
-                        "minimum": 200,
-                        "type": "integer"
-                      }
-                    },
-                    "required": [
-                      "outcome",
-                      "statusCode",
-                      "body",
-                      "etag"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "code": {
-                        "pattern": "^[A-Z][A-Z0-9_]{0,127}$",
-                        "type": "string"
-                      },
-                      "outcome": {
-                        "enum": [
-                          "REJECTED"
-                        ],
-                        "type": "string"
-                      },
-                      "statusCode": {
-                        "maximum": 499,
-                        "minimum": 400,
-                        "type": "integer"
-                      }
-                    },
-                    "required": [
-                      "outcome",
-                      "statusCode",
-                      "code"
-                    ],
-                    "type": "object"
-                  }
-                ]
+                "maxLength": 64,
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ]
+          },
+          "clientId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "clientLabel": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "maxLength": 35,
+            "type": "string"
+          },
+          "forwardedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "maxLength": 35,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "forwardedMethod": {
+            "anyOf": [
+              {
+                "enum": [
+                  "EXPORT",
+                  "EMAIL",
+                  "PORTAL",
+                  "POST"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "forwardedTo": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "invoiceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lineCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "payerKind": {
+            "enum": [
+              "MEDICAID",
+              "BROKER",
+              "MCO",
+              "COMMERCIAL_INSURANCE",
+              "WORKERS_COMPENSATION",
+              "AUTO_LIABILITY",
+              "FACILITY",
+              "PATIENT",
+              "OTHER"
+            ],
+            "type": "string"
+          },
+          "payerName": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "periodEnd": {
+            "format": "date",
+            "maxLength": 10,
+            "type": "string"
+          },
+          "periodStart": {
+            "format": "date",
+            "maxLength": 10,
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "READY",
+              "SENT",
+              "PAID",
+              "VOID"
+            ],
+            "type": "string"
+          },
+          "totalCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "totalMiles": {
+            "minimum": 0,
+            "type": "number"
           }
         },
         "required": [
-          "id",
-          "envelope",
-          "result",
-          "expired",
-          "acknowledged"
+          "invoiceId",
+          "clientId",
+          "clientLabel",
+          "payerKind",
+          "payerName",
+          "claimReference",
+          "periodStart",
+          "periodEnd",
+          "status",
+          "totalCents",
+          "totalMiles",
+          "lineCount",
+          "forwardedAt",
+          "forwardedMethod",
+          "forwardedTo",
+          "aggregateVersion",
+          "createdAt"
         ],
-        "title": "BrowserCommandView",
+        "title": "InvoiceSummary",
         "type": "object"
       },
       "def-99": {
         "additionalProperties": false,
         "properties": {
-          "command": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/def-98"
+          "invoices": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "aggregateVersion": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "claimReference": {
+                  "anyOf": [
+                    {
+                      "maxLength": 64,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "clientId": {
+                  "anyOf": [
+                    {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "clientLabel": {
+                  "anyOf": [
+                    {
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "createdAt": {
+                  "format": "date-time",
+                  "maxLength": 35,
+                  "type": "string"
+                },
+                "forwardedAt": {
+                  "anyOf": [
+                    {
+                      "format": "date-time",
+                      "maxLength": 35,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "forwardedMethod": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "EXPORT",
+                        "EMAIL",
+                        "PORTAL",
+                        "POST"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "forwardedTo": {
+                  "anyOf": [
+                    {
+                      "maxLength": 200,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "invoiceId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "lineCount": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "payerKind": {
+                  "enum": [
+                    "MEDICAID",
+                    "BROKER",
+                    "MCO",
+                    "COMMERCIAL_INSURANCE",
+                    "WORKERS_COMPENSATION",
+                    "AUTO_LIABILITY",
+                    "FACILITY",
+                    "PATIENT",
+                    "OTHER"
+                  ],
+                  "type": "string"
+                },
+                "payerName": {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                "periodEnd": {
+                  "format": "date",
+                  "maxLength": 10,
+                  "type": "string"
+                },
+                "periodStart": {
+                  "format": "date",
+                  "maxLength": 10,
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "DRAFT",
+                    "READY",
+                    "SENT",
+                    "PAID",
+                    "VOID"
+                  ],
+                  "type": "string"
+                },
+                "totalCents": {
+                  "maximum": 2000000000,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "totalMiles": {
+                  "minimum": 0,
+                  "type": "number"
+                }
               },
-              {
-                "type": "null"
-              }
-            ]
+              "required": [
+                "invoiceId",
+                "clientId",
+                "clientLabel",
+                "payerKind",
+                "payerName",
+                "claimReference",
+                "periodStart",
+                "periodEnd",
+                "status",
+                "totalCents",
+                "totalMiles",
+                "lineCount",
+                "forwardedAt",
+                "forwardedMethod",
+                "forwardedTo",
+                "aggregateVersion",
+                "createdAt"
+              ],
+              "type": "object"
+            },
+            "maxItems": 200,
+            "type": "array"
           }
         },
         "required": [
-          "command"
+          "invoices"
         ],
-        "title": "BrowserCommandPending",
+        "title": "InvoiceList",
         "type": "object"
       }
     },
@@ -7174,6 +8931,1369 @@
         ]
       }
     },
+    "/v1/organizations/{organizationId}/billing/cost-profile": {
+      "get": {
+        "operationId": "getRouteCostProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-91"
+                }
+              }
+            },
+            "description": "Stored route costing profile, null before it is set",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/billing/cost-profile/commands/update": {
+      "post": {
+        "operationId": "updateRouteCostProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "averageTripMiles": {
+                    "maximum": 500,
+                    "minimum": 0.5,
+                    "type": "number"
+                  },
+                  "contractedBaseCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "contractedCentsPerMile": {
+                    "maximum": 100000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "deadheadPercent": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "driverBurdenPercent": {
+                    "maximum": 100,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "driverHourlyCents": {
+                    "maximum": 20000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "expectedVersion": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "fixedOverheadCentsPerMonth": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "fuelCentsPerGallon": {
+                    "maximum": 5000,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "fuelEfficiencyMpg": {
+                    "maximum": 60,
+                    "minimum": 1,
+                    "type": "number"
+                  },
+                  "insuranceCentsPerMonthPerVehicle": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "loadedMilesPerHour": {
+                    "maximum": 80,
+                    "minimum": 1,
+                    "type": "number"
+                  },
+                  "maintenanceCentsPerMile": {
+                    "maximum": 1000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "targetMarginPercent": {
+                    "maximum": 90,
+                    "minimum": 0,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "fuelCentsPerGallon",
+                  "fuelEfficiencyMpg",
+                  "maintenanceCentsPerMile",
+                  "driverHourlyCents",
+                  "driverBurdenPercent",
+                  "insuranceCentsPerMonthPerVehicle",
+                  "fixedOverheadCentsPerMonth",
+                  "deadheadPercent",
+                  "targetMarginPercent",
+                  "contractedBaseCents",
+                  "contractedCentsPerMile",
+                  "averageTripMiles",
+                  "loadedMilesPerHour",
+                  "expectedVersion"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-93"
+                }
+              }
+            },
+            "description": "Stored route costing profile version",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/billing/estimates/{serviceDate}": {
+      "get": {
+        "operationId": "getServiceDayEstimates",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceDate",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-3"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-95"
+                }
+              }
+            },
+            "description": "Costing inputs for the service day's trips",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/billing/invoices": {
+      "get": {
+        "operationId": "listPayerInvoices",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-99"
+                }
+              }
+            },
+            "description": "Stored payer invoices",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/billing/invoices/commands/create": {
+      "post": {
+        "operationId": "createPayerInvoice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "authorizationNumber": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "claimReference": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "clientId": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "hcpcsCode": {
+                    "anyOf": [
+                      {
+                        "pattern": "^[A-Z][0-9]{4}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "payerKind": {
+                    "enum": [
+                      "MEDICAID",
+                      "BROKER",
+                      "MCO",
+                      "COMMERCIAL_INSURANCE",
+                      "WORKERS_COMPENSATION",
+                      "AUTO_LIABILITY",
+                      "FACILITY",
+                      "PATIENT",
+                      "OTHER"
+                    ],
+                    "type": "string"
+                  },
+                  "payerName": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "periodEnd": {
+                    "format": "date",
+                    "maxLength": 10,
+                    "type": "string"
+                  },
+                  "periodStart": {
+                    "format": "date",
+                    "maxLength": 10,
+                    "type": "string"
+                  },
+                  "proofOfService": {
+                    "enum": [
+                      "SIGNATURE_ON_FILE",
+                      "FACILITY_SIGNATURE",
+                      "DRIVER_ATTESTED",
+                      "NOT_REQUIRED",
+                      "MISSING"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "periodStart",
+                  "periodEnd",
+                  "clientId",
+                  "payerKind",
+                  "payerName",
+                  "claimReference",
+                  "hcpcsCode",
+                  "authorizationNumber",
+                  "proofOfService"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-97"
+                }
+              }
+            },
+            "description": "Invoice created from delivered trips",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Expired"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/billing/invoices/{invoiceId}": {
+      "get": {
+        "operationId": "getPayerInvoice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "invoiceId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-101"
+                }
+              }
+            },
+            "description": "Stored invoice with the trips it bills",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/billing/invoices/{invoiceId}/commands/forward": {
+      "post": {
+        "operationId": "forwardPayerInvoice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "invoiceId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "claimReference": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "expectedVersion": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "forwardedTo": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "method": {
+                    "enum": [
+                      "EXPORT",
+                      "EMAIL",
+                      "PORTAL",
+                      "POST"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "expectedVersion",
+                  "method",
+                  "forwardedTo",
+                  "claimReference"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-103"
+                }
+              }
+            },
+            "description": "Invoice forwarding recorded",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Expired"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ]
+      }
+    },
     "/v1/organizations/{organizationId}/browser-commands": {
       "post": {
         "operationId": "prepareBrowserCommand",
@@ -7212,7 +10332,7 @@
                 "additionalProperties": false,
                 "properties": {
                   "envelope": {
-                    "$ref": "#/components/schemas/def-96"
+                    "$ref": "#/components/schemas/def-112"
                   },
                   "id": {
                     "format": "uuid",
@@ -7234,7 +10354,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-98"
+                  "$ref": "#/components/schemas/def-114"
                 }
               }
             },
@@ -7450,7 +10570,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-99"
+                  "$ref": "#/components/schemas/def-115"
                 }
               }
             },
@@ -7694,7 +10814,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-98"
+                  "$ref": "#/components/schemas/def-114"
                 }
               }
             },
@@ -7938,7 +11058,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-98"
+                  "$ref": "#/components/schemas/def-114"
                 }
               }
             },
@@ -8895,6 +12015,150 @@
         ]
       }
     },
+    "/v1/organizations/{organizationId}/clients/{clientId}/history": {
+      "get": {
+        "operationId": "getClientRouteHistory",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "maximum": 3650,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-105"
+                }
+              }
+            },
+            "description": "A client's route history over the chosen lookback",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "billing"
+        ]
+      }
+    },
     "/v1/organizations/{organizationId}/dispatch-board/{serviceDate}": {
       "get": {
         "operationId": "getDispatchBoard",
@@ -9251,7 +12515,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-94"
+                  "$ref": "#/components/schemas/def-110"
                 }
               }
             },
@@ -10538,7 +13802,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-91"
+                  "$ref": "#/components/schemas/def-107"
                 }
               }
             },
@@ -10662,7 +13926,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-95"
+                  "$ref": "#/components/schemas/def-111"
                 }
               }
             },
@@ -15808,7 +19072,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-95"
+                  "$ref": "#/components/schemas/def-111"
                 }
               }
             },
@@ -16029,7 +19293,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-94"
+                  "$ref": "#/components/schemas/def-110"
                 }
               }
             },

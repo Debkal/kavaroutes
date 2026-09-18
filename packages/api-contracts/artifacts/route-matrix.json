@@ -20,6 +20,170 @@
       ]
     },
     {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/billing/cost-profile",
+      "operationId": "getRouteCostProfile",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/billing/cost-profile/commands/update",
+      "operationId": "updateRouteCostProfile",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/billing/estimates/{serviceDate}",
+      "operationId": "getServiceDayEstimates",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/billing/invoices",
+      "operationId": "listPayerInvoices",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/billing/invoices/{invoiceId}",
+      "operationId": "getPayerInvoice",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/billing/invoices/{invoiceId}/commands/forward",
+      "operationId": "forwardPayerInvoice",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/billing/invoices/commands/create",
+      "operationId": "createPayerInvoice",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
       "method": "POST",
       "path": "/v1/organizations/{organizationId}/browser-commands",
       "operationId": "prepareBrowserCommand",
@@ -177,6 +341,27 @@
         "415",
         "422",
         "428",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/clients/{clientId}/history",
+      "operationId": "getClientRouteHistory",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
         "429",
         "500",
         "503"

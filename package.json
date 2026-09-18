@@ -37,7 +37,7 @@
     "kavaroutes:api:generate": "node packages/api-contracts/scripts/generate-artifacts.mjs",
     "kavaroutes:api:lint": "node packages/api-contracts/scripts/lint-artifacts.mjs",
     "kavaroutes:api:clients": "tsc -p packages/api-contracts/tsconfig.clients.json --noEmit",
-    "kavaroutes:api:test": "node --test --test-concurrency=1 packages/api-contracts/test/api.test.mjs packages/api-contracts/test/contract.test.mjs",
+    "kavaroutes:api:test": "node --test --test-concurrency=1 packages/api-contracts/test/api.test.mjs packages/api-contracts/test/contract.test.mjs packages/api-contracts/test/route-costing.test.mjs",
     "kavaroutes:api:test:database": "node --test --test-concurrency=1 packages/api-contracts/test/postgres.integration.test.mjs",
     "kavaroutes:api:benchmark": "node packages/api-contracts/scripts/benchmark.mjs",
     "kavaroutes:api:verify": "npm run build && npm run kavaroutes:api:catalog && npm run kavaroutes:api:generate && npm run kavaroutes:api:lint && npm run kavaroutes:api:clients && npm run kavaroutes:api:test && npm run kavaroutes:api:test:database && npm run kavaroutes:api:benchmark",

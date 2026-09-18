@@ -1,5 +1,7 @@
 export * from "./admission-control.js";
 export * from "./driver-locations.js";
+export * from "./route-costing.js";
+export * from "./accounting.js";
 export * from "./dispatch-tracking.js";
 // Exported so a guarded host can compose its own authenticated scope with the
 // same principal semantics as the wp007 lifecycle plugin.

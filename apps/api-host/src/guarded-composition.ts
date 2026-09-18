@@ -65,6 +65,15 @@ const reviewedPaths:readonly RegExp[]=[
   // Live device positioning for the driver map (audit L12).
   /^\/v1\/organizations\/[^/]+\/driver\/shifts\/[^/]+\/location-batches$/,
   /^\/v1\/organizations\/[^/]+\/dispatch\/tracking\/\d{4}-\d{2}-\d{2}$/,
+  // Route costing, estimates, payer invoices and client history (billing authority).
+  /^\/v1\/organizations\/[^/]+\/billing\/cost-profile$/,
+  /^\/v1\/organizations\/[^/]+\/billing\/cost-profile\/commands\/update$/,
+  /^\/v1\/organizations\/[^/]+\/billing\/estimates\/\d{4}-\d{2}-\d{2}$/,
+  /^\/v1\/organizations\/[^/]+\/billing\/invoices$/,
+  /^\/v1\/organizations\/[^/]+\/billing\/invoices\/[^/]+$/,
+  /^\/v1\/organizations\/[^/]+\/billing\/invoices\/commands\/create$/,
+  /^\/v1\/organizations\/[^/]+\/billing\/invoices\/[^/]+\/commands\/forward$/,
+  /^\/v1\/organizations\/[^/]+\/clients\/[^/]+\/history$/,
   /^\/v1\/organizations\/[^/]+\/(?:driver|dispatch)\/shifts\/[^/]+\/route-proposals$/,
   /^\/v1\/organizations\/[^/]+\/dispatch\/shifts\/[^/]+\/route-proposals$/,
   /^\/v1\/organizations\/[^/]+\/browser-commands(?:\/pending|\/[^/]+\/(?:execute|acknowledge))?$/,
