@@ -61,7 +61,11 @@ const decodeInvoice = (value: unknown) => {
 };
 
 export function createCloudAccountingApi(baseUrl: string, fetcher: DevelopmentFetch) {
-  const transport = createPrivateDevelopmentTransport({ baseUrl, persona: "billing", fetch: fetcher });
+  // Every other web surface allows the same-origin HTTPS edge prototype; the accounting
+  // transport must too, or the deployed tab throws PRIVATE_DEVELOPMENT_LOOPBACK_REQUIRED
+  // while the shell still answers 200.
+  const browserSameOrigin = new URL(baseUrl).protocol === "https:";
+  const transport = createPrivateDevelopmentTransport({ baseUrl, persona: "billing", fetch: fetcher, browserSameOrigin });
   return Object.freeze({
     costProfile(signal?: AbortSignal) { return transport.request(`${prefix}/billing/cost-profile`, decodeProfileView, undefined, signal); },
     updateCostProfile(profile: RouteCostProfile, expectedVersion: number, key: string) {
