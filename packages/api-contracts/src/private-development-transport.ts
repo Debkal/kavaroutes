@@ -98,11 +98,15 @@ export function createPrivateDevelopmentTransport(options: {
           try { stated = await response.json() as {code?: unknown; requestId?: unknown}; } catch { stated = null; }
           const statedCode = typeof stated?.code === "string" && /^[A-Z][A-Z0-9_]{2,60}$/.test(stated.code) ? stated.code : null;
           const requestId = typeof stated?.requestId === "string" && /^req_[A-Za-z0-9_-]{1,64}$/.test(stated.requestId) ? stated.requestId : null;
-          const code = response.status === 401 ? "SESSION_EXPIRED" : response.status === 403 ? "CAPABILITY_DENIED"
+          // A stated closed code wins over the status: a 401 from a login route is
+          // DRIVER_LOGIN_REJECTED, not an expired session, and a 412 is the specific
+          // stale-version conflict the caller has to act on. The status mapping stays as
+          // the fallback for a response that states nothing.
+          const code = statedCode ?? (response.status === 401 ? "SESSION_EXPIRED" : response.status === 403 ? "CAPABILITY_DENIED"
             // A 409 can be a duplicate proof, a policy conflict, or a stale command.
             // Do not infer a version mismatch from status alone.
-            : response.status === 409 ? statedCode ?? "REQUEST_CONFLICT" : response.status === 412 ? "VERSION_CONFLICT"
-            : response.status === 503 ? "BACKEND_UNAVAILABLE" : statedCode ?? "API_REQUEST_REJECTED";
+            : response.status === 409 ? "REQUEST_CONFLICT" : response.status === 412 ? "VERSION_CONFLICT"
+            : response.status === 503 ? "BACKEND_UNAVAILABLE" : "API_REQUEST_REJECTED");
           throw new DevelopmentApiError(response.status, code, requestId ?? undefined);
         }
         try {

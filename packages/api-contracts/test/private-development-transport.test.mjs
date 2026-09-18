@@ -66,6 +66,20 @@ test('errors never fall back to local fixtures or expose server details', async 
     await assert.rejects(client.request('/v1/me', decode), error => error.code === code && !error.message.includes('sensitive'));
   }
 });
+test('a stated code wins over the status it arrived with', async () => {
+  // A 401 from a driver-login route is a rejected login, not an expired session; a 412 is
+  // the specific stale-version conflict the caller must act on. The status fallback stays
+  // for a response that states nothing.
+  for (const [status, stated, expected] of [[401, 'DRIVER_LOGIN_REJECTED', 'DRIVER_LOGIN_REJECTED'],
+    [403, 'DRIVER_LOGIN_DRIVER_MISMATCH', 'DRIVER_LOGIN_DRIVER_MISMATCH'],
+    [412, 'PERSISTENCE_STALE_VERSION', 'PERSISTENCE_STALE_VERSION'],
+    [503, 'RUNTIME_PATH_NOT_PROMOTED', 'RUNTIME_PATH_NOT_PROMOTED']]) {
+    const client = make(async () => response(status, { code: stated, requestId: 'req_wp007_00000042' }));
+    await assert.rejects(client.request('/v1/me', decode), error => error.status === status && error.code === expected);
+  }
+  const mute = make(async () => response(401, { detail: 'no code stated' }));
+  await assert.rejects(mute.request('/v1/me', decode), error => error.code === 'SESSION_EXPIRED');
+});
 test('a refused command states its own closed reason code and a request id, without the body text', async () => {
   let attempts = 0;
   const client = make(async () => {
