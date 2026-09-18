@@ -43,7 +43,7 @@ export const router = createBrowserRouter([{
   path: "/", element: <AppShell />, errorElement: <RootError />, HydrateFallback, children: [
     { index: true, loader: () => redirect("/dispatch") },
     { path: "dispatch", lazy: () => privateCloud ? import("./routes/cloud-dispatch-route") : import("./routes/dispatch-route") },
-    { path: "driver", lazy: () => privateCloud ? import("./routes/cloud-driver-route") : import("./routes/cloud-driver-route") },
+    { path: "driver", lazy: () => import("./routes/cloud-driver-route") },
     { path: "clients", lazy: () => privateCloud ? import("./routes/cloud-clients-route") : import("./routes/facility-route") },
     { path: "accounting", lazy: () => import("./routes/cloud-accounting-route") },
     { path: "command", lazy: () => import("./routes/cloud-command-route") },

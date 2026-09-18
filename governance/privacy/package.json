@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "description": "Synthetic provider-neutral privacy and HIPAA assurance contracts for Work Package 002",
+  "exports": {
+    ".": "./index.mjs",
+    "./contracts": "./lib/contracts.mjs",
+    "./normalized": "./normalized/privacy-assurance-contract.json"
+  },
   "scripts": {
     "generate": "node scripts/generate.mjs",
     "validate": "node scripts/validate.mjs",

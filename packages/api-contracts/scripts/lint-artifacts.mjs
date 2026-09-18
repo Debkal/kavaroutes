@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { allSchemas, capabilities, classifyOpenApiChange, problemRegistry, purposes } from "../dist/index.js";
 import { registeredApiDocument, registeredRoutes } from "./registered-routes.mjs";
 import { operationRequirements } from "./route-requirements.mjs";
+import { loadPrivacyBundle } from "../../../governance/privacy/index.mjs";
 
 const root = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
 const readJson = async (path) => JSON.parse(await readFile(resolve(root, path), "utf8"));
@@ -15,7 +16,7 @@ const [source, catalog, openapi, baseline, matrix, projections, privacy] = await
   readJson("packages/api-contracts/artifacts/openapi.baseline.json"),
   readJson("packages/api-contracts/artifacts/route-matrix.json"),
   readJson("packages/api-contracts/artifacts/projection-policy.json"),
-  readJson("governance/privacy/catalog/policy-registry.json"),
+  loadPrivacyBundle().then((bundle) => bundle.policy),
 ]);
 
 const commandIds = source.commands.map((command) => command.id).sort();

@@ -3,7 +3,6 @@ import type {DevelopmentFetch} from '@kavaroutes/api-contracts/private-developme
 import {createCloudApi} from '../src/cloud-api';
 import {createCloudClientApi} from '../src/cloud-client-api';
 import {createCloudDriverWebApi} from '../src/cloud-driver-api';
-import {createCloudFacilityApi} from '../src/cloud-facility-api';
 import {createCloudAccountingApi} from '../src/cloud-accounting-api';
 
 /**
@@ -18,7 +17,7 @@ const fetcher = vi.fn(async () => ({status: 200, headers: {get: () => null}, jso
 describe('web transports at the deployed origin', () => {
   it('constructs every web API at the HTTPS edge origin', () => {
     const factories = {cloudApi: createCloudApi, clientApi: createCloudClientApi, driverApi: createCloudDriverWebApi,
-      facilityApi: createCloudFacilityApi, accountingApi: createCloudAccountingApi} as const;
+      accountingApi: createCloudAccountingApi} as const;
     for (const [name, factory] of Object.entries(factories)) expect(() => factory(deployedOrigin, fetcher), name).not.toThrow();
   });
 

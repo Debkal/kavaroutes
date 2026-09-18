@@ -11,6 +11,7 @@
   "packageManager": "npm@11.17.0",
   "workspaces": [
     "apps/*",
+    "governance/*",
     "packages/*"
   ],
   "scripts": {
@@ -18,12 +19,13 @@
     "clean": "tsc -b --clean",
     "check:architecture": "node scripts/check-architecture.mjs",
     "check:logging": "node scripts/check-safe-logging.mjs",
+    "check:governance": "npm run verify --prefix governance/privacy",
     "check:orchestration-status": "node scripts/check-orchestration-status.mjs",
     "check:deployment-provenance": "node scripts/verify-deployment-provenance.mjs",
     "check:dependencies": "node scripts/dependency-review.mjs",
     "generate:audit-assurance": "npm audit --audit-level=moderate && node scripts/generate-audit-assurance.mjs --verified-zero-online",
     "generate:openapi": "node scripts/generate-openapi.mjs",
-    "test": "npm run build && npm run generate:openapi && npm run check:architecture && npm run check:logging && node --test --test-concurrency=1 test/core.test.mjs test/architecture-negative.test.mjs test/api.test.mjs test/telemetry.test.mjs test/websocket.test.mjs test/smoke.test.mjs test/container-policy.test.mjs test/dependency-assurance.test.mjs test/deployment-provenance.test.mjs",
+    "test": "npm run build && npm run generate:openapi && npm run check:architecture && npm run check:logging && npm run check:governance && node --test --test-concurrency=1 test/core.test.mjs test/architecture-negative.test.mjs test/api.test.mjs test/telemetry.test.mjs test/websocket.test.mjs test/smoke.test.mjs test/container-policy.test.mjs test/dependency-assurance.test.mjs test/deployment-provenance.test.mjs",
     "test:database": "node --test --test-concurrency=1 test/database.integration.test.mjs",
     "test:worker": "node --test --test-concurrency=1 test/worker.integration.test.mjs",
     "test:all": "npm test && npm run test:database && npm run test:worker",

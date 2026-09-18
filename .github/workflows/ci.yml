@@ -44,6 +44,8 @@ jobs:
           npm run build
           npm run check:architecture
           npm run check:logging
+          npm run check:governance
+          git diff --exit-code governance/privacy/normalized/privacy-assurance-contract.json
       - name: Server and authentication contracts
         if: steps.scope.outputs.server == 'true'
         run: |

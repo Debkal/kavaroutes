@@ -12,6 +12,7 @@ import {
   validateAssurance,
   validatePolicy
 } from "../lib/contracts.mjs";
+import { loadPrivacyBundle } from "../index.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const classifications = await readJson(join(root, "catalog", "classifications.json"));
@@ -19,6 +20,13 @@ const policy = await readJson(join(root, "catalog", "policy-registry.json"));
 const assurance = await readJson(join(root, "hipaa", "assurance-registry.json"));
 const flows = await readJson(join(root, "flows", "synthetic-flows.json"));
 const flow = (id) => structuredClone(flows.flows.find((item) => item.id === id));
+
+test("package entry point exposes the validated project governance bundle", async () => {
+  const bundle = await loadPrivacyBundle();
+  assert.equal(bundle.policy.policyVersion, policy.policyVersion);
+  assert.equal(bundle.normalized.digest, normalizeBundle(classifications, policy, assurance, flows).digest);
+  assert.equal(bundle.normalized.productionReadiness.status, "BLOCKED_NOT_PRODUCTION_PHI_READY");
+});
 
 test("normalized bundle is byte-equivalent for the same version and seed", () => {
   assert.equal(canonicalJson(normalizeBundle(classifications, policy, assurance, flows)), canonicalJson(normalizeBundle(structuredClone(classifications), structuredClone(policy), structuredClone(assurance), structuredClone(flows))));
