@@ -15,6 +15,8 @@ import {
 import { DriverPrecheckReceiptSchema, DriverPrecheckRequestSchema, DriverShiftStateSchema } from "./driver-precheck.js";
 import { StartDriverShiftReceiptSchema, StartDriverShiftRequestSchema } from "./driver-shift.js";
 import { DriverSignatureReceiptSchema, DriverSignatureRequestSchema } from "./driver-service-proof.js";
+import { DriverLocationBatchRequestSchema, DriverLocationReceiptSchema, DriverLocationSampleSchema } from "./driver-locations.js";
+import { DispatchShiftTrackSchema, DispatchTrackPointSchema, DispatchTrackingSchema } from "./dispatch-tracking.js";
 
 /** Every TypeBox schema this contract defines.
  *
@@ -38,6 +40,10 @@ export const allSchemas: readonly TSchema[] = Object.freeze([
   FacilityDaySchema,
   DriverClosureRequestSchema, DriverClosureReceiptSchema, DriverClosureViewSchema,
   DriverSyntheticLocationRequestSchema, DriverSyntheticLocationReceiptSchema,
+  /// Live device positioning: the driver's batch and the dispatch map read. Their nested
+  /// point/sample objects are registered by traversal, as other inline objects are.
+  DriverLocationSampleSchema, DriverLocationBatchRequestSchema, DriverLocationReceiptSchema,
+  DispatchTrackPointSchema, DispatchShiftTrackSchema, DispatchTrackingSchema,
   DriverReturnOverrideRequestSchema, DriverReturnReviewSchema,
   RouteProposalRequestSchema, RouteDecisionRequestSchema, RouteProposalReceiptSchema, RouteProposalViewSchema,
   BrowserCommandEnvelopeSchema, BrowserCommandPrepareSchema, BrowserCommandViewSchema, BrowserCommandPendingSchema,

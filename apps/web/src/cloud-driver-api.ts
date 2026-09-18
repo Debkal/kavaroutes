@@ -17,8 +17,10 @@ import {
   type StartDriverShiftReceipt,
 } from "@kavaroutes/api-contracts/client-web";
 import { createPrivateDevelopmentTransport, type DevelopmentFetch } from "@kavaroutes/api-contracts/private-development-transport";
+import type { DriverLocationBatchRequest, DriverLocationReceipt } from "@kavaroutes/api-contracts";
 
 export const driverOrganizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+type DriverLocationBatchReceipt = DriverLocationReceipt;
 const driverId = "30000000-0000-4000-8000-000000000001";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const object = (value: unknown): Record<string, unknown> => {
@@ -148,6 +150,22 @@ const loginPrefix = `/v1/organizations/${driverOrganizationId}`;
     closure(shiftReference: string, signal?: AbortSignal) {
       if (!uuid.test(shiftReference)) throw new Error("INVALID_SHIFT");
       return transport.request(`${prefix}/shifts/${shiftReference}/status`, value => decodeClosure(value, shiftReference), undefined, signal);
+    },
+    /** Real device fixes for the live map. The transport keeps them out of logs and the
+     * decoder accepts only the closed outcomes the server can answer with. */
+    locationBatch(shiftReference: string, request: DriverLocationBatchRequest, key: string) {
+      if (!uuid.test(shiftReference)) throw new Error("INVALID_SHIFT_REFERENCE");
+      return transport.request(`${prefix}/shifts/${shiftReference}/location-batches`, value => {
+        const body = object(value);
+        if (body.shiftReference !== shiftReference || body.batchReference !== request.batchReference || !Array.isArray(body.items) || body.items.length !== request.samples.length)
+          throw new Error("INVALID_LOCATION_BATCH_RECEIPT");
+        for (const item of body.items) {
+          const row = object(item);
+          if (typeof row.sampleId !== "string" || !["APPLIED", "REPLAYED", "REJECTED"].includes(String(row.outcome)) ||
+              !["LOCATION_SAMPLE_SAVED", "SAMPLE_OUTSIDE_RETENTION"].includes(String(row.code))) throw new Error("INVALID_LOCATION_BATCH_RECEIPT");
+        }
+        return body as unknown as DriverLocationBatchReceipt;
+      }, { body: request, idempotencyKey: key });
     },
     location(shiftReference: string, request: DriverSyntheticLocationRequest, key: string) {
       return transport.request(`${prefix}/shifts/${shiftReference}/synthetic-location-batches`, value => {

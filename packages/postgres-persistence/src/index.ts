@@ -5,6 +5,7 @@ export * from "./driver-shift-reader.js";
 export * from "./dispatch-authority.js";
 export * from './route-proposals.js';
 export * from './shift-closure.js';
+export * from './driver-locations.js';
 export * from './tracking-alerts.js';
 export * from './facility-day.js';
 export * from './client-intake.js';

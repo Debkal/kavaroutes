@@ -20,7 +20,9 @@ const contentTypes = Object.freeze({
 const securityHeaders = Object.freeze({
   'content-security-policy': "default-src 'self'; base-uri 'none'; connect-src 'self' wss:; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'",
   'cross-origin-opener-policy': 'same-origin',
-  'permissions-policy': 'camera=(), geolocation=(), microphone=()',
+  // Location sharing is the driver's live map feed; the prompt is the browser's, and a
+  // refusal fails the driver sign-in by design. Camera and microphone stay disabled.
+  'permissions-policy': 'camera=(), geolocation=(self), microphone=()',
   'referrer-policy': 'no-referrer',
   'x-content-type-options': 'nosniff',
   'x-frame-options': 'DENY',

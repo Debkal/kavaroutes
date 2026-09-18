@@ -45,6 +45,33 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
         return {tracking:{status:String(t.status),reason:t.reason,contactDriver:t.contactDriver,evaluatedAt:t.evaluatedAt,lastCapturedAt:t.lastCapturedAt as string|null,lastReceivedAt:t.lastReceivedAt as string|null,staleAfterSeconds:60}};
       });
     },
+    /** Live driver positioning for the service day: current position, bounded trace and
+     * the silence a lost signal has produced. Coordinates are read here and rendered on
+     * the map; they are never written into a message or a URL. */
+    tracking(serviceDate:string){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate))throw new Error('INVALID_SERVICE_DATE');
+      return transport.request(`${prefix}/dispatch/tracking/${serviceDate}`,body=>{
+        const v=object(body);
+        if(Object.keys(v).sort().join(',')!=='serviceDate,shifts'||v.serviceDate!==serviceDate||!Array.isArray(v.shifts))throw new Error('INVALID_DISPATCH_TRACKING');
+        const point=(raw:unknown)=>{const p=object(raw);
+          if(Object.keys(p).sort().join(',')!=='accuracyMeters,capturedAt,latitude,longitude')throw new Error('INVALID_DISPATCH_TRACKING');
+          if(typeof p.latitude!=='number'||p.latitude<-90||p.latitude>90||typeof p.longitude!=='number'||p.longitude<-180||p.longitude>180)throw new Error('INVALID_DISPATCH_TRACKING');
+          if(p.accuracyMeters!==null&&(typeof p.accuracyMeters!=='number'||p.accuracyMeters<0))throw new Error('INVALID_DISPATCH_TRACKING');
+          if(typeof p.capturedAt!=='string'||!Number.isFinite(Date.parse(p.capturedAt)))throw new Error('INVALID_DISPATCH_TRACKING');
+          return {latitude:p.latitude,longitude:p.longitude,accuracyMeters:p.accuracyMeters as number|null,capturedAt:p.capturedAt};};
+        const shifts=v.shifts.map(raw=>{const row=object(raw);
+          if(typeof row.shiftReference!=='string'||!uuid.test(row.shiftReference)||typeof row.driverId!=='string'||!uuid.test(row.driverId)||typeof row.driverLabel!=='string')throw new Error('INVALID_DISPATCH_TRACKING');
+          if(typeof row.silentSeconds!=='number'||row.silentSeconds<0||typeof row.contactDriver!=='boolean'||typeof row.status!=='string'||typeof row.reason!=='string')throw new Error('INVALID_DISPATCH_TRACKING');
+          if(typeof row.retryAfterSeconds!=='number'||row.retryAfterSeconds<1||typeof row.staleAfterSeconds!=='number'||row.staleAfterSeconds<1)throw new Error('INVALID_DISPATCH_TRACKING');
+          if(!Array.isArray(row.trace)||row.trace.length>500)throw new Error('INVALID_DISPATCH_TRACKING');
+          if(row.position!==null&&row.position!==undefined&&typeof row.position!=='object')throw new Error('INVALID_DISPATCH_TRACKING');
+          return {shiftReference:row.shiftReference,driverId:row.driverId,driverLabel:row.driverLabel,lifecycle:String(row.lifecycle),status:String(row.status),
+            reason:String(row.reason),contactDriver:row.contactDriver,silentSeconds:Math.round(row.silentSeconds),lastReceivedAt:(row.lastReceivedAt??null) as string|null,
+            lastCapturedAt:(row.lastCapturedAt??null) as string|null,staleAfterSeconds:row.staleAfterSeconds,retryAfterSeconds:row.retryAfterSeconds,
+            position:row.position?point(row.position):null,trace:row.trace.map(point)};});
+        return {serviceDate,shifts};
+      });
+    },
     routeProposals(shiftId:string){if(!uuid.test(shiftId))throw new Error('INVALID_SHIFT');return transport.request(`${prefix}/dispatch/shifts/${shiftId}/route-proposals`,body=>decodeRouteView(body,shiftId));},
     decideRoute(command:{proposalId:string;decision:'APPROVED'|'REJECTED';expectedRunVersion:number;expectedTag:string;key:string}){
       if(!uuid.test(command.proposalId))throw new Error('INVALID_PROPOSAL');

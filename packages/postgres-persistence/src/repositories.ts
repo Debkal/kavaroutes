@@ -8,6 +8,7 @@ import {createClientRecord,updateClientRecord,type ClientIntakeInput,type Client
 import {createDriverAccount,createDriverCredential,claimDriverCredential,verifyDriverLogin,type DriverAccountInvite,type DriverCredentialInvite,type DriverCredentialState,type DriverLoginAttempt,type DriverWorkforceRelationship} from "./driver-credentials.js";
 import {submitRouteProposal,decideRouteProposal,type RouteProposalInput} from './route-proposals.js';
 import {recordSyntheticLocations,closeDriverShift,type SyntheticLocationInput,type ShiftClosureInput} from './shift-closure.js';
+import {recordDeviceLocations,type DeviceLocationBatchInput,type DeviceLocationItem} from './driver-locations.js';
 
 export type RuntimeRole = "kavaroutes_api" | "kavaroutes_worker" | "kavaroutes_import" | "kavaroutes_outbox_publisher" | "kavaroutes_outbox_consumer" | "kavaroutes_realtime" | "kavaroutes_push_worker";
 
@@ -36,6 +37,7 @@ export interface StoredMutationResult<T> {
 
 export interface TenantMutationTransaction {
   recordSyntheticLocations(input:SyntheticLocationInput):ReturnType<typeof recordSyntheticLocations>;
+  recordDeviceLocations(input:DeviceLocationBatchInput):Promise<readonly DeviceLocationItem[]>;
   closeDriverShift(input:ShiftClosureInput):ReturnType<typeof closeDriverShift>;
   assignDispatchRun(input:DispatchAssignmentInput):ReturnType<typeof applyDispatchAssignment>;
   releaseDispatchAssignment(input:DispatchReleaseInput):Promise<DispatchReleaseReceipt>;
@@ -151,6 +153,9 @@ function transactionAdapter(client: PoolClient, tenantId: string): TenantMutatio
   const lockedExecutions = new Map<string, { executionId: string; lifecycle: string; version: number }>();
   return Object.freeze({
     recordSyntheticLocations:(input:SyntheticLocationInput)=>{if(!lockedActionShifts.has(input.shiftId))throw new Error('DRIVER_SHIFT_LOCK_REQUIRED');return recordSyntheticLocations(client,tenantId,input);},
+    // Device fixes and shift commands share the shift lock: a location batch must not be
+    // written for a shift this transaction has not locked.
+    recordDeviceLocations:(input:DeviceLocationBatchInput)=>{if(!lockedActionShifts.has(input.shiftId))throw new Error('DRIVER_SHIFT_LOCK_REQUIRED');return recordDeviceLocations(client,tenantId,input);},
     closeDriverShift:(input:ShiftClosureInput)=>{if(!lockedActionShifts.has(input.shiftId))throw new Error('DRIVER_SHIFT_LOCK_REQUIRED');return closeDriverShift(client,tenantId,input);},
     assignDispatchRun:(input:DispatchAssignmentInput)=>applyDispatchAssignment(client,tenantId,input),
     releaseDispatchAssignment:(input:DispatchReleaseInput)=>releaseDispatchAssignment(client,tenantId,input),

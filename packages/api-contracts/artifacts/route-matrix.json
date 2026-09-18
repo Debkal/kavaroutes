@@ -457,6 +457,27 @@
     },
     {
       "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/tracking/{serviceDate}",
+      "operationId": "getDispatchTracking",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/v1/organizations/{organizationId}/driver-control-policy",
       "operationId": "getDriverControlPolicy",
       "statuses": [
@@ -806,6 +827,33 @@
         "404",
         "406",
         "409",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/driver/shifts/{shiftId}/location-batches",
+      "operationId": "submitDriverShiftLocationBatch",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "410",
         "412",
         "413",
         "415",

@@ -35,6 +35,9 @@ import {
 } from "./schemas.js";
 import { allSchemas } from "./schema-registry.js";
 import type { CancelTripRequest, DriverActionBatch, LocationBatch, PushRegistrationRequest, PushUnregistrationRequest, TripCreateRequest, UpdateDriverControlPolicy } from "./schemas.js";
+import { DispatchTrackingSchema } from "./dispatch-tracking.js";
+import { DriverLocationBatchRequestSchema, DriverLocationReceiptSchema, type DriverLocationService } from "./driver-locations.js";
+import type { DispatchTrackingReader } from "./dispatch-tracking.js";
 
 const Type = Object.freeze({
   ...TypeBox,
@@ -94,6 +97,10 @@ export interface Wp007ApiOptions {
   readonly driverPostcheckService?: DriverPrecheckService;
   readonly driverSignatureService?: DriverSignatureService;
   readonly driverShiftReader?: DriverShiftReader;
+  /** Real device positioning reported by the driver while a shift is open. */
+  readonly driverLocationService?: DriverLocationService;
+  /** Live driver map data for dispatch: current position, trace, lost-signal duration. */
+  readonly dispatchTrackingReader?: DispatchTrackingReader;
   readonly pushRegistrationService?: ReturnType<typeof createRegistrationService>;
 }
 
@@ -556,6 +563,38 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     const result=await options.driverSignatureService.submit({ organizationId,shiftId,legId,principal,key: String(request.headers["idempotency-key"]),request: request.body as DriverSignatureRequest });
     if(result.replayed) reply.header("kavaroutes-idempotency-replayed","true");request.wp007Context.resultCode=result.replayed ? "IDEMPOTENT_REPLAY" : "DRIVER_SERVICE_PROOF_RECORDED";
     return reply.send(result.body);
+  });
+  routes.post("/v1/organizations/:organizationId/driver/shifts/:shiftId/location-batches", { bodyLimit: 256 * 1024, schema: {
+    operationId: "submitDriverShiftLocationBatch", tags: ["driver"], security, headers: IdempotentHeaders,
+    params: Type.Object({ organizationId: Type.Ref(OpaqueIdSchema), shiftId: Type.Ref(OpaqueIdSchema) }, { additionalProperties: false }),
+    body: DriverLocationBatchRequestSchema,
+    response: responseWithErrors({ 200: jsonResponse(DriverLocationReceiptSchema, "Persisted device location batch") }, [400, 401, 403, 404, 406, 409, 410, 412, 413, 415, 422, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId, shiftId } = request.params as { organizationId: string; shiftId: string };
+    const context = contextPrincipal(request);
+    if (!context.subjectId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
+    const principal = await requireAccess(request, organizationId, { capability: "driver:location:write",
+      purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: context.subjectId }, "submitDriverShiftLocationBatch");
+    if (!options.driverLocationService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "device location unavailable");
+    const result = await options.driverLocationService.submit({ organizationId, principal, shiftId, key: String(request.headers["idempotency-key"]),
+      request: request.body as Static<typeof DriverLocationBatchRequestSchema> });
+    for (const [name, value] of Object.entries(result.headers)) reply.header(name, value);
+    if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
+    request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "DRIVER_LOCATION_BATCH_STORED";
+    return reply.send(result.body);
+  });
+  routes.get("/v1/organizations/:organizationId/dispatch/tracking/:serviceDate", { schema: {
+    operationId: "getDispatchTracking", tags: ["dispatch"], security, headers: AuthorizationHeaders, params: DispatchDayParams,
+    querystring: Type.Object({}, { additionalProperties: false }),
+    response: responseWithErrors({ 200: jsonResponse(DispatchTrackingSchema, "Authorized live driver tracking for the service day") }, [400, 401, 403, 404, 406, 429, 500, 503]),
+  } }, async (request, reply) => {
+    const { organizationId, serviceDate } = request.params as { organizationId: string; serviceDate: string };
+    await requireAccess(request, organizationId, { capability: "dispatch:read", purpose: "ASSIGNED_SERVICE_DELIVERY",
+      branchScope: companyBranchScope(organizationId), fleetScope: companyFleetScope(organizationId) }, "getDispatchTracking");
+    if (!options.dispatchTrackingReader) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "dispatch tracking unavailable");
+    const tracking = await options.dispatchTrackingReader(organizationId, serviceDate);
+    request.wp007Context.resultCode = "DISPATCH_TRACKING_RETURNED";
+    return reply.send(tracking);
   });
   routes.get("/v1/organizations/:organizationId/driver/shifts/assignments/:assignmentId", { schema: {
     operationId: "getDriverShiftState", tags: ["driver"], security, headers: AuthorizationHeaders,

@@ -11,8 +11,8 @@ import {verifyRouteProposals} from './helpers/route-proposals.mjs';
 import {verifyDriverPostcheck} from './helpers/driver-postcheck.mjs';
 import {verifyDriverClosure} from './helpers/driver-closure.mjs';
 import { createPostgresDriverSignatureService } from '../dist/index.js';
-import { createDriverItineraryReader, createPostgresPersistence, withTenantTransaction } from '../../postgres-persistence/dist/index.js';
-import { createPostgresDriverShiftService, createPostgresDriverActionService, createPostgresDriverPrecheckService, createPostgresDriverShiftStateReader, precheckItems, createWp007PostgresApplication, createWp007Api, syntheticIds } from '../dist/index.js';
+import { createDriverItineraryReader, createDispatchTrackingReader, createPostgresPersistence, recordDeviceLocations, withTenantTransaction } from '../../postgres-persistence/dist/index.js';
+import { createPostgresDriverShiftService, createPostgresDriverActionService, createPostgresDriverPrecheckService, createPostgresDriverShiftStateReader, createPostgresDriverLocationService, precheckItems, createWp007PostgresApplication, createWp007Api, syntheticIds } from '../dist/index.js';
 
 test('persisted driver day enforces tenant, subject, date and cancellation boundaries', { skip: process.env.KR_DRIVER_LOCAL_TEST !== '1', timeout: 90000 }, async () => {
   const name = `kr-driver-itinerary-${randomUUID().slice(0, 8)}`;
@@ -71,6 +71,8 @@ test('persisted driver day enforces tenant, subject, date and cancellation bound
     app = await createWp007Api({ application, driverItineraryReader: reader, driverShiftService: shift,
       driverSignatureService: createPostgresDriverSignatureService(pool,{etag:application.etag}),
       driverActionService: actionService, driverPrecheckService: createPostgresDriverPrecheckService(pool),
+      driverLocationService: createPostgresDriverLocationService(pool),
+      dispatchTrackingReader: createDispatchTrackingReader(pool),
       driverShiftReader: createPostgresDriverShiftStateReader(pool) });
     const result = await app.inject({ url: `/v1/organizations/${tenantId}/driver/itineraries/2026-09-13`, headers: { authorization: 'Synthetic principal_driver' } });
     assert.equal(result.statusCode, 200, result.body); assert.equal(result.json().legs[0].assignmentId, assignmentId);
@@ -89,6 +91,36 @@ test('persisted driver day enforces tenant, subject, date and cancellation bound
     assert.equal(replayed.headers['kavaroutes-idempotency-replayed'], 'true');
     const duplicate = await app.inject({ method: 'POST', url: shiftUrl, headers: { ...shiftHeaders, 'idempotency-key': 'persisted-shift-start-0002' }, payload: shiftBody });
     assert.equal(duplicate.statusCode, 409, duplicate.body);
+    // Real device positioning: the driver reports fixes for the open shift and dispatch
+    // reads the current position, the trace and the silence (audit L12).
+    const shiftReference = started.json().shiftReference, shiftGeneration = started.json().shiftGeneration;
+    const deviceId = randomUUID();
+    const locationUrl = `/v1/organizations/${tenantId}/driver/shifts/${shiftReference}/location-batches`;
+    const locationHeaders = { authorization: 'Synthetic principal_driver', 'idempotency-key': 'driver-location-batch-0001' };
+    const captured = [new Date(Date.now() - 8_000).toISOString(), new Date(Date.now() - 3_000).toISOString()];
+    const locationBody = { shiftGeneration, batchReference: randomUUID(), deviceId,
+      samples: [{ sampleId: randomUUID(), sequence: 1, capturedAt: captured[0], latitude: 34.0500, longitude: -118.2400, accuracyMeters: 18 },
+                { sampleId: randomUUID(), sequence: 2, capturedAt: captured[1], latitude: 34.0522, longitude: -118.2437, accuracyMeters: 12 }] };
+    const recorded = await app.inject({ method: 'POST', url: locationUrl, headers: locationHeaders, payload: locationBody });
+    assert.equal(recorded.statusCode, 200, recorded.body);
+    assert.deepEqual(recorded.json().items.map(item => item.outcome), ['APPLIED', 'APPLIED']);
+    const replayedLocation = await app.inject({ method: 'POST', url: locationUrl, headers: locationHeaders, payload: locationBody });
+    assert.equal(replayedLocation.statusCode, 200, replayedLocation.body);
+    assert.equal(replayedLocation.headers['kavaroutes-idempotency-replayed'], 'true');
+    const tracking = await app.inject({ url: `/v1/organizations/${tenantId}/dispatch/tracking/2026-09-13`, headers: { authorization: 'Synthetic principal_dispatcher' } });
+    assert.equal(tracking.statusCode, 200, tracking.body);
+    const track = tracking.json().shifts.find(row => row.shiftReference === shiftReference);
+    assert.ok(track, 'the service day lists the open shift');
+    assert.equal(track.trace.length, 2, 'both fixes are retraceable');
+    assert.deepEqual(track.trace.map(point => [point.latitude, point.longitude]), [[34.05, -118.24], [34.0522, -118.2437]]);
+    assert.equal(track.position.latitude, 34.0522);assert.equal(track.position.longitude, -118.2437);assert.equal(track.position.accuracyMeters, 12);
+    assert.equal(track.status, 'UPDATES_CURRENT');assert.equal(track.contactDriver, false);assert.equal(track.retryAfterSeconds, 30);
+    const locationEvidence = await withTenantTransaction(pool, tenantId, 'kavaroutes_api', async db => ({
+      breadcrumbs: Number((await db.query('SELECT count(*) FROM realtime.location_breadcrumb WHERE tenant_id=$1 AND subject_id=$2', [tenantId, driverId])).rows[0].count),
+      shiftBound: Number((await db.query('SELECT count(*) FROM realtime.location_batch_receipt WHERE tenant_id=$1 AND shift_id=$2', [tenantId, shiftReference])).rows[0].count),
+      freshness: (await db.query('SELECT last_location_captured_at IS NOT NULL AS captured FROM execution.shift_policy_snapshot WHERE tenant_id=$1 AND id=$2', [tenantId, shiftReference])).rows[0].captured,
+    }));
+    assert.deepEqual(locationEvidence, { breadcrumbs: 2, shiftBound: 1, freshness: true });
     const evidence = await withTenantTransaction(pool, tenantId, 'kavaroutes_api', async db => ({
       snapshots: Number((await db.query('SELECT count(*) FROM execution.shift_policy_snapshot WHERE tenant_id=$1 AND driver_id=$2', [tenantId, driverId])).rows[0].count),
       audits: Number((await db.query("SELECT count(*) FROM audit.event WHERE tenant_id=$1 AND action_reference='driver.shift.started'", [tenantId])).rows[0].count),

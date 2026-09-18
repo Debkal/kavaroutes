@@ -1,10 +1,12 @@
 import {useQuery} from '@tanstack/react-query';
 import type {createCloudApi} from '../cloud-api';
 import {CloudReturnReview} from './CloudReturnReview';
+import {DispatchDriverMap} from './DispatchDriverMap';
 type Api=ReturnType<typeof createCloudApi>;
 export function CloudTrackingStatus({api,day,enabled}:{api:Api;day:string;enabled:boolean}){
  const shifts=useQuery({queryKey:['private-cloud','dispatch-tracking-shifts',day],queryFn:()=>api.dispatchSnapshot(day),enabled,retry:false,refetchInterval:5000});
  return <section aria-label="Driver transmission status"><h2>Driver transmission status</h2><p>A transmission gap does not identify its cause; contact the driver when an alert is shown.</p>
+  <DispatchDriverMap api={api} day={day} enabled={enabled}/>
   {shifts.isError&&<p role="alert">Dispatch connection unavailable. Tracking status cannot be verified; this does not prove a driver lost signal.</p>}
   {!shifts.isError&&shifts.data?.value.resources.filter(r=>r.kind==='driver-shift').map((r,i)=><ShiftStatus key={r.reference} api={api} shift={r.reference.slice('driver-shift:'.length)} index={i+1} enabled={enabled}/>)}
  </section>;

@@ -62,6 +62,9 @@ const reviewedPaths:readonly RegExp[]=[
   /^\/v1\/organizations\/[^/]+\/driver\/shifts\/[^/]+\/commands\/close$/,
   /^\/v1\/organizations\/[^/]+\/driver\/shifts\/[^/]+\/legs\/[^/]+\/evidence\/signatures$/,
   /^\/v1\/organizations\/[^/]+\/driver\/shifts\/[^/]+\/synthetic-location-batches$/,
+  // Live device positioning for the driver map (audit L12).
+  /^\/v1\/organizations\/[^/]+\/driver\/shifts\/[^/]+\/location-batches$/,
+  /^\/v1\/organizations\/[^/]+\/dispatch\/tracking\/\d{4}-\d{2}-\d{2}$/,
   /^\/v1\/organizations\/[^/]+\/(?:driver|dispatch)\/shifts\/[^/]+\/route-proposals$/,
   /^\/v1\/organizations\/[^/]+\/dispatch\/shifts\/[^/]+\/route-proposals$/,
   /^\/v1\/organizations\/[^/]+\/browser-commands(?:\/pending|\/[^/]+\/(?:execute|acknowledge))?$/,

@@ -8,6 +8,8 @@ import { DriverLoginPanel } from "../components/DriverLoginPanel";
 import { DriverSignaturePad } from "../components/DriverSignaturePad";
 import {businessToday} from "../business-time";
 import {ServiceDatePicker} from "../components/ServiceDatePicker";
+import {LocationSharingPanel} from "../components/LocationSharingPanel";
+import {useLocationSharing} from "../use-location-sharing";
 
 
 /** Name the failure the server actually reported. The transport keeps a refused
@@ -118,9 +120,16 @@ export function Component() {
     return () => window.clearInterval(timer);
   }, [assignmentId, refresh, shift?.lifecycle, signedIn]);
 
+  // Location is a condition of the shift: the browser is asked when the driver signs in,
+  // a refusal fails that sign-in, and the feed is watched for the whole open shift
+  // (audit L12). The device id is per tab and never leaves this surface.
+  const deviceId = useMemo(() => crypto.randomUUID(), []);
+  const sharing = useLocationSharing({ target: shift ? { shiftReference: shift.shiftReference, shiftGeneration: shift.shiftGeneration, deviceId } : null, api });
   const signIn = async (login=verifiedLogin) => {
     setBusy(true); setMessage("");
     try {
+      if (!(await sharing.requestSharing()))
+        throw new Error("Location sharing is required to sign in. Allow location for this site, then sign in again.");
       await api.authenticate(); const manifest = (await api.itinerary(serviceDate)).value;
       const unfinished = manifest.legs.filter(item => !terminal.has(item.execution?.lifecycle ?? ""));
       if (!unfinished.length) throw new Error("No unfinished Driver assignments are available for this service date.");
@@ -280,6 +289,8 @@ export function Component() {
       const result = await api.close(shift.shiftReference, { commandId, shiftGeneration: shift.shiftGeneration, expectedVersion: current.resourceVersion,
         kind: "SIGN_OFF", reason: "NORMAL_SIGN_OFF", parkedAttestation: true, ...(current.sample ? { sampleId: current.sample.sampleId } : {}) }, `driver-signoff-${commandId}`);
       setMessage(result.value.lifecycle === "SHIFT_ENDED" ? "Signed off. Tracking collection is stopped and Command control has the final receipt." : "Return exception sent to dispatch for separate review.");
+      // The shift is what the feed belongs to: closure ends it, an exception review does not.
+      if (result.value.lifecycle === "SHIFT_ENDED") sharing.stopSharing("SHIFT_ENDED");
       await refresh(shift.effectivePolicy.assignmentId);
     } catch (error) { setMessage(failureText(error, "Sign-off was not accepted.")); }
     finally { setBusy(false); }
@@ -289,7 +300,9 @@ export function Component() {
     if (!shift) return; setBusy(true);
     try { const current = (await api.closure(shift.shiftReference)).value; const commandId = crypto.randomUUID(); await api.close(shift.shiftReference,
       { commandId, shiftGeneration: shift.shiftGeneration, expectedVersion: current.resourceVersion, kind: "EMERGENCY_STOP", reason: "SAFETY", parkedAttestation: false }, `driver-emergency-${commandId}`);
-      setMessage("Emergency stop recorded. Browser tracking is stopped; contact dispatch for next steps."); await refresh(shift.effectivePolicy.assignmentId);
+      setMessage("Emergency stop recorded. Browser tracking is stopped; contact dispatch for next steps.");
+      sharing.stopSharing("EMERGENCY_STOP");
+      await refresh(shift.effectivePolicy.assignmentId);
     } catch (error) { setMessage(error instanceof Error ? error.message : "Collection stopped locally; dispatch notification needs recovery."); }
     finally { setBusy(false); }
   };
@@ -309,6 +322,7 @@ export function Component() {
       {verifiedLogin&&busy&&<p role="status">Login verified. Loading your assigned work…</p>}
       <p className="driver-fineprint">Keep KavaRoutes open during your shift. Mobile browsers may pause location updates when the screen is locked.</p>
     </section>
+    <LocationSharingPanel controller={sharing} busy={busy}/>
   </main>;
 
   const assigned = itinerary.legs.filter(leg => leg.assignmentId === shift.effectivePolicy.assignmentId).sort((a, b) => a.ordinal - b.ordinal);
@@ -345,5 +359,6 @@ export function Component() {
       </section>}
     </div>}
     {closure?.lifecycle !== "SHIFT_ENDED" && <aside className="driver-safety"><div><strong>Tracking transparency</strong><span>{label(closure?.tracking.status ?? "starting")} · {closure?.tracking.reason?.replaceAll("_", " ") ?? "Shift started"}</span></div><button disabled={busy} onClick={() => void emergencyStop()}>Emergency: stop sharing</button></aside>}
+    <LocationSharingPanel controller={sharing} busy={busy}/>
   </main>;
 }
