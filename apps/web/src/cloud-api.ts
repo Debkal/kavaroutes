@@ -65,7 +65,11 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
           if(typeof row.retryAfterSeconds!=='number'||row.retryAfterSeconds<1||typeof row.staleAfterSeconds!=='number'||row.staleAfterSeconds<1)throw new Error('INVALID_DISPATCH_TRACKING');
           if(!Array.isArray(row.trace)||row.trace.length>500)throw new Error('INVALID_DISPATCH_TRACKING');
           if(row.position!==null&&row.position!==undefined&&typeof row.position!=='object')throw new Error('INVALID_DISPATCH_TRACKING');
-          return {shiftReference:row.shiftReference,driverId:row.driverId,driverLabel:row.driverLabel,lifecycle:String(row.lifecycle),status:String(row.status),
+          if(typeof row.plannedStartAt!=='string'||!Number.isFinite(Date.parse(row.plannedStartAt))||typeof row.startedAt!=='string'||!Number.isFinite(Date.parse(row.startedAt)))throw new Error('INVALID_DISPATCH_TRACKING');
+          if(row.vehicleLabel!==null&&row.vehicleLabel!==undefined&&typeof row.vehicleLabel!=='string')throw new Error('INVALID_DISPATCH_TRACKING');
+          return {shiftReference:row.shiftReference,driverId:row.driverId,driverLabel:row.driverLabel,plannedStartAt:row.plannedStartAt,
+            startedAt:row.startedAt,vehicleLabel:(row.vehicleLabel??null) as string|null,
+            lifecycle:String(row.lifecycle),status:String(row.status),
             reason:String(row.reason),contactDriver:row.contactDriver,silentSeconds:Math.round(row.silentSeconds),lastReceivedAt:(row.lastReceivedAt??null) as string|null,
             lastCapturedAt:(row.lastCapturedAt??null) as string|null,staleAfterSeconds:row.staleAfterSeconds,retryAfterSeconds:row.retryAfterSeconds,
             position:row.position?point(row.position):null,trace:row.trace.map(point)};});

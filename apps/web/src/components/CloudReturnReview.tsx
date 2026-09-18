@@ -15,16 +15,16 @@ export async function returnReviewIdentity(shift:string,generation:string,except
  return {commandId,key:`return-override-${commandId}`};
 }
 
-export function CloudReturnReview({api,shift}:{api:Api;shift:string}){
+export function CloudReturnReview({api,shift,label}:{api:Api;shift:string;label?:string}){
  const [selected,setSelected]=useState(false);
  // One reviewer panel is rendered per recorded shift, so the landmark name carries the
  // shift: two panels with the same region label are indistinguishable to a screen reader
  // (and fail axe's landmark-unique rule).
  return <section aria-label={`Authorized return review for shift ${shift}`}><button onClick={()=>setSelected(true)} disabled={selected}>Open authorized return review</button>
- {selected&&<Review api={api} shift={shift}/>}</section>;
+ {selected&&<Review api={api} shift={shift} {...(label?{label}:{})}/>}</section>;
 }
 
-function Review({api,shift}:{api:Api;shift:string}){
+function Review({api,shift,label}:{api:Api;shift:string;label?:string}){
  const [pending,setPending]=useState<Command|null>(null);
  const [message,setMessage]=useState(''),[busy,setBusy]=useState(false),flight=useRef(false);
  const [acknowledgeUnresolved,setAcknowledgeUnresolved]=useState(false);
@@ -68,7 +68,7 @@ function Review({api,shift}:{api:Api;shift:string}){
   <p>Test identity: policy_override. This separate role is not a permission granted to ordinary dispatchers. No rider or GPS details are loaded.</p>
   <CloudCommandRecovery recovery={api.reviewerRecovery} enabled={!view.isError} reviewer/>
   {view.isError?<p role="alert">Authorized return review unavailable.</p>:null}
-  {v?<p>This control closes shift <span>{shift}</span> only, on the board service date. Return policy: {v.returnMode}. Recorded exception: {v.returnResult??'None'}. Shift: {v.lifecycle}.</p>:null}
+  {v?<p>This control closes <span title={shift}>{label??'this shift'}</span> only, on the board service date. Return policy: {v.returnMode}. Recorded exception: {v.returnResult??'None'}. Shift: {v.lifecycle}.</p>:null}
   {emergency&&v?.lifecycle==='ACTIVE'?<p role="status">This shift was emergency-stopped with riders unresolved. Resolving it ends the shift and records that acknowledgement in the audit trail.</p>:null}
   {v?.lifecycle==='SHIFT_ENDED'?<p>Server confirms this shift has ended. No further override is allowed.</p>:null}
   {!pending&&v&&v.lifecycle==='ACTIVE'&&!v.exceptionCommandId?<p role="status">This shift has no recorded exception yet, so there is nothing to resolve. The driver records sign-off, or an emergency stop is recorded, first.</p>:null}

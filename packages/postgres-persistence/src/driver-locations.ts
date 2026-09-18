@@ -80,9 +80,19 @@ export async function recordDeviceLocations(db: PoolClient, tenantId: string, in
   return items;
 }
 
+/** One row with an unreadable instant must not blank the board: fall back to the service
+ * date, which names the shift's part of day conservatively rather than failing the read. */
+function instantOr(value: unknown, fallbackDate: string): string {
+  const parsed = value instanceof Date ? value : new Date(String(value));
+  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : `${fallbackDate}T00:00:00.000Z`;
+}
+
 export interface ShiftTrackPoint { readonly latitude: number; readonly longitude: number; readonly accuracyMeters: number | null; readonly capturedAt: string }
 export interface ShiftTrack {
   readonly shiftReference: string; readonly driverId: string; readonly driverLabel: string; readonly serviceDate: string;
+  /** When the assigned run was planned to start, when the shift actually began, and the
+   * vehicle on the assignment. The board names a shift by its part of day, not by its id. */
+  readonly plannedStartAt: string; readonly startedAt: string; readonly vehicleLabel: string | null;
   readonly lifecycle: string; readonly status: string; readonly reason: string; readonly contactDriver: boolean;
   readonly silentSeconds: number; readonly lastReceivedAt: string | null; readonly lastCapturedAt: string | null;
   readonly staleAfterSeconds: number; readonly retryAfterSeconds: number;
@@ -96,13 +106,15 @@ export function createDispatchTrackingReader(pool: Pool) {
     const rows = (await db.query(`SELECT s.id,s.driver_id,d.synthetic_reference AS driver_label,s.lifecycle,s.collection_stopped,s.pinned_at,
         s.last_location_captured_at,s.last_location_received_at,
         alert.status AS alert_status,alert.reason AS alert_reason,alert.contact_driver AS alert_contact,
+        r.planned_start_at,r.service_timezone,v.synthetic_reference AS vehicle_label,
         (SELECT reason_code FROM execution.driver_shift_closure c WHERE c.tenant_id=s.tenant_id AND c.shift_id=s.id AND c.kind='EMERGENCY_STOP' ORDER BY c.aggregate_version DESC LIMIT 1) AS stop_reason
       FROM execution.shift_policy_snapshot s
       JOIN dispatch.assignment a ON a.tenant_id=s.tenant_id AND a.id=s.assignment_id
       JOIN dispatch.run r ON r.tenant_id=a.tenant_id AND r.id=a.run_id
       JOIN fleet.driver d ON d.tenant_id=s.tenant_id AND d.id=s.driver_id
+      LEFT JOIN fleet.vehicle v ON v.tenant_id=a.tenant_id AND v.id=a.vehicle_id
       LEFT JOIN execution.driver_tracking_alert alert ON alert.tenant_id=s.tenant_id AND alert.shift_id=s.id
-      WHERE s.tenant_id=$1 AND r.service_date=$2::date ORDER BY s.pinned_at,s.id LIMIT 200`, [tenantId, serviceDate])).rows;
+      WHERE s.tenant_id=$1 AND r.service_date=$2::date ORDER BY r.planned_start_at,s.id LIMIT 200`, [tenantId, serviceDate])).rows;
     const tracks: ShiftTrack[] = [];
     for (const row of rows) {
       // The shift's own breadcrumbs are both the trace and the current position, so the
@@ -122,7 +134,9 @@ export function createDispatchTrackingReader(pool: Pool) {
         accuracyMeters: value.accuracy_meters === undefined || value.accuracy_meters === null ? null : Number(value.accuracy_meters),
         capturedAt: new Date(value.captured_at as Date).toISOString() });
       tracks.push({ shiftReference: String(row.id), driverId: String(row.driver_id), driverLabel: String(row.driver_label),
-        serviceDate, lifecycle: String(row.lifecycle), status: String(row.alert_status ?? evaluation.status),
+        serviceDate, plannedStartAt: instantOr(row.planned_start_at, serviceDate), startedAt: instantOr(row.pinned_at, serviceDate),
+        vehicleLabel: row.vehicle_label === null || row.vehicle_label === undefined ? null : String(row.vehicle_label),
+        lifecycle: String(row.lifecycle), status: String(row.alert_status ?? evaluation.status),
         reason: String(row.alert_reason ?? evaluation.reason), contactDriver: Boolean(row.alert_contact ?? evaluation.contactDriver),
         silentSeconds: evaluation.status === 'UPDATES_CURRENT' || evaluation.status === 'SHIFT_ENDED' ? 0 : Math.max(0, Math.round((Date.now() - silentFrom) / 1000)),
         lastReceivedAt: evaluation.lastReceivedAt, lastCapturedAt: evaluation.lastCapturedAt, staleAfterSeconds: evaluation.staleAfterSeconds, retryAfterSeconds: 30,

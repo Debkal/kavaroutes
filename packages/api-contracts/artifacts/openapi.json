@@ -6038,6 +6038,11 @@
             "minLength": 1,
             "type": "string"
           },
+          "plannedStartAt": {
+            "format": "date-time",
+            "maxLength": 35,
+            "type": "string"
+          },
           "position": {
             "anyOf": [
               {
@@ -6105,6 +6110,11 @@
             "minimum": 1,
             "type": "integer"
           },
+          "startedAt": {
+            "format": "date-time",
+            "maxLength": 35,
+            "type": "string"
+          },
           "status": {
             "maxLength": 64,
             "minLength": 1,
@@ -6116,12 +6126,27 @@
             },
             "maxItems": 500,
             "type": "array"
+          },
+          "vehicleLabel": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "shiftReference",
           "driverId",
           "driverLabel",
+          "plannedStartAt",
+          "startedAt",
+          "vehicleLabel",
           "lifecycle",
           "status",
           "reason",
@@ -6188,6 +6213,11 @@
                 "lifecycle": {
                   "maxLength": 64,
                   "minLength": 1,
+                  "type": "string"
+                },
+                "plannedStartAt": {
+                  "format": "date-time",
+                  "maxLength": 35,
                   "type": "string"
                 },
                 "position": {
@@ -6257,6 +6287,11 @@
                   "minimum": 1,
                   "type": "integer"
                 },
+                "startedAt": {
+                  "format": "date-time",
+                  "maxLength": 35,
+                  "type": "string"
+                },
                 "status": {
                   "maxLength": 64,
                   "minLength": 1,
@@ -6268,12 +6303,27 @@
                   },
                   "maxItems": 500,
                   "type": "array"
+                },
+                "vehicleLabel": {
+                  "anyOf": [
+                    {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 }
               },
               "required": [
                 "shiftReference",
                 "driverId",
                 "driverLabel",
+                "plannedStartAt",
+                "startedAt",
+                "vehicleLabel",
                 "lifecycle",
                 "status",
                 "reason",

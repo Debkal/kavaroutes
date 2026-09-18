@@ -3,15 +3,22 @@ import {useQuery} from '@tanstack/react-query';
 import type {createCloudApi} from '../cloud-api';
 import type {RouteView} from '@kavaroutes/api-contracts/client-route-proposals';
 import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development-transport';
+import {businessTimezone} from '../business-time';
+import {shiftBandLabel} from '../shift-band';
 type Api=ReturnType<typeof createCloudApi>;
 export function CloudRouteReview({api,day,enabled}:{api:Api;day:string;enabled:boolean}){
  const snapshot=useQuery({queryKey:['private-cloud','dispatch-route-shifts',day],queryFn:()=>api.dispatchSnapshot(day),enabled,retry:false,refetchInterval:5000});
+ // A recorded shift is named the same way the tracking panel names it (driver and part
+ // of day), so an operator picks "Driver 042 · Morning shift" rather than "Shift 2".
+ const tracking=useQuery({queryKey:['private-cloud','dispatch-route-shift-labels',day],queryFn:()=>api.tracking(day),enabled,retry:false,refetchInterval:5000});
  const [selected,setSelected]=useState('');
  const shifts=snapshot.data?.value.resources.filter(r=>r.kind==='driver-shift')??[];
+ const label=(reference:string)=>{const row=tracking.data?.value.shifts.find(item=>`driver-shift:${item.shiftReference}`===reference);
+  return row?`${row.driverLabel} · ${shiftBandLabel(row.plannedStartAt,businessTimezone)}`:'Recorded shift';};
  return <section aria-label="Driver route proposals"><h2>Driver route proposals</h2>
   <p>Review future-stop order. The server rechecks policy, current work and safety constraints on approval.</p>
   {snapshot.isError&&<p role="alert">Shift list unavailable. Refresh before reviewing proposals.</p>}
-  <label>Recorded shift <select value={selected} onChange={e=>setSelected(e.target.value)}><option value="">Choose shift</option>{shifts.map((s,i)=><option key={s.reference} value={s.reference.slice('driver-shift:'.length)}>Shift {i+1} · version {s.version}</option>)}</select></label>
+  <label>Recorded shift <select value={selected} onChange={e=>setSelected(e.target.value)}><option value="">Choose shift</option>{shifts.map(s=><option key={s.reference} value={s.reference.slice('driver-shift:'.length)}>{label(s.reference)}</option>)}</select></label>
   {selected&&shifts.some(s=>s.reference===`driver-shift:${selected}`)&&<Review key={`${day}:${selected}`} api={api} shift={selected} enabled={enabled&&!snapshot.isError}/>}
  </section>;
 }
