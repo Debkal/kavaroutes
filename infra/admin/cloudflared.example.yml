@@ -1,0 +1,15 @@
+# Merge this hostname into the existing tunnel configuration; retain existing routes.
+# Only use with a separately initialized cloudflare-mode admin service.
+# Do not point a tunnel at the local-mode preview.
+ingress:
+  - hostname: admin.kavaroutes.com
+    service: http://127.0.0.1:58100
+    originRequest:
+      httpHostHeader: admin.kavaroutes.com
+      access:
+        required: true
+        teamName: REPLACE_WITH_TEAM_NAME
+        audTag:
+          - REPLACE_WITH_ADMIN_APPLICATION_AUD
+  # Preserve app.kavaroutes.com and all other existing ingress entries here.
+  - service: http_status:404

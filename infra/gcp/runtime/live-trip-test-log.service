@@ -1,0 +1,19 @@
+[Unit]
+Description=KavaRoutes 2026-09-24 read-only trip diagnostic logger
+After=docker.service kavaroutes-site.service
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/kavaroutes-live-test/live-trip-test-log.py 2026-09-24
+Restart=on-failure
+RestartSec=10
+StateDirectory=kavaroutes-site
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/kavaroutes-site
+
+[Install]
+WantedBy=multi-user.target

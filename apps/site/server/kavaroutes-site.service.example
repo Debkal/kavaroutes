@@ -1,0 +1,24 @@
+[Unit]
+Description=KavaRoutes public business website
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kavaroutes-site
+Group=kavaroutes-site
+WorkingDirectory=/srv/kavaroutes/apps/site
+EnvironmentFile=/etc/kavaroutes-site.env
+ExecStart=/usr/bin/node server/main.mjs
+Restart=on-failure
+RestartSec=5
+StateDirectory=kavaroutes-site
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/kavaroutes-site
+
+[Install]
+WantedBy=multi-user.target

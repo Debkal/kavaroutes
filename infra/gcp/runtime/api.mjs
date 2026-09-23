@@ -9,14 +9,21 @@ import {createPostgresAccountingApiService} from '@kavaroutes/api-contracts';
 import { createTestOnlyCursorCodec, createAuthorizationGenerationSource, authorizeRealtimeSubscription } from '@kavaroutes/realtime';
 import { createPostgresRealtimeStore } from '@kavaroutes/realtime/postgres';
 import { registerWp009Realtime } from '@kavaroutes/realtime/fastify';
+import {withTenantTransaction} from '@kavaroutes/postgres-persistence';
 import { makePool, verifyRuntimeDatabase } from './database.mjs';
 import { validateConfig, tenantId, branchScopeReference } from './config.mjs';
+import {createDriverSessions} from './driver-sessions.mjs';
 
 export async function createRuntimeApi(input) {
   const config = validateConfig(input);
   if (new URL(config.databaseUrl).username !== 'kr_cloud_api') throw new Error('RUNTIME_DATABASE_ROLE_INVALID');
   const pool = makePool(config);
-  const verifier = createSyntheticTestVerifier();
+  const sessions=createDriverSessions({synthetic:createSyntheticTestVerifier(),allowSyntheticDriver:process.env.KR_CLOUD_LOCAL_TEST==='1',credentialVersion:async(organizationId,driverId)=>
+    withTenantTransaction(pool,organizationId,'kavaroutes_api',async client=>{
+      const row=(await client.query(`SELECT status,credential_version FROM platform.driver_credential WHERE tenant_id=$1 AND driver_id=$2`,[organizationId,driverId])).rows[0];
+      return row?{status:String(row.status),version:Number(row.credential_version)}:null;
+    })});
+  const verifier={verify:authorization=>sessions.verify(authorization)};
   const application = createWp007PostgresApplication(pool, { etagSecret: config.etagSecret });
   const checkDatabase = async () => { await verifyRuntimeDatabase(pool, 'api'); await application.listTrips(tenantId, { limit: 1 }); };
   const app = await createWp007Api({ application, driverItineraryReader: createDriverItineraryReader(pool),
@@ -25,7 +32,9 @@ export async function createRuntimeApi(input) {
     routeProposalService: createPostgresRouteProposalService(pool),
     facilityService:createPostgresFacilityService(pool),
     clientService:createPostgresClientService(pool),
-    driverLoginService:createPostgresDriverLoginService(pool),
+    driverLoginService:createPostgresDriverLoginService(pool,{allowUnauthenticatedLogin:true}),
+    publicDriverLogin:true,
+    issueDriverSession:(organizationId,state)=>sessions.issue(organizationId,state),
     driverShiftService: createPostgresDriverShiftService(pool),
     driverShiftReader: createPostgresDriverShiftStateReader(pool),
     driverActionService: createPostgresDriverActionService(pool,{etag:application.etag}),
@@ -47,7 +56,10 @@ export async function createRuntimeApi(input) {
     if(/^\/v1\/organizations\/[^/]+\/facility\/(?:days\/\d{4}-\d{2}-\d{2}|trips\/[^/]+)$/.test(path))return;
     if(/^\/v1\/organizations\/[^/]+\/browser-commands(?:\/pending|\/[^/]+\/(?:execute|acknowledge))?$/.test(path))return;
     const routeProposalPath=/^\/v1\/organizations\/[^/]+\/(?:(?:driver|dispatch)\/shifts\/[^/]+\/route-proposals|dispatch\/route-proposals\/[^/]+\/commands\/decide)$/.test(path);
-    const closurePath=/^\/v1\/organizations\/[^/]+\/(?:(?:driver|dispatch)\/shifts\/[^/]+\/status|driver\/shifts\/[^/]+\/(?:synthetic-location-batches|commands\/(?:postcheck|close))|dispatch\/shifts\/[^/]+\/(?:return-review|commands\/override-return))$/.test(path);
+    const closurePath=/^\/v1\/organizations\/[^/]+\/(?:(?:driver|dispatch)\/shifts\/[^/]+\/status|driver\/shifts\/[^/]+\/commands\/(?:postcheck|close)|dispatch\/shifts\/[^/]+\/(?:return-review|commands\/override-return))$/.test(path);
+    // The fixture-only return endpoint remains available to disposable integration
+    // tests; the live runtime never publishes a fabricated location as real proof.
+    if(process.env.KR_CLOUD_LOCAL_TEST==='1'&&/^\/v1\/organizations\/[^/]+\/driver\/shifts\/[^/]+\/synthetic-location-batches$/.test(path))return;
     // Live driver positioning: the driver's device reports fixes and dispatch reads the
     // day's map. Coordinates stay inside these two authorized routes.
     const locationPath=/^\/v1\/organizations\/[^/]+\/(?:driver\/shifts\/[^/]+\/location-batches|dispatch\/tracking\/\d{4}-\d{2}-\d{2})$/.test(path);

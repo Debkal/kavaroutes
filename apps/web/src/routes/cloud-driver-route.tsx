@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import type { DriverActionItem, DriverClosureView, DriverItinerary, DriverShiftState, DriverSignatureRequest } from "@kavaroutes/api-contracts/client-web";
 import { DevelopmentApiError } from "@kavaroutes/api-contracts/private-development-transport";
 import { createCloudDriverWebApi, type DriverCommand, type DriverLeg } from "../cloud-driver-api";
@@ -51,10 +50,10 @@ function failureText(error: unknown, fallback: string): string {
 
 const terminal = new Set(["COMPLETED", "RIDER_NO_SHOW", "CANCELLED"]);
 // Prototype retry identity is memory-only. Browser persistence remains prohibited.
-const prototypeKeys = new Map<string, string>();
+const requestKeys = new Map<string, string>();
 const savedKey = (name: string) => {
-  const prior = prototypeKeys.get(name); if (prior) return prior;
-  const value = `driver-web-${crypto.randomUUID()}`; prototypeKeys.set(name, value); return value;
+  const prior = requestKeys.get(name); if (prior) return prior;
+  const value = `driver-web-${crypto.randomUUID()}`; requestKeys.set(name, value); return value;
 };
 const time = (value: string, zone: string) => new Intl.DateTimeFormat(undefined, { timeZone: zone, hour: "numeric", minute: "2-digit" }).format(new Date(value));
 const label = (value: string) => value.toLowerCase().replaceAll("_", " ").replace(/^./, character => character.toUpperCase());
@@ -96,6 +95,10 @@ function blockedControlMessage(leg: DriverLeg): string {
 
 export function Component() {
   const api = useMemo(() => createCloudDriverWebApi(window.location.origin, window.fetch.bind(window)), []);
+  const invitedDriverId=useMemo(()=>{
+    const value=new URLSearchParams(window.location.search).get('driverId');
+    return value&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)?value:null;
+  },[]);
   const [serviceDate, setServiceDate] = useState(()=>businessToday());
   const [itinerary, setItinerary] = useState<DriverItinerary | null>(null);
   const [shift, setShift] = useState<DriverShiftState | null>(null);
@@ -279,16 +282,11 @@ export function Component() {
   const signOff = async () => {
     if (!shift) return; setBusy(true); setMessage("");
     try {
-      let current = (await api.closure(shift.shiftReference)).value;
-      if (current.returnMode !== "DISABLED") {
-        const sampleId = crypto.randomUUID();
-        await api.location(shift.shiftReference, { shiftGeneration: shift.shiftGeneration, samples: [{ sampleId, sequence: (current.sample?.sequence ?? 0) + 1, fixture: "AT_RETURN", capturedAt: new Date().toISOString() }] }, `driver-return-${sampleId}`);
-        current = (await api.closure(shift.shiftReference)).value;
-      }
+      const current = (await api.closure(shift.shiftReference)).value;
       const commandId = crypto.randomUUID();
       const result = await api.close(shift.shiftReference, { commandId, shiftGeneration: shift.shiftGeneration, expectedVersion: current.resourceVersion,
-        kind: "SIGN_OFF", reason: "NORMAL_SIGN_OFF", parkedAttestation: true, ...(current.sample ? { sampleId: current.sample.sampleId } : {}) }, `driver-signoff-${commandId}`);
-      setMessage(result.value.lifecycle === "SHIFT_ENDED" ? "Signed off. Tracking collection is stopped and Command control has the final receipt." : "Return exception sent to dispatch for separate review.");
+        kind: "SIGN_OFF", reason: "NORMAL_SIGN_OFF", parkedAttestation: true }, `driver-signoff-${commandId}`);
+      setMessage(result.value.lifecycle === "SHIFT_ENDED" ? "You are signed off. Location sharing has stopped and your shift end is recorded." : "Return request recorded. Dispatch must review your parked location and end the shift; keep location sharing on until then.");
       // The shift is what the feed belongs to: closure ends it, an exception review does not.
       if (result.value.lifecycle === "SHIFT_ENDED") sharing.stopSharing("SHIFT_ENDED");
       await refresh(shift.effectivePolicy.assignmentId);
@@ -303,7 +301,7 @@ export function Component() {
       setMessage("Emergency stop recorded. Browser tracking is stopped; contact dispatch for next steps.");
       sharing.stopSharing("EMERGENCY_STOP");
       await refresh(shift.effectivePolicy.assignmentId);
-    } catch (error) { setMessage(error instanceof Error ? error.message : "Collection stopped locally; dispatch notification needs recovery."); }
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Location sharing has stopped on this device. We could not notify dispatch; please contact them directly."); }
     finally { setBusy(false); }
   };
 
@@ -311,14 +309,13 @@ export function Component() {
   // duplicate RETURN_EXCEPTION rows and makes the reviewer's override look rejected
   // (audit WEB-A-013).
   const returnExceptionRecorded = !!closure && closure.lifecycle !== "SHIFT_ENDED" && closure.returnResult !== null && closure.returnResult !== "NOT_REQUIRED" && closure.returnResult !== "OVERRIDDEN";
-  const identity = useQuery({queryKey:["driver","identity",serviceDate],queryFn:({signal})=>api.itinerary(serviceDate,signal),retry:false,enabled:!signedIn});
   // The verified login identifies the driver *and* carries the login id the start
   // command must present; the driver id alone is refused by the server (audit WEB-A-029).
   if (!signedIn || !itinerary || !shift) return <main id="main-content" className="driver-shell">
     <section className="driver-welcome"><p className="driver-step">KavaRoutes Driver</p><h1>Start your driving day</h1><p>Sign in, confirm your vehicle, follow today’s itinerary, collect required signatures, and sign off.</p>
       <ServiceDatePicker value={serviceDate} onChange={setServiceDate} disabled={busy}/>
       {message && <p role="alert" className="driver-error">{message}</p>}
-      <DriverLoginPanel api={api} driverReference={identity.data?.value.driverReference ?? null} onVerified={(driverId,loginId)=>{const login={driverId,loginId};setVerifiedLogin(login);void signIn(login);}}/>
+      <DriverLoginPanel api={api} driverReference={invitedDriverId} onVerified={(driverId,loginId)=>{const login={driverId,loginId};setVerifiedLogin(login);void signIn(login);}}/>
       {verifiedLogin&&busy&&<p role="status">Login verified. Loading your assigned work…</p>}
       <p className="driver-fineprint">Keep KavaRoutes open during your shift. Mobile browsers may pause location updates when the screen is locked.</p>
     </section>
@@ -338,10 +335,10 @@ export function Component() {
     {message && <p role="status" className="driver-message">{message}</p>}
     <section className="driver-summary"><div><span>Vehicle</span><strong>{assigned[0]?.vehicleLabel ?? "Pending"}</strong></div><div><span>Trips</span><strong>{assigned.filter(leg => terminal.has(leg.execution?.lifecycle ?? "")).length}/{assigned.length}</strong></div><div><span>Updates</span><strong>{closure?.tracking.status === "UPDATES_CURRENT" ? "Live" : "Foreground"}</strong></div></section>
 
-    {closure?.lifecycle === "SHIFT_ENDED" ? <section className="driver-card driver-complete"><p className="driver-step">Shift complete</p><h2>You’re signed off</h2><p>Command control has the final server receipt. Tracking is stopped.</p></section>
+    {closure?.lifecycle === "SHIFT_ENDED" ? <section className="driver-card driver-complete"><p className="driver-step">Shift complete</p><h2>You’re signed off</h2><p>Your shift end is recorded. Location sharing has stopped.</p></section>
     : needsPrecheck ? <DriverInspectionForm stage="pre" shift={shift} vehicleId={assigned[0]?.vehicleId ?? ""} busy={busy} onSubmit={request => submitCheck(request, "pre")} />
     : needsPostcheck ? <DriverInspectionForm stage="post" shift={shift} vehicleId={assigned[0]?.vehicleId ?? ""} busy={busy} onSubmit={request => submitCheck(request, "post")} />
-    : allComplete ? <section className="driver-card driver-return"><p className="driver-step">Final step</p><h2>Return vehicle and sign off</h2><p>Confirm you are parked at the assigned vehicle return location. Location is checked before tracking stops.</p>{returnExceptionRecorded?<p role="status">Return exception recorded and waiting on dispatch review. Do not press sign-off again; the reviewer ends the shift from that single request.</p>:null}<button className="driver-primary" disabled={busy||returnExceptionRecorded} onClick={() => void signOff()}>{busy ? "Signing off…" : returnExceptionRecorded ? "Waiting for dispatch review" : "Confirm return and sign off"}</button></section>
+    : allComplete ? <section className="driver-card driver-return"><p className="driver-step">Final step</p><h2>Return vehicle and sign off</h2><p>Park at the assigned return location. The app cannot verify return proximity yet, so dispatch must review and end the shift. Location sharing continues until then.</p>{returnExceptionRecorded?<p role="status">Return request recorded and waiting on dispatch review. Do not press sign-off again; the reviewer ends the shift from that single request.</p>:null}<button className="driver-primary" disabled={busy||returnExceptionRecorded} onClick={() => void signOff()}>{busy ? "Requesting review…" : returnExceptionRecorded ? "Waiting for dispatch review" : "Request return review"}</button></section>
     : <div className="driver-workspace">
       <section className="driver-card driver-itinerary" aria-labelledby="itinerary-title"><div className="driver-card-heading"><div><p className="driver-step">Step 3</p><h2 id="itinerary-title">Daily itinerary</h2></div><span className="driver-pill">{serviceDate}</span></div>
         <ol>{assigned.map(leg => <li key={leg.tripLegId}><button className={leg.tripLegId === active?.tripLegId ? "active" : ""} onClick={() => { setSelectedLeg(leg.tripLegId); setSignatureEvent(null); }}><span className="driver-stop-number">{leg.ordinal}</span><span><strong>{leg.riderLabel}</strong><small>{time(leg.plannedStartAt, leg.serviceTimezone)} · {leg.pickupLabel} → {leg.dropoffLabel}</small></span><span className={`driver-leg-state ${terminal.has(leg.execution?.lifecycle ?? "") ? "done" : ""}`}>{label(leg.execution?.lifecycle ?? leg.runLifecycle)}</span></button></li>)}</ol>

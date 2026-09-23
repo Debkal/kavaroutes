@@ -22,6 +22,7 @@ export function DriverSignaturePad({ leg, shiftReference, shiftGeneration, event
   const [role, setRole] = useState<DriverSignatureRequest["role"]>(policy?.rule.allowedRoles[0] ?? "RIDER");
   const [unableReason, setUnableReason] = useState<"DECLINED" | "PHYSICALLY_UNABLE" | "NO_AUTHORIZED_SIGNER">(policy?.rule.unableReasons[0] ?? "PHYSICALLY_UNABLE");
   const [witness, setWitness] = useState(""); const [message, setMessage] = useState(""); const drawing = useRef(false);
+  const installationGeneration = useRef(`inst_${crypto.randomUUID().replaceAll("-", "")}`);
   if (!policy || !leg.execution?.expectedTag) return <p role="alert" className="driver-error">Proof rules are unavailable. Dispatch must resolve them before signature capture.</p>;
   const add = (eventValue: PointerEvent<SVGSVGElement>) => {
     if (!drawing.current || points.length >= 600) return;
@@ -39,7 +40,7 @@ export function DriverSignaturePad({ leg, shiftReference, shiftGeneration, event
       const unsigned: Omit<DriverSignatureRequest, "digest"> = {
         shiftGeneration, evidenceId: crypto.randomUUID(), expectedTag: leg.execution!.expectedTag!, event,
         attestationPolicyVersion: "attestation-synthetic-v2", policyVersion: policy.version, policyDigest: policy.digest,
-        capturedAt: now, localActionAt: now, installationGeneration: "inst_webprototype0001", parkedAttestation: true,
+        capturedAt: now, localActionAt: now, installationGeneration: installationGeneration.current, parkedAttestation: true,
         role, points: unable ? [] : points,
         ...(unable ? { unableReason, witnessAttestation: witness.trim() } : {}),
         ...(event === "PICKUP_ATTESTATION" && leg.execution?.serviceControl?.pickupEvidenceId ? { supersedesEvidenceId: leg.execution.serviceControl.pickupEvidenceId } : {}),

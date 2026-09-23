@@ -5458,6 +5458,10 @@
             "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$",
             "type": "string"
           },
+          "sessionToken": {
+            "pattern": "^dvs_[A-Za-z0-9_-]{43}$",
+            "type": "string"
+          },
           "status": {
             "anyOf": [
               {
@@ -7712,18 +7716,28 @@
       "def-90": {
         "additionalProperties": false,
         "properties": {
+          "annualFixedCostsCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "averageTripMiles": {
             "maximum": 500,
             "minimum": 0.5,
             "type": "number"
           },
           "contractedBaseCents": {
-            "maximum": 2000000000,
+            "maximum": 1000000,
             "minimum": 0,
             "type": "integer"
           },
           "contractedCentsPerMile": {
             "maximum": 100000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cyberInsuranceAnnualCents": {
+            "maximum": 2000000000,
             "minimum": 0,
             "type": "integer"
           },
@@ -7742,8 +7756,13 @@
             "minimum": 0,
             "type": "integer"
           },
+          "expectedMonthlyTrips": {
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer"
+          },
           "fixedOverheadCentsPerMonth": {
-            "maximum": 2000000000,
+            "maximum": 5000000,
             "minimum": 0,
             "type": "integer"
           },
@@ -7757,8 +7776,58 @@
             "minimum": 1,
             "type": "number"
           },
-          "insuranceCentsPerMonthPerVehicle": {
+          "generalLiabilityAnnualCents": {
             "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "includedBusinessInsurance": {
+            "items": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "workersCompAnnualCents"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "generalLiabilityAnnualCents"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "umbrellaAnnualCents"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "professionalLiabilityAnnualCents"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "cyberInsuranceAnnualCents"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "otherInsuranceAnnualCents"
+                  ],
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 6,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "insuranceCentsPerMonthPerVehicle": {
+            "maximum": 500000,
             "minimum": 0,
             "type": "integer"
           },
@@ -7772,10 +7841,38 @@
             "minimum": 0,
             "type": "integer"
           },
+          "otherInsuranceAnnualCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "professionalLiabilityAnnualCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "targetMarginPercent": {
             "maximum": 90,
             "minimum": 0,
             "type": "number"
+          },
+          "umbrellaAnnualCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "useHistoricalVolume": {
+            "type": "boolean"
+          },
+          "vehicleCount": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workersCompAnnualCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -7799,23 +7896,52 @@
       "def-91": {
         "additionalProperties": false,
         "properties": {
+          "history": {
+            "additionalProperties": false,
+            "properties": {
+              "completedTrips": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "observationDays": {
+                "maximum": 90,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "completedTrips",
+              "observationDays"
+            ],
+            "type": "object"
+          },
           "profile": {
             "anyOf": [
               {
                 "additionalProperties": false,
                 "properties": {
+                  "annualFixedCostsCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
                   "averageTripMiles": {
                     "maximum": 500,
                     "minimum": 0.5,
                     "type": "number"
                   },
                   "contractedBaseCents": {
-                    "maximum": 2000000000,
+                    "maximum": 1000000,
                     "minimum": 0,
                     "type": "integer"
                   },
                   "contractedCentsPerMile": {
                     "maximum": 100000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "cyberInsuranceAnnualCents": {
+                    "maximum": 2000000000,
                     "minimum": 0,
                     "type": "integer"
                   },
@@ -7834,8 +7960,13 @@
                     "minimum": 0,
                     "type": "integer"
                   },
+                  "expectedMonthlyTrips": {
+                    "maximum": 1000000,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
                   "fixedOverheadCentsPerMonth": {
-                    "maximum": 2000000000,
+                    "maximum": 5000000,
                     "minimum": 0,
                     "type": "integer"
                   },
@@ -7849,8 +7980,58 @@
                     "minimum": 1,
                     "type": "number"
                   },
-                  "insuranceCentsPerMonthPerVehicle": {
+                  "generalLiabilityAnnualCents": {
                     "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "includedBusinessInsurance": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "workersCompAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "generalLiabilityAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "umbrellaAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "professionalLiabilityAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "cyberInsuranceAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "otherInsuranceAnnualCents"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "maxItems": 6,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "insuranceCentsPerMonthPerVehicle": {
+                    "maximum": 500000,
                     "minimum": 0,
                     "type": "integer"
                   },
@@ -7864,10 +8045,38 @@
                     "minimum": 0,
                     "type": "integer"
                   },
+                  "otherInsuranceAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "professionalLiabilityAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
                   "targetMarginPercent": {
                     "maximum": 90,
                     "minimum": 0,
                     "type": "number"
+                  },
+                  "umbrellaAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "useHistoricalVolume": {
+                    "type": "boolean"
+                  },
+                  "vehicleCount": {
+                    "maximum": 10000,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "workersCompAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
                   }
                 },
                 "required": [
@@ -7907,18 +8116,28 @@
       "def-92": {
         "additionalProperties": false,
         "properties": {
+          "annualFixedCostsCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "averageTripMiles": {
             "maximum": 500,
             "minimum": 0.5,
             "type": "number"
           },
           "contractedBaseCents": {
-            "maximum": 2000000000,
+            "maximum": 1000000,
             "minimum": 0,
             "type": "integer"
           },
           "contractedCentsPerMile": {
             "maximum": 100000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "cyberInsuranceAnnualCents": {
+            "maximum": 2000000000,
             "minimum": 0,
             "type": "integer"
           },
@@ -7937,12 +8156,17 @@
             "minimum": 0,
             "type": "integer"
           },
+          "expectedMonthlyTrips": {
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer"
+          },
           "expectedVersion": {
             "minimum": 0,
             "type": "integer"
           },
           "fixedOverheadCentsPerMonth": {
-            "maximum": 2000000000,
+            "maximum": 5000000,
             "minimum": 0,
             "type": "integer"
           },
@@ -7956,8 +8180,58 @@
             "minimum": 1,
             "type": "number"
           },
-          "insuranceCentsPerMonthPerVehicle": {
+          "generalLiabilityAnnualCents": {
             "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "includedBusinessInsurance": {
+            "items": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "workersCompAnnualCents"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "generalLiabilityAnnualCents"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "umbrellaAnnualCents"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "professionalLiabilityAnnualCents"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "cyberInsuranceAnnualCents"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "otherInsuranceAnnualCents"
+                  ],
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 6,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "insuranceCentsPerMonthPerVehicle": {
+            "maximum": 500000,
             "minimum": 0,
             "type": "integer"
           },
@@ -7971,10 +8245,38 @@
             "minimum": 0,
             "type": "integer"
           },
+          "otherInsuranceAnnualCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "professionalLiabilityAnnualCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
           "targetMarginPercent": {
             "maximum": 90,
             "minimum": 0,
             "type": "number"
+          },
+          "umbrellaAnnualCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "useHistoricalVolume": {
+            "type": "boolean"
+          },
+          "vehicleCount": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "workersCompAnnualCents": {
+            "maximum": 2000000000,
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -8131,18 +8433,28 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "annualFixedCostsCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
                   "averageTripMiles": {
                     "maximum": 500,
                     "minimum": 0.5,
                     "type": "number"
                   },
                   "contractedBaseCents": {
-                    "maximum": 2000000000,
+                    "maximum": 1000000,
                     "minimum": 0,
                     "type": "integer"
                   },
                   "contractedCentsPerMile": {
                     "maximum": 100000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "cyberInsuranceAnnualCents": {
+                    "maximum": 2000000000,
                     "minimum": 0,
                     "type": "integer"
                   },
@@ -8161,8 +8473,13 @@
                     "minimum": 0,
                     "type": "integer"
                   },
+                  "expectedMonthlyTrips": {
+                    "maximum": 1000000,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
                   "fixedOverheadCentsPerMonth": {
-                    "maximum": 2000000000,
+                    "maximum": 5000000,
                     "minimum": 0,
                     "type": "integer"
                   },
@@ -8176,8 +8493,58 @@
                     "minimum": 1,
                     "type": "number"
                   },
-                  "insuranceCentsPerMonthPerVehicle": {
+                  "generalLiabilityAnnualCents": {
                     "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "includedBusinessInsurance": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "workersCompAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "generalLiabilityAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "umbrellaAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "professionalLiabilityAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "cyberInsuranceAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "otherInsuranceAnnualCents"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "maxItems": 6,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "insuranceCentsPerMonthPerVehicle": {
+                    "maximum": 500000,
                     "minimum": 0,
                     "type": "integer"
                   },
@@ -8191,10 +8558,38 @@
                     "minimum": 0,
                     "type": "integer"
                   },
+                  "otherInsuranceAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "professionalLiabilityAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
                   "targetMarginPercent": {
                     "maximum": 90,
                     "minimum": 0,
                     "type": "number"
+                  },
+                  "umbrellaAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "useHistoricalVolume": {
+                    "type": "boolean"
+                  },
+                  "vehicleCount": {
+                    "maximum": 10000,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "workersCompAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
                   }
                 },
                 "required": [
@@ -9094,18 +9489,28 @@
               "schema": {
                 "additionalProperties": false,
                 "properties": {
+                  "annualFixedCostsCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
                   "averageTripMiles": {
                     "maximum": 500,
                     "minimum": 0.5,
                     "type": "number"
                   },
                   "contractedBaseCents": {
-                    "maximum": 2000000000,
+                    "maximum": 1000000,
                     "minimum": 0,
                     "type": "integer"
                   },
                   "contractedCentsPerMile": {
                     "maximum": 100000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "cyberInsuranceAnnualCents": {
+                    "maximum": 2000000000,
                     "minimum": 0,
                     "type": "integer"
                   },
@@ -9124,12 +9529,17 @@
                     "minimum": 0,
                     "type": "integer"
                   },
+                  "expectedMonthlyTrips": {
+                    "maximum": 1000000,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
                   "expectedVersion": {
                     "minimum": 0,
                     "type": "integer"
                   },
                   "fixedOverheadCentsPerMonth": {
-                    "maximum": 2000000000,
+                    "maximum": 5000000,
                     "minimum": 0,
                     "type": "integer"
                   },
@@ -9143,8 +9553,58 @@
                     "minimum": 1,
                     "type": "number"
                   },
-                  "insuranceCentsPerMonthPerVehicle": {
+                  "generalLiabilityAnnualCents": {
                     "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "includedBusinessInsurance": {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "workersCompAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "generalLiabilityAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "umbrellaAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "professionalLiabilityAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "cyberInsuranceAnnualCents"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "otherInsuranceAnnualCents"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "maxItems": 6,
+                    "type": "array",
+                    "uniqueItems": true
+                  },
+                  "insuranceCentsPerMonthPerVehicle": {
+                    "maximum": 500000,
                     "minimum": 0,
                     "type": "integer"
                   },
@@ -9158,10 +9618,38 @@
                     "minimum": 0,
                     "type": "integer"
                   },
+                  "otherInsuranceAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "professionalLiabilityAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
                   "targetMarginPercent": {
                     "maximum": 90,
                     "minimum": 0,
                     "type": "number"
+                  },
+                  "umbrellaAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "useHistoricalVolume": {
+                    "type": "boolean"
+                  },
+                  "vehicleCount": {
+                    "maximum": 10000,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "workersCompAnnualCents": {
+                    "maximum": 2000000000,
+                    "minimum": 0,
+                    "type": "integer"
                   }
                 },
                 "required": [

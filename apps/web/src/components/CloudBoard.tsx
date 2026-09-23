@@ -5,7 +5,6 @@ import type {createCloudApi} from '../cloud-api';
 import type {CloudAssignmentCommand} from '../cloud-board-contract';
 import {connectCloudDispatch} from '../cloud-live';
 import {CloudRouteReview} from './CloudRouteReview';
-import {CloudTrackingStatus} from './CloudTrackingStatus';
 import {businessToday} from '../business-time';
 import {ServiceDatePicker} from './ServiceDatePicker';
 
@@ -117,7 +116,6 @@ export function CloudBoard({api,enabled,serviceDate,onServiceDateChange,focusRun
   </section>}
   <p role="status">{message}</p>
   <CloudRouteReview api={api} day={day} enabled={enabled}/>
-  <CloudTrackingStatus api={api} day={day} enabled={enabled}/>
   {pending.current&&<p>The server retains the original command. After reloading, use Command recovery to review its receipt before submitting another assignment.</p>}
  </section>;
 }

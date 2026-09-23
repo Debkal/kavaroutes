@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createPostgresClientService, createPostgresDispatchService, createPostgresDriverLoginService, createWp007Api, createWp007PostgresApplication, requestFingerprint, syntheticIds } from "../dist/index.js";
-import { withTenantTransaction } from "../../postgres-persistence/dist/index.js";
+import { withTenantTransaction, createAccountingService } from "../../postgres-persistence/dist/index.js";
+import {routeCostProfileDefaults} from '../dist/index.js';
 import { withFreshDatabase } from "../../postgres-persistence/scripts/database-fixture.mjs";
 
 const connectionString = process.env.WP007_DATABASE_URL;
@@ -17,6 +18,29 @@ async function seed(pool) {
     await client.query("INSERT INTO intake.rider (tenant_id,id,synthetic_reference) VALUES ($1,$2,'synthetic-rider-007')", [organizationId, riderId]);
   });
 }
+
+test('pricing assumptions persist, stale edits fail and tenant history is isolated', {skip:!connectionString},async()=>{
+ await withFreshDatabase(connectionString,'pricing_assumptions',async pool=>{
+  await seed(pool);
+  const service=createAccountingService(pool);
+  assert.deepEqual((await service.readCostProfile(organizationId)).history,{completedTrips:0,observationDays:0});
+  const profile={...routeCostProfileDefaults,vehicleCount:3,expectedMonthlyTrips:240,annualFixedCostsCents:120000,useHistoricalVolume:true,
+   workersCompAnnualCents:600000,generalLiabilityAnnualCents:120000,umbrellaAnnualCents:240000,professionalLiabilityAnnualCents:360000,cyberInsuranceAnnualCents:480000,otherInsuranceAnnualCents:12000};
+  await service.updateCostProfile(organizationId,{...profile,expectedVersion:0});
+  assert.deepEqual((await service.readCostProfile(organizationId)).profile,profile);
+  const {workersCompAnnualCents,...olderProfile}=profile;
+  await service.updateCostProfile(organizationId,{...olderProfile,expectedVersion:1});
+  assert.deepEqual((await service.readCostProfile(organizationId)).profile,profile);
+  await assert.rejects(()=>service.updateCostProfile(organizationId,{...profile,expectedVersion:0}));
+  assert.equal((await service.readCostProfile('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')).profile,null);
+  await service.updateCostProfile(organizationId,{...profile,includedBusinessInsurance:[],expectedVersion:2});
+  const disabled=await service.readCostProfile(organizationId);
+  assert.deepEqual(disabled.profile.includedBusinessInsurance,[]);
+  assert.equal(disabled.profile.workersCompAnnualCents,600000);
+  await service.updateCostProfile(organizationId,{...disabled.profile,includedBusinessInsurance:['workersCompAnnualCents'],expectedVersion:3});
+  assert.deepEqual((await service.readCostProfile(organizationId)).profile.includedBusinessInsurance,['workersCompAnnualCents']);
+ });
+});
 
 test("scheduled client destinations update the drop-off directory frequency and recency exactly once", {skip:!connectionString}, async()=>{
   await withFreshDatabase(connectionString,"wp007_client_dropoff_usage",async pool=>{
@@ -44,6 +68,14 @@ test("scheduled client destinations update the drop-off directory frequency and 
       const roster=await app.inject({url:`/v1/organizations/${organizationId}/clients?clientId=${clientId}`,headers:auth});
       assert.equal(roster.statusCode,200,roster.body);
       assert.deepEqual(roster.json().clients[0].dropoffAddresses,[{ordinal:1,addressLabel:"200 Clinic Way",usageCount:1,lastUsedAt:"2026-09-18T16:00:00.000Z"}]);
+      // Include idle calendar days; count a completed trip once, never its joins.
+      await pool.query('UPDATE intake.trip_request SET service_date=CURRENT_DATE-10 WHERE tenant_id=$1',[organizationId]);
+      const accounting=createAccountingService(pool);
+      assert.deepEqual((await accounting.readCostProfile(organizationId)).history,{completedTrips:0,observationDays:10});
+      await pool.query("UPDATE execution.leg_execution SET lifecycle_reference='completed' WHERE tenant_id=$1",[organizationId]);
+      assert.deepEqual((await accounting.readCostProfile(organizationId)).history,{completedTrips:1,observationDays:10});
+      await pool.query("UPDATE intake.trip_request SET lifecycle_reference='cancelled' WHERE tenant_id=$1",[organizationId]);
+      assert.equal((await accounting.readCostProfile(organizationId)).history.completedTrips,0);
     }finally{await app.close();}
   });
 });

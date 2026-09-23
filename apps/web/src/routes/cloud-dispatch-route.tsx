@@ -40,6 +40,6 @@ export function Component() {
     <section id="schedule-transport" className="workspace-card schedule-panel" aria-label="Schedule transport"><DispatchRouteForm api={api} serviceDate={serviceDate} onServiceDateChange={setServiceDate} initialClientId={initialClientId} onPlanned={setPlannedRunId}/></section>
     <CloudBoard api={api} enabled={session.isSuccess} serviceDate={serviceDate} onServiceDateChange={setServiceDate} focusRunId={plannedRunId} onFocusRunHandled={()=>setPlannedRunId(null)}/>
     {session.isPending && <p role="status">Connecting to cloud session…</p>}
-    {session.isError && <p role="alert">Dispatch cannot reach the server. Previously displayed information may be stale.</p>}
+    {session.isError && <p role="alert">Dispatch is disconnected. Trip and driver details may be out of date. Check your connection and refresh before making changes.</p>}
   </main>;
 }

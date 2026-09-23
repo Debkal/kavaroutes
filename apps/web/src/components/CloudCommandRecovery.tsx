@@ -13,11 +13,11 @@ export function CloudCommandRecovery({recovery,enabled,reviewer=false}:{recovery
   catch{setMessage('Recovery unavailable or outcome unknown. The original command remains on the server; refresh to recover it.');await command.refetch();}
   finally{flight.current=false;setBusy(false);}
  };
- return <section aria-label={reviewer?'Authorized reviewer command recovery':'Dispatcher command recovery'}><h2>Command recovery</h2>
- <p>Original requests are retained on the server. No browser storage is used. Review and acknowledge a result before starting another command.</p>
- {!enabled?<p>Recovery requires an authorized session.</p>:command.isError?<p role="alert">Command recovery unavailable. Refresh before issuing commands.</p>:command.isPending?<p role="status">Checking for an unresolved command…</p>:current?<>
+ return <section aria-label={reviewer?'Authorized reviewer command recovery':'Dispatcher command recovery'}><h2>Interrupted requests</h2>
+ <p>If a connection problem interrupted a change, check its result here before trying again. This helps prevent duplicate changes.</p>
+ {!enabled?<p>Sign in with an account that can review these requests.</p>:command.isError?<p role="alert">We could not check the request status. Refresh before making another change.</p>:command.isPending?<p role="status">Checking for unfinished requests…</p>:current?<>
  <p>{current.kind.replaceAll('_',' ')} · {current.outcome}{current.code?` · ${current.code}`:''}</p>
  {current.expired&&current.outcome==='PENDING'?<p role="alert">Original command expired. Operator review is required; no replacement is submitted.</p>:current.outcome==='PENDING'?<button disabled={busy||!enabled} onClick={()=>void act(false)}>Recover original command</button>:<button disabled={busy||!enabled} onClick={()=>void act(true)}>Acknowledge reviewed result</button>}
- </>:<p>No unacknowledged command.</p>}
+ </>:<p>No requests need review.</p>}
  <button disabled={busy||!enabled} onClick={()=>void command.refetch()}>Refresh command recovery</button><p role="status">{message}</p></section>;
 }

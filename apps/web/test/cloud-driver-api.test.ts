@@ -15,20 +15,30 @@ const leg = {
 
 describe("Driver web cloud adapter", () => {
   it("accepts only the authenticated Driver itinerary projection", () => {
-    const value = decodeDriverItinerary({ driverReference: "30000000-0000-4000-8000-000000000001", serviceDate: "2026-09-14", legs: [leg] });
+    const driverId="44444444-4444-4444-8444-444444444444";
+    const value = decodeDriverItinerary({ driverReference: driverId, serviceDate: "2026-09-14", legs: [leg] },driverId);
     expect(value.legs[0]?.tripLegId).toBe(leg.tripLegId);
-    expect(() => decodeDriverItinerary({ driverReference: "40000000-0000-4000-8000-000000000001", serviceDate: "2026-09-14", legs: [leg] })).toThrow("INVALID_DRIVER_ITINERARY");
+    expect(() => decodeDriverItinerary({ driverReference: "40000000-0000-4000-8000-000000000001", serviceDate: "2026-09-14", legs: [leg] },driverId)).toThrow("INVALID_DRIVER_ITINERARY");
   });
 
-  it("uses the Driver persona and same-origin Cloudflare session for HTTPS", async () => {
+  it("uses the verified driver's memory-only session for itinerary requests", async () => {
+    const driverId="44444444-4444-4444-8444-444444444444", token=`dvs_${'a'.repeat(43)}`;
     const fetcher = vi.fn(async (url: string, init: Parameters<DevelopmentFetch>[1]) => {
-      expect(url).toBe("https://app.kavaroutes.com/v1/me");
       expect(init.credentials).toBe("same-origin");
-      expect(init.headers.authorization).toBe("Synthetic principal_driver");
-      return response({ principalKind: "SYNTHETIC_DEVICE", organizations: [{ organizationId: driverOrganizationId, capabilities: ["driver:manifest:read", "driver:execute"] }] });
+      if(url.endsWith('/driver-logins/commands/verify')){
+        expect(init.headers.authorization).toBeUndefined();
+        return response({driverId,loginId:'joel',status:'ACTIVE',claimedAt:'2026-09-23T19:00:00Z',lastLoginAt:'2026-09-23T19:00:00Z',version:2,sessionToken:token});
+      }
+      expect(init.headers.authorization).toBe(`DriverSession ${token}`);
+      if(url.endsWith('/v1/me'))return response({principalKind:'SYNTHETIC_DEVICE',organizations:[{organizationId:driverOrganizationId,capabilities:['driver:manifest:read','driver:execute']}]});
+      return response({driverReference:driverId,serviceDate:'2026-09-14',legs:[leg]});
     }) as unknown as DevelopmentFetch;
-    const session = await createCloudDriverWebApi("https://app.kavaroutes.com", fetcher).authenticate();
+    const api=createCloudDriverWebApi("https://app.kavaroutes.com", fetcher);
+    await expect(api.authenticate()).rejects.toThrow('DRIVER_SESSION_REQUIRED');
+    await api.verifyLogin({loginId:'joel',password:'test-password'},'test-key');
+    const session=await api.authenticate();
     expect(session.value.organizationId).toBe(driverOrganizationId);
-    expect(fetcher).toHaveBeenCalledOnce();
+    expect((await api.itinerary('2026-09-14')).value.driverReference).toBe(driverId);
+    expect(fetcher).toHaveBeenCalledTimes(3);
   });
 });

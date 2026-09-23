@@ -23,10 +23,23 @@ const text = (value: unknown, max = 512) => {
   return value;
 };
 const nullableText = (value: unknown, max = 512) => value === null || value === undefined ? null : text(value, max);
+const list = (value:unknown):unknown[] => {
+ if(!Array.isArray(value)||value.length>6)throw new Error("INVALID_ACCOUNTING_RESPONSE");
+ return value;
+};
 
 function decodeProfile(value: unknown): RouteCostProfile {
   const row = object(value);
   return {
+    ...(row.includedBusinessInsurance===undefined?{}:{includedBusinessInsurance:list(row.includedBusinessInsurance).map(value=>text(value,64))}),
+    workersCompAnnualCents:money(row.workersCompAnnualCents??0),
+    generalLiabilityAnnualCents:money(row.generalLiabilityAnnualCents??0),
+    umbrellaAnnualCents:money(row.umbrellaAnnualCents??0),
+    professionalLiabilityAnnualCents:money(row.professionalLiabilityAnnualCents??0),
+    cyberInsuranceAnnualCents:money(row.cyberInsuranceAnnualCents??0),
+    otherInsuranceAnnualCents:money(row.otherInsuranceAnnualCents??0),
+    vehicleCount:integer(row.vehicleCount??1,1,10000),expectedMonthlyTrips:integer(row.expectedMonthlyTrips??167,1,1000000),
+    annualFixedCostsCents:money(row.annualFixedCostsCents??0),useHistoricalVolume:row.useHistoricalVolume===true,
     fuelCentsPerGallon: integer(row.fuelCentsPerGallon, 1, 5000), fuelEfficiencyMpg: Number(row.fuelEfficiencyMpg),
     maintenanceCentsPerMile: integer(row.maintenanceCentsPerMile, 0, 1000), driverHourlyCents: integer(row.driverHourlyCents, 0, 20000),
     driverBurdenPercent: Number(row.driverBurdenPercent), insuranceCentsPerMonthPerVehicle: money(row.insuranceCentsPerMonthPerVehicle),
@@ -38,7 +51,9 @@ function decodeProfile(value: unknown): RouteCostProfile {
 }
 const decodeProfileView = (value: unknown) => {
   const row = object(value);
-  return { profile: row.profile === null || row.profile === undefined ? null : decodeProfile(row.profile), version: integer(row.version, 0) };
+  const history=row.history===undefined?{completedTrips:0,observationDays:0}:object(row.history);
+  return { profile: row.profile === null || row.profile === undefined ? null : decodeProfile(row.profile), version: integer(row.version, 0),
+    history:{completedTrips:integer(history.completedTrips,0),observationDays:integer(history.observationDays,0,90)} };
 };
 const decodeTrip = (value: unknown) => {
   const row = object(value);

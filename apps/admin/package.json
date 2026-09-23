@@ -1,0 +1,14 @@
+{
+  "name": "@kavaroutes/admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.19.0 <25" },
+  "scripts": {
+    "build": "node --check src/main.mjs && node --check src/server.mjs && node --check src/customer-mail.mjs && node --check src/logging.mjs && node --check bin/operator.mjs",
+    "start": "node src/main.mjs",
+    "init": "node bin/operator.mjs init",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": { "jose": "6.2.12", "qrcode": "1.5.4" }
+}

@@ -45,9 +45,9 @@ export function Component(){
       <h2>Client directory <span className="driver-pill">{clients.length}</span></h2>
       <label>Find a client <input type="search" value={search} placeholder="Name, organization, or phone" onChange={event=>setSearch(event.target.value)}/></label>
       <button disabled={!session.isSuccess} onClick={()=>void roster.refetch()}>Refresh clients</button>
-      {session.isError?<p role="alert">Client intake session unavailable. No previous client data is shown.</p>
+      {session.isError?<p role="alert">We could not confirm your access to client records. Refresh the page or sign in again.</p>
        :session.isPending?<p role="status">Checking dispatch access…</p>
-       :roster.isError?<p role="alert">Clients unavailable. Previous data is not current.</p>
+       :roster.isError?<p role="alert">Client records could not be loaded. Select Refresh clients to try again.</p>
        :roster.isPending?<p role="status">Loading clients…</p>
        :<><div className="table-scroll" tabIndex={0} role="group" aria-label="Client directory table, scrollable"><table><caption>Client contact and pickup details</caption>
         <thead><tr><th>Client</th><th>Organization</th><th>Phone</th><th>Home / usual pickup</th><th>Details</th></tr></thead>
@@ -73,7 +73,7 @@ export function Component(){
         <thead><tr><th scope="col">Drop-off address</th><th scope="col">Trips</th><th scope="col">Last used</th></tr></thead>
         <tbody>{frequentDropoffs.map(dropoff=><tr key={dropoff.ordinal}><th scope="row">{dropoff.addressLabel}</th><td>{dropoff.usageCount}</td>
           <td>{dropoff.lastUsedAt?new Date(dropoff.lastUsedAt).toLocaleDateString("en-US",{timeZone:businessTimezone}):"Not scheduled yet"}</td></tr>)}</tbody></table></div>}
-      <ClientEditForm api={api} client={active} onSaved={version=>{setMessage(`Client ${active.displayName} saved at version ${version}.`);void roster.refetch();}}/>
+      <ClientEditForm api={api} client={active} onSaved={()=>{setMessage(`Changes saved for ${active.displayName}.`);void roster.refetch();}}/>
       <h3>Scheduled trips</h3>
       {active.routes.length===0?<p>No routes planned for this client yet. Plan one in Dispatch and pick this client.</p>
        :<ul>{active.routes.map((route,index)=><li key={route.tripId}>Trip {index+1} · {route.serviceDate}</li>)}</ul>}

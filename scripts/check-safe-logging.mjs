@@ -5,7 +5,11 @@ import { fileURLToPath } from "node:url";
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const sourceRoots = [resolve(root, "apps"), resolve(root, "packages")];
 const extensions = new Set([".ts", ".tsx", ".js", ".mjs"]);
-const ownedLoggingAdapter = "apps/api-host/src/logging.ts";
+const ownedLoggingAdapters = new Set([
+  "apps/api-host/src/logging.ts",
+  "apps/admin/src/logging.mjs",
+  "apps/site/server/logging.mjs",
+]);
 
 const policies = Object.freeze([
   { code: "DIRECT_CONSOLE", pattern: /\bconsole\.(?:log|info|warn|error|debug|trace)\s*\(/ },
@@ -28,7 +32,9 @@ async function sourceFiles(directory) {
 }
 
 export function unsafeLoggingFindings(path, source) {
-  if (path === ownedLoggingAdapter) return [];
+  // The admin/bin programs are interactive operator tools. Their prompts and
+  // file-location instructions are output to the invoking terminal, not app logs.
+  if (ownedLoggingAdapters.has(path) || path.startsWith("apps/admin/bin/")) return [];
   return policies.filter(({ pattern }) => pattern.test(source)).map(({ code }) => Object.freeze({ path, code }));
 }
 

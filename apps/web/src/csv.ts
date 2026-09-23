@@ -100,7 +100,16 @@ export interface EstimateExportRow { readonly label: string; readonly serviceDat
 /** The costing sheet: one row per trip, counted by day, so the margin advice travels with
  * the numbers it came from. */
 export function estimateRows(input: { readonly day: string; readonly rows: readonly EstimateExportRow[];
+  readonly tripsPerMonth?: number;
   readonly profile: { readonly fuelCentsPerGallon: number; readonly fuelEfficiencyMpg: number; readonly maintenanceCentsPerMile: number;
+    readonly vehicleCount?: number; readonly expectedMonthlyTrips?: number; readonly annualFixedCostsCents?: number;
+    readonly includedBusinessInsurance?: readonly string[];
+    readonly workersCompAnnualCents?: number;
+    readonly generalLiabilityAnnualCents?: number;
+    readonly umbrellaAnnualCents?: number;
+    readonly professionalLiabilityAnnualCents?: number;
+    readonly cyberInsuranceAnnualCents?: number;
+    readonly otherInsuranceAnnualCents?: number;
     readonly driverHourlyCents: number; readonly driverBurdenPercent: number; readonly insuranceCentsPerMonthPerVehicle: number;
     readonly fixedOverheadCentsPerMonth: number; readonly deadheadPercent: number; readonly targetMarginPercent: number;
     readonly contractedBaseCents: number; readonly contractedCentsPerMile: number } }): CsvRow[] {
@@ -111,6 +120,17 @@ export function estimateRows(input: { readonly day: string; readonly rows: reado
   const totalMiles = rows.reduce((sum, row) => sum + row.miles, 0);
   return [
     ["KavaRoutes route estimates", day],
+    ["Fleet rides/month used",input.tripsPerMonth??167],
+    ["Vehicles",profile.vehicleCount??1],
+    ["Expected fleet rides/month",profile.expectedMonthlyTrips??167],
+    ["Additional annual fixed costs cents",profile.annualFixedCostsCents??0],
+    ["Included business insurance",profile.includedBusinessInsurance?.join("; ")??"All entered premiums (legacy profile)"],
+    ["Workers’ compensation annual cents",profile.workersCompAnnualCents??0],
+    ["General liability annual cents",profile.generalLiabilityAnnualCents??0],
+    ["Umbrella / excess liability annual cents",profile.umbrellaAnnualCents??0],
+    ["Professional liability annual cents",profile.professionalLiabilityAnnualCents??0],
+    ["Cyber insurance annual cents",profile.cyberInsuranceAnnualCents??0],
+    ["Other business insurance annual cents",profile.otherInsuranceAnnualCents??0],
     ["Fuel cents per gallon", profile.fuelCentsPerGallon],
     ["Fuel efficiency (mpg)", profile.fuelEfficiencyMpg],
     ["Maintenance cents per mile", profile.maintenanceCentsPerMile],

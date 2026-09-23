@@ -22,7 +22,7 @@ it('reopens an accepted unknown-outcome command without replacing or automatical
  await expect(api().run(envelope,'original-key',v=>v)).rejects.toMatchObject({code:'OUTCOME_UNKNOWN'});
  const original=stored.id,reopened=api();expect((await reopened.pending()).value).toMatchObject({id:original,outcome:'ACCEPTED'});expect(effects).toBe(1);expect(requests.filter(url=>url.endsWith('/acknowledge'))).toHaveLength(0);
  const cache=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});const mounted=render(<QueryClientProvider client={cache}><CloudCommandRecovery recovery={reopened} enabled/></QueryClientProvider>);
- await screen.findByText('CANCEL TRIP · ACCEPTED');fireEvent.click(screen.getByText('Acknowledge reviewed result'));await screen.findByText('No unacknowledged command.');expect(effects).toBe(1);expect(stored.id).toBe(original);
+ await screen.findByText('CANCEL TRIP · ACCEPTED');fireEvent.click(screen.getByText('Acknowledge reviewed result'));await screen.findByText('No requests need review.');expect(effects).toBe(1);expect(stored.id).toBe(original);
  mounted.unmount();cache.clear();
 });
 it('pending command execution needs confirmation and expired commands cannot be replaced in the panel',async()=>{

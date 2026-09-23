@@ -20,6 +20,8 @@ jobs:
       server: ${{ steps.scope.outputs.server }}
       web: ${{ steps.scope.outputs.web }}
       driver: ${{ steps.scope.outputs.driver }}
+      site: ${{ steps.scope.outputs.site }}
+      admin: ${{ steps.scope.outputs.admin }}
       code: ${{ steps.scope.outputs.code }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -52,6 +54,7 @@ jobs:
           node --test --test-concurrency=1 test/core.test.mjs test/architecture-negative.test.mjs test/api.test.mjs test/telemetry.test.mjs test/websocket.test.mjs test/smoke.test.mjs test/container-policy.test.mjs apps/api-host/test/*.test.mjs packages/google-identity/test/*.test.mjs
           npm run kavaroutes:database:lint
           npm run kavaroutes:api:test
+          node --test --test-concurrency=1 packages/api-contracts/test/driver-session-issue.test.mjs infra/gcp/runtime/driver-sessions.test.mjs
           # Generated contract artifacts must still describe the composed API:
           # regenerate from source and fail if anything committed is stale.
           npm run kavaroutes:api:catalog
@@ -73,6 +76,16 @@ jobs:
         run: |
           npm run kavaroutes:web:test
           npm run kavaroutes:web:build
+      - name: Public site and business authentication endpoints
+        if: steps.scope.outputs.site == 'true'
+        run: |
+          npm run build --workspace=@kavaroutes/site
+          npm run test --workspace=@kavaroutes/site
+      - name: Admin service and endpoints
+        if: steps.scope.outputs.admin == 'true'
+        run: |
+          npm run test --workspace=@kavaroutes/admin
+          npm run build --workspace=@kavaroutes/admin
       - name: Driver contracts and UI
         if: steps.scope.outputs.driver == 'true'
         run: |
@@ -95,6 +108,13 @@ jobs:
           node --test --test-isolation=none infra/gcp/runtime/integration.test.mjs
           git rev-parse HEAD > .tooling/gcp/image-evidence/source-commit.txt
           docker save "$KR_CLOUD_IMAGE" | gzip > /tmp/kavaroutes-runtime.tar.gz
+      - name: Package separately built live applications
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          tar -czf /tmp/kavaroutes-web.tar.gz -C apps/web dist
+          tar -czf /tmp/kavaroutes-site.tar.gz -C apps/site dist server package.json
+          tar -czf /tmp/kavaroutes-admin.tar.gz -C apps/admin src bin public package.json
+          sha256sum /tmp/kavaroutes-runtime.tar.gz /tmp/kavaroutes-web.tar.gz /tmp/kavaroutes-site.tar.gz /tmp/kavaroutes-admin.tar.gz > /tmp/kavaroutes-live-bundles.sha256
       - name: Retain verified candidate (no deployment)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -104,6 +124,18 @@ jobs:
             /tmp/kavaroutes-runtime.tar.gz
             .tooling/gcp/image-evidence/
           include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+      - name: Retain live app bundles and endpoint evidence
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: live-apps-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            /tmp/kavaroutes-web.tar.gz
+            /tmp/kavaroutes-site.tar.gz
+            /tmp/kavaroutes-admin.tar.gz
+            /tmp/kavaroutes-live-bundles.sha256
           if-no-files-found: error
           retention-days: 3
 

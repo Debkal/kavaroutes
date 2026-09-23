@@ -1,6 +1,9 @@
 import {useEffect,useMemo,useState} from "react";
 import {useQuery} from "@tanstack/react-query";
-import {routeCostProfileDefaults, estimateRouteCost, defaultTripsPerMonth, type RouteCostProfile} from "@kavaroutes/api-contracts/route-costing";
+import {routeCostProfileDefaults, estimateRouteCost, pricingVolume, validCostProfile, type RouteCostProfile} from "@kavaroutes/api-contracts/route-costing";
+import {QuickQuote} from '../components/QuickQuote';
+import {CostNumberInput} from '../components/CostNumberInput';
+import {BusinessInsurance} from '../components/BusinessInsurance';
 import {DevelopmentApiError} from "@kavaroutes/api-contracts/private-development-transport";
 import {createCloudAccountingApi} from "../cloud-accounting-api";
 import {createCloudClientApi} from "../cloud-client-api";
@@ -12,8 +15,28 @@ const LOOKBACKS = [30, 90, 180, 365, 1095] as const;
 const PAYER_KINDS = ["MEDICAID","BROKER","MCO","COMMERCIAL_INSURANCE","WORKERS_COMPENSATION","AUTO_LIABILITY","FACILITY","PATIENT","OTHER"] as const;
 const PROOF_KINDS = ["SIGNATURE_ON_FILE","FACILITY_SIGNATURE","DRIVER_ATTESTED","NOT_REQUIRED","MISSING"] as const;
 const money = (cents:number)=>`$${(cents/100).toFixed(2)}`;
+const costHelp:Record<string,string>={
+ "Vehicles covered by insurance":"Number of vehicles included in your monthly vehicle insurance budget.",
+ "Expected completed rides per month (whole business)":"Count one-way rides across all vehicles. A round trip counts as two rides.",
+ "Additional annual fixed expenses ($ / year)":"Yearly business costs not already entered elsewhere, such as licenses or software.",
+ "Fuel cents per gallon":"Your current pump price in cents. For example, $4.50 is 450 cents.",
+ "Fuel efficiency (mpg)":"Average miles per gallon for your fleet during normal service.",
+ "Maintenance cents per mile":"Budget for servicing, tires, and repairs for each mile driven.",
+ "Driver hourly cents":"Hourly pay before employer costs. For example, $20 per hour is 2000 cents.",
+ "Driver burden percent":"Employer costs added to wages, such as payroll taxes and benefits. Exclude insurance entered separately.",
+ "Vehicle insurance ($ / month / vehicle)":"Average monthly premium for one vehicle. This is multiplied by your vehicle count.",
+ "Fixed overhead cents per month":"Company-wide monthly expenses, excluding costs entered separately. For example, $800 is 80000 cents.",
+ "Deadhead percent":"Extra distance driven without a passenger, as a percentage of passenger miles.",
+ "Target margin percent":"The share of the quoted price you want left after estimated costs. This is profit margin, not markup.",
+ "Contracted base cents":"Agreed starting charge for one ride, before mileage charges.",
+ "Contracted cents per mile":"Agreed charge per passenger mile, added to the base charge.",
+ "Average trip miles":"Passenger miles used when a trip does not yet have a measured distance.",
+ "Loaded miles per hour":"Typical speed with a passenger. Used to estimate driving time in the low-demand example.",
+ "Operating days per month":"Days your vehicles are expected to provide service each month.",
+ "Expected completed rides per vehicle per day":"Realistic daily one-way rides per vehicle, allowing for waiting and cancellations."
+};
 const moneyField = (label:string,value:number,onChange:(value:number)=>void,step=1)=>
- <label>{label} <input type="number" min={0} step={step} value={value} onChange={event=>onChange(Number(event.target.value))}/></label>;
+ <div><label>{label} <CostNumberInput value={value} onChange={onChange} decimal={step<1} descriptionId={`cost-help-${label.replace(/[^a-z0-9]/gi,"-")}`}/></label><small className="field-help" id={`cost-help-${label.replace(/[^a-z0-9]/gi,"-")}`}>{costHelp[label]}</small></div>;
 
 /** Accounting: what a route costs and must be charged, which delivered trips are on an
  * invoice and where that invoice went, and a client's route history over a lookback the
@@ -22,6 +45,8 @@ export function Component(){
  const [serviceDate,setServiceDate]=useState(()=>businessToday());
  const [profile,setProfile]=useState<RouteCostProfile>(routeCostProfileDefaults);
  const [profileVersion,setProfileVersion]=useState(0);
+ const [operatingDays,setOperatingDays]=useState(20);
+ const [ridesPerDay,setRidesPerDay]=useState(4);
  const [mileOverrides,setMileOverrides]=useState<Record<string,number>>({});
  const [message,setMessage]=useState("");
  const [busy,setBusy]=useState(false);
@@ -41,10 +66,11 @@ export function Component(){
  useEffect(()=>{ if(stored.data?.value.profile){ setProfile(stored.data.value.profile); setProfileVersion(stored.data.value.version); } },[stored.data]);
 
  const trips=estimates.data?.value.trips??[];
- const rows=trips.map(trip=>{
+ const volume=pricingVolume(profile,stored.data?.value.history??{completedTrips:0,observationDays:0});
+ const rows=(validCostProfile(profile)?trips:[]).map(trip=>{
   const miles=mileOverrides[trip.tripId]??trip.measuredMiles??profile.averageTripMiles;
   const plannedMinutes=Math.round((Date.parse(trip.plannedEndAt)-Date.parse(trip.plannedStartAt))/60_000)+trip.appointmentLengthMinutes;
-  const estimate=estimateRouteCost(profile,{miles,tripMinutes:plannedMinutes,tripsPerMonth:defaultTripsPerMonth});
+  const estimate=estimateRouteCost(profile,{miles,tripMinutes:plannedMinutes,tripsPerMonth:volume.tripsPerMonth});
   return {trip,miles,minutes:plannedMinutes,estimate};
  });
  const totals=rows.reduce((sum,row)=>({miles:sum.miles+row.miles,cost:sum.cost+row.estimate.totalCents,
@@ -59,7 +85,7 @@ export function Component(){
   finally{setBusy(false);}
  };
  const exportEstimates=()=>{
-  downloadCsv(`kavaroutes-estimates-${serviceDate}.csv`,estimateRows({day:serviceDate,profile,
+  downloadCsv(`kavaroutes-estimates-${serviceDate}.csv`,estimateRows({day:serviceDate,profile,tripsPerMonth:volume.tripsPerMonth,
    rows:rows.map(row=>({label:row.trip.riderLabel??row.trip.clientLabel??row.trip.tripId.slice(0,8),serviceDate:row.trip.plannedStartAt.slice(0,10),
     plannedStartAt:new Date(row.trip.plannedStartAt).toLocaleString("en-US",{timeZone:businessTimezone}),miles:row.miles,minutes:row.minutes,
     totalCents:row.estimate.totalCents,costPerMileCents:row.estimate.costPerMileCents,suggestedPriceCents:row.estimate.suggestedPriceCents,
@@ -115,24 +141,29 @@ export function Component(){
  };
 
  return <main id="main-content" className="accounting-page">
-  <section className="page-title"><div><p className="eyebrow">KavaRoutes · Accounting</p><h1>What the work costs and what it earns</h1>
-   <p>Route estimates from your own rates, payer invoices built from delivered trips, and a client's route history over the lookback you choose.</p></div></section>
+  <section className="page-title"><div><p className="eyebrow">KavaRoutes · Accounting</p><h1>Pricing and billing</h1>
+   <p>Estimate trip costs, prepare quotes, create invoices for completed trips, and review client trip history.</p></div></section>
   <p role="status">{message}</p>
-  {stored.isError&&<p role="alert">Cost profile unavailable. The estimates below use the built-in research defaults; save the profile to make them yours.</p>}
+  {stored.isError&&<p role="alert">Your saved costs could not be loaded. Estimates currently use example values. Refresh the page before preparing a customer quote.</p>}
+  <QuickQuote profile={profile} tripsPerMonth={volume.tripsPerMonth} version={profileVersion}/>
 
   <section className="workspace-card" aria-label="Route estimates">
    <div className="section-heading"><div><p className="eyebrow">Estimates</p><h2>Route estimates</h2>
-    <p>Costs come from the profile below: fuel at the pump price you enter, maintenance per mile, the driver's paid time, insurance and fixed overhead spread across the month's trips, and the deadhead an empty leg adds. Suggested price is cost ÷ (1 − target margin).</p></div>
+    <p>Compare estimated trip costs with your contracted rates. Estimates include fuel, maintenance, paid driver time, insurance, overhead, and travel without passengers. Suggested prices include your chosen profit margin.</p></div>
     <button disabled={!rows.length} onClick={exportEstimates}>Export estimates CSV</button></div>
    <ServiceDatePicker value={serviceDate} onChange={setServiceDate} disabled={busy}/>
-   <details className="workspace-card"><summary>Cost profile (your quotes): fuel {profile.fuelCentsPerGallon}¢/gal, {profile.fuelEfficiencyMpg} mpg, driver ${(profile.driverHourlyCents/100).toFixed(2)}/h, target {profile.targetMarginPercent}%</summary>
+   <details className="workspace-card"><summary>Business cost profile</summary>
+    <p>Set the costs and rates used for estimates. Changes update the calculations immediately; choose Save cost profile to use them next time.</p>
     <div className="accounting-grid">
+     {moneyField("Vehicles covered by insurance",profile.vehicleCount??1,value=>setProfile({...profile,vehicleCount:value}))}
+     {moneyField("Expected completed rides per month (whole business)",profile.expectedMonthlyTrips??167,value=>setProfile({...profile,expectedMonthlyTrips:value}))}
+     {moneyField("Additional annual fixed expenses ($ / year)",(profile.annualFixedCostsCents??0)/100,value=>setProfile({...profile,annualFixedCostsCents:Math.round(value*100)}),0.01)}
      {moneyField("Fuel cents per gallon",profile.fuelCentsPerGallon,value=>setProfile({...profile,fuelCentsPerGallon:value}))}
      {moneyField("Fuel efficiency (mpg)",profile.fuelEfficiencyMpg,value=>setProfile({...profile,fuelEfficiencyMpg:value}),0.1)}
      {moneyField("Maintenance cents per mile",profile.maintenanceCentsPerMile,value=>setProfile({...profile,maintenanceCentsPerMile:value}))}
      {moneyField("Driver hourly cents",profile.driverHourlyCents,value=>setProfile({...profile,driverHourlyCents:value}))}
      {moneyField("Driver burden percent",profile.driverBurdenPercent,value=>setProfile({...profile,driverBurdenPercent:value}),0.5)}
-     {moneyField("Insurance cents per month per vehicle",profile.insuranceCentsPerMonthPerVehicle,value=>setProfile({...profile,insuranceCentsPerMonthPerVehicle:value}))}
+     {moneyField("Vehicle insurance ($ / month / vehicle)",profile.insuranceCentsPerMonthPerVehicle/100,value=>setProfile({...profile,insuranceCentsPerMonthPerVehicle:Math.round(value*100)}),0.01)}
      {moneyField("Fixed overhead cents per month",profile.fixedOverheadCentsPerMonth,value=>setProfile({...profile,fixedOverheadCentsPerMonth:value}))}
      {moneyField("Deadhead percent",profile.deadheadPercent,value=>setProfile({...profile,deadheadPercent:value}),0.5)}
      {moneyField("Target margin percent",profile.targetMarginPercent,value=>setProfile({...profile,targetMarginPercent:value}),0.5)}
@@ -141,8 +172,26 @@ export function Component(){
      {moneyField("Average trip miles",profile.averageTripMiles,value=>setProfile({...profile,averageTripMiles:value}),0.5)}
      {moneyField("Loaded miles per hour",profile.loadedMilesPerHour,value=>setProfile({...profile,loadedMilesPerHour:value}),1)}
     </div>
-    <p className="form-hint">Industry context for these inputs: fuel is $4.07–$4.37 a gallon nationally ($5.21–$6.02 on the West Coast); a NEMT van runs 12–16 mpg; maintenance runs $0.12–$0.18 a mile; a wheelchair driver costs $18–$25 an hour before a 25–40% burden; insurance is $565–$1,165 a month for a wheelchair van and up to $2,583 all-in in year one. Broker work nets 8–15%, private pay 20–35%, and a blended operation 12–22% — so 18% is the default target and 8% is the floor below which a broker trip is not worth running.</p>
-    <button className="primary" disabled={busy} onClick={()=>void saveProfile()}>Save cost profile{profileVersion?` (version ${profileVersion})`:""}</button>
+    <p className="form-hint">Starting values are illustrative. Enter current supplier quotes and wages; review fuel and maintenance whenever they change. Monthly overhead covers the whole company. Annual expenses are divided by 12; exclude costs already included in monthly overhead or vehicle insurance.</p>
+    <details className="workspace-card"><summary>Business insurance — optional</summary>
+    <p>Enter annual premiums for the whole business, not per vehicle. For monthly premiums, enter the monthly amount × 12. These amounts are spread across completed rides in estimates and quick quotes.</p>
+    <p>Optional: check only the coverage you want included. Unchecked premiums are kept but excluded from estimates. Use Save cost profile below to keep your choices for later.</p>
+    <BusinessInsurance profile={profile} onChange={setProfile}/>
+    <p className="form-hint">Avoid double counting: add only premiums not already included in vehicle insurance, overhead, annual expenses or driver burden. If entering workers’ compensation here, remove its portion from driver burden first. For payroll-based coverage, enter your estimated annual premium and review it as staffing changes. Leave bundled coverage at zero here if already included elsewhere. These are budgeting inputs, not a determination of required coverage.</p>
+    </details>
+    <p>Starting volume: vehicles × operating days per month × completed one-way rides per vehicle per day. A round trip counts as two one-way rides. Use realistic demand, including cancellations and idle days.</p>
+    <div className="accounting-grid">
+     {moneyField('Operating days per month',operatingDays,setOperatingDays)}
+     {moneyField('Expected completed rides per vehicle per day',ridesPerDay,setRidesPerDay)}
+    </div>
+    <button disabled={!Number.isInteger(operatingDays)||operatingDays<1||operatingDays>31||!Number.isInteger(ridesPerDay)||ridesPerDay<1||ridesPerDay>100||!validCostProfile(profile)}
+     onClick={()=>setProfile({...profile,expectedMonthlyTrips:Math.min(1000000,(profile.vehicleCount??1)*operatingDays*ridesPerDay)})}>Use startup volume calculation</button>
+    <div className="history-option"><label className="option-label"><input type="checkbox" aria-describedby="ride-history-help" checked={profile.useHistoricalVolume??false} onChange={event=>setProfile({...profile,useHistoricalVolume:event.target.checked})}/><span>Use completed trips to refine estimates</span></label>
+    <p id="ride-history-help" className="form-hint">Optional. Blend your expected monthly trip count with completed-trip history to estimate fixed costs per ride. Leave this off to use only the monthly trip count you entered. Your contracted rates will not change.</p></div>
+    <p>{stored.data?.value.history.completedTrips??0} completed rides across {stored.data?.value.history.observationDays??0} past calendar days (up to 90). Historical weight: {Math.round(volume.weight*100)}%. Costs spread over <strong>{volume.tripsPerMonth} rides/month</strong>. Full historical weight requires 90 days and 100 completed rides; estimates remain editable.</p>
+    <p>Low-demand check (25% fewer rides): suggested price for a {profile.averageTripMiles}-mile ride is {money(estimateRouteCost(profile,{miles:profile.averageTripMiles,tripMinutes:profile.averageTripMiles/profile.loadedMilesPerHour*60,tripsPerMonth:Math.max(1,Math.round(volume.tripsPerMonth*.75))}).suggestedPriceCents)} before waiting. Fixed costs per ride rise when volume falls.</p>
+    {!validCostProfile(profile)&&<p role="alert">Check the cost inputs: fleet size and monthly rides must be positive whole numbers, costs nonnegative, and target margin between 0 and 90%.</p>}
+    <button className="primary" disabled={busy||!validCostProfile(profile)||!stored.isSuccess} onClick={()=>void saveProfile()}>Save cost profile</button>
    </details>
    {estimates.isError&&<p role="alert">Estimates unavailable for this service date.</p>}
    {estimates.data&&!rows.length&&<p role="status">No trips are recorded on this service date.</p>}

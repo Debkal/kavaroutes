@@ -18,7 +18,7 @@ export function DriverLoginForm({api,serviceDate}:{api:ReturnType<typeof createC
   const [driverId,setDriverId]=useState(""),[loginId,setLoginId]=useState("");
   const [newName,setNewName]=useState(""),[newLoginId,setNewLoginId]=useState(""),[relationship,setRelationship]=useState<'OWNER_OPERATOR'|'EMPLOYEE'|'CONTRACTOR'>('EMPLOYEE');
   const [newLoginEdited,setNewLoginEdited]=useState(false);
-  const [message,setMessage]=useState(""),[invite,setInvite]=useState<{loginId:string;inviteCode:string}|null>(null);
+  const [message,setMessage]=useState(""),[invite,setInvite]=useState<{driverId:string;loginId:string;inviteCode:string}|null>(null);
   const [busy,setBusy]=useState(false);
   const pending=useRef<{request:{driverId:string;loginId:string};key:string}|null>(null);
   const addPending=useRef<{request:{displayName:string;loginId:string;workforceRelationship:'OWNER_OPERATOR'|'EMPLOYEE'|'CONTRACTOR'};key:string}|null>(null);
@@ -41,7 +41,7 @@ export function DriverLoginForm({api,serviceDate}:{api:ReturnType<typeof createC
     try{
       const receipt=await api.createDriverLogin(pending.current.request,pending.current.key);
       pending.current=null;
-      setInvite({loginId:receipt.value.loginId,inviteCode:receipt.value.inviteCode});
+      setInvite({driverId:receipt.value.driverId,loginId:receipt.value.loginId,inviteCode:receipt.value.inviteCode});
       setMessage(`${reset?"Password reset":"Login issued"} for ${receipt.value.loginId}. Give the one-time code to that driver; it will not be shown again.`);
     }catch(error){
       if(error instanceof DevelopmentApiError&&error.status>=400&&error.status<500&&error.code!=="OUTCOME_UNKNOWN"){
@@ -62,7 +62,7 @@ export function DriverLoginForm({api,serviceDate}:{api:ReturnType<typeof createC
     try{
       const receipt=await api.createDriverAccount(addPending.current.request,addPending.current.key);
       addPending.current=null;setNewName("");setNewLoginId("");setNewLoginEdited(false);setRelationship('EMPLOYEE');
-      setInvite({loginId:receipt.value.loginId,inviteCode:receipt.value.inviteCode});
+      setInvite({driverId:receipt.value.driverId,loginId:receipt.value.loginId,inviteCode:receipt.value.inviteCode});
       setMessage(`${receipt.value.displayName} was added. Give the one-time code to the driver so they can set their password.`);
       await board.refetch();
     }catch(error){
@@ -100,7 +100,7 @@ export function DriverLoginForm({api,serviceDate}:{api:ReturnType<typeof createC
     <button disabled={busy||!driverId||!!pending.current} onClick={()=>void submit(true)}>Reset password</button></div>
     <p className="form-hint">Resetting invalidates the current password and creates a new one-time code. The driver must set a new password before signing in again.</p>
     <p role="status">{message}</p>
-    {invite&&<div role="status" className="driver-login-code"><span>One-time code for {invite.loginId}</span><strong>{invite.inviteCode}</strong><small>Copy this now. It will not be shown again.</small></div>}
+    {invite&&<div role="status" className="driver-login-code"><span>One-time code for {invite.loginId}</span><strong>{invite.inviteCode}</strong><a className="action-link" href={`/driver?driverId=${encodeURIComponent(invite.driverId)}`}>Open driver setup link</a><small>Give this link and code to the driver. The code will not be shown again.</small></div>}
     </div></div>
   </section>;
 }

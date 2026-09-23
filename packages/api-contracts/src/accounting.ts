@@ -14,23 +14,35 @@ const closed = { additionalProperties: false } as const;
 const nullable = <T extends Parameters<typeof Type.Union>[0][number]>(schema: T) => Type.Union([schema, Type.Null()]);
 const cents = Type.Integer({ minimum: 0, maximum: 2_000_000_000 });
 const profileFields = {
+  includedBusinessInsurance: Type.Optional(Type.Array(Type.Union([Type.Literal('workersCompAnnualCents'),Type.Literal('generalLiabilityAnnualCents'),Type.Literal('umbrellaAnnualCents'),Type.Literal('professionalLiabilityAnnualCents'),Type.Literal('cyberInsuranceAnnualCents'),Type.Literal('otherInsuranceAnnualCents')]),{maxItems:6,uniqueItems:true})),
+  workersCompAnnualCents: Type.Optional(cents),
+  generalLiabilityAnnualCents: Type.Optional(cents),
+  umbrellaAnnualCents: Type.Optional(cents),
+  professionalLiabilityAnnualCents: Type.Optional(cents),
+  cyberInsuranceAnnualCents: Type.Optional(cents),
+  otherInsuranceAnnualCents: Type.Optional(cents),
+  vehicleCount: Type.Optional(Type.Integer({minimum:1,maximum:10000})),
+  expectedMonthlyTrips: Type.Optional(Type.Integer({minimum:1,maximum:1000000})),
+  annualFixedCostsCents: Type.Optional(cents),
+  useHistoricalVolume: Type.Optional(Type.Boolean()),
   fuelCentsPerGallon: Type.Integer({ minimum: 1, maximum: 5000 }),
   fuelEfficiencyMpg: Type.Number({ minimum: 1, maximum: 60 }),
   maintenanceCentsPerMile: Type.Integer({ minimum: 0, maximum: 1000 }),
   driverHourlyCents: Type.Integer({ minimum: 0, maximum: 20000 }),
   driverBurdenPercent: Type.Number({ minimum: 0, maximum: 100 }),
-  insuranceCentsPerMonthPerVehicle: cents,
-  fixedOverheadCentsPerMonth: cents,
+  insuranceCentsPerMonthPerVehicle: Type.Integer({minimum:0,maximum:500000}),
+  fixedOverheadCentsPerMonth: Type.Integer({minimum:0,maximum:5000000}),
   deadheadPercent: Type.Number({ minimum: 0, maximum: 100 }),
   targetMarginPercent: Type.Number({ minimum: 0, maximum: 90 }),
-  contractedBaseCents: cents,
+  contractedBaseCents: Type.Integer({minimum:0,maximum:1000000}),
   contractedCentsPerMile: Type.Integer({ minimum: 0, maximum: 100000 }),
   averageTripMiles: Type.Number({ minimum: 0.5, maximum: 500 }),
   loadedMilesPerHour: Type.Number({ minimum: 1, maximum: 80 }),
 } as const;
 
 export const RouteCostProfileSchema = Type.Object(profileFields, { ...closed, $id: 'RouteCostProfile' });
-export const CostProfileViewSchema = Type.Object({ profile: nullable(RouteCostProfileSchema), version: Type.Integer({ minimum: 0 }) },
+export const CostProfileViewSchema = Type.Object({ profile: nullable(RouteCostProfileSchema), version: Type.Integer({ minimum: 0 }),
+  history: Type.Optional(Type.Object({completedTrips:Type.Integer({minimum:0}),observationDays:Type.Integer({minimum:0,maximum:90})},closed)) },
   { ...closed, $id: 'CostProfileView' });
 export const CostProfileUpdateRequestSchema = Type.Object({ ...profileFields, expectedVersion: Type.Integer({ minimum: 0 }) },
   { ...closed, $id: 'CostProfileUpdateRequest' });

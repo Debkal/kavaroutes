@@ -11,7 +11,7 @@ const loginId=()=>Type.String({pattern:'^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$'});
 const STATUSES=['INVITED','ACTIVE','LOCKED'] as const;
 const DriverWorkforceRelationshipSchema=Type.Union([Type.Literal('OWNER_OPERATOR'),Type.Literal('EMPLOYEE'),Type.Literal('CONTRACTOR')]);
 
-/** Driver logins for the synthetic prototype: dispatch issues the login, the driver
+/** Dispatch issues the login, the driver
  * claims it on their designated phone and sets their own password, so each driver keeps
  * a separate credential. Only hashes are stored (see migration 0033). */
 export const DriverLoginCreateRequestSchema=Type.Object({driverId:id(),loginId:loginId()},{additionalProperties:false,$id:'DriverLoginCreateRequest'});
@@ -36,7 +36,8 @@ export const DriverLoginVerifyRequestSchema=Type.Object({loginId:loginId(),passw
 export type DriverLoginVerifyRequest=Static<typeof DriverLoginVerifyRequestSchema>;
 export const DriverLoginStateSchema=Type.Object({driverId:id(),loginId:loginId(),
  status:Type.Union([Type.Literal('INVITED'),Type.Literal('ACTIVE'),Type.Literal('LOCKED')]),
- claimedAt:Type.Union([instant(),Type.Null()]),lastLoginAt:Type.Union([instant(),Type.Null()]),version:Type.Integer({minimum:1})},{additionalProperties:false,$id:'DriverLoginState'});
+ claimedAt:Type.Union([instant(),Type.Null()]),lastLoginAt:Type.Union([instant(),Type.Null()]),version:Type.Integer({minimum:1}),
+ sessionToken:Type.Optional(Type.String({pattern:'^dvs_[A-Za-z0-9_-]{43}$'}))},{additionalProperties:false,$id:'DriverLoginState'});
 export type DriverLoginState=Static<typeof DriverLoginStateSchema>;
 
 /** The stored status is constraint-bound, but the contract still narrows it instead of
@@ -47,14 +48,14 @@ const toState=(state:DriverCredentialState):DriverLoginState=>{
   claimedAt:state.claimedAt,lastLoginAt:state.lastLoginAt,version:state.version};
 };
 
-export function createPostgresDriverLoginService(pool:Pool){
+export function createPostgresDriverLoginService(pool:Pool,options:{allowUnauthenticatedLogin?:boolean}={}){
  const persistence=createPostgresPersistence(pool);
  const dispatchAccess=(organizationId:string,principal:SyntheticPrincipal)=>authorize(principal,organizationId,{capability:'dispatch:command',
   purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)});
  const driverAccess=(organizationId:string,principal:SyntheticPrincipal)=>authorize(principal,organizationId,{capability:'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY'});
- const mutation=<T,>(input:{organizationId:string;principal:SyntheticPrincipal;operationId:string;key:string;fingerprint:string},
+ const mutation=<T,>(input:{organizationId:string;actorReference:string;operationId:string;key:string;fingerprint:string},
    work:(tx:Parameters<Parameters<typeof persistence.executeIdempotentMutation<T>>[1]>[0])=>Promise<{statusCode:number;body:T;headers:Readonly<Record<string,string>>;resultReference:string}>) =>
-  persistence.executeIdempotentMutation<T>({tenantId:input.organizationId,actorReference:input.principal.id,operationId:input.operationId,
+  persistence.executeIdempotentMutation<T>({tenantId:input.organizationId,actorReference:input.actorReference,operationId:input.operationId,
    key:input.key,fingerprint:input.fingerprint,recordId:randomUUID(),expiresAt:new Date(Date.now()+86_700_000),isolationLevel:'serializable'},work);
  return Object.freeze({
   async createAccount(input:{organizationId:string;principal:SyntheticPrincipal;key:string;request:DriverAccountCreateRequest}){
@@ -62,7 +63,7 @@ export function createPostgresDriverLoginService(pool:Pool){
    const displayName=input.request.displayName.trim();
    if(!displayName)throw new ProtocolError(422,'DRIVER_NAME_REQUIRED','driver display name is required');
    const fingerprint=requestFingerprint({kind:'createDriverAccount',displayName,loginId:input.request.loginId,workforceRelationship:input.request.workforceRelationship});
-   return mutation<DriverAccountReceipt>({organizationId:input.organizationId,principal:input.principal,operationId:'createDriverAccount',
+   return mutation<DriverAccountReceipt>({organizationId:input.organizationId,actorReference:input.principal.id,operationId:'createDriverAccount',
     key:input.key,fingerprint},async tx=>{
     const account=await tx.createDriverAccount({driverId:randomUUID(),displayName,loginId:input.request.loginId,
       workforceRelationship:input.request.workforceRelationship});
@@ -76,7 +77,7 @@ export function createPostgresDriverLoginService(pool:Pool){
   async create(input:{organizationId:string;principal:SyntheticPrincipal;key:string;request:DriverLoginCreateRequest}){
    dispatchAccess(input.organizationId,input.principal);
    const fingerprint=requestFingerprint({kind:'createDriverLogin',...input.request});
-   return mutation<DriverLoginReceipt>({organizationId:input.organizationId,principal:input.principal,operationId:'createDriverLogin',
+   return mutation<DriverLoginReceipt>({organizationId:input.organizationId,actorReference:input.principal.id,operationId:'createDriverLogin',
      key:input.key,fingerprint},async tx=>{
     const invite=await tx.createDriverCredential({driverId:input.request.driverId,loginId:input.request.loginId});
     const receipt:DriverLoginReceipt={driverId:invite.driverId,loginId:invite.loginId,inviteCode:invite.inviteCode,status:'INVITED',version:invite.version};
@@ -85,12 +86,15 @@ export function createPostgresDriverLoginService(pool:Pool){
     return {statusCode:201,body:receipt,headers:{},resultReference:invite.driverId};
    });
   },
-  async claim(input:{organizationId:string;principal:SyntheticPrincipal;driverId:string;key:string;request:DriverLoginClaimRequest}){
-   driverAccess(input.organizationId,input.principal);
-   // A driver login belongs to one driver: a driver device may only claim its own login.
-   if(input.principal.subjectId!==input.driverId)throw new ProtocolError(403,'DRIVER_LOGIN_DRIVER_MISMATCH','this login belongs to another driver');
+  async claim(input:{organizationId:string;principal?:SyntheticPrincipal;driverId:string;key:string;request:DriverLoginClaimRequest}){
+   if(input.principal)driverAccess(input.organizationId,input.principal);
+   else if(!options.allowUnauthenticatedLogin)throw new ProtocolError(401,'AUTHENTICATION_REQUIRED','authentication required');
+   // An authenticated driver can only claim their own login. A public claim is
+   // authorized by the one-time invite code inside the credential transaction.
+   if(input.principal && input.principal.subjectId!==input.driverId)
+     throw new ProtocolError(403,'DRIVER_LOGIN_DRIVER_MISMATCH','this login belongs to another driver');
    const fingerprint=requestFingerprint({kind:'claimDriverLogin',...input.request});
-   const result=await mutation<DriverLoginState>({organizationId:input.organizationId,principal:input.principal,operationId:'claimDriverLogin',
+   const result=await mutation<DriverLoginState>({organizationId:input.organizationId,actorReference:input.principal?.id??input.driverId,operationId:'claimDriverLogin',
      key:input.key,fingerprint},async tx=>{
     let state;
     try {
@@ -103,13 +107,14 @@ export function createPostgresDriverLoginService(pool:Pool){
       throw error;
     }
     await tx.appendAudit({auditId:randomUUID(),aggregateKind:'driver-login',aggregateId:state.driverId,aggregateVersion:state.version,
-      actionReference:'driver.login.claimed',actorReference:input.principal.id});
+      actionReference:'driver.login.claimed',actorReference:state.driverId});
     return {statusCode:200,body:state,headers:{},resultReference:state.driverId};
    });
    return result.body;
   },
-  async verify(input:{organizationId:string;principal:SyntheticPrincipal;key:string;request:DriverLoginVerifyRequest}){
-   driverAccess(input.organizationId,input.principal);
+  async verify(input:{organizationId:string;principal?:SyntheticPrincipal;key:string;request:DriverLoginVerifyRequest}){
+   if(input.principal)driverAccess(input.organizationId,input.principal);
+   else if(!options.allowUnauthenticatedLogin)throw new ProtocolError(401,'AUTHENTICATION_REQUIRED','authentication required');
    // A password check is not replayed state: it runs once, in its own tenant
    // transaction, so the failed-attempt counter and the lockout commit even when the
    // attempt is refused. The answer is identical for an unknown phone, an unclaimed

@@ -5,7 +5,7 @@ import {DriverClosureRequestSchema,DriverClosureReceiptSchema,DriverClosureViewS
 import {RouteProposalRequestSchema,RouteDecisionRequestSchema,RouteProposalReceiptSchema,RouteProposalViewSchema,type RouteProposalService} from './route-proposals.js';
 import {DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,PlanDispatchRunRequestSchema,PlanDispatchRunReceiptSchema,UnassignDispatchRunRequestSchema,UnassignDispatchRunReceiptSchema,type DispatchService,type AssignDispatchRunRequest,type PlanDispatchRunRequest,type UnassignDispatchRunRequest} from './dispatch-board.js';
 import {ClientCreateRequestSchema,ClientCreateReceiptSchema,ClientRosterSchema,ClientUpdateRequestSchema,type ClientService,type ClientCreateRequest,type ClientUpdateRequest} from './client-records.js';
-import {DriverAccountCreateRequestSchema,DriverAccountReceiptSchema,DriverLoginClaimRequestSchema,DriverLoginCreateRequestSchema,DriverLoginReceiptSchema,DriverLoginStateSchema,DriverLoginVerifyRequestSchema,type DriverLoginService,type DriverAccountCreateRequest,type DriverLoginCreateRequest,type DriverLoginClaimRequest,type DriverLoginVerifyRequest} from './driver-logins.js';
+import {DriverAccountCreateRequestSchema,DriverAccountReceiptSchema,DriverLoginClaimRequestSchema,DriverLoginCreateRequestSchema,DriverLoginReceiptSchema,DriverLoginStateSchema,DriverLoginVerifyRequestSchema,type DriverLoginService,type DriverLoginState,type DriverAccountCreateRequest,type DriverLoginCreateRequest,type DriverLoginClaimRequest,type DriverLoginVerifyRequest} from './driver-logins.js';
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify, { LogController, type FastifyInstance, type FastifyPluginAsync, type FastifyReply, type FastifyRequest, type FastifyServerOptions } from "fastify";
 import { Type as TypeBox, type Static, type TSchema } from "typebox";
@@ -59,6 +59,9 @@ export interface Wp007ApiOptions {
   readonly dispatchService?: DispatchService;
   readonly clientService?: ClientService;
   readonly driverLoginService?: DriverLoginService;
+  readonly issueDriverSession?: (organizationId:string,state:DriverLoginState)=>string;
+  /** Exact driver credential-exchange routes are public; the invite/password is authority. */
+  readonly publicDriverLogin?: boolean;
   readonly application?: Wp007Application;
   readonly verifier?: PrincipalVerifier;
   readonly cursorSecret?: string;
@@ -160,8 +163,11 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   const verifier = options.verifier ?? createSyntheticTestVerifier();
   const AuthorizationHeaders = verifier.verifyRequest
     ? Type.Object({cookie:Type.String({minLength:1,maxLength:4096})})
-    : Type.Object({ authorization: Type.String({ pattern: "^Synthetic principal_[a-z_]+$", maxLength: 64 }) });
+    : Type.Object({ authorization: Type.String({ pattern: options.issueDriverSession
+      ? "^(?:Synthetic principal_[a-z_]+|DriverSession dvs_[A-Za-z0-9_-]{43})$"
+      : "^Synthetic principal_[a-z_]+$", maxLength: 64 }) });
   const IdempotentHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "idempotency-key": Type.Ref(IdempotencyKeySchema) })]);
+  const PublicIdempotentHeaders = Type.Object({ "idempotency-key": Type.Ref(IdempotencyKeySchema) });
   const CommandHeaders = Type.Intersect([IdempotentHeaders, Type.Object({ "if-match": Type.Optional(Type.Ref(StrongEtagSchema)) })]);
   const ConditionalHeaders = Type.Intersect([AuthorizationHeaders, Type.Object({ "if-none-match": Type.Optional(Type.Ref(StrongEtagSchema)) })]);
   const cursorCodec = createCursorCodec(options.cursorSecret ?? "synthetic-cursor-secret-wp007-local-only", options.secretProfile ?? "synthetic-test");
@@ -179,6 +185,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     ...(options.rateLimitPerOperation === undefined ? {} : { limitPerWindow: options.rateLimitPerOperation }),
     now,
   });
+  const publicDriverLoginAdmission = createSyntheticLocalAdmissionController({ limitPerWindow: 60, now });
   let nextRequest = 0;
   const requestIdFactory = options.requestIdFactory ?? (() => `req_wp007_${String(++nextRequest).padStart(8, "0")}`);
   const schemaContext = Object.fromEntries(allSchemas.map((schema) => {
@@ -230,6 +237,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   });
   for (const schema of allSchemas) app.addSchema(schema);
   const apiLifecyclePlugin = createApiLifecyclePlugin({ verifier, admissionController,
+    ...(options.publicDriverLogin ? { unauthenticatedOperationIds: new Set(['claimDriverLogin','verifyDriverLogin']) } : {}),
     ...(options.telemetrySink ? { telemetrySink: options.telemetrySink } : {}),
     ...(options.requestGuards ? { requestGuards: options.requestGuards } : {}),
     registerRoutes: async (api, requireAccess) => {
@@ -462,21 +470,25 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     if(result.replayed)reply.header('kavaroutes-idempotency-replayed','true');
     request.wp007Context.resultCode=result.replayed?'IDEMPOTENT_REPLAY':'DRIVER_LOGIN_INVITED';return reply.status(201).send(result.body);
   });
-  routes.post('/v1/organizations/:organizationId/driver-logins/:driverId/commands/claim',{bodyLimit:16384,schema:{operationId:'claimDriverLogin',tags:['driver'],security,headers:IdempotentHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),driverId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),body:DriverLoginClaimRequestSchema,
+  routes.post('/v1/organizations/:organizationId/driver-logins/:driverId/commands/claim',{bodyLimit:16384,schema:{operationId:'claimDriverLogin',tags:['driver'],security:options.publicDriverLogin?[]:security,headers:options.publicDriverLogin?PublicIdempotentHeaders:IdempotentHeaders,params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),driverId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false}),body:DriverLoginClaimRequestSchema,
     response:responseWithErrors({200:jsonResponse(DriverLoginStateSchema,'Driver login claimed; the driver set this password')},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
     const {organizationId,driverId}=request.params as {organizationId:string;driverId:string};
-    const principal=await requireAccess(request,organizationId,{capability:'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY',subjectId:syntheticIds.driverSubject},'claimDriverLogin');
+    const principal=options.publicDriverLogin?undefined:await requireAccess(request,organizationId,{capability:'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY',subjectId:driverId},'claimDriverLogin');
+    if(options.publicDriverLogin){const decision=await publicDriverLoginAdmission.admit({organizationId,principalId:'driver-login-public',operationId:'claimDriverLogin'});if(!decision.allowed)throw new ProtocolError(429,'RATE_LIMIT_EXCEEDED','rate limit exceeded',{retryAfterSeconds:decision.retryAfterSeconds??1});}
     if(!options.driverLoginService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','driver logins unavailable');
-    const state=await options.driverLoginService.claim({organizationId,principal,driverId,key:String(request.headers['idempotency-key']),request:request.body as DriverLoginClaimRequest});
-    request.wp007Context.resultCode='DRIVER_LOGIN_CLAIMED';return reply.send(state);
+    const state=await options.driverLoginService.claim({organizationId,...(principal?{principal}:{}),driverId,key:String(request.headers['idempotency-key']),request:request.body as DriverLoginClaimRequest});
+    reply.header('cache-control','no-store');
+    request.wp007Context.resultCode='DRIVER_LOGIN_CLAIMED';return reply.send(options.issueDriverSession?{...state,sessionToken:options.issueDriverSession(organizationId,state)}:state);
   });
-  routes.post('/v1/organizations/:organizationId/driver-logins/commands/verify',{bodyLimit:16384,schema:{operationId:'verifyDriverLogin',tags:['driver'],security,headers:IdempotentHeaders,params:OrganizationParams,body:DriverLoginVerifyRequestSchema,
+  routes.post('/v1/organizations/:organizationId/driver-logins/commands/verify',{bodyLimit:16384,schema:{operationId:'verifyDriverLogin',tags:['driver'],security:options.publicDriverLogin?[]:security,headers:options.publicDriverLogin?PublicIdempotentHeaders:IdempotentHeaders,params:OrganizationParams,body:DriverLoginVerifyRequestSchema,
     response:responseWithErrors({200:jsonResponse(DriverLoginStateSchema,'Driver login verified for this phone')},[400,401,403,404,406,409,410,412,413,415,422,428,429,500,503])}},async(request,reply)=>{
     const {organizationId}=request.params as {organizationId:string};
-    const principal=await requireAccess(request,organizationId,{capability:'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY',subjectId:syntheticIds.driverSubject},'verifyDriverLogin');
+    const principal=options.publicDriverLogin?undefined:await requireAccess(request,organizationId,{capability:'driver:execute',purpose:'ASSIGNED_SERVICE_DELIVERY'},'verifyDriverLogin');
+    if(options.publicDriverLogin){const decision=await publicDriverLoginAdmission.admit({organizationId,principalId:'driver-login-public',operationId:'verifyDriverLogin'});if(!decision.allowed)throw new ProtocolError(429,'RATE_LIMIT_EXCEEDED','rate limit exceeded',{retryAfterSeconds:decision.retryAfterSeconds??1});}
     if(!options.driverLoginService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','driver logins unavailable');
-    const state=await options.driverLoginService.verify({organizationId,principal,key:String(request.headers['idempotency-key']),request:request.body as DriverLoginVerifyRequest});
-    request.wp007Context.resultCode='DRIVER_LOGIN_VERIFIED';return reply.send(state);
+    const state=await options.driverLoginService.verify({organizationId,...(principal?{principal}:{}),key:String(request.headers['idempotency-key']),request:request.body as DriverLoginVerifyRequest});
+    reply.header('cache-control','no-store');
+    request.wp007Context.resultCode='DRIVER_LOGIN_VERIFIED';return reply.send(options.issueDriverSession?{...state,sessionToken:options.issueDriverSession(organizationId,state)}:state);
   });
   routes.get('/v1/organizations/:organizationId/clients',{schema:{operationId:'getClients',tags:['dispatch'],security,headers:AuthorizationHeaders,params:OrganizationParams,
     querystring:Type.Object({after:Type.Optional(Type.Ref(OpaqueIdSchema)),clientId:Type.Optional(Type.Ref(OpaqueIdSchema)),limit:Type.Optional(Type.String({pattern:'^(?:[1-9][0-9]?|100)$',maxLength:3}))},{additionalProperties:false}),
@@ -530,7 +542,9 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       { "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 410, 413, 415, 422, 429, 500, 503]),
   } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    const principal = await requireAccess(request, organizationId, { capability: "driver:execute", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "startDriverShift");
+    const context=contextPrincipal(request);
+    if(!context.subjectId)throw new ProtocolError(404,"RESOURCE_NOT_FOUND","resource hidden");
+    const principal = await requireAccess(request, organizationId, { capability: "driver:execute", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: context.subjectId }, "startDriverShift");
     if (!options.driverShiftService) throw new ProtocolError(503, "RUNTIME_PATH_NOT_PROMOTED", "persisted shift service unavailable");
     const result = await options.driverShiftService.start({ organizationId, principal,
       key: String(request.headers["idempotency-key"]), request: request.body as StartDriverShiftRequest });
@@ -767,7 +781,9 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: IdempotentHeaders, params: OrganizationParams, body: DriverActionBatchSchema,
     response: responseWithErrors({ 200: jsonResponse(BatchReceiptSchema, "Ordered action receipts", { "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500, 503]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    const principal = await requireAccess(request, organizationId, { capability: "driver:execute", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "submitDriverActionBatch");
+    const context=contextPrincipal(request);
+    if(!context.subjectId)throw new ProtocolError(404,"RESOURCE_NOT_FOUND","resource hidden");
+    const principal = await requireAccess(request, organizationId, { capability: "driver:execute", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: context.subjectId }, "submitDriverActionBatch");
     if (options.driverActionService) {
       const result = await options.driverActionService.submit({ organizationId, principal,
         key: String(request.headers["idempotency-key"]), request: request.body as DriverActionBatch });
@@ -789,7 +805,9 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: IdempotentHeaders, params: OrganizationParams, body: LocationBatchSchema,
     response: responseWithErrors({ 200: jsonResponse(BatchReceiptSchema, "Location sample receipts", { "KavaRoutes-Idempotency-Replayed": { schema: { type: "string", enum: ["true"] } } }) }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    const principal = await requireAccess(request, organizationId, { capability: "driver:location:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "submitDriverLocationBatch");
+    const context=contextPrincipal(request);
+    if(!context.subjectId)throw new ProtocolError(404,"RESOURCE_NOT_FOUND","resource hidden");
+    const principal = await requireAccess(request, organizationId, { capability: "driver:location:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: context.subjectId }, "submitDriverLocationBatch");
     const result = await offline.locations(`${organizationId}:${principal.id}`, String(request.headers["idempotency-key"]), request.body as LocationBatch);
     if (result.replayed) reply.header("kavaroutes-idempotency-replayed", "true");
     request.wp007Context.resultCode = result.replayed ? "IDEMPOTENT_REPLAY" : "LOCATION_BATCH_COMMITTED";
@@ -803,7 +821,9 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: IdempotentHeaders, params: OrganizationParams, body: PushRegistrationRequestSchema,
     response: responseWithErrors({ 200: jsonResponse(PushRegistrationResponseSchema, "Registered native push installation without returning its routing token") }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId } = request.params as { organizationId: string };
-    const principal = await requireAccess(request, organizationId, { capability: "driver:notifications:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "registerDriverInstallation");
+    const context=contextPrincipal(request);
+    if(!context.subjectId)throw new ProtocolError(404,"RESOURCE_NOT_FOUND","resource hidden");
+    const principal = await requireAccess(request, organizationId, { capability: "driver:notifications:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: context.subjectId }, "registerDriverInstallation");
     if (!principal.subjectId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
     const body = request.body as PushRegistrationRequest;
     const input: RegistrationInput = { organizationId, principalId: principal.id, subjectId: principal.subjectId,
@@ -822,7 +842,9 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     headers: IdempotentHeaders, params: InstallationParams, body: PushUnregistrationRequestSchema,
     response: responseWithErrors({ 200: jsonResponse(PushRegistrationResponseSchema, "Disabled the exact installation generation") }, [400, 401, 404, 406, 409, 413, 415, 422, 429, 500]) } }, async (request, reply) => {
     const { organizationId, installationId } = request.params as { organizationId: string; installationId: string };
-    const principal = await requireAccess(request, organizationId, { capability: "driver:notifications:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: syntheticIds.driverSubject }, "unregisterDriverInstallation");
+    const context=contextPrincipal(request);
+    if(!context.subjectId)throw new ProtocolError(404,"RESOURCE_NOT_FOUND","resource hidden");
+    const principal = await requireAccess(request, organizationId, { capability: "driver:notifications:write", purpose: "ASSIGNED_SERVICE_DELIVERY", subjectId: context.subjectId }, "unregisterDriverInstallation");
     if (!principal.subjectId) throw new ProtocolError(404, "RESOURCE_NOT_FOUND", "resource hidden");
     const body = request.body as PushUnregistrationRequest;
     const unregistered = pushRegistrations.unregister({ organizationId, principalId: principal.id, subjectId: principal.subjectId },

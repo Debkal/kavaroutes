@@ -1,0 +1,84 @@
+# KavaRoutes public homepage
+
+Separate public website for `kavaroutes.com`. The existing `apps/web` operations
+prototype and `apps/admin` are not exposed by this server. The homepage uses a light
+palette and leaves the right half of its hero empty for supplied assets.
+
+## Local preview
+
+Use the repository's Node 24.19 runtime. From the repository root:
+
+```sh
+npm run dev --workspace=@kavaroutes/site
+npm run start --workspace=@kavaroutes/site
+```
+
+Open `http://127.0.0.1:4313`. Vite proxies `/api` to the loopback site server on
+58110. Without Firebase configuration the homepage is fully visible and auth
+controls honestly report that sign-in is being prepared; there is no mock login.
+
+```sh
+npm run build --workspace=@kavaroutes/site
+npm run test --workspace=@kavaroutes/site
+```
+
+The production server serves the built `dist` folder, page routes and its own API.
+No driver routes or synthetic business APIs are proxied. It binds only to loopback.
+
+## Authentication activation (still required)
+
+Configure the existing Google Cloud/Firebase project with a **dedicated Identity
+Platform tenant for business accounts**. This is a separate authentication realm,
+not a tenant per subscribing business. Tenant isolation prevents default-project
+or driver identities from signing into this site. Do not reuse a driver tenant.
+
+1. Enable email/password, Google and Microsoft in that business tenant. Configure
+   password policy (minimum 12 characters), email enumeration protection, email
+   verification and reset templates. Add `kavaroutes.com` to authorized domains.
+2. Configure Google OAuth branding and Microsoft app client ID/secret in the
+   provider console. The Microsoft app must allow organizational and personal
+   Microsoft accounts for Outlook.com support. Register the Firebase OAuth
+   callback supplied by the console, typically
+   `https://kavaroutes.firebaseapp.com/__/auth/handler`.
+3. Set the runtime variables shown in `.env.example`. Production origin must be
+   `https://kavaroutes.com`; use a durable database path such as
+   `/var/lib/kavaroutes-site/accounts.sqlite`, owned by the service account.
+   Supply Google Application Default Credentials on the server. Never ship them
+   to the browser. Runtime browser config contains only public Firebase settings.
+4. Build, run the site service, then route the apex HTTPS host to loopback 58110.
+   Redirect `www.kavaroutes.com` to the apex. Preserve existing app/admin ingress.
+   Back up the SQLite database; run one site instance with this database/limiter.
+5. Verify signup, verification email, Google and Microsoft popups, password reset,
+   logout and revocation against real provider accounts before launch. Local unit
+   tests use injected provider responses and are not evidence of live OAuth setup.
+
+Email/password signup stores the business name in the provider profile. After
+email verification, first sign-in persists the pending business account. SSO signup
+requires a business name and verified email. Existing SSO users without a profile
+are asked to supply a business name. Passwords and provider tokens are never stored
+by this server. Browser Firebase credentials stay in memory and are cleared after
+the session exchange. The server stores only hashes of random one-hour session
+tokens, checks account revocation on each authenticated request, requires exact
+Origin for writes, and issues host-only HttpOnly Secure SameSite cookies.
+
+## Subscription and software activation (deferred)
+
+All newly registered accounts are **PENDING**. Checkout returns
+`CHECKOUT_NOT_AVAILABLE`; software access returns `SUBSCRIPTION_NOT_ACTIVE`.
+There is no active-subscription switch, client-provided role, fake purchase,
+trial entitlement, or redirect to the private prototype.
+
+Before purchases and operational software access can launch, configure Stripe
+products/prices, server secret and webhook signing secret; implement idempotent
+Checkout and verified webhook entitlement updates. Provision each business's
+organization and explicit owner/team membership in the guarded application.
+Connect that application's session flow to the business identity tenant and
+enforce active membership/subscription on its server routes. Its current default
+is a synthetic testing connection, so merely linking to `app.kavaroutes.com` would
+not provide business isolation. This public-site work does not change or activate
+that runtime, and the homepage service cannot grant access to it.
+
+Provider references:
+- https://firebase.google.com/docs/auth/web/password-auth
+- https://firebase.google.com/docs/auth/web/microsoft-oauth
+- https://cloud.google.com/identity-platform/docs/multi-tenancy-authentication

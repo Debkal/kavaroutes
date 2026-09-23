@@ -52,8 +52,10 @@ test("layout reflows without document-level horizontal overflow", async ({ page 
 test("Driver web entry is phone-ready, keyboard-operable, and clearly scoped", async ({ page }) => {
   await page.goto("/driver");
   await expect(page.getByRole("heading", { name: "Start your driving day" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign in and start shift" })).toBeVisible();
-  await expect(page.getByText("Synthetic data only.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Driver login" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in and open itinerary" })).toBeVisible();
+  await expect(page.getByLabel("Login ID")).toBeVisible();
+  await expect(page.getByText("Synthetic data only.")).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);

@@ -11,10 +11,10 @@ export function Component(){
   const [serviceDate,setServiceDate]=useState(()=>businessToday());
   const session=useQuery({queryKey:["private-cloud","command-session"],queryFn:({signal})=>api.authenticate(signal),retry:false});
   return <main id="main-content" className="dispatch-page command-page">
-    <section className="page-title"><div><p className="eyebrow">KavaRoutes Command</p><h1>Command control</h1><p>Manage driver accounts and recover interrupted administrative commands.</p></div>
+    <section className="page-title"><div><p className="eyebrow">KavaRoutes Command</p><h1>Command control</h1><p>Manage driver access and review requests interrupted by a connection problem.</p></div>
       <span className={`dispatch-connection ${session.isSuccess?"ready":session.isError?"error":"connecting"}`}>{session.isSuccess?"Command connected":session.isError?"Command unavailable":"Connecting…"}</span></section>
-    <nav className="dispatch-jump-nav" aria-label="Command control sections"><a href="#driver-access">Driver accounts</a><a href="#command-recovery">Command recovery</a></nav>
-    <section className="workspace-card command-date" aria-label="Driver roster date"><ServiceDatePicker value={serviceDate} onChange={setServiceDate}/><p className="form-hint">The date selects the active fleet roster and assignment summary shown below.</p></section>
+    <nav className="dispatch-jump-nav" aria-label="Command control sections"><a href="#driver-access">Driver accounts</a><a href="#command-recovery">Interrupted requests</a></nav>
+    <section className="workspace-card command-date" aria-label="Driver roster date"><ServiceDatePicker value={serviceDate} onChange={setServiceDate}/><p className="form-hint">Choose a date to see the drivers and assignments for that day.</p></section>
     {session.isSuccess&&<DriverLoginForm api={api} serviceDate={serviceDate}/>} 
     <section id="command-recovery" className="workspace-card" aria-label="Command recovery tools"><CloudCommandRecovery recovery={api.recovery} enabled={session.isSuccess}/></section>
     {session.isPending&&<p role="status">Connecting to Command…</p>}

@@ -22,6 +22,17 @@
  */
 
 export interface RouteCostProfile {
+  readonly includedBusinessInsurance?: readonly string[];
+  readonly workersCompAnnualCents?: number;
+  readonly generalLiabilityAnnualCents?: number;
+  readonly umbrellaAnnualCents?: number;
+  readonly professionalLiabilityAnnualCents?: number;
+  readonly cyberInsuranceAnnualCents?: number;
+  readonly otherInsuranceAnnualCents?: number;
+  readonly vehicleCount?: number;
+  readonly expectedMonthlyTrips?: number;
+  readonly annualFixedCostsCents?: number;
+  readonly useHistoricalVolume?: boolean;
   readonly fuelCentsPerGallon: number;
   readonly fuelEfficiencyMpg: number;
   readonly maintenanceCentsPerMile: number;
@@ -38,6 +49,12 @@ export interface RouteCostProfile {
 }
 
 export const routeCostProfileDefaults: RouteCostProfile = Object.freeze({
+  workersCompAnnualCents: 0,
+  generalLiabilityAnnualCents: 0,
+  umbrellaAnnualCents: 0,
+  professionalLiabilityAnnualCents: 0,
+  cyberInsuranceAnnualCents: 0,
+  otherInsuranceAnnualCents: 0,
   fuelCentsPerGallon: 416, fuelEfficiencyMpg: 14, maintenanceCentsPerMile: 15,
   driverHourlyCents: 1800, driverBurdenPercent: 30,
   insuranceCentsPerMonthPerVehicle: 100000, fixedOverheadCentsPerMonth: 80000,
@@ -57,7 +74,7 @@ export interface RouteEstimateInput {
   readonly miles: number;
   /** Door-to-door minutes including the appointment/wait the dispatcher recorded. */
   readonly tripMinutes: number;
-  /** Trips this vehicle runs in a month, for spreading fixed costs. */
+  /** Completed one-way trips across the whole company per month. */
   readonly tripsPerMonth: number;
 }
 
@@ -88,8 +105,11 @@ export function estimateRouteCost(profile: RouteCostProfile, input: RouteEstimat
   const fuelCents = round((billedMiles / Math.max(0.1, profile.fuelEfficiencyMpg)) * profile.fuelCentsPerGallon);
   const maintenanceCents = round(billedMiles * profile.maintenanceCentsPerMile);
   const driverCents = round((Math.max(0, input.tripMinutes) / 60) * profile.driverHourlyCents * (1 + profile.driverBurdenPercent / 100));
-  const insuranceCents = round(profile.insuranceCentsPerMonthPerVehicle / tripsPerMonth);
-  const overheadCents = round(profile.fixedOverheadCentsPerMonth / tripsPerMonth);
+  const annualBusinessInsurance = ([
+    ['workersCompAnnualCents',profile.workersCompAnnualCents??0],['generalLiabilityAnnualCents',profile.generalLiabilityAnnualCents??0],['umbrellaAnnualCents',profile.umbrellaAnnualCents??0],['professionalLiabilityAnnualCents',profile.professionalLiabilityAnnualCents??0],['cyberInsuranceAnnualCents',profile.cyberInsuranceAnnualCents??0],['otherInsuranceAnnualCents',profile.otherInsuranceAnnualCents??0]
+  ] as const).reduce((sum,[key,premium])=>sum+(!profile.includedBusinessInsurance||profile.includedBusinessInsurance.includes(key)?premium:0),0);
+  const insuranceCents = round((profile.insuranceCentsPerMonthPerVehicle * (profile.vehicleCount ?? 1) + annualBusinessInsurance / 12) / tripsPerMonth);
+  const overheadCents = round((profile.fixedOverheadCentsPerMonth + (profile.annualFixedCostsCents ?? 0) / 12) / tripsPerMonth);
   const totalCents = fuelCents + maintenanceCents + driverCents + insuranceCents + overheadCents;
   const target = Math.min(90, Math.max(0, profile.targetMarginPercent)) / 100;
   const suggestedPriceCents = target >= 1 ? totalCents : round(totalCents / (1 - target));
@@ -101,13 +121,11 @@ export function estimateRouteCost(profile: RouteCostProfile, input: RouteEstimat
   // broker trip and a private-pay trip have different break-even points.
   const marginAdvice = contractedPriceCents <= 0
     ? "Enter the contracted base and per-mile rate to see the margin this trip really earns."
-    : marginAtContractedPercent < brokerMarginFloorPercent
-      ? `Below the ${brokerMarginFloorPercent}% floor: this trip loses money once an empty leg or a no-show lands. Negotiate, restructure, or decline it.`
+    : marginAtContractedCents < 0
+      ? "Below the estimated break-even floor. Review costs and the agreed rate."
       : meetsTarget
         ? "At or above the margin target you set for this work."
-        : marginAtContractedPercent >= privatePayTargetPercent
-          ? `Profitable private-pay work (at or above ${privatePayTargetPercent}%), below the margin target you set.`
-          : `Broker-viable (at or above ${brokerMarginFloorPercent}%) but below the ${privatePayTargetPercent}% private-pay target; it cannot fund the next vehicle on its own.`;
+        : "Covers estimated costs but is below your target margin. Review volume and cost assumptions.";
   return { miles, fuelCents, maintenanceCents, driverCents, insuranceCents, overheadCents, totalCents,
     costPerMileCents: miles > 0 ? round(totalCents / miles) : 0, suggestedPriceCents, contractedPriceCents,
     marginAtContractedCents, marginAtContractedPercent, meetsTarget, marginAdvice };
@@ -115,3 +133,36 @@ export function estimateRouteCost(profile: RouteCostProfile, input: RouteEstimat
 
 /** The default trips a vehicle runs a month, from 8 trips a day over 250 working days. */
 export const defaultTripsPerMonth = 167;
+
+export interface PricingHistory { completedTrips: number; observationDays: number }
+/** Blend only completed work, across calendar days including idle days. This is a
+ * planning assumption, never an automatic change to contracted prices. */
+export function pricingVolume(profile: RouteCostProfile, history: PricingHistory) {
+  const expected = profile.expectedMonthlyTrips ?? defaultTripsPerMonth;
+  const observed = history.observationDays > 0 ? history.completedTrips * 30 / history.observationDays : 0;
+  const weight = profile.useHistoricalVolume && history.observationDays > 0
+    ? Math.min(1, history.observationDays / 90, history.completedTrips / 100) : 0;
+  return { expected, observed, weight, tripsPerMonth: Math.max(1, Math.round(expected * (1 - weight) + observed * weight)) };
+}
+
+export function validCostProfile(profile: RouteCostProfile): boolean {
+  const insuranceKeys=["workersCompAnnualCents","generalLiabilityAnnualCents","umbrellaAnnualCents","professionalLiabilityAnnualCents","cyberInsuranceAnnualCents","otherInsuranceAnnualCents"];
+  if(profile.includedBusinessInsurance && (profile.includedBusinessInsurance.length>6 || new Set(profile.includedBusinessInsurance).size!==profile.includedBusinessInsurance.length || profile.includedBusinessInsurance.some(key=>!insuranceKeys.includes(key))))return false;
+  const fields: readonly [number,number,number,boolean][] = [
+    [profile.workersCompAnnualCents??0,0,2000000000,true],
+    [profile.generalLiabilityAnnualCents??0,0,2000000000,true],
+    [profile.umbrellaAnnualCents??0,0,2000000000,true],
+    [profile.professionalLiabilityAnnualCents??0,0,2000000000,true],
+    [profile.cyberInsuranceAnnualCents??0,0,2000000000,true],
+    [profile.otherInsuranceAnnualCents??0,0,2000000000,true],
+    [profile.fuelCentsPerGallon,1,5000,true],[profile.fuelEfficiencyMpg,1,60,false],
+    [profile.maintenanceCentsPerMile,0,1000,true],[profile.driverHourlyCents,0,20000,true],
+    [profile.driverBurdenPercent,0,100,false],[profile.insuranceCentsPerMonthPerVehicle,0,500000,true],
+    [profile.fixedOverheadCentsPerMonth,0,5000000,true],[profile.deadheadPercent,0,100,false],
+    [profile.targetMarginPercent,0,90,false],[profile.contractedBaseCents,0,1000000,true],
+    [profile.contractedCentsPerMile,0,100000,true],[profile.averageTripMiles,.5,500,false],
+    [profile.loadedMilesPerHour,1,80,false],[profile.vehicleCount??1,1,10000,true],
+    [profile.expectedMonthlyTrips??167,1,1000000,true],[profile.annualFixedCostsCents??0,0,2000000000,true],
+  ];
+  return fields.every(([value,min,max,integer])=>Number.isFinite(value)&&value>=min&&value<=max&&(!integer||Number.isInteger(value)));
+}

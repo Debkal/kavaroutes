@@ -11,6 +11,14 @@ import { PersistenceConflict, withTenantTransaction } from './repositories.js';
  */
 
 export interface CostProfileRow {
+  includedBusinessInsurance?: readonly string[];
+  workersCompAnnualCents?: number;
+  generalLiabilityAnnualCents?: number;
+  umbrellaAnnualCents?: number;
+  professionalLiabilityAnnualCents?: number;
+  cyberInsuranceAnnualCents?: number;
+  otherInsuranceAnnualCents?: number;
+  vehicleCount?: number; expectedMonthlyTrips?: number; annualFixedCostsCents?: number; useHistoricalVolume?: boolean;
   fuelCentsPerGallon: number; fuelEfficiencyMpg: number; maintenanceCentsPerMile: number;
   driverHourlyCents: number; driverBurdenPercent: number; insuranceCentsPerMonthPerVehicle: number;
   fixedOverheadCentsPerMonth: number; deadheadPercent: number; targetMarginPercent: number;
@@ -25,6 +33,15 @@ export function createAccountingService(pool: Pool) {
     const row = (await db.query(`SELECT * FROM billing.route_cost_profile WHERE tenant_id=$1`, [tenantId])).rows[0];
     if (!row) return { profile: null, version: 0 };
     return { version: num(row.version, 1), profile: {
+      ...(row.included_business_insurance===null?{}:{includedBusinessInsurance:row.included_business_insurance}),
+      workersCompAnnualCents: num(row.workers_comp_annual_cents),
+      generalLiabilityAnnualCents: num(row.general_liability_annual_cents),
+      umbrellaAnnualCents: num(row.umbrella_annual_cents),
+      professionalLiabilityAnnualCents: num(row.professional_liability_annual_cents),
+      cyberInsuranceAnnualCents: num(row.cyber_insurance_annual_cents),
+      otherInsuranceAnnualCents: num(row.other_insurance_annual_cents),
+      vehicleCount: num(row.vehicle_count,1), expectedMonthlyTrips:num(row.expected_monthly_trips,167),
+      annualFixedCostsCents:num(row.annual_fixed_costs_cents),useHistoricalVolume:row.use_historical_volume===true,
       fuelCentsPerGallon: num(row.fuel_cents_per_gallon), fuelEfficiencyMpg: num(row.fuel_efficiency_mpg),
       maintenanceCentsPerMile: num(row.maintenance_cents_per_mile), driverHourlyCents: num(row.driver_hourly_cents),
       driverBurdenPercent: num(row.driver_burden_percent), insuranceCentsPerMonthPerVehicle: num(row.insurance_cents_per_month_per_vehicle),
@@ -37,8 +54,21 @@ export function createAccountingService(pool: Pool) {
 
   return Object.freeze({
     async readCostProfile(tenantId: string) {
-      const { profile, version } = await tx(tenantId, db => profileOf(db, tenantId));
-      return { profile, version };
+      return tx(tenantId, async db => {
+        const profile = await profileOf(db, tenantId);
+        const history = (await db.query(`WITH observed AS (
+          SELECT t.id,t.service_date FROM intake.trip_request t
+          WHERE t.tenant_id=$1 AND t.service_date < CURRENT_DATE
+        ), window_start AS (
+          SELECT greatest(CURRENT_DATE-90,min(service_date)) AS day FROM observed
+        ) SELECT (SELECT count(*) FROM observed t WHERE t.service_date>=w.day
+          AND EXISTS(SELECT 1 FROM intake.trip_leg l WHERE l.tenant_id=$1 AND l.trip_request_id=t.id)
+          AND NOT EXISTS(SELECT 1 FROM intake.trip_leg l WHERE l.tenant_id=$1 AND l.trip_request_id=t.id
+            AND NOT EXISTS(SELECT 1 FROM execution.leg_execution e WHERE e.tenant_id=l.tenant_id AND e.trip_leg_id=l.id AND e.lifecycle_reference='completed'))
+          AND EXISTS(SELECT 1 FROM intake.trip_request r WHERE r.tenant_id=$1 AND r.id=t.id AND r.lifecycle_reference<>'cancelled')) AS completed,
+          CASE WHEN EXISTS(SELECT 1 FROM observed) THEN CURRENT_DATE-w.day ELSE 0 END AS days FROM window_start w`,[tenantId])).rows[0];
+        return {...profile,history:{completedTrips:num(history.completed),observationDays:num(history.days)}};
+      });
     },
     async updateCostProfile(tenantId: string, input: CostProfileRow & { expectedVersion: number }) {
       return tx(tenantId, async db => {
@@ -63,6 +93,18 @@ export function createAccountingService(pool: Pool) {
           input.driverHourlyCents, input.driverBurdenPercent, input.insuranceCentsPerMonthPerVehicle, input.fixedOverheadCentsPerMonth,
           input.deadheadPercent, input.targetMarginPercent, input.contractedBaseCents, input.contractedCentsPerMile,
           input.averageTripMiles, input.loadedMilesPerHour, version]);
+        await db.query(`UPDATE billing.route_cost_profile SET vehicle_count=$2,expected_monthly_trips=$3,
+          annual_fixed_costs_cents=$4,use_historical_volume=$5 WHERE tenant_id=$1`,
+          [tenantId,input.vehicleCount??1,input.expectedMonthlyTrips??167,input.annualFixedCostsCents??0,input.useHistoricalVolume??false]);
+        await db.query(`UPDATE billing.route_cost_profile SET
+          workers_comp_annual_cents=COALESCE($2,workers_comp_annual_cents),
+          general_liability_annual_cents=COALESCE($3,general_liability_annual_cents),
+          umbrella_annual_cents=COALESCE($4,umbrella_annual_cents),
+          professional_liability_annual_cents=COALESCE($5,professional_liability_annual_cents),
+          cyber_insurance_annual_cents=COALESCE($6,cyber_insurance_annual_cents),
+          other_insurance_annual_cents=COALESCE($7,other_insurance_annual_cents) WHERE tenant_id=$1`,
+          [tenantId,input.workersCompAnnualCents??null,input.generalLiabilityAnnualCents??null,input.umbrellaAnnualCents??null,input.professionalLiabilityAnnualCents??null,input.cyberInsuranceAnnualCents??null,input.otherInsuranceAnnualCents??null]);
+        await db.query('UPDATE billing.route_cost_profile SET included_business_insurance=COALESCE($2::text[],included_business_insurance) WHERE tenant_id=$1',[tenantId,input.includedBusinessInsurance??null]);
         return { version };
       });
     },

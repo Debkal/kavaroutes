@@ -83,7 +83,7 @@ export function DriverInspectionForm({ stage, shift, vehicleId, busy, onSubmit }
         </div>}
       </fieldset>;
     })}</div>}
-    {inspectionMode === "DISABLED" && <p className="driver-notice">Inspection is disabled by the assigned policy. Vehicle confirmation remains server-authoritative.</p>}
+    {inspectionMode === "DISABLED" && <p className="driver-notice">Your business does not require an inspection for this shift. Confirm the assigned vehicle before continuing.</p>}
     {odometerMode === "OPTIONAL" && <label className="driver-optional"><input type="checkbox" checked={skipOdometer} onChange={event => setSkipOdometer(event.target.checked)} /> Skip optional odometer</label>}
     {odometerMode !== "DISABLED" && !skipOdometer && <div className="driver-form-grid"><label>{stage === "pre" ? "Starting" : "Ending"} odometer<input inputMode="numeric" pattern="[0-9]*" value={odometer} onChange={event => setOdometer(event.target.value.replace(/\D/g, ""))} /></label><label>Fuel level<select value={fuelLevel} onChange={event => setFuelLevel(event.target.value as typeof fuelLevel)}><option value="FULL">Full</option><option value="THREE_QUARTERS">¾</option><option value="HALF">½</option><option value="QUARTER">¼</option><option value="EMPTY">Empty</option></select></label></div>}
     {message && <p role="alert" className="driver-error">{message}</p>}

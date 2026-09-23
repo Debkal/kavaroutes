@@ -90,6 +90,8 @@ export function mappedError(error: unknown): { readonly status: number; readonly
 export function createApiLifecyclePlugin(options: {
   readonly verifier: PrincipalVerifier;
   readonly admissionController: AdmissionController;
+  /** Only credential-exchange routes may opt out of an existing session. */
+  readonly unauthenticatedOperationIds?: ReadonlySet<string>;
   readonly telemetrySink?: (event: SafeTelemetryEvent) => void;
   /** Ordered guards for every request in this scope, including requests that
    * match no route. They must be supplied here rather than as an outer hook: a
@@ -122,6 +124,7 @@ export function createApiLifecyclePlugin(options: {
       if (queryKeys.some((key) => /token|authorization|session|tenant|idempotency|etag/i.test(key))) {
         throw new ProtocolError(400, "SENSITIVE_QUERY_PARAMETER", "sensitive query parameter prohibited");
       }
+      if (options.unauthenticatedOperationIds?.has(String(request.routeOptions.schema?.operationId ?? ""))) return;
       request.wp007Context.principal = options.verifier.verifyRequest
         ? await options.verifier.verifyRequest({method:request.method,headers:request.headers})
         : await options.verifier.verify(request.headers.authorization);

@@ -20,7 +20,7 @@ export function DriverLoginPanel({api,driverReference,onVerified}:{api:ReturnTyp
   };
   const claim=async()=>{
     if(busy)return;
-    if(!driverReference){setMessage("Sign in is unavailable until the server reports your driver reference.");return;}
+    if(!driverReference){setMessage("Open the driver setup link dispatch gave you to claim this invite.");return;}
     if(code.trim().length<8){setMessage("Enter the one-time code dispatch gave you.");return;}
     if(password.length<8){setMessage("Choose a password of at least 8 characters.");return;}
     setBusy(true);setMessage("Setting your password…");
@@ -46,12 +46,13 @@ export function DriverLoginPanel({api,driverReference,onVerified}:{api:ReturnTyp
   };
   return <section className="driver-login-panel" aria-label="Driver login">
     <h2>Driver login</h2>
-    <p>First time here: enter the one-time code dispatch gave you and choose your own password. After that, sign in with your login ID and password.</p>
+    <p>First time here: open the setup link dispatch gave you, enter the one-time code, and choose your own password. After that, sign in with your login ID and password.</p>
     <details>
       <summary>First login: set your password</summary>
       <label>One-time code <input value={code} disabled={busy} onChange={event=>setCode(event.target.value.trim())}/></label>
       <label>New password <input type="password" value={password} disabled={busy} onChange={event=>setPassword(event.target.value)}/></label>
-      <button className="driver-primary" disabled={busy} onClick={()=>void claim()}>Set password and open itinerary</button>
+      <button className="driver-primary" disabled={busy||!driverReference} onClick={()=>void claim()}>Set password and open itinerary</button>
+      {!driverReference&&<p className="driver-fineprint">Ask dispatch for your driver setup link if you have a code but cannot claim it here.</p>}
     </details>
     <fieldset disabled={busy}>
       <legend>Sign in with your password</legend>

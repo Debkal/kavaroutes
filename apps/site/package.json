@@ -1,0 +1,26 @@
+{
+  "name": "@kavaroutes/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build && node --check server/main.mjs && node --check server/app.mjs && node --check server/logging.mjs",
+    "start": "node server/main.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "firebase": "12.19.0",
+    "firebase-admin": "14.4.0",
+    "fastify": "5.12.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-router": "7.18.3"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.1.1",
+    "vite": "8.2.2"
+  }
+}

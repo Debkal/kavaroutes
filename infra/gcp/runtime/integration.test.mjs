@@ -66,6 +66,30 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     worker = await createRuntimeWorker(cfg('worker', passwords.kr_cloud_worker));
     assert.equal(worker.healthy(), false);
     const auth = { authorization: 'Synthetic principal_dispatcher' };
+    const driverRoot=`/v1/organizations/${tenantId}`;
+    const driverAccount=await api.app.inject({method:'POST',url:`${driverRoot}/fleet/drivers/commands/create`,
+      headers:{...auth,'idempotency-key':'runtime-driver-account-20260923'},
+      payload:{displayName:'Runtime Test Driver',loginId:'runtime-test-driver',workforceRelationship:'EMPLOYEE'}});
+    assert.equal(driverAccount.statusCode,201,driverAccount.body);
+    const {driverId,inviteCode}=driverAccount.json();
+    const claimed=await api.app.inject({method:'POST',url:`${driverRoot}/driver-logins/${driverId}/commands/claim`,
+      headers:{'idempotency-key':'runtime-driver-claim-20260923'},
+      payload:{driverId,inviteCode,password:'runtime-test-password'}});
+    assert.equal(claimed.statusCode,200,claimed.body);
+    const verified=await api.app.inject({method:'POST',url:`${driverRoot}/driver-logins/commands/verify`,
+      headers:{'idempotency-key':'runtime-driver-verify-20260923'},
+      payload:{loginId:'runtime-test-driver',password:'runtime-test-password'}});
+    assert.equal(verified.statusCode,200,verified.body);
+    const driverAuth={authorization:`DriverSession ${verified.json().sessionToken}`};
+    const driverProfile=await api.app.inject({url:'/v1/me',headers:driverAuth});
+    assert.equal(driverProfile.statusCode,200,driverProfile.body);
+    assert.equal(driverProfile.json().principalKind,'SYNTHETIC_DEVICE');
+    const ownItinerary=await api.app.inject({url:`${driverRoot}/driver/itineraries/2026-09-24`,headers:driverAuth});
+    assert.equal(ownItinerary.statusCode,200,ownItinerary.body);
+    assert.equal(ownItinerary.json().driverReference,driverId);
+    assert.equal((await api.app.inject({url:`${driverRoot}/driver/itineraries/2026-09-24`,
+      headers:{authorization:'Synthetic principal_driver'}})).statusCode,200,
+      'the disposable fixture explicitly permits the legacy driver only under KR_CLOUD_LOCAL_TEST');
     const tripId = randomUUID();
     const body = { tripId, riderId, serviceDate: '2026-09-11', serviceTimezone: 'America/Los_Angeles', localServiceTime: '08:00:00',
       resolvedServiceAt: '2026-09-11T15:00:00.000Z', resolvedUtcOffsetSeconds: -25200, ambiguityPolicy: 'reject' };

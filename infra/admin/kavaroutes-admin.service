@@ -1,0 +1,26 @@
+[Unit]
+Description=KavaRoutes platform admin preview
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kavaroutes-admin
+Group=kavaroutes-admin
+WorkingDirectory=/opt/kavaroutes-admin
+ExecStart=/opt/node/bin/node /opt/kavaroutes-admin/apps/admin/src/main.mjs /var/lib/kavaroutes-admin/config.json
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/kavaroutes-admin
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+[Install]
+WantedBy=multi-user.target

@@ -41,6 +41,10 @@ export function createPrivateDevelopmentTransport(options: {
    * Native clients and local tools must leave this disabled.
    */
   readonly browserSameOrigin?: boolean;
+  /** Used only for driver invite claim and password verification. */
+  readonly anonymous?: boolean;
+  /** A memory-only driver session issued after invite claim or password verification. */
+  readonly driverSession?: () => string | null;
 }) {
   const base = new URL(options.baseUrl);
   const loopback = base.protocol === "http:" && base.hostname === "127.0.0.1" && Boolean(base.port);
@@ -49,6 +53,7 @@ export function createPrivateDevelopmentTransport(options: {
     throw new Error("PRIVATE_DEVELOPMENT_LOOPBACK_REQUIRED");
   }
   if (!["dispatcher", "driver", "facility", "billing", "policy_override"].includes(options.persona)) throw new Error("INVALID_DEVELOPMENT_PERSONA");
+  if (options.anonymous && (options.persona !== "driver" || options.driverSession)) throw new Error("INVALID_ANONYMOUS_TRANSPORT");
   const token = options.ponyCompany === undefined ? `principal_${options.persona}`
     : selectPonyPersona(options.ponyCompany, options.persona).token;
   const timeoutMs = options.timeoutMs ?? 15_000;
@@ -70,7 +75,9 @@ export function createPrivateDevelopmentTransport(options: {
       signal?.addEventListener("abort", abort, { once: true });
       if (signal?.aborted) controller.abort();
       const timer = setTimeout(abort, timeoutMs);
-      const headers: Record<string, string> = { authorization: `Synthetic ${token}`, accept: "application/json" };
+      const session = options.driverSession?.();
+      if (options.driverSession && (!session || !/^dvs_[A-Za-z0-9_-]{43}$/.test(session))) throw new Error("DRIVER_SESSION_REQUIRED");
+      const headers: Record<string, string> = { ...(options.anonymous?{}:{authorization: session ? `DriverSession ${session}` : `Synthetic ${token}`}), accept: "application/json" };
       try {
         if (command) {
           if (!command.idempotencyKey || /[\r\n]/.test(command.idempotencyKey)) throw new Error("IDEMPOTENCY_KEY_REQUIRED");
