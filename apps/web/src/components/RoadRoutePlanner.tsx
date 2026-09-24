@@ -3,6 +3,7 @@ import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development
 import type {createCloudApi} from '../cloud-api';
 import type {CloudBoard} from '../cloud-board-contract';
 import type {RoadGoal,RoadPreview,RoadSelection} from '../road-route-contract';
+import {conciseRoadDirections} from '../road-route-directions';
 
 type Leg=CloudBoard['legs'][number];
 const labels:Record<RoadGoal,string>={LOW_COST:'Shortest distance / lower toll cost',FASTEST:'Fastest drive',EASIEST:'Easiest to traverse'};
@@ -95,7 +96,7 @@ export function RoadRoutePlanner({api,legs,enabled}:{api:ReturnType<typeof creat
         <button className="primary" disabled={busy||selection?.goal===preview.goal} onClick={()=>void save()}>{pending.current?'Retry this route choice':selection?.goal===preview.goal?'Already sent to driver':'Choose for driver'}</button>
         <a href={preview.googleMapsUrl} target="_blank" rel="noreferrer">Inspect in Google Maps</a>
       </div>
-      <details className="road-route-steps"><summary>Preview turn-by-turn directions ({preview.steps.length} steps)</summary><ol>{preview.steps.map((step,index)=><li key={index}>{step.instruction}</li>)}</ol></details>
+      <details className="road-route-steps"><summary>Preview route directions ({conciseRoadDirections(preview.steps).length} steps)</summary><ol>{conciseRoadDirections(preview.steps).map((step,index)=><li key={index}>{step}</li>)}</ol></details>
       <p className="form-hint">Google Maps may recalculate when opened. Confirm vehicle access, pickup side, and road restrictions before driving.</p>
     </div>}
   </section>;

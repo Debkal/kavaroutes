@@ -1,5 +1,5 @@
 import {it,expect,vi} from 'vitest';
-import {fireEvent,render,screen} from '@testing-library/react';
+import {fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import {RoadRoutePlanner} from '../src/components/RoadRoutePlanner';
 import {DriverRoadDirections} from '../src/components/DriverRoadDirections';
@@ -41,13 +41,16 @@ it('shows which trip leg still needs a Dispatch route choice',async()=>{
   await screen.findByText(/No route has been chosen for this leg/);
 });
 
-it('shows the assigned driver fresh turn instructions and a Google Maps directions link',async()=>{
+it('shows the assigned driver concise route instructions and a Google Maps navigation link',async()=>{
   const api={roadRoute:vi.fn(async()=>({value:{selection:{goal:'FASTEST',version:1,selectedAt:'2026-09-23T12:00:00Z'},route:{...preview,mapImageUrl:null}}}))};
   const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
   render(<QueryClientProvider client={client}><DriverRoadDirections api={api as any} legId={legId} pickup="1 Main St" dropoff="2 Main St"/></QueryClientProvider>);
   await screen.findByText(/Dispatch chose/);
-  expect(screen.getByRole('link',{name:'Open selected route in Google Maps'})).toHaveAttribute('href',preview.googleMapsUrl);
-  fireEvent.click(screen.getByText(/Turn-by-turn directions/));
-  expect(screen.getByText('Turn right on Main St')).toBeInTheDocument();
+  expect(screen.getByRole('link',{name:'Navigate in Google Maps'})).toHaveAttribute('href',preview.googleMapsUrl);
+  fireEvent.click(screen.getByText(/Route directions/));
+  expect(screen.getByText(/Turn right on Main St\. Continue for/)).toBeInTheDocument();
+  expect(api.roadRoute).toHaveBeenCalledTimes(1);
+  fireEvent.click(screen.getByRole('button',{name:'Refresh if Dispatch changes the route'}));
+  await waitFor(()=>expect(api.roadRoute).toHaveBeenCalledTimes(2));
   client.clear();
 });
