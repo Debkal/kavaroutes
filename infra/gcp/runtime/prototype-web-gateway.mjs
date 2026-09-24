@@ -100,6 +100,16 @@ server.on('upgrade', (request, socket, head) => {
   upstream.on('connect', () => {
     const headers = cleanProxyHeaders(request.headers);
     headers.connection = 'Upgrade'; headers.upgrade = 'websocket';
+    // Browsers cannot set Authorization on a WebSocket handshake. The public
+    // prototype already uses the dispatcher synthetic principal for same-origin
+    // REST behind Cloudflare Access; apply that same principal to its socket.
+    // Keep the exception limited to this exact public origin and protocol.
+    if (request.headers.host === 'app.kavaroutes.com' &&
+        request.headers.origin === 'https://app.kavaroutes.com' &&
+        request.headers['sec-websocket-protocol'] === 'kavaroutes.realtime.v1' &&
+        request.headers.authorization === undefined) {
+      headers.authorization = 'Synthetic principal_dispatcher';
+    }
     // The retained synthetic runtime has one closed, non-public origin contract.
     headers.origin = 'http://kavaroutes.test';
     let opening = `${request.method} ${request.url} HTTP/${request.httpVersion}\r\n`;
