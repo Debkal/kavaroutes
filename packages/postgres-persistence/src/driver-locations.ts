@@ -43,8 +43,14 @@ export async function recordDeviceLocations(db: PoolClient, tenantId: string, in
   const hash = fingerprint(input.samples);
   const receipt = (await db.query(`SELECT id,sample_count FROM realtime.location_batch_receipt WHERE tenant_id=$1 AND device_id=$2 AND request_fingerprint=$3`, [tenantId, input.deviceId, hash])).rows[0];
   if (receipt) {
-    if (Number(receipt.sample_count) !== input.samples.length) throw new PersistenceConflict('idempotency-mismatch', 'location batch identity changed');
-    return input.samples.map(sample => ({ sampleId: sample.sampleId, outcome: 'REPLAYED' as const, code: 'LOCATION_SAMPLE_SAVED' }));
+    // Older receipts stored only the accepted count. The fingerprint still binds the
+    // full request, so a lower stored count must not turn a safe replay into a conflict.
+    if (Number(receipt.sample_count) > input.samples.length) throw new PersistenceConflict('idempotency-mismatch', 'location batch identity changed');
+    const saved = new Set((await db.query('SELECT id FROM realtime.location_breadcrumb WHERE tenant_id=$1 AND batch_id=$2',
+      [tenantId, receipt.id])).rows.map(row => String(row.id)));
+    return input.samples.map(sample => saved.has(sample.sampleId)
+      ? { sampleId: sample.sampleId, outcome: 'REPLAYED' as const, code: 'LOCATION_SAMPLE_SAVED' }
+      : { sampleId: sample.sampleId, outcome: 'REJECTED' as const, code: 'SAMPLE_OUTSIDE_RETENTION' });
   }
   const items: DeviceLocationItem[] = [];
   const accepted: DeviceLocationSample[] = [];
@@ -58,9 +64,8 @@ export async function recordDeviceLocations(db: PoolClient, tenantId: string, in
     accepted.push(sample);
     items.push({ sampleId: sample.sampleId, outcome: 'APPLIED', code: 'LOCATION_SAMPLE_SAVED' });
   }
-  if (!accepted.length) return items;
   await db.query(`INSERT INTO realtime.location_batch_receipt(tenant_id,id,device_id,request_fingerprint,sample_count,shift_id) VALUES($1,$2,$3,$4,$5,$6)`,
-    [tenantId, input.batchReference, input.deviceId, hash, accepted.length, input.shiftId]);
+    [tenantId, input.batchReference, input.deviceId, hash, input.samples.length, input.shiftId]);
   for (const [index, sample] of accepted.entries()) {
     const capturedAt = new Date(sample.capturedAt);
     await db.query(`INSERT INTO realtime.location_breadcrumb
@@ -70,6 +75,7 @@ export async function recordDeviceLocations(db: PoolClient, tenantId: string, in
       new Date(capturedAt.getTime() + retentionMilliseconds), retentionPolicyVersion, sample.longitude, sample.latitude, sample.accuracyMeters ?? null]);
   }
   // The current position is the newest accepted fix; the breadcrumb remains the history.
+  if (!accepted.length) return items;
   const newest = accepted.reduce((latest, sample) => Date.parse(sample.capturedAt) > Date.parse(latest.capturedAt) ? sample : latest, accepted[0]!);
   await db.query(`SELECT realtime.advance_current_position($1,'driver',$2,$3,0,$4,$5,$6,$7,$8,$9)`,
     [tenantId, shift.driver_id, input.deviceId, newest.sequence, newest.capturedAt, new Date(now),

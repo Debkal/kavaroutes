@@ -6,8 +6,8 @@
  * watches the device and reports fixes; when the watch errors or the fixes stop arriving
  * the state moves to a lost signal, retries every `RETRY_AFTER_SECONDS`, and after
  * `MAX_RETRIES` failed attempts escalates so dispatch is told to contact the driver. The
- * elapsed silence is measured from the last fix the server acknowledged, so the number an
- * operator reads is time without updates, not a count of local errors.
+ * local silence is measured from the last browser fix. Dispatch separately tracks the
+ * last fix acknowledged by the server.
  */
 
 export const RETRY_AFTER_SECONDS = 30;
@@ -117,7 +117,7 @@ export function locationSharingPrompt(state: LocationSharingState): string | nul
     default: return null;
   }
 }
-/** Seconds without a server-acknowledged fix; the number an operator or driver reads. */
+/** Seconds since the last browser fix. Dispatch uses server receipt time separately. */
 export function locationSilentSeconds(state: LocationSharingState, now: number): number {
   if (state.phase === "SHARING") return Math.max(0, Math.round((now - state.lastSampleAt) / 1000));
   if (state.phase === "SIGNAL_LOST" || state.phase === "ESCALATED") return Math.max(0, Math.round((now - state.lastSampleAt) / 1000));

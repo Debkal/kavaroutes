@@ -15,6 +15,7 @@ export interface LocationSharingController {
   readonly silentSeconds: number;
   readonly retryInSeconds: number | null;
   readonly canRetry: boolean;
+  readonly deliveryError: boolean;
   /** Requests permission (the browser prompt) and starts the feed. Resolves true only
    * when a fix has been read, which is what lets a driver sign in. */
   requestSharing(): Promise<boolean>;
@@ -42,7 +43,9 @@ export function useLocationSharing(input: { target: LocationSharingTarget | null
   const watchRef = useRef<number | null>(null);
   const sequenceRef = useRef(0);
   const bufferRef = useRef<DriverLocationBatchRequest["samples"][number][]>([]);
+  const pendingRef = useRef<{ shiftReference: string; request: DriverLocationBatchRequest; key: string } | null>(null);
   const sendingRef = useRef(false);
+  const [deliveryError, setDeliveryError] = useState(false);
 
   const stopWatch = useCallback(() => {
     if (watchRef.current !== null && typeof navigator !== "undefined" && navigator.geolocation) {
@@ -64,12 +67,22 @@ export function useLocationSharing(input: { target: LocationSharingTarget | null
 
   const flush = useCallback(async () => {
     const target = targetRef.current;
-    if (!target || sendingRef.current || !bufferRef.current.length) return;
-    const samples = bufferRef.current.splice(0, 60);
-    const batchReference = crypto.randomUUID();
+    if (!target || sendingRef.current) return;
+    if (pendingRef.current?.shiftReference !== target.shiftReference) pendingRef.current = null;
+    if (!pendingRef.current) {
+      if (!bufferRef.current.length) return;
+      const batchReference = crypto.randomUUID();
+      pendingRef.current = { shiftReference: target.shiftReference,
+        request: { shiftGeneration: target.shiftGeneration, batchReference, deviceId: target.deviceId, samples: bufferRef.current.splice(0, 60) },
+        key: `driver-location-${batchReference}` };
+    }
+    const pending = pendingRef.current;
     sendingRef.current = true;
-    try { await apiRef.current.locationBatch(target.shiftReference, { shiftGeneration: target.shiftGeneration, batchReference, deviceId: target.deviceId, samples }, `driver-location-${batchReference}`); }
-    catch { bufferRef.current.unshift(...samples); }
+    try {
+      await apiRef.current.locationBatch(pending.shiftReference, pending.request, pending.key);
+      if (pendingRef.current === pending) pendingRef.current = null;
+      setDeliveryError(false);
+    } catch { setDeliveryError(true); }
     finally { sendingRef.current = false; }
   }, []);
 
@@ -146,9 +159,16 @@ export function useLocationSharing(input: { target: LocationSharingTarget | null
     const timer = window.setInterval(() => void flush(), SAMPLE_INTERVAL_MILLISECONDS);
     return () => window.clearInterval(timer);
   }, [flush]);
+  useEffect(() => {
+    const resume = () => { if (document.visibilityState === "visible") void flush(); };
+    const online = () => void flush();
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("online", online);
+    return () => { document.removeEventListener("visibilitychange", resume); window.removeEventListener("online", online); };
+  }, [flush]);
   useEffect(() => () => stopWatch(), [stopWatch]);
 
   return { state, prompt: locationSharingPrompt(state), silentSeconds: locationSilentSeconds(state, now), retryInSeconds: locationRetryInSeconds(state, now),
-    canRetry: locationSharingCanRetry(state), requestSharing, retryNow, stopSharing };
+    canRetry: locationSharingCanRetry(state), deliveryError, requestSharing, retryNow, stopSharing };
 }
 export { locationSharingAllowsShift, STALE_AFTER_SECONDS };

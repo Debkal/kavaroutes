@@ -22,12 +22,23 @@ export function RoadRoutePlanner({api,legs,enabled}:{api:ReturnType<typeof creat
   const [legId,setLegId]=useState(legs[0]?.tripLegId??'');
   const [goal,setGoal]=useState<RoadGoal|''>('');
   const [selection,setSelection]=useState<RoadSelection|null>(null);
+  const [coverage,setCoverage]=useState<Record<string,RoadSelection>>({});
+  const [coverageReady,setCoverageReady]=useState(false);
   const [preview,setPreview]=useState<RoadPreview|null>(null);
   const [seen,setSeen]=useState<Partial<Record<RoadGoal,RoadPreview>>>({});
   const [busy,setBusy]=useState(false),[message,setMessage]=useState('');
   const generation=useRef(0);
   const pending=useRef<{legId:string;goal:RoadGoal;expectedVersion:number;key:string}|null>(null);
   const leg=legs.find(item=>item.tripLegId===legId)??legs[0];
+  const legIds=legs.map(item=>item.tripLegId).join('|');
+  useEffect(()=>{
+    let active=true;
+    setCoverage({});setCoverageReady(false);
+    if(enabled&&legIds)void Promise.all(legIds.split('|').map(async id=>[id,(await api.roadRouteSelection(id)).value] as const))
+      .then(rows=>{if(active){setCoverage(Object.fromEntries(rows));setCoverageReady(true);}})
+      .catch(()=>{if(active)setMessage('Could not check route choices for every leg. Select a leg to retry.');});
+    return()=>{active=false;};
+  },[api,enabled,legIds]);
   useEffect(()=>{
     if(!legs.some(item=>item.tripLegId===legId))setLegId(legs[0]?.tripLegId??'');
   },[legs,legId]);
@@ -54,7 +65,7 @@ export function RoadRoutePlanner({api,legs,enabled}:{api:ReturnType<typeof creat
     const command=pending.current??{legId:leg.tripLegId,goal,expectedVersion:selection.version,key:`road-select-${crypto.randomUUID()}`};
     pending.current=command;setBusy(true);setMessage('Saving the route for the driver…');
     try{const result=await api.selectRoadRoute(command.legId,command.goal,command.expectedVersion,command.key);
-      pending.current=null;setSelection(result.value);setMessage('Route choice saved. The driver will see fresh directions for this goal.');
+      pending.current=null;setSelection(result.value);setCoverage(previous=>({...previous,[command.legId]:result.value}));setMessage('Route choice saved. The driver will see fresh directions for this goal.');
     }catch(error){
       if(error instanceof DevelopmentApiError&&error.status>=400&&error.status<500&&error.code!=='OUTCOME_UNKNOWN')pending.current=null;
       setMessage(problem(error));
@@ -63,14 +74,17 @@ export function RoadRoutePlanner({api,legs,enabled}:{api:ReturnType<typeof creat
   };
   if(!legs.length)return null;
   const duplicate=preview&&Object.entries(seen).find(([other,result])=>other!==goal&&result?.pathFingerprint===preview.pathFingerprint)?.[0] as RoadGoal|undefined;
+  const chosenCount=legs.filter(item=>coverage[item.tripLegId]?.goal).length;
   return <section className="road-route-planner" aria-label="Road route options">
     <div className="section-heading"><div><p className="eyebrow">Road directions</p><h3>Choose a route for the driver</h3><p>Compare one trip leg at a time. Routes update when you choose an option.</p></div></div>
+    <p role="status" className="road-route-selected">{coverageReady?`${chosenCount} of ${legs.length} trip legs have a route selected. ${chosenCount<legs.length?'Choose a route for each remaining leg before the driver starts.':'Every leg has a route choice.'}`:'Checking route choices for this run…'}</p>
     <div className="road-route-controls"><label>Trip leg <select value={leg?.tripLegId??''} disabled={busy} onChange={event=>setLegId(event.target.value)}>
-      {legs.map(item=><option key={item.tripLegId} value={item.tripLegId}>{item.riderLabel} · {item.pickupLabel} → {item.dropoffLabel}</option>)}
+      {legs.map(item=><option key={item.tripLegId} value={item.tripLegId}>{!coverageReady?'Checking route':coverage[item.tripLegId]?.goal?'Route chosen':'Needs route'} · {item.riderLabel} · {item.pickupLabel} → {item.dropoffLabel}</option>)}
     </select></label><label>Route goal <select value={goal} disabled={!enabled||busy||!selection} onChange={event=>void chooseGoal(event.target.value as RoadGoal|'')}>
       <option value="">Choose a route goal</option>{(Object.keys(labels) as RoadGoal[]).map(value=><option key={value} value={value}>{labels[value]}</option>)}
     </select></label></div>
     {selection?.goal&&<p className="road-route-selected">Sent to driver: <strong>{labels[selection.goal]}</strong></p>}
+    {selection&&!selection.goal&&<p className="form-hint">No route has been chosen for this leg. The driver will only have a basic pickup-to-drop-off map link until a route is selected.</p>}
     {busy&&<p role="status">{preview?'Saving route…':'Generating route and map…'}</p>}
     {message&&<p role={message.startsWith('Route choice saved')?'status':'alert'}>{message}</p>}
     {preview&&<div className="road-route-result">

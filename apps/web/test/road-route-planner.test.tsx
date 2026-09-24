@@ -28,6 +28,19 @@ it('generates a map only after choosing a goal and saves that goal for the drive
   expect(api.selectRoadRoute).toHaveBeenCalledWith(legId,'FASTEST',0,expect.stringMatching(/^road-select-/));
 });
 
+it('shows which trip leg still needs a Dispatch route choice',async()=>{
+  const second={...leg,tripLegId:'55555555-5555-4555-8555-555555555555',riderLabel:'Second rider'};
+  const api={roadRouteSelection:vi.fn(async(id:string)=>({value:id===legId
+    ? {goal:'LOW_COST',version:1,selectedAt:'2026-09-24T12:00:00Z'}
+    : {goal:null,version:0,selectedAt:null}}))};
+  render(<RoadRoutePlanner api={api as any} legs={[leg,second]} enabled/>);
+  await screen.findByText(/1 of 2 trip legs have a route selected/);
+  expect(screen.getByRole('option',{name:/Route chosen · Rider/})).toBeInTheDocument();
+  expect(screen.getByRole('option',{name:/Needs route · Second rider/})).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText('Trip leg'),{target:{value:second.tripLegId}});
+  await screen.findByText(/No route has been chosen for this leg/);
+});
+
 it('shows the assigned driver fresh turn instructions and a Google Maps directions link',async()=>{
   const api={roadRoute:vi.fn(async()=>({value:{selection:{goal:'FASTEST',version:1,selectedAt:'2026-09-23T12:00:00Z'},route:{...preview,mapImageUrl:null}}}))};
   const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});

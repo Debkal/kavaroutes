@@ -17,6 +17,10 @@ class TripLoggerTest(unittest.TestCase):
         self.assertIn("service_date='2026-09-24'::date",query)
         self.assertIn('driver_action_receipt',query)
         self.assertIn('location_batch_receipt',query)
+        self.assertIn('driver_tracking_alert_event',query)
+        self.assertIn('driver_shift_closure',query)
+        self.assertIn('selected_road_route',query)
+        self.assertIn('(b.received_at AT TIME ZONE s.service_timezone)::date=s.service_date',query)
         self.assertNotIn('ST_AsText',query)
         self.assertNotIn('synthetic_reference',query)
         with self.assertRaises(ValueError):module.query_for_day("2026-09-24'; DROP TABLE")
@@ -86,6 +90,28 @@ class TripLoggerTest(unittest.TestCase):
         self.assertIn('Leg east-leg — America/New_York\n    Planned pickup: Sep 24, 12:00:00 PM EDT',result)
         self.assertIn('Leg west-leg — America/Los_Angeles\n    Planned pickup: Sep 24, 9:00:00 AM PDT',result)
         self.assertIn('Scheduled pickup east-leg',result)
+
+    def test_daily_report_excludes_archived_prior_day_gps_and_shows_outages_and_closure(self):
+        events=[
+            {'eventKey':'timezone:run','at':'2026-09-24T12:00:00Z','data':{'kind':'RUN_TIMEZONE','runId':'run','serviceTimezone':'America/Chicago'}},
+            {'eventKey':'assignment:a','at':'2026-09-24T12:00:00Z','data':{'kind':'ASSIGNMENT_CREATED','runId':'run','assignmentId':'assignment'}},
+            {'eventKey':'shift:s','at':'2026-09-24T12:00:00Z','data':{'kind':'SHIFT_STARTED','assignmentId':'assignment','shiftId':'shift-12345678'}},
+            {'eventKey':'leg:l','at':'2026-09-24T14:00:00Z','data':{'kind':'LEG_PLANNED','runId':'run','tripLegId':'leg-12345678','plannedPickupAt':'2026-09-24T14:00:00Z','plannedDropoffAt':'2026-09-24T15:00:00Z'}},
+            {'eventKey':'gps:old','at':'2026-09-23T22:00:00Z','data':{'kind':'GPS_BATCH','shiftId':'shift-12345678','sampleCount':145,'acceptedCount':145,'receivedAt':'2026-09-23T22:00:00Z'}},
+            {'eventKey':'gps:today','at':'2026-09-24T17:00:00Z','data':{'kind':'GPS_BATCH','shiftId':'shift-12345678','sampleCount':2,'acceptedCount':1,'receivedAt':'2026-09-24T17:00:00Z'}},
+            {'eventKey':'route:l:1','at':'2026-09-24T13:00:00Z','data':{'kind':'ROAD_ROUTE_SELECTED','runId':'run','tripLegId':'leg-12345678','goal':'LOW_COST','version':1}},
+            {'eventKey':'alert:s:1','at':'2026-09-24T17:01:00Z','data':{'kind':'TRACKING_ALERT','shiftId':'shift-12345678','status':'UPDATES_OVERDUE','reason':'NO_RECENT_UPDATE_UNKNOWN_CAUSE','contactDriver':True}},
+            {'eventKey':'alert:s:2','at':'2026-09-24T17:19:41Z','data':{'kind':'TRACKING_ALERT','shiftId':'shift-12345678','status':'UPDATES_CURRENT','reason':'RECENT_SAMPLE_RECEIVED','contactDriver':False}},
+            {'eventKey':'closure:review','at':'2026-09-24T17:37:51Z','data':{'kind':'SHIFT_CLOSURE','shiftId':'shift-12345678','closureKind':'RETURN_EXCEPTION','returnResult':'UNAVAILABLE','reason':'NORMAL_SIGN_OFF'}},
+            {'eventKey':'closure:approved','at':'2026-09-24T17:39:04Z','data':{'kind':'SHIFT_CLOSURE','shiftId':'shift-12345678','closureKind':'DISPATCH_OVERRIDE','returnResult':'OVERRIDDEN','reason':'RETURN_EXCEPTION_REVIEWED'}},
+        ]
+        result=module.readable_report(events,'2026-09-24')
+        self.assertIn('GPS delivery on service date: 1 accepted, 1 rejected samples in 1 batches',result)
+        self.assertIn('Driver road route: LOW_COST',result)
+        self.assertIn('18m 41s',result)
+        self.assertIn('Driver requested return review',result)
+        self.assertIn('Dispatch approved return exception',result)
+        self.assertNotIn('GPS: 145 accepted',result)
 
     def test_published_report_is_private_and_replaces_previous_view(self):
         with tempfile.TemporaryDirectory() as root:

@@ -17,7 +17,7 @@ export function DriverRoadDirections({api,legId,pickup,dropoff}:{api:ReturnType<
       <details><summary>Turn-by-turn directions ({selected.route.steps.length} steps)</summary><ol>{selected.route.steps.map((step,index)=><li key={index}>{step.instruction}</li>)}</ol></details>
       <p className="driver-fineprint">Google Maps can recalculate while navigating. Follow road signs and confirm the pickup side and vehicle access.</p>
     </>:<>
-      {selected&&<p>Dispatch has not chosen a road route for this leg.</p>}
+      {selected&&<p role="alert">Dispatch has not chosen a road route for this leg. Confirm the drive with Dispatch before setting out; the link below is a basic map and may use a different path.</p>}
       <a className="driver-secondary driver-link" target="_blank" rel="noreferrer" href={fallback}>Open pickup to drop-off in Google Maps</a>
     </>}
   </section>;
