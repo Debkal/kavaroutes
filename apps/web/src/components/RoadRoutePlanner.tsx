@@ -73,7 +73,7 @@ export function RoadRoutePlanner({api,legs,enabled}:{api:ReturnType<typeof creat
     {busy&&<p role="status">{preview?'Saving route…':'Generating route and map…'}</p>}
     {message&&<p role={message.startsWith('Route choice saved')?'status':'alert'}>{message}</p>}
     {preview&&<div className="road-route-result">
-      <div className="road-route-map">{preview.mapImageDataUrl?<img src={preview.mapImageDataUrl} alt={`${labels[preview.goal]} road map from pickup to drop-off`} />:<p>Map preview unavailable.</p>}<span translate="no">Google Maps</span></div>
+      <div className="road-route-map">{preview.mapImageUrl?<img src={preview.mapImageUrl} alt={`${labels[preview.goal]} road map from pickup to drop-off`} referrerPolicy="origin" />:<p>Map preview unavailable.</p>}<span translate="no">Google Maps</span></div>
       <div className="road-route-summary"><strong>{labels[preview.goal]}</strong><p>{miles(preview.distanceMeters)} mi · about {minutes(preview.durationSeconds)} min · {preview.maneuverCount} weighted maneuvers</p>
         <p>{preview.tollsExpected?preview.tollEstimate?`Estimated tolls: ${new Intl.NumberFormat('en-US',{style:'currency',currency:preview.tollEstimate.currencyCode}).format(preview.tollEstimate.amount)}`:'Tolls expected; price unavailable.':'No tolls expected.'}</p>
         <p>{preview.note}</p>{duplicate&&<p role="status">This follows the same roads as “{labels[duplicate]}”.</p>}

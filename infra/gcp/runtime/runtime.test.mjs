@@ -25,9 +25,9 @@ export function config(role, password, port = 58080, dbPort = 55434) {
 test('configuration is closed, private and synthetic-only', () => {
   const valid = config('api', randomBytes(32).toString('base64url'));
   assert.equal(validateConfig(valid).profile, 'private-synthetic');
-  assert.equal(validateConfig({...valid,mapsApiKey:'AIza'+randomBytes(30).toString('base64url')}).mapsApiKey.startsWith('AIza'),true);
+  assert.equal(validateConfig({...valid,mapsApiKey:'AIza'+randomBytes(30).toString('base64url'),mapsStaticKey:'AIza'+randomBytes(30).toString('base64url')}).mapsStaticKey.startsWith('AIza'),true);
   for (const change of [{ profile: 'production' }, { maps: 'google' }, { port: 80 }, { etagSecret: '' },
-    { mapsApiKey: 'bad key with spaces' },
+    { mapsApiKey: 'bad key with spaces' }, { mapsStaticKey: 'bad key with spaces' },
     { databaseUrl: valid.databaseUrl.replace('127.0.0.1', 'example.com') },
     { databaseUrl: `${valid.databaseUrl}?sslmode=disable` }, { databaseUrl: valid.databaseUrl.replace('kr_cloud_api', 'postgres') }]) {
     assert.throws(() => validateConfig({ ...valid, ...change }), /RUNTIME_/);

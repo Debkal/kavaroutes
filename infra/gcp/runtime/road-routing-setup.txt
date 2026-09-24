@@ -20,15 +20,18 @@ engine with equivalent geocoding, alternative roads, turn instructions and a
 map; the Google Maps sharing URL remains an independent driver convenience.
 
 To activate it, enable **Routes API** and **Maps Static API** in the Google
-Cloud project, attach a billing account, and create a server-side API key
-restricted to those APIs. Restrict its application to the VM's stable egress IP
-if the environment supplies one. Add `mapsApiKey` to the private API runtime
-JSON in Secret Manager (`kavaroutes-wp013-runtime`, `files/api.json`) and rotate
-the runtime configuration; never put the key in source, the web build or a
-browser-visible environment variable. The key is read only by the API
-container. Routes and Static Maps are metered provider calls. The dispatcher
-requests a route only after selecting a goal; the driver fetches a fresh route
-for the saved goal. Check provider quotas and spend limits before live use.
+Cloud project and attach a billing account. Create two different API keys:
+`mapsApiKey` restricted to Routes API and the VM's stable egress IP if one
+exists, and `mapsStaticKey` restricted to Maps Static API and the
+`https://app.kavaroutes.com/*` HTTP referrer. The Static Maps image loads
+directly from Google in the dispatch browser, as required by its usage policy.
+Add both keys to the private API runtime JSON in Secret Manager
+(`kavaroutes-wp013-runtime`, `files/api.json`) and rotate runtime configuration.
+The server key is never returned to a browser; the referrer-restricted image
+key appears in the map image URL. Never put either key in source. Routes and
+Static Maps are metered provider calls. Check provider quotas and spend limits,
+and publish the Terms of Use and Privacy Policy required for Routes API use,
+before live activation.
 
 The map and directions are guidance for the dispatcher and driver. Google Maps
 may recalculate the shared URL, and the URL cannot pin the exact route returned

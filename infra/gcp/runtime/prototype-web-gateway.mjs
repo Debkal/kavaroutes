@@ -18,7 +18,7 @@ const contentTypes = Object.freeze({
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2',
 });
 const securityHeaders = Object.freeze({
-  'content-security-policy': "default-src 'self'; base-uri 'none'; connect-src 'self' wss:; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'",
+  'content-security-policy': "default-src 'self'; base-uri 'none'; connect-src 'self' wss:; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: https://maps.googleapis.com; object-src 'none'; script-src 'self'; style-src 'self'",
   'cross-origin-opener-policy': 'same-origin',
   // Location sharing is the driver's live map feed; the prompt is the browser's, and a
   // refusal fails the driver sign-in by design. Camera and microphone stay disabled.

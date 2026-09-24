@@ -1720,11 +1720,11 @@
             "minimum": 0,
             "type": "integer"
           },
-          "mapImageDataUrl": {
+          "mapImageUrl": {
             "anyOf": [
               {
-                "maxLength": 700000,
-                "pattern": "^data:image/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$",
+                "maxLength": 16384,
+                "pattern": "^https://maps\\.googleapis\\.com/maps/api/staticmap\\?",
                 "type": "string"
               },
               {
@@ -1815,7 +1815,7 @@
           "maneuverCount",
           "pathFingerprint",
           "steps",
-          "mapImageDataUrl",
+          "mapImageUrl",
           "googleMapsUrl",
           "note"
         ],

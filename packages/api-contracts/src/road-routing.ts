@@ -28,7 +28,7 @@ export const RoadRoutePreviewSchema = Type.Object({
   tollsExpected: Type.Boolean(), maneuverCount: Type.Integer({ minimum: 0 }),
   pathFingerprint: Type.String({ pattern: '^[a-f0-9]{64}$' }),
   steps: Type.Array(Type.Object({ instruction: Type.String({ minLength: 1, maxLength: 500 }), maneuver: Type.String({ maxLength: 60 }), distanceMeters: Type.Integer({ minimum: 0 }) }, { additionalProperties: false }), { maxItems: 300 }),
-  mapImageDataUrl: Type.Union([Type.String({ pattern: '^data:image/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$', maxLength: 700000 }), Type.Null()]),
+  mapImageUrl: Type.Union([Type.String({ pattern: '^https://maps\\.googleapis\\.com/maps/api/staticmap\\?', maxLength: 16384 }), Type.Null()]),
   googleMapsUrl: Type.String({ pattern: '^https://www\\.google\\.com/maps/dir/\\?api=1&', maxLength: 2048 }),
   note: Type.String({ minLength: 1, maxLength: 300 }),
 }, { additionalProperties: false, $id: 'RoadRoutePreview' });

@@ -10,7 +10,7 @@ const leg={runId:'22222222-2222-4222-8222-222222222222',tripLegId:legId,tripId:'
   appointmentLengthMinutes:0,tripState:'scheduled',executionId:null,lifecycle:'planned',version:0};
 const preview={goal:'FASTEST',provider:'GOOGLE_ROUTES',distanceMeters:10000,durationSeconds:800,tollEstimate:null,tollsExpected:false,
   maneuverCount:2,pathFingerprint:'a'.repeat(64),steps:[{instruction:'Turn right on Main St',maneuver:'TURN_RIGHT',distanceMeters:200}],
-  mapImageDataUrl:'data:image/png;base64,iVBORw0KGgo=',googleMapsUrl:'https://www.google.com/maps/dir/?api=1&origin=1%2C2&destination=3%2C4',note:'Traffic-aware.'};
+  mapImageUrl:'https://maps.googleapis.com/maps/api/staticmap?size=640x360&key=test',googleMapsUrl:'https://www.google.com/maps/dir/?api=1&origin=1%2C2&destination=3%2C4',note:'Traffic-aware.'};
 
 it('generates a map only after choosing a goal and saves that goal for the driver',async()=>{
   const api={roadRouteSelection:vi.fn(async()=>({value:{goal:null,version:0,selectedAt:null}})),
@@ -21,6 +21,7 @@ it('generates a map only after choosing a goal and saves that goal for the drive
   await screen.findByLabelText('Route goal');
   fireEvent.change(screen.getByLabelText('Route goal'),{target:{value:'FASTEST'}});
   await screen.findByRole('img',{name:/Fastest drive road map/});
+  expect(screen.getByRole('img',{name:/Fastest drive road map/})).toHaveAttribute('src',preview.mapImageUrl);
   expect(api.previewRoadRoute).toHaveBeenCalledWith(legId,'FASTEST');
   fireEvent.click(screen.getByRole('button',{name:'Choose for driver'}));
   await screen.findByText(/Route choice saved/);
@@ -28,7 +29,7 @@ it('generates a map only after choosing a goal and saves that goal for the drive
 });
 
 it('shows the assigned driver fresh turn instructions and a Google Maps directions link',async()=>{
-  const api={roadRoute:vi.fn(async()=>({value:{selection:{goal:'FASTEST',version:1,selectedAt:'2026-09-23T12:00:00Z'},route:{...preview,mapImageDataUrl:null}}}))};
+  const api={roadRoute:vi.fn(async()=>({value:{selection:{goal:'FASTEST',version:1,selectedAt:'2026-09-23T12:00:00Z'},route:{...preview,mapImageUrl:null}}}))};
   const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
   render(<QueryClientProvider client={client}><DriverRoadDirections api={api as any} legId={legId} pickup="1 Main St" dropoff="2 Main St"/></QueryClientProvider>);
   await screen.findByText(/Dispatch chose/);

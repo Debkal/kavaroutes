@@ -31,7 +31,7 @@ export async function createRuntimeApi(input) {
     browserRecoveryService:createPostgresBrowserRecoveryService(pool,{application,dispatchService:createPostgresDispatchService(pool,{etag:application.etag}),routeProposalService:createPostgresRouteProposalService(pool),driverClosureService:createPostgresDriverClosureService(pool)}),
     dispatchService: createPostgresDispatchService(pool,{etag:application.etag}),
     routeProposalService: createPostgresRouteProposalService(pool),
-    roadRoutingService: createGoogleRoadRoutingService(pool,{apiKey:config.mapsApiKey}),
+    roadRoutingService: createGoogleRoadRoutingService(pool,{apiKey:config.mapsApiKey,staticMapKey:config.mapsStaticKey}),
     facilityService:createPostgresFacilityService(pool),
     clientService:createPostgresClientService(pool),
     driverLoginService:createPostgresDriverLoginService(pool,{allowUnauthenticatedLogin:true}),

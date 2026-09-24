@@ -35,7 +35,13 @@ test('provider requests apply route goals and links nudge Google Maps through th
   assert.equal(link.searchParams.get('travelmode'),'driving');
 });
 
-test('a mocked Google response produces a map, while PostgreSQL stores only the selected goal',async()=>{
+test('routing stays inactive until separate server and browser map keys are configured',async()=>{
+  const service=createGoogleRoadRoutingService({connect(){throw new Error('database should not be used');}},{apiKey:'AIza'+'a'.repeat(35)});
+  assert.equal(service.configured,false);
+  await assert.rejects(()=>service.preview({organizationId:'a',legId:'b',goal:'FASTEST',includeMap:true}),error=>error.code==='MAPS_NOT_CONFIGURED');
+});
+
+test('a mocked Google response produces a direct map URL, while PostgreSQL stores only the selected goal',async()=>{
   const calls=[];let selected=null;
   const client={release(){},async query(sql,params){
     if(sql.includes('FROM intake.trip_leg l'))return {rows:[{id:'11111111-1111-4111-8111-111111111111',origin:'1 Main St',destination:'2 Main St',planned_start_at:new Date(Date.now()+3600000)}]};
@@ -50,17 +56,18 @@ test('a mocked Google response produces a map, while PostgreSQL stores only the 
   const pool={connect:async()=>client};
   const fetcher=async(url,options)=>{calls.push({url,options});
     if(url.startsWith('https://routes.googleapis.com/'))return {ok:true,json:async()=>({routes:[sample(12000,700,['TURN_LEFT'],true),sample(9000,850,['STRAIGHT'])]})};
-    return {ok:true,headers:{get:()=> 'image/png'},arrayBuffer:async()=>Uint8Array.from([137,80,78,71]).buffer};
+    throw new Error('Static Maps must load directly in the browser');
   };
-  const service=createGoogleRoadRoutingService(pool,{apiKey:'AIza'+'a'.repeat(35),fetcher});
+  const service=createGoogleRoadRoutingService(pool,{apiKey:'AIza'+'a'.repeat(35),staticMapKey:'AIza'+'b'.repeat(35),fetcher});
   const scope={organizationId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',legId:'11111111-1111-4111-8111-111111111111'};
   const preview=await service.preview({...scope,goal:'LOW_COST',includeMap:true});
   assert.equal(preview.distanceMeters,9000);
-  assert.match(preview.mapImageDataUrl,/^data:image\/png;base64,/);
+  assert.equal(new URL(preview.mapImageUrl).hostname,'maps.googleapis.com');
+  assert.equal(new URL(preview.mapImageUrl).searchParams.get('key'),'AIza'+'b'.repeat(35));
   assert.equal(new URL(preview.googleMapsUrl).searchParams.get('origin'),'1 Main St');
-  assert.equal(calls.length,2);
+  assert.equal(calls.length,1);
   assert.equal(calls[0].options.headers['X-Goog-Api-Key'],'AIza'+'a'.repeat(35));
-  assert.ok(!JSON.stringify(preview).includes('AIza'));
+  assert.ok(!JSON.stringify(preview).includes('AIza'+'a'.repeat(35)));
   assert.equal((await service.selection(scope)).goal,null);
   const first=await service.select({...scope,actorId:'22222222-2222-4222-8222-222222222222',goal:'LOW_COST',expectedVersion:0,key:'road-select-one'});
   assert.equal(first.version,1);

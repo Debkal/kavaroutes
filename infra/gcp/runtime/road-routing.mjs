@@ -105,19 +105,15 @@ async function googleRoutes(fetcher,key,origin,destination,goal,plannedStartAt){
   if(!Array.isArray(data.routes))throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');
   return choose(data.routes,goal);
 }
-async function staticMap(fetcher,key,route){
+function staticMapUrl(key,route){
   const url=new URL(STATIC_MAP_URL);
   url.searchParams.set('size','640x360');url.searchParams.set('scale','1');url.searchParams.set('format','png');
   url.searchParams.append('path',`color:0x2f6f8cff|weight:5|enc:${route.encoded}`);
   url.searchParams.append('markers',`color:green|label:P|${coordinate(route.points[0])}`);
   url.searchParams.append('markers',`color:red|label:D|${coordinate(route.points.at(-1))}`);
   url.searchParams.set('key',key);
-  if(url.href.length>16000)throw new RoadRoutingError(502,'MAPS_MAP_UNAVAILABLE');
-  let response;try{response=await fetcher(url.href,{signal:AbortSignal.timeout(12000)});}catch{throw new RoadRoutingError(502,'MAPS_MAP_UNAVAILABLE');}
-  if(!response.ok||!String(response.headers.get('content-type')??'').startsWith('image/png'))throw new RoadRoutingError(502,'MAPS_MAP_UNAVAILABLE');
-  const bytes=Buffer.from(await response.arrayBuffer());
-  if(!bytes.length||bytes.length>500000)throw new RoadRoutingError(502,'MAPS_MAP_UNAVAILABLE');
-  return `data:image/png;base64,${bytes.toString('base64')}`;
+  if(url.href.length>16384)throw new RoadRoutingError(502,'MAPS_MAP_UNAVAILABLE');
+  return url.href;
 }
 async function leg(client,organizationId,legId,driverId){
   const result=await client.query(`SELECT l.id,origin.customer_label AS origin,destination.customer_label AS destination,l.planned_start_at
@@ -137,8 +133,8 @@ async function leg(client,organizationId,legId,driverId){
 const selectionFrom=row=>row?{goal:row.goal,version:Number(row.version),selectedAt:new Date(row.selected_at).toISOString()}
   :{goal:null,version:0,selectedAt:null};
 
-export function createGoogleRoadRoutingService(pool,{apiKey=null,fetcher=fetch}={}){
-  const configured=typeof apiKey==='string'&&apiKey.length>0;
+export function createGoogleRoadRoutingService(pool,{apiKey=null,staticMapKey=null,fetcher=fetch}={}){
+  const configured=typeof apiKey==='string'&&apiKey.length>0&&typeof staticMapKey==='string'&&staticMapKey.length>0;
   return Object.freeze({
     configured,
     async selection({organizationId,legId,driverId}){
@@ -153,12 +149,12 @@ export function createGoogleRoadRoutingService(pool,{apiKey=null,fetcher=fetch}=
       if(!configured)throw new RoadRoutingError(503,'MAPS_NOT_CONFIGURED');
       const row=await withTenantTransaction(pool,organizationId,'kavaroutes_api',client=>leg(client,organizationId,legId,driverId));
       const route=await googleRoutes(fetcher,apiKey,row.origin,row.destination,goal,row.planned_start_at);
-      const mapImageDataUrl=includeMap?await staticMap(fetcher,apiKey,route):null;
+      const mapImageUrl=includeMap?staticMapUrl(staticMapKey,route):null;
       const note=goal==='LOW_COST'?'Prefers toll-free roads, then the shortest distance. Fuel and labor costs are not quoted.':goal==='FASTEST'
         ?'Prefers the shortest traffic-aware travel time.':'Prefers fewer complex turns and avoids ferries when practical.';
       return {goal,provider:'GOOGLE_ROUTES',distanceMeters:route.distanceMeters,durationSeconds:route.durationSeconds,
         tollEstimate:route.tollEstimate,tollsExpected:route.tollsExpected,maneuverCount:route.maneuverCount,
-        pathFingerprint:digest(route.encoded),steps:route.steps,mapImageDataUrl,googleMapsUrl:mapsUrl(route.points,goal,row.origin,row.destination),note};
+        pathFingerprint:digest(route.encoded),steps:route.steps,mapImageUrl,googleMapsUrl:mapsUrl(route.points,goal,row.origin,row.destination),note};
     },
     async select({organizationId,legId,actorId,goal,expectedVersion,key}){
       if(!configured)throw new RoadRoutingError(503,'MAPS_NOT_CONFIGURED');
