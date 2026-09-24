@@ -2,27 +2,25 @@ import {createHash} from 'node:crypto';
 import {withTenantTransaction} from '@kavaroutes/postgres-persistence';
 import {RoadRoutingError} from '@kavaroutes/api-contracts';
 
-const ROUTES_URL='https://routes.googleapis.com/directions/v2:computeRoutes';
-const STATIC_MAP_URL='https://maps.googleapis.com/maps/api/staticmap';
-const FIELD_MASK='routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.legs.steps.navigationInstruction,routes.legs.steps.distanceMeters,routes.travelAdvisory.tollInfo';
+const GEOCODE_URL='https://api.geoapify.com/v1/geocode/search';
+const ROUTES_URL='https://api.geoapify.com/v1/routing';
+const STATIC_MAP_URL='https://maps.geoapify.com/v1/staticmap';
 const goals=new Set(['LOW_COST','FASTEST','EASIEST']);
 const digest=value=>createHash('sha256').update(value).digest('hex');
-const seconds=value=>{const match=/^(\d+(?:\.\d+)?)s$/.exec(String(value??''));return match?Math.max(1,Math.round(Number(match[1]))):null;};
 const validNumber=value=>typeof value==='number'&&Number.isFinite(value);
 
-function decodePolyline(encoded){
-  const points=[];let latitude=0,longitude=0,index=0;
-  while(index<encoded.length&&points.length<20000){
-    const values=[];
-    for(let coordinate=0;coordinate<2;coordinate++){
-      let result=0,shift=0,byte;
-      do{if(index>=encoded.length||shift>30)throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');byte=encoded.charCodeAt(index++)-63;result|=(byte&31)<<shift;shift+=5;}while(byte>=32);
-      values.push(result&1?~(result>>1):result>>1);
+function encodePolyline(points){
+  let previousLat=0,previousLon=0,result='';
+  for(const [lat,lon] of points){
+    const latitude=Math.round(lat*1e5),longitude=Math.round(lon*1e5);
+    for(let value of [latitude-previousLat,longitude-previousLon]){
+      value=value<0?~(value<<1):value<<1;
+      while(value>=32){result+=String.fromCharCode((32|(value&31))+63);value>>=5;}
+      result+=String.fromCharCode(value+63);
     }
-    latitude+=values[0];longitude+=values[1];points.push([latitude/1e5,longitude/1e5]);
+    previousLat=latitude;previousLon=longitude;
   }
-  if(points.length<2||index!==encoded.length||points.some(([lat,lng])=>Math.abs(lat)>90||Math.abs(lng)>180))throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');
-  return points;
+  return result;
 }
 const coordinate=point=>`${point[0].toFixed(5)},${point[1].toFixed(5)}`;
 function mapsUrl(points,goal,origin,destination){
@@ -41,82 +39,86 @@ function mapsUrl(points,goal,origin,destination){
   if(url.href.length>2048){url.searchParams.set('origin',coordinate(points[0]));url.searchParams.set('destination',coordinate(points.at(-1)));}
   return url.href;
 }
-function toll(raw){
-  const prices=raw?.travelAdvisory?.tollInfo?.estimatedPrice;
-  const price=Array.isArray(prices)?prices[0]:null;
-  if(!price||!/^[A-Z]{3}$/.test(String(price.currencyCode??'')))return null;
-  const amount=Number(price.units??0)+Number(price.nanos??0)/1e9;
-  return Number.isFinite(amount)&&amount>=0?{currencyCode:price.currencyCode,amount:Math.round(amount*100)/100}:null;
-}
 function steps(raw){
   const result=(raw.legs??[]).flatMap(leg=>leg.steps??[]).map(step=>({
-    instruction:String(step.navigationInstruction?.instructions??'Continue').replace(/\s+/g,' ').trim().slice(0,500)||'Continue',
-    maneuver:String(step.navigationInstruction?.maneuver??'').slice(0,60),
-    distanceMeters:Number(step.distanceMeters??0),
+    instruction:String(step.instruction?.text??'Continue').replace(/\s+/g,' ').trim().slice(0,500)||'Continue',
+    maneuver:String(step.instruction?.type??'').slice(0,60),
+    distanceMeters:Math.max(0,Math.round(Number(step.distance??0))),
   }));
   if(result.length>300||result.some(step=>!Number.isSafeInteger(step.distanceMeters)||step.distanceMeters<0))throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');
   return result;
 }
 function difficulty(items){
-  return items.reduce((score,step)=>{
-    const maneuver=step.maneuver;
-    if(maneuver.startsWith('UTURN'))return score+8;
-    if(maneuver.startsWith('FERRY'))return score+8;
-    if(maneuver.startsWith('TURN_SHARP'))return score+3;
-    if(maneuver==='MERGE'||maneuver.startsWith('RAMP'))return score+2;
-    if(maneuver.startsWith('TURN')||maneuver.startsWith('FORK')||maneuver.startsWith('ROUNDABOUT'))return score+1;
-    return score;
-  },0);
+  return items.reduce((score,{maneuver})=>score+(maneuver.startsWith('TurnAround')||maneuver.startsWith('Ferry')?8
+    :maneuver.startsWith('Sharp')?3: maneuver.startsWith('Merge')||maneuver.startsWith('Exit')?2
+      :/Left|Right|Roundabout/.test(maneuver)?1:0),0);
 }
-function normalize(raw){
-  const durationSeconds=seconds(raw.duration),distanceMeters=Number(raw.distanceMeters),encoded=raw.polyline?.encodedPolyline;
-  if(!durationSeconds||!Number.isSafeInteger(distanceMeters)||distanceMeters<1||typeof encoded!=='string'||!encoded.length||encoded.length>20000)throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');
-  const instructions=steps(raw),points=decodePolyline(encoded);
-  return {durationSeconds,distanceMeters,encoded,points,steps:instructions,maneuverCount:difficulty(instructions),tollEstimate:toll(raw),tollsExpected:!!raw.travelAdvisory?.tollInfo};
+function normalize(feature){
+  const raw=feature?.properties;
+  const lines=feature?.geometry?.type==='MultiLineString'?feature.geometry.coordinates:null;
+  if(!raw||!Array.isArray(lines)||lines.length<1)throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');
+  const coordinates=lines.flatMap((line,index)=>index?line.slice(1):line);
+  if(coordinates.length<2||coordinates.length>20000||coordinates.some(point=>!Array.isArray(point)||point.length<2||!validNumber(point[0])||!validNumber(point[1])||Math.abs(point[0])>180||Math.abs(point[1])>90))throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');
+  const points=coordinates.map(([lon,lat])=>[lat,lon]);
+  const distanceMeters=Math.round(Number(raw.distance)),durationSeconds=Math.max(1,Math.round(Number(raw.time)));
+  if(!Number.isSafeInteger(distanceMeters)||distanceMeters<1||!Number.isSafeInteger(durationSeconds))throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');
+  const instructions=steps(raw),encoded=encodePolyline(points);
+  if(encoded.length>50000)throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');
+  return {durationSeconds,distanceMeters,encoded,points,steps:instructions,maneuverCount:difficulty(instructions),
+    tollEstimate:null,tollsExpected:(raw.legs??[]).some(leg=>(leg.steps??[]).some(step=>step.toll===true))};
 }
-function choose(routes,goal){
-  const list=routes.map(normalize);
-  if(!list.length)throw new RoadRoutingError(502,'MAPS_ROUTE_UNAVAILABLE');
-  const fastest=Math.min(...list.map(route=>route.durationSeconds));
-  const eligible=goal==='EASIEST'?list.filter(route=>route.durationSeconds<=fastest*1.5+300):list;
-  const options=eligible.length?eligible:list;
-  options.sort((a,b)=>goal==='FASTEST'
-    ?a.durationSeconds-b.durationSeconds||a.distanceMeters-b.distanceMeters
-    :goal==='LOW_COST'
-      ?Number(a.tollsExpected)-Number(b.tollsExpected)||a.distanceMeters-b.distanceMeters||a.durationSeconds-b.durationSeconds
-      :a.maneuverCount-b.maneuverCount||a.durationSeconds-b.durationSeconds||a.distanceMeters-b.distanceMeters);
-  return options[0];
+function providerRequest(origin,destination,goal,key){
+  const url=new URL(ROUTES_URL);
+  url.searchParams.set('apiKey',key);
+  url.searchParams.set('waypoints',`${coordinate(origin)}|${coordinate(destination)}`);
+  url.searchParams.set('mode','light_truck');
+  url.searchParams.set('type',goal==='LOW_COST'?'short':goal==='EASIEST'?'less_maneuvers':'balanced');
+  url.searchParams.set('traffic','approximated');
+  url.searchParams.set('details','route_details,instruction_details');
+  if(goal==='LOW_COST')url.searchParams.set('avoid','tolls');
+  if(goal==='EASIEST')url.searchParams.set('avoid','ferries');
+  return url;
 }
-function providerRequest(origin,destination,goal,plannedStartAt){
-  const routeModifiers=goal==='LOW_COST'?{avoidTolls:true}:goal==='EASIEST'?{avoidFerries:true}:{};
-  const departure=new Date(plannedStartAt).getTime();
-  return {origin:{address:origin},destination:{address:destination},travelMode:'DRIVE',
-    routingPreference:'TRAFFIC_AWARE_OPTIMAL',computeAlternativeRoutes:true,polylineQuality:'OVERVIEW',
-    routeModifiers,extraComputations:['TOLLS'],languageCode:'en-US',units:'IMPERIAL',
-    ...(Number.isFinite(departure)&&departure>Date.now()+60_000?{departureTime:new Date(departure).toISOString()}:{})};
-}
-async function googleRoutes(fetcher,key,origin,destination,goal,plannedStartAt){
+async function providerJson(fetcher,url){
   let response;
-  try{response=await fetcher(ROUTES_URL,{method:'POST',headers:{'content-type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':FIELD_MASK},
-    body:JSON.stringify(providerRequest(origin,destination,goal,plannedStartAt)),signal:AbortSignal.timeout(12000)});}
+  try{response=await fetcher(url,{signal:AbortSignal.timeout(12000)});}
   catch{throw new RoadRoutingError(502,'MAPS_ROUTE_UNAVAILABLE');}
   if(!response.ok)throw new RoadRoutingError(502,'MAPS_ROUTE_UNAVAILABLE');
-  let data;try{data=await response.json();}catch{throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');}
-  if(!Array.isArray(data.routes))throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');
-  return choose(data.routes,goal);
+  try{return await response.json();}catch{throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');}
 }
-function staticMapUrl(key,route){
-  const url=new URL(STATIC_MAP_URL);
-  url.searchParams.set('size','640x360');url.searchParams.set('scale','1');url.searchParams.set('format','png');
-  url.searchParams.append('path',`color:0x2f6f8cff|weight:5|enc:${route.encoded}`);
-  url.searchParams.append('markers',`color:green|label:P|${coordinate(route.points[0])}`);
-  url.searchParams.append('markers',`color:red|label:D|${coordinate(route.points.at(-1))}`);
-  url.searchParams.set('key',key);
-  if(url.href.length>16384)throw new RoadRoutingError(502,'MAPS_MAP_UNAVAILABLE');
-  return url.href;
+async function geocode(fetcher,key,label){
+  const url=new URL(GEOCODE_URL);url.searchParams.set('apiKey',key);url.searchParams.set('text',label);url.searchParams.set('format','json');url.searchParams.set('limit','1');
+  const data=await providerJson(fetcher,url);
+  const match=data.results?.[0];
+  if(!validNumber(match?.lat)||!validNumber(match?.lon)||Math.abs(match.lat)>90||Math.abs(match.lon)>180||Number(match.rank?.confidence??0)<0.75)
+    throw new RoadRoutingError(502,'MAPS_ADDRESS_UNRESOLVED');
+  return [match.lat,match.lon];
+}
+async function geoapifyRoutes(fetcher,key,origin,destination,goal){
+  const requested=goal==='FASTEST'?['FASTEST','LOW_COST','EASIEST']:[goal];
+  const routes=await Promise.all(requested.map(async option=>{
+    const data=await providerJson(fetcher,providerRequest(origin,destination,option,key));
+    if(!Array.isArray(data.features)||!data.features.length)throw new RoadRoutingError(502,'MAPS_ROUTE_INVALID');
+    return normalize(data.features[0]);
+  }));
+  return goal==='FASTEST'?routes.sort((a,b)=>a.durationSeconds-b.durationSeconds||a.distanceMeters-b.distanceMeters)[0]:routes[0];
+}
+async function staticMap(fetcher,key,route){
+  const url=new URL(STATIC_MAP_URL);url.searchParams.set('apiKey',key);
+  const markers=[route.points[0],route.points.at(-1)].map(([lat,lon],index)=>({lat,lon,type:'circle',color:index?'#bb694f':'#3d8a6e',size:30,text:index?'D':'P'}));
+  const body={style:'positron',width:640,height:360,format:'png',attribution:'default',
+    geometries:[{type:'polyline5',value:route.encoded,linecolor:'#2f6f8c',linewidth:5,lineopacity:0.95}],markers};
+  let response;
+  try{response=await fetcher(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});}
+  catch{return null;}
+  if(!response.ok||!String(response.headers?.get('content-type')??'').startsWith('image/png'))return null;
+  try{const bytes=Buffer.from(await response.arrayBuffer());return bytes.length>0&&bytes.length<=450000?`data:image/png;base64,${bytes.toString('base64')}`:null;}
+  catch{return null;}
 }
 async function leg(client,organizationId,legId,driverId){
-  const result=await client.query(`SELECT l.id,origin.customer_label AS origin,destination.customer_label AS destination,l.planned_start_at
+  const result=await client.query(`SELECT l.id,origin.customer_label AS origin,destination.customer_label AS destination,
+      ST_Y(origin.operational_point::geometry) AS origin_lat,ST_X(origin.operational_point::geometry) AS origin_lon,
+      ST_Y(destination.operational_point::geometry) AS destination_lat,ST_X(destination.operational_point::geometry) AS destination_lon
     FROM intake.trip_leg l
     JOIN intake.trip_request trip ON trip.tenant_id=l.tenant_id AND trip.id=l.trip_request_id
     JOIN dispatch.run_leg rl ON rl.tenant_id=l.tenant_id AND rl.trip_leg_id=l.id
@@ -133,8 +135,18 @@ async function leg(client,organizationId,legId,driverId){
 const selectionFrom=row=>row?{goal:row.goal,version:Number(row.version),selectedAt:new Date(row.selected_at).toISOString()}
   :{goal:null,version:0,selectedAt:null};
 
-export function createGoogleRoadRoutingService(pool,{apiKey=null,staticMapKey=null,fetcher=fetch}={}){
-  const configured=typeof apiKey==='string'&&apiKey.length>0&&typeof staticMapKey==='string'&&staticMapKey.length>0;
+export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch}={}){
+  const configured=typeof apiKey==='string'&&/^[A-Za-z0-9_-]{20,200}$/.test(apiKey);
+  const geocodeCache=new Map();
+  const resolvePoint=(label,lat,lon)=>{
+    if(validNumber(Number(lat))&&validNumber(Number(lon))&&lat!==null&&lon!==null)return Promise.resolve([Number(lat),Number(lon)]);
+    if(!geocodeCache.has(label)){
+      if(geocodeCache.size>=500)geocodeCache.delete(geocodeCache.keys().next().value);
+      const pending=geocode(fetcher,apiKey,label).catch(error=>{geocodeCache.delete(label);throw error;});
+      geocodeCache.set(label,pending);
+    }
+    return geocodeCache.get(label);
+  };
   return Object.freeze({
     configured,
     async selection({organizationId,legId,driverId}){
@@ -148,11 +160,12 @@ export function createGoogleRoadRoutingService(pool,{apiKey=null,staticMapKey=nu
       if(!goals.has(goal))throw new RoadRoutingError(409,'ROUTE_GOAL_INVALID');
       if(!configured)throw new RoadRoutingError(503,'MAPS_NOT_CONFIGURED');
       const row=await withTenantTransaction(pool,organizationId,'kavaroutes_api',client=>leg(client,organizationId,legId,driverId));
-      const route=await googleRoutes(fetcher,apiKey,row.origin,row.destination,goal,row.planned_start_at);
-      const mapImageUrl=includeMap?staticMapUrl(staticMapKey,route):null;
-      const note=goal==='LOW_COST'?'Prefers toll-free roads, then the shortest distance. Fuel and labor costs are not quoted.':goal==='FASTEST'
-        ?'Prefers the shortest traffic-aware travel time.':'Prefers fewer complex turns and avoids ferries when practical.';
-      return {goal,provider:'GOOGLE_ROUTES',distanceMeters:route.distanceMeters,durationSeconds:route.durationSeconds,
+      const [origin,destination]=await Promise.all([resolvePoint(row.origin,row.origin_lat,row.origin_lon),resolvePoint(row.destination,row.destination_lat,row.destination_lon)]);
+      const route=await geoapifyRoutes(fetcher,apiKey,origin,destination,goal);
+      const mapImageUrl=includeMap?await staticMap(fetcher,apiKey,route):null;
+      const note=goal==='LOW_COST'?'Prefers toll-free roads and a shorter distance. Actual toll, fuel, and labor costs are not quoted.':goal==='FASTEST'
+        ?'Shortest estimated time among the proposed routes. Traffic is approximate, not live.':'Prefers fewer maneuvers and avoids ferries when practical.';
+      return {goal,provider:'GEOAPIFY',distanceMeters:route.distanceMeters,durationSeconds:route.durationSeconds,
         tollEstimate:route.tollEstimate,tollsExpected:route.tollsExpected,maneuverCount:route.maneuverCount,
         pathFingerprint:digest(route.encoded),steps:route.steps,mapImageUrl,googleMapsUrl:mapsUrl(route.points,goal,row.origin,row.destination),note};
     },
@@ -176,4 +189,4 @@ export function createGoogleRoadRoutingService(pool,{apiKey=null,staticMapKey=nu
   });
 }
 
-export const roadRoutingInternals={decodePolyline,choose,providerRequest,mapsUrl};
+export const roadRoutingInternals={encodePolyline,normalize,providerRequest,mapsUrl};

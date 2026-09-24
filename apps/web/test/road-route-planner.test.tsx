@@ -8,9 +8,9 @@ const legId='11111111-1111-4111-8111-111111111111';
 const leg={runId:'22222222-2222-4222-8222-222222222222',tripLegId:legId,tripId:'33333333-3333-4333-8333-333333333333',ordinal:1,
   riderLabel:'Rider',pickupLabel:'1 Main St',dropoffLabel:'2 Main St',plannedStartAt:'2026-09-24T15:00:00Z',plannedEndAt:'2026-09-24T16:00:00Z',
   appointmentLengthMinutes:0,tripState:'scheduled',executionId:null,lifecycle:'planned',version:0};
-const preview={goal:'FASTEST',provider:'GOOGLE_ROUTES',distanceMeters:10000,durationSeconds:800,tollEstimate:null,tollsExpected:false,
+const preview={goal:'FASTEST',provider:'GEOAPIFY',distanceMeters:10000,durationSeconds:800,tollEstimate:null,tollsExpected:false,
   maneuverCount:2,pathFingerprint:'a'.repeat(64),steps:[{instruction:'Turn right on Main St',maneuver:'TURN_RIGHT',distanceMeters:200}],
-  mapImageUrl:'https://maps.googleapis.com/maps/api/staticmap?size=640x360&key=test',googleMapsUrl:'https://www.google.com/maps/dir/?api=1&origin=1%2C2&destination=3%2C4',note:'Traffic-aware.'};
+  mapImageUrl:'data:image/png;base64,aGVsbG8=',googleMapsUrl:'https://www.google.com/maps/dir/?api=1&origin=1%2C2&destination=3%2C4',note:'Estimated.'};
 
 it('generates a map only after choosing a goal and saves that goal for the driver',async()=>{
   const api={roadRouteSelection:vi.fn(async()=>({value:{goal:null,version:0,selectedAt:null}})),

@@ -22,13 +22,13 @@ export const RoadRouteSelectionSchema = Type.Object({
 export type RoadRouteSelection = Static<typeof RoadRouteSelectionSchema>;
 
 export const RoadRoutePreviewSchema = Type.Object({
-  goal: goal(), provider: Type.Literal('GOOGLE_ROUTES'),
+  goal: goal(), provider: Type.Literal('GEOAPIFY'),
   distanceMeters: Type.Integer({ minimum: 1 }), durationSeconds: Type.Integer({ minimum: 1 }),
   tollEstimate: Type.Union([Type.Null(), Type.Object({ currencyCode: Type.String({ minLength: 3, maxLength: 3 }), amount: Type.Number({ minimum: 0 }) }, { additionalProperties: false })]),
   tollsExpected: Type.Boolean(), maneuverCount: Type.Integer({ minimum: 0 }),
   pathFingerprint: Type.String({ pattern: '^[a-f0-9]{64}$' }),
   steps: Type.Array(Type.Object({ instruction: Type.String({ minLength: 1, maxLength: 500 }), maneuver: Type.String({ maxLength: 60 }), distanceMeters: Type.Integer({ minimum: 0 }) }, { additionalProperties: false }), { maxItems: 300 }),
-  mapImageUrl: Type.Union([Type.String({ pattern: '^https://maps\\.googleapis\\.com/maps/api/staticmap\\?', maxLength: 16384 }), Type.Null()]),
+  mapImageUrl: Type.Union([Type.String({ pattern: '^data:image/png;base64,[A-Za-z0-9+/=]+$', maxLength: 600025 }), Type.Null()]),
   googleMapsUrl: Type.String({ pattern: '^https://www\\.google\\.com/maps/dir/\\?api=1&', maxLength: 2048 }),
   note: Type.String({ minLength: 1, maxLength: 300 }),
 }, { additionalProperties: false, $id: 'RoadRoutePreview' });

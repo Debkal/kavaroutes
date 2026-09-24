@@ -550,7 +550,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       reply.header('cache-control','no-store');request.wp007Context.resultCode='ROAD_ROUTE_SELECTION_RETURNED';
       return reply.send(await guarded(()=>service().selection({organizationId,legId})));
     });
-    routes.post(base+'/preview',{bodyLimit:1024,schema:{operationId:'previewDispatchRoadRoute',tags:['dispatch'],security,headers:IdempotentHeaders,params,body:RoadRoutePreviewRequestSchema,response:responseWithErrors({200:jsonResponse(RoadRoutePreviewSchema,'Fresh Google road route and map preview')},[400,401,403,404,406,422,429,500,502,503,504])}},async(request,reply)=>{
+    routes.post(base+'/preview',{bodyLimit:1024,schema:{operationId:'previewDispatchRoadRoute',tags:['dispatch'],security,headers:IdempotentHeaders,params,body:RoadRoutePreviewRequestSchema,response:responseWithErrors({200:jsonResponse(RoadRoutePreviewSchema,'Fresh Geoapify road route and map preview')},[400,401,403,404,406,422,429,500,502,503,504])}},async(request,reply)=>{
       const {organizationId,legId}=request.params as {organizationId:string;legId:string};
       await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'previewDispatchRoadRoute');
       const {goal}=request.body as {goal:RoadRouteGoal};

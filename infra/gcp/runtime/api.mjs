@@ -13,7 +13,7 @@ import {withTenantTransaction} from '@kavaroutes/postgres-persistence';
 import { makePool, verifyRuntimeDatabase } from './database.mjs';
 import { validateConfig, tenantId, branchScopeReference } from './config.mjs';
 import {createDriverSessions} from './driver-sessions.mjs';
-import {createGoogleRoadRoutingService} from './road-routing.mjs';
+import {createGeoapifyRoadRoutingService} from './road-routing.mjs';
 
 export async function createRuntimeApi(input) {
   const config = validateConfig(input);
@@ -31,7 +31,7 @@ export async function createRuntimeApi(input) {
     browserRecoveryService:createPostgresBrowserRecoveryService(pool,{application,dispatchService:createPostgresDispatchService(pool,{etag:application.etag}),routeProposalService:createPostgresRouteProposalService(pool),driverClosureService:createPostgresDriverClosureService(pool)}),
     dispatchService: createPostgresDispatchService(pool,{etag:application.etag}),
     routeProposalService: createPostgresRouteProposalService(pool),
-    roadRoutingService: createGoogleRoadRoutingService(pool,{apiKey:config.mapsApiKey,staticMapKey:config.mapsStaticKey}),
+    roadRoutingService: createGeoapifyRoadRoutingService(pool,{apiKey:process.env.GEOAPIFY_API_KEY}),
     facilityService:createPostgresFacilityService(pool),
     clientService:createPostgresClientService(pool),
     driverLoginService:createPostgresDriverLoginService(pool,{allowUnauthenticatedLogin:true}),

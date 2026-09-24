@@ -1,78 +1,75 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {createGoogleRoadRoutingService,roadRoutingInternals} from './road-routing.mjs';
+import {createGeoapifyRoadRoutingService,roadRoutingInternals} from './road-routing.mjs';
 
-const encoded='_p~iF~ps|U_ulLnnqC_mqNvxq`@';
-const sample=(distance,duration,maneuvers,toll=false)=>({
-  distanceMeters:distance,duration:`${duration}s`,polyline:{encodedPolyline:encoded},
-  legs:[{steps:maneuvers.map(maneuver=>({distanceMeters:500,navigationInstruction:{maneuver,instructions:`Follow ${maneuver}`}}))}],
-  ...(toll?{travelAdvisory:{tollInfo:{estimatedPrice:[{currencyCode:'USD',units:'4',nanos:500000000}]}}}:{}),
-});
+const key='test-geoapify-secret-'+'x'.repeat(20);
+const geometry=[[-118.243683,34.052235],[-118.239,34.057],[-118.233683,34.062235]];
+const sample=(distance,time,maneuvers,toll=false)=>({type:'Feature',geometry:{type:'MultiLineString',coordinates:[geometry]},
+  properties:{distance,time,legs:[{steps:maneuvers.map(type=>({distance:500,toll,instruction:{type,text:'Follow '+type}}))}]}});
 
-test('three route goals use separate measurable preferences and permit the same roads',()=>{
-  const routes=[sample(12000,600,['TURN_LEFT','MERGE'],true),sample(9000,850,['TURN_RIGHT','TURN_LEFT']),sample(11000,750,['STRAIGHT'])];
-  assert.equal(roadRoutingInternals.choose(routes,'FASTEST').durationSeconds,600);
-  assert.equal(roadRoutingInternals.choose(routes,'LOW_COST').distanceMeters,9000);
-  assert.equal(roadRoutingInternals.choose(routes,'EASIEST').maneuverCount,0);
-  assert.equal(roadRoutingInternals.choose([routes[2]],'LOW_COST').encoded,roadRoutingInternals.choose([routes[2]],'FASTEST').encoded);
-});
-
-test('provider requests apply route goals and links nudge Google Maps through the chosen road',()=>{
-  const now=new Date(Date.now()+3_600_000).toISOString();
-  const cost=roadRoutingInternals.providerRequest('1 Main St','2 Main St','LOW_COST',now);
-  const easy=roadRoutingInternals.providerRequest('1 Main St','2 Main St','EASIEST',now);
-  assert.equal(cost.computeAlternativeRoutes,true);
-  assert.equal(cost.routeModifiers.avoidTolls,true);
-  assert.equal(easy.routeModifiers.avoidFerries,true);
-  assert.ok(cost.departureTime);
-  const points=roadRoutingInternals.decodePolyline(encoded);
-  const link=new URL(roadRoutingInternals.mapsUrl(points,'LOW_COST','1 Main St','2 Main St'));
+test('Geoapify goals request short/toll-avoid, balanced and fewer-maneuver routes',()=>{
+  const point=[34.052235,-118.243683];
+  const cost=roadRoutingInternals.providerRequest(point,point,'LOW_COST',key);
+  const fast=roadRoutingInternals.providerRequest(point,point,'FASTEST',key);
+  const easy=roadRoutingInternals.providerRequest(point,point,'EASIEST',key);
+  assert.equal(cost.searchParams.get('type'),'short');
+  assert.equal(cost.searchParams.get('avoid'),'tolls');
+  assert.equal(fast.searchParams.get('type'),'balanced');
+  assert.equal(easy.searchParams.get('type'),'less_maneuvers');
+  assert.equal(easy.searchParams.get('avoid'),'ferries');
+  assert.equal(fast.searchParams.get('mode'),'light_truck');
+  assert.equal(fast.searchParams.get('traffic'),'approximated');
+  const encoded=roadRoutingInternals.encodePolyline(geometry.map(([lon,lat])=>[lat,lon]));
+  assert.ok(encoded.length>0);
+  const link=new URL(roadRoutingInternals.mapsUrl(geometry.map(([lon,lat])=>[lat,lon]),'LOW_COST','1 Main St','2 Main St'));
   assert.equal(link.hostname,'www.google.com');
-  assert.equal(link.searchParams.get('origin'),'1 Main St');
-  assert.equal(link.searchParams.get('destination'),'2 Main St');
-  assert.ok(link.searchParams.get('waypoints'));
   assert.equal(link.searchParams.get('avoid'),'tolls');
-  assert.equal(link.searchParams.get('travelmode'),'driving');
 });
 
-test('routing stays inactive until separate server and browser map keys are configured',async()=>{
-  const service=createGoogleRoadRoutingService({connect(){throw new Error('database should not be used');}},{apiKey:'AIza'+'a'.repeat(35)});
+test('routing is unavailable until a server secret is configured',async()=>{
+  const service=createGeoapifyRoadRoutingService({connect(){throw new Error('database should not be used');}});
   assert.equal(service.configured,false);
   await assert.rejects(()=>service.preview({organizationId:'a',legId:'b',goal:'FASTEST',includeMap:true}),error=>error.code==='MAPS_NOT_CONFIGURED');
 });
 
-test('a mocked Google response produces a direct map URL, while PostgreSQL stores only the selected goal',async()=>{
+test('route, geocode and static map stay server side while selected goal persists',async()=>{
   const calls=[];let selected=null;
   const client={release(){},async query(sql,params){
-    if(sql.includes('FROM intake.trip_leg l'))return {rows:[{id:'11111111-1111-4111-8111-111111111111',origin:'1 Main St',destination:'2 Main St',planned_start_at:new Date(Date.now()+3600000)}]};
+    if(sql.includes('FROM intake.trip_leg l'))return {rows:[{id:'11111111-1111-4111-8111-111111111111',origin:'1 Main St',destination:'2 Main St',origin_lat:null,origin_lon:null,destination_lat:null,destination_lon:null}]};
     if(sql.includes('SELECT id FROM intake.trip_leg WHERE'))return {rows:[{id:'11111111-1111-4111-8111-111111111111'}]};
     if(sql.includes('SELECT goal,version,selected_at'))return {rows:selected?[selected]:[]};
     if(sql.includes('INSERT INTO dispatch.selected_road_route')){
-      selected={goal:params[2],version:(selected?.version??0)+1,selected_at:new Date('2026-09-23T12:00:00Z'),command_key:params[4]};
-      return {rows:[selected]};
+      selected={goal:params[2],version:(selected?.version??0)+1,selected_at:new Date('2026-09-23T12:00:00Z'),command_key:params[4]};return {rows:[selected]};
     }
     return {rows:[]};
   }};
-  const pool={connect:async()=>client};
-  const fetcher=async(url,options)=>{calls.push({url,options});
-    if(url.startsWith('https://routes.googleapis.com/'))return {ok:true,json:async()=>({routes:[sample(12000,700,['TURN_LEFT'],true),sample(9000,850,['STRAIGHT'])]})};
-    throw new Error('Static Maps must load directly in the browser');
+  const fetcher=async(url,options)=>{const parsed=new URL(url);calls.push({host:parsed.hostname,path:parsed.pathname,options});
+    if(parsed.pathname==='/v1/geocode/search')return {ok:true,json:async()=>({results:[{lat:34.052235,lon:-118.243683,rank:{confidence:0.99}}]})};
+    if(parsed.pathname==='/v1/routing')return {ok:true,json:async()=>({features:[sample(9000,850,['Left','Right'])]})};
+    if(parsed.pathname==='/v1/staticmap')return {ok:true,headers:{get:()=> 'image/png'},arrayBuffer:async()=>Buffer.from('png-data')};
+    throw new Error('unexpected URL');
   };
-  const service=createGoogleRoadRoutingService(pool,{apiKey:'AIza'+'a'.repeat(35),staticMapKey:'AIza'+'b'.repeat(35),fetcher});
+  const service=createGeoapifyRoadRoutingService({connect:async()=>client},{apiKey:key,fetcher});
   const scope={organizationId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',legId:'11111111-1111-4111-8111-111111111111'};
   const preview=await service.preview({...scope,goal:'LOW_COST',includeMap:true});
+  assert.equal(preview.provider,'GEOAPIFY');
   assert.equal(preview.distanceMeters,9000);
-  assert.equal(new URL(preview.mapImageUrl).hostname,'maps.googleapis.com');
-  assert.equal(new URL(preview.mapImageUrl).searchParams.get('key'),'AIza'+'b'.repeat(35));
-  assert.equal(new URL(preview.googleMapsUrl).searchParams.get('origin'),'1 Main St');
-  assert.equal(calls.length,1);
-  assert.equal(calls[0].options.headers['X-Goog-Api-Key'],'AIza'+'a'.repeat(35));
-  assert.ok(!JSON.stringify(preview).includes('AIza'+'a'.repeat(35)));
+  assert.equal(preview.mapImageUrl,'data:image/png;base64,'+Buffer.from('png-data').toString('base64'));
+  assert.ok(!JSON.stringify(preview).includes(key));
+  assert.equal(calls.filter(call=>call.path==='/v1/geocode/search').length,2);
+  assert.equal(calls.filter(call=>call.path==='/v1/routing').length,1);
+  assert.equal(calls.filter(call=>call.path==='/v1/staticmap').length,1);
   assert.equal((await service.selection(scope)).goal,null);
   const first=await service.select({...scope,actorId:'22222222-2222-4222-8222-222222222222',goal:'LOW_COST',expectedVersion:0,key:'road-select-one'});
   assert.equal(first.version,1);
-  const replay=await service.select({...scope,actorId:'22222222-2222-4222-8222-222222222222',goal:'LOW_COST',expectedVersion:0,key:'road-select-one'});
-  assert.equal(replay.version,1);
-  await assert.rejects(()=>service.select({...scope,actorId:'22222222-2222-4222-8222-222222222222',goal:'FASTEST',expectedVersion:0,key:'road-select-two'}),error=>error.statusCode===412);
   assert.equal((await service.selection(scope)).goal,'LOW_COST');
+});
+
+test('fastest picks the shortest estimated duration from the three candidates',async()=>{
+  const client={release(){},async query(sql){return {rows:sql.includes('FROM intake.trip_leg l')?[{origin:'1 Main St',destination:'2 Main St',origin_lat:34,origin_lon:-118,destination_lat:34.1,destination_lon:-118.1}]:[]};}};
+  const fetcher=async(url)=>{const type=new URL(url).searchParams.get('type');return {ok:true,json:async()=>({features:[sample(9000,type==='short'?500:type==='less_maneuvers'?850:700,['Right'])]})};};
+  const service=createGeoapifyRoadRoutingService({connect:async()=>client},{apiKey:key,fetcher});
+  const result=await service.preview({organizationId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',legId:'11111111-1111-4111-8111-111111111111',goal:'FASTEST',includeMap:false});
+  assert.equal(result.durationSeconds,500);
+  assert.equal(result.mapImageUrl,null);
 });

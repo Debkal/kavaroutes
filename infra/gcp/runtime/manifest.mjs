@@ -8,7 +8,7 @@ const entries = [
   ['secrets','keep','private-file','platform','secret-file-tests','stop-host','none'],
   ['telemetry','keep','closed-local-output','platform','redaction-check','stop-host','none'],
   ['storage','disabled','none','platform','no-construction','none','none'],
-  ['maps','optional','google-routes-and-static','routing','route-preview-tests','stop-api','metered-external'],
+  ['maps','optional','geoapify-routes-and-static','routing','route-preview-tests','stop-api','free-tier-external'],
   ['push','disabled','none','communications','no-construction','none','none'],
   ['integrations','disabled','none','integrations','no-construction','none','none'],
   ['public-domain','retire','none','platform','loopback-only','none','none'],

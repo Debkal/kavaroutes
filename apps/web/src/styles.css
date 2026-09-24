@@ -76,7 +76,7 @@ details[open] > summary { margin-bottom: 1rem; }
 .road-route-result { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(15rem,.75fr); gap: 1rem; margin-top: .75rem; }
 .road-route-map { position: relative; display: grid; place-items: center; min-height: 16rem; overflow: hidden; border: 1px solid var(--line); border-radius: .7rem; background: #e5efeb; }
 .road-route-map img { display: block; width: 100%; height: auto; max-height: 24rem; object-fit: cover; }
-.road-route-map span { position: absolute; right: .6rem; bottom: .5rem; padding: .1rem .4rem; border-radius: .3rem; background: #fff; color: #1f1f1f; font-size: .75rem; }
+.road-route-map a { justify-self: end; margin: .3rem .6rem; color: #205b79; font-size: .75rem; }
 .road-route-summary { display: flex; flex-direction: column; align-items: start; gap: .45rem; }
 .road-route-summary p { margin: 0; color: var(--muted); }
 .road-route-summary button { margin-top: .4rem; }

@@ -58,6 +58,8 @@ services:
       - ${KR_SECRETS_DIRECTORY}/database-passwords.json:/run/secrets/database-passwords.json:ro
   api:
     <<: *host
+    env_file:
+      - ${KR_SECRETS_DIRECTORY}/geoapify.env
     depends_on:
       postgres: {condition: service_healthy}
     command: [api, /run/secrets/api.json]

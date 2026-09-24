@@ -1,6 +1,6 @@
 export type RoadGoal='LOW_COST'|'FASTEST'|'EASIEST';
 export type RoadSelection={goal:RoadGoal|null;version:number;selectedAt:string|null};
-export type RoadPreview={goal:RoadGoal;provider:'GOOGLE_ROUTES';distanceMeters:number;durationSeconds:number;
+export type RoadPreview={goal:RoadGoal;provider:'GEOAPIFY';distanceMeters:number;durationSeconds:number;
  tollEstimate:{currencyCode:string;amount:number}|null;tollsExpected:boolean;maneuverCount:number;pathFingerprint:string;
  steps:{instruction:string;maneuver:string;distanceMeters:number}[];mapImageUrl:string|null;googleMapsUrl:string;note:string};
 const goals=new Set(['LOW_COST','FASTEST','EASIEST']);
@@ -17,14 +17,14 @@ export function decodeRoadSelection(value:unknown):RoadSelection{
 }
 export function decodeRoadPreview(value:unknown,expectedGoal:RoadGoal):RoadPreview{
  const row=object(value);keys(row,['goal','provider','distanceMeters','durationSeconds','tollEstimate','tollsExpected','maneuverCount','pathFingerprint','steps','mapImageUrl','googleMapsUrl','note']);
- if(goal(row.goal)!==expectedGoal||row.provider!=='GOOGLE_ROUTES'||typeof row.tollsExpected!=='boolean'||typeof row.pathFingerprint!=='string'||!/^[a-f0-9]{64}$/.test(row.pathFingerprint))throw new Error('INVALID_ROAD_ROUTE');
+ if(goal(row.goal)!==expectedGoal||row.provider!=='GEOAPIFY'||typeof row.tollsExpected!=='boolean'||typeof row.pathFingerprint!=='string'||!/^[a-f0-9]{64}$/.test(row.pathFingerprint))throw new Error('INVALID_ROAD_ROUTE');
  const toll=row.tollEstimate===null?null:object(row.tollEstimate);
  if(toll){keys(toll,['currencyCode','amount']);if(typeof toll.currencyCode!=='string'||!/^[A-Z]{3}$/.test(toll.currencyCode)||typeof toll.amount!=='number'||!Number.isFinite(toll.amount)||toll.amount<0)throw new Error('INVALID_ROAD_ROUTE_TOLL');}
  if(!Array.isArray(row.steps)||row.steps.length>300)throw new Error('INVALID_ROAD_ROUTE_STEPS');
  const steps=row.steps.map(raw=>{const step=object(raw);keys(step,['instruction','maneuver','distanceMeters']);if(typeof step.instruction!=='string'||!step.instruction.length||step.instruction.length>500||typeof step.maneuver!=='string'||step.maneuver.length>60)throw new Error('INVALID_ROAD_ROUTE_STEP');return {instruction:step.instruction,maneuver:step.maneuver,distanceMeters:integer(step.distanceMeters)};});
- if(row.mapImageUrl!==null&&(typeof row.mapImageUrl!=='string'||!row.mapImageUrl.startsWith('https://maps.googleapis.com/maps/api/staticmap?')||row.mapImageUrl.length>16384))throw new Error('INVALID_ROAD_ROUTE_MAP');
+ if(row.mapImageUrl!==null&&(typeof row.mapImageUrl!=='string'||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(row.mapImageUrl)||row.mapImageUrl.length>600025))throw new Error('INVALID_ROAD_ROUTE_MAP');
  if(typeof row.googleMapsUrl!=='string'||!row.googleMapsUrl.startsWith('https://www.google.com/maps/dir/?api=1&')||row.googleMapsUrl.length>2048||typeof row.note!=='string'||row.note.length>300)throw new Error('INVALID_ROAD_ROUTE_LINK');
- return {goal:expectedGoal,provider:'GOOGLE_ROUTES',distanceMeters:integer(row.distanceMeters,1),durationSeconds:integer(row.durationSeconds,1),
+ return {goal:expectedGoal,provider:'GEOAPIFY',distanceMeters:integer(row.distanceMeters,1),durationSeconds:integer(row.durationSeconds,1),
   tollEstimate:toll as RoadPreview['tollEstimate'],tollsExpected:row.tollsExpected,maneuverCount:integer(row.maneuverCount),pathFingerprint:row.pathFingerprint,
   steps,mapImageUrl:row.mapImageUrl as string|null,googleMapsUrl:row.googleMapsUrl,note:row.note};
 }

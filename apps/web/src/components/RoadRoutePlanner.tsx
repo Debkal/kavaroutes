@@ -10,8 +10,9 @@ const miles=(meters:number)=>(meters/1609.344).toFixed(1);
 const minutes=(seconds:number)=>Math.max(1,Math.round(seconds/60));
 function problem(error:unknown){
   if(error instanceof DevelopmentApiError){
-    if(error.code==='MAPS_NOT_CONFIGURED'||error.status===503)return 'Google Maps routing is not configured. Ask your administrator to enable Routes and Static Maps.';
-    if(error.code==='MAPS_ROUTE_UNAVAILABLE'||error.code==='MAPS_MAP_UNAVAILABLE'||error.status===502)return 'Google Maps could not generate this route. Check the pickup and drop-off addresses, then retry.';
+    if(error.code==='MAPS_NOT_CONFIGURED'||error.status===503)return 'Road routing is not configured. Ask your administrator to check the Geoapify API key.';
+    if(error.code==='MAPS_ADDRESS_UNRESOLVED')return 'A pickup or drop-off address could not be matched confidently. Check the full street address and retry.';
+    if(error.code==='MAPS_ROUTE_UNAVAILABLE'||error.code==='MAPS_ROUTE_INVALID'||error.status===502)return 'Could not generate this route. Check the pickup and drop-off addresses, then retry.';
     if(error.status===412)return 'Another dispatcher changed this route. Refresh the selected route and try again.';
   }
   return 'Route suggestions are unavailable. Retry after checking the connection.';
@@ -73,9 +74,9 @@ export function RoadRoutePlanner({api,legs,enabled}:{api:ReturnType<typeof creat
     {busy&&<p role="status">{preview?'Saving route…':'Generating route and map…'}</p>}
     {message&&<p role={message.startsWith('Route choice saved')?'status':'alert'}>{message}</p>}
     {preview&&<div className="road-route-result">
-      <div className="road-route-map">{preview.mapImageUrl?<img src={preview.mapImageUrl} alt={`${labels[preview.goal]} road map from pickup to drop-off`} referrerPolicy="origin" />:<p>Map preview unavailable.</p>}<span translate="no">Google Maps</span></div>
+      <div className="road-route-map">{preview.mapImageUrl?<img src={preview.mapImageUrl} alt={`${labels[preview.goal]} road map from pickup to drop-off`} />:<p>Map preview unavailable.</p>}<a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">Powered by Geoapify</a></div>
       <div className="road-route-summary"><strong>{labels[preview.goal]}</strong><p>{miles(preview.distanceMeters)} mi · about {minutes(preview.durationSeconds)} min · {preview.maneuverCount} weighted maneuvers</p>
-        <p>{preview.tollsExpected?preview.tollEstimate?`Estimated tolls: ${new Intl.NumberFormat('en-US',{style:'currency',currency:preview.tollEstimate.currencyCode}).format(preview.tollEstimate.amount)}`:'Tolls expected; price unavailable.':'No tolls expected.'}</p>
+        <p>{preview.tollsExpected?'Toll road indicated; price unavailable.':'No toll road indicated in the proposed route.'}</p>
         <p>{preview.note}</p>{duplicate&&<p role="status">This follows the same roads as “{labels[duplicate]}”.</p>}
         <button className="primary" disabled={busy||selection?.goal===preview.goal} onClick={()=>void save()}>{pending.current?'Retry this route choice':selection?.goal===preview.goal?'Already sent to driver':'Choose for driver'}</button>
         <a href={preview.googleMapsUrl} target="_blank" rel="noreferrer">Inspect in Google Maps</a>

@@ -146,6 +146,6 @@ def main():
             if args.once:raise SystemExit(1)
         if datetime.now(ZoneInfo('America/Los_Angeles')).date()>date.fromisoformat(args.day)+timedelta(days=1):
             return
-        time.sleep(10)
+        time.sleep(60)
 
 if __name__=='__main__':main()
