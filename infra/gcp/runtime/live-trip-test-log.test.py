@@ -48,9 +48,12 @@ class TripLoggerTest(unittest.TestCase):
         self.assertEqual(summary['legs']['leg']['completedAt'],'10:03')
         self.assertEqual(summary['gpsByShift']['shift']['rejectedSamples'],1)
 
-    def test_readable_report_shows_pacific_timeline_and_gps_without_private_location(self):
+    def test_readable_report_uses_saved_run_timezone_and_omits_private_location(self):
         events=[
-            {'at':'2026-09-24T18:00:00+00:00','data':{'kind':'LEG_PLANNED','tripLegId':'leg-12345678',
+            {'at':'2026-09-24T17:00:00+00:00','data':{'kind':'RUN_TIMEZONE','runId':'run-12345678','serviceTimezone':'America/Los_Angeles'}},
+            {'at':'2026-09-24T17:00:00+00:00','data':{'kind':'ASSIGNMENT_CREATED','runId':'run-12345678','assignmentId':'assignment-12345678'}},
+            {'at':'2026-09-24T17:00:00+00:00','data':{'kind':'SHIFT_STARTED','assignmentId':'assignment-12345678','shiftId':'shift-12345678'}},
+            {'at':'2026-09-24T18:00:00+00:00','data':{'kind':'LEG_PLANNED','runId':'run-12345678','tripLegId':'leg-12345678',
              'plannedPickupAt':'2026-09-24T18:00:00+00:00','plannedDropoffAt':'2026-09-24T18:30:00+00:00'}},
             {'at':'2026-09-24T18:07:00+00:00','data':{'kind':'DRIVER_ACTION','tripLegId':'leg-12345678',
              'command':'ARRIVE_PICKUP','outcome':'APPLIED','recordedAt':'2026-09-24T18:07:00+00:00',
@@ -62,11 +65,27 @@ class TripLoggerTest(unittest.TestCase):
         ]
         result=module.readable_report(events,'2026-09-24',datetime(2026,9,24,12,tzinfo=ZoneInfo('America/Los_Angeles')))
         self.assertIn('Pickup arrival: Sep 24, 11:07:00 AM PDT',result)
+        self.assertIn('Leg leg-1234 — America/Los_Angeles',result)
+        self.assertIn('Shift shift-12 (America/Los_Angeles)',result)
         self.assertIn('phone captured Sep 24, 11:06:30 AM PDT',result)
         self.assertIn('GPS: 4 accepted, 1 rejected in 2 batches',result)
         self.assertEqual(result.count('GPS: 4 accepted'),1)
         self.assertLess(result.index('Driver action ARRIVE_PICKUP'),result.index('GPS: 4 accepted'))
         self.assertNotIn('latitude',result)
+
+    def test_readable_report_handles_different_run_zones_on_same_service_day(self):
+        events=[
+            {'at':'2026-09-24T12:00:00Z','data':{'kind':'RUN_TIMEZONE','runId':'east','serviceTimezone':'America/New_York'}},
+            {'at':'2026-09-24T12:00:00Z','data':{'kind':'RUN_TIMEZONE','runId':'west','serviceTimezone':'America/Los_Angeles'}},
+            {'at':'2026-09-24T16:00:00Z','data':{'kind':'LEG_PLANNED','runId':'east','tripLegId':'east-leg',
+             'plannedPickupAt':'2026-09-24T16:00:00Z','plannedDropoffAt':'2026-09-24T16:30:00Z'}},
+            {'at':'2026-09-24T16:00:00Z','data':{'kind':'LEG_PLANNED','runId':'west','tripLegId':'west-leg',
+             'plannedPickupAt':'2026-09-24T16:00:00Z','plannedDropoffAt':'2026-09-24T16:30:00Z'}},
+        ]
+        result=module.readable_report(events,'2026-09-24')
+        self.assertIn('Leg east-leg — America/New_York\n    Planned pickup: Sep 24, 12:00:00 PM EDT',result)
+        self.assertIn('Leg west-leg — America/Los_Angeles\n    Planned pickup: Sep 24, 9:00:00 AM PDT',result)
+        self.assertIn('Scheduled pickup east-leg',result)
 
     def test_published_report_is_private_and_replaces_previous_view(self):
         with tempfile.TemporaryDirectory() as root:

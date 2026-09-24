@@ -513,6 +513,29 @@
     },
     {
       "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/pickup-timezones/resolve",
+      "operationId": "resolveDispatchPickupTimezone",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "422",
+        "429",
+        "500",
+        "502",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
       "path": "/v1/organizations/{organizationId}/dispatch/route-proposals/{proposalId}/commands/decide",
       "operationId": "decideRouteProposal",
       "statuses": [

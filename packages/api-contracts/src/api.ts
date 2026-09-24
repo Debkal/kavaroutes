@@ -3,7 +3,7 @@ import {BrowserCommandPrepareSchema,BrowserCommandViewSchema,BrowserCommandPendi
 import {FacilityDaySchema,type FacilityService} from './facility-day.js';
 import {DriverClosureRequestSchema,DriverClosureReceiptSchema,DriverClosureViewSchema,DriverSyntheticLocationRequestSchema,DriverSyntheticLocationReceiptSchema,DriverReturnOverrideRequestSchema,DriverReturnReviewSchema,type DriverClosureService} from './driver-closure.js';
 import {RouteProposalRequestSchema,RouteDecisionRequestSchema,RouteProposalReceiptSchema,RouteProposalViewSchema,type RouteProposalService} from './route-proposals.js';
-import {RoadRoutePreviewRequestSchema,RoadRouteSelectRequestSchema,RoadRouteSelectionSchema,RoadRoutePreviewSchema,RoadRouteDriverViewSchema,RoadRoutingError,type RoadRoutingService,type RoadRouteGoal} from './road-routing.js';
+import {RoadRoutePreviewRequestSchema,RoadRouteSelectRequestSchema,RoadRouteSelectionSchema,RoadRoutePreviewSchema,RoadRouteDriverViewSchema,PickupTimezoneRequestSchema,PickupTimezoneSchema,RoadRoutingError,type RoadRoutingService,type RoadRouteGoal} from './road-routing.js';
 import {DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,PlanDispatchRunRequestSchema,PlanDispatchRunReceiptSchema,UnassignDispatchRunRequestSchema,UnassignDispatchRunReceiptSchema,type DispatchService,type AssignDispatchRunRequest,type PlanDispatchRunRequest,type UnassignDispatchRunRequest} from './dispatch-board.js';
 import {ClientCreateRequestSchema,ClientCreateReceiptSchema,ClientRosterSchema,ClientUpdateRequestSchema,type ClientService,type ClientCreateRequest,type ClientUpdateRequest} from './client-records.js';
 import {DriverAccountCreateRequestSchema,DriverAccountReceiptSchema,DriverLoginClaimRequestSchema,DriverLoginCreateRequestSchema,DriverLoginReceiptSchema,DriverLoginStateSchema,DriverLoginVerifyRequestSchema,type DriverLoginService,type DriverLoginState,type DriverAccountCreateRequest,type DriverLoginCreateRequest,type DriverLoginClaimRequest,type DriverLoginVerifyRequest} from './driver-logins.js';
@@ -544,6 +544,15 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       catch(error){if(error instanceof RoadRoutingError)throw new ProtocolError(error.statusCode,error.code,error.code);throw error;}
     };
     const base='/v1/organizations/:organizationId/dispatch/legs/:legId/road-route';
+    routes.post('/v1/organizations/:organizationId/dispatch/pickup-timezones/resolve',{bodyLimit:2048,schema:{operationId:'resolveDispatchPickupTimezone',tags:['dispatch'],security,headers:AuthorizationHeaders,params:OrganizationParams,
+      body:PickupTimezoneRequestSchema,
+      response:responseWithErrors({200:jsonResponse(PickupTimezoneSchema,'IANA timezone for the pickup address')},[400,401,403,404,406,422,429,500,502,503])}},async(request,reply)=>{
+      const {organizationId}=request.params as {organizationId:string};
+      await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'resolveDispatchPickupTimezone');
+      const {address}=request.body as {address:string};
+      reply.header('cache-control','no-store');request.wp007Context.resultCode='PICKUP_TIMEZONE_RESOLVED';
+      return reply.send(await guarded(()=>service().pickupTimezone({address})));
+    });
     routes.get(base,{schema:{operationId:'getDispatchRoadRouteSelection',tags:['dispatch'],security,headers:AuthorizationHeaders,params,response:responseWithErrors({200:jsonResponse(RoadRouteSelectionSchema,'Saved road-route goal for this leg')},[400,401,403,404,406,429,500,503])}},async(request,reply)=>{
       const {organizationId,legId}=request.params as {organizationId:string;legId:string};
       await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchRoadRouteSelection');

@@ -5,7 +5,7 @@ The file contains opaque IDs, event names, timestamps and GPS delivery metrics;
 it never records rider names, addresses, raw coordinates or credentials.
 """
 import argparse
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 import json
 import os
 import pathlib
@@ -28,7 +28,7 @@ def query_for_day(day,tenant=TENANT):
     if not UUID.fullmatch(tenant):raise ValueError('TENANT_ID_INVALID')
     return f"""
 WITH day_runs AS (
- SELECT tenant_id,id,service_date,created_at FROM dispatch.run
+ SELECT tenant_id,id,service_date,service_timezone,created_at FROM dispatch.run
  WHERE tenant_id='{tenant}'::uuid AND service_date='{day}'::date
 ), day_legs AS (
  SELECT rl.tenant_id,rl.run_id,rl.trip_leg_id FROM dispatch.run_leg rl
@@ -41,6 +41,10 @@ WITH day_runs AS (
 ), events AS (
  SELECT 'run:'||r.id::text AS event_key,r.created_at AS event_at,
  jsonb_build_object('kind','RUN_CREATED','runId',r.id,'serviceDate',r.service_date) AS payload
+ FROM day_runs r
+ UNION ALL
+ SELECT 'timezone:'||r.id::text,r.created_at,
+ jsonb_build_object('kind','RUN_TIMEZONE','runId',r.id,'serviceTimezone',r.service_timezone)
  FROM day_runs r
  UNION ALL
  SELECT 'leg:'||l.trip_leg_id::text,l.planned_start_at,
@@ -87,6 +91,17 @@ def collect(day,tenant=TENANT):
                           capture_output=True,text=True,timeout=20,check=True)
     return [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
 
+def current_service_days(tenant):
+    if not UUID.fullmatch(tenant):raise ValueError('TENANT_ID_INVALID')
+    query=("SELECT DISTINCT service_date FROM dispatch.run "
+           f"WHERE tenant_id='{tenant}'::uuid "
+           "AND service_date BETWEEN (now() AT TIME ZONE service_timezone)::date-1 "
+           "AND (now() AT TIME ZONE service_timezone)::date")
+    result=subprocess.run(['docker','exec',POSTGRES,'psql','-X','-q','-A','-t','-v','ON_ERROR_STOP=1',
+                           '-U','kr_cloud_admin','-d','kavaroutes_cloud','-c',query],
+                          capture_output=True,text=True,timeout=20,check=True)
+    return [day for day in result.stdout.splitlines() if re.fullmatch(r'\d{4}-\d{2}-\d{2}',day)]
+
 def append_new(path,events,seen):
     new=[event for event in events if event['eventKey'] not in seen]
     if not new:return 0
@@ -125,39 +140,63 @@ def report(events):
             shift['lastReceivedAt']=data['receivedAt']
     return {'legs':legs,'gpsByShift':shifts,'eventCount':len(events)}
 
-def local_time(value):
+def local_time(value,zone='UTC'):
     if not value:return 'not recorded'
     instant=datetime.fromisoformat(value.replace('Z','+00:00'))
-    return instant.astimezone(ZoneInfo('America/Los_Angeles')).strftime('%b %-d, %-I:%M:%S %p %Z')
+    return instant.astimezone(ZoneInfo(zone)).strftime('%b %-d, %-I:%M:%S %p %Z')
+
+def event_timezones(events):
+    runs={event['data']['runId']:event['data']['serviceTimezone'] for event in events
+          if event['data']['kind']=='RUN_TIMEZONE'}
+    legs={event['data']['tripLegId']:event['data']['runId'] for event in events
+          if event['data']['kind']=='LEG_PLANNED'}
+    assignments={event['data']['assignmentId']:event['data']['runId'] for event in events
+                 if event['data']['kind']=='ASSIGNMENT_CREATED'}
+    shifts={event['data']['shiftId']:assignments.get(event['data']['assignmentId']) for event in events
+            if event['data']['kind']=='SHIFT_STARTED'}
+    def zone(event):
+        data=event['data']
+        run_id=data.get('runId') or legs.get(data.get('tripLegId')) or shifts.get(data.get('shiftId'))
+        return runs.get(run_id,'UTC')
+    return zone
 
 def readable_report(events,day,generated_at=None):
     """Render a privacy-minimal timeline for an operator or plain-text email."""
-    generated_at=generated_at or datetime.now(ZoneInfo('America/Los_Angeles'))
+    generated_at=generated_at or datetime.now(timezone.utc)
+    if generated_at.tzinfo is None:raise ValueError('GENERATED_AT_REQUIRES_TIMEZONE')
     summary=report(events)
     legs=summary['legs']
+    zone_for=event_timezones(events)
+    leg_zones={event['data']['tripLegId']:zone_for(event) for event in events
+               if event['data']['kind']=='LEG_PLANNED'}
+    shift_zones={event['data']['shiftId']:zone_for(event) for event in events
+                 if event['data']['kind']=='SHIFT_STARTED'}
     actions=[event for event in events if event['data']['kind']=='DRIVER_ACTION']
     rejected=[event for event in actions if event['data']['outcome']=='REJECTED']
     gps=[event for event in events if event['data']['kind']=='GPS_BATCH']
     accepted=sum(event['data']['acceptedCount'] for event in gps)
     rejected_samples=sum(event['data']['sampleCount']-event['data']['acceptedCount'] for event in gps)
-    lines=[f'KavaRoutes live trip test — {day} (Pacific time)',
-           f'Generated: {generated_at.strftime("%b %-d, %-I:%M:%S %p %Z")}',
+    lines=[f'KavaRoutes live trip test — service date {day}',
+           f'Generated: {generated_at.astimezone(timezone.utc).strftime("%b %-d, %-I:%M:%S %p UTC")}',
+           'Trip times use each run\'s service timezone; UTC means the saved timezone was unavailable.',
            f'Events: {len(events)} | Legs: {len(legs)} | Driver actions: {len(actions)} | Rejected actions: {len(rejected)}',
            f'GPS delivery: {accepted} accepted, {rejected_samples} rejected samples in {len(gps)} batches',
            '', 'TRIP LEGS']
     if not legs:lines.append('  No trip legs recorded yet.')
     for leg_id,leg in sorted(legs.items(),key=lambda item:item[1].get('plannedPickupAt') or ''):
-        lines.extend([f'  Leg {leg_id[:8]}',
-                      f'    Planned pickup: {local_time(leg.get("plannedPickupAt"))}',
-                      f'    Pickup arrival: {local_time(leg.get("pickupArrivalAt"))}',
-                      f'    Rider boarded: {local_time(leg.get("boardedAt"))}',
-                      f'    Planned dropoff: {local_time(leg.get("plannedDropoffAt"))}',
-                      f'    Dropoff arrival: {local_time(leg.get("dropoffArrivalAt"))}',
-                      f'    Completed: {local_time(leg.get("completedAt"))}'])
+        zone=leg_zones.get(leg_id,'UTC')
+        lines.extend([f'  Leg {leg_id[:8]} — {zone}',
+                      f'    Planned pickup: {local_time(leg.get("plannedPickupAt"),zone)}',
+                      f'    Pickup arrival: {local_time(leg.get("pickupArrivalAt"),zone)}',
+                      f'    Rider boarded: {local_time(leg.get("boardedAt"),zone)}',
+                      f'    Planned dropoff: {local_time(leg.get("plannedDropoffAt"),zone)}',
+                      f'    Dropoff arrival: {local_time(leg.get("dropoffArrivalAt"),zone)}',
+                      f'    Completed: {local_time(leg.get("completedAt"),zone)}'])
     lines.extend(['', 'GPS BY SHIFT'])
     if not summary['gpsByShift']:lines.append('  No GPS batches received yet.')
     for shift_id,shift in summary['gpsByShift'].items():
-        lines.append(f'  Shift {shift_id[:8]}: {shift["samples"]} accepted, {shift["rejectedSamples"]} rejected in {shift["batches"]} batches; last received {local_time(shift["lastReceivedAt"])}')
+        zone=shift_zones.get(shift_id,'UTC')
+        lines.append(f'  Shift {shift_id[:8]} ({zone}): {shift["samples"]} accepted, {shift["rejectedSamples"]} rejected in {shift["batches"]} batches; last received {local_time(shift["lastReceivedAt"],zone)}')
     lines.extend(['', 'TIMELINE (server receipt time unless stated)'])
     if not events:lines.append('  No events recorded yet.')
     gps_minutes={}
@@ -166,25 +205,26 @@ def readable_report(events,day,generated_at=None):
         data=event['data']
         if data['kind']=='GPS_BATCH':
             minute=datetime.fromisoformat(event['at'].replace('Z','+00:00')).replace(second=0,microsecond=0).isoformat()
-            bucket=gps_minutes.setdefault(minute,{'batches':0,'accepted':0,'rejected':0})
+            bucket=gps_minutes.setdefault((minute,data['shiftId']),{'batches':0,'accepted':0,'rejected':0,'event':event})
             bucket['batches']+=1
             bucket['accepted']+=data['acceptedCount']
             bucket['rejected']+=data['sampleCount']-data['acceptedCount']
             continue
         kind=data['kind']
-        label={'RUN_CREATED':'Run created','LEG_PLANNED':'Leg planned',
+        label={'RUN_CREATED':'Run created','RUN_TIMEZONE':'Service timezone recorded','LEG_PLANNED':'Scheduled pickup',
                'ASSIGNMENT_CREATED':'Driver assigned','SHIFT_STARTED':'Shift started',
                'SERVICE_PROOF':'Service proof recorded','DRIVER_ACTION':'Driver action'}.get(kind,kind)
-        if kind=='LEG_PLANNED':label+=f' {data["tripLegId"][:8]}'
+        if kind=='RUN_TIMEZONE':label+=f' {data["serviceTimezone"]}'
+        elif kind=='LEG_PLANNED':label+=f' {data["tripLegId"][:8]}'
         elif kind=='DRIVER_ACTION':
             label+=f' {data["command"]} — {data["outcome"]}'
             if data.get('reason'):label+=f' ({data["reason"]})'
             if data.get('capturedAt') and data['capturedAt']!=data.get('recordedAt'):
-                label+=f'; phone captured {local_time(data["capturedAt"])}'
+                label+=f'; phone captured {local_time(data["capturedAt"],zone_for(event))}'
         elif kind=='SERVICE_PROOF':label+=f' {data["event"]}'
-        timeline.append((datetime.fromisoformat(event['at'].replace('Z','+00:00')),f'  {local_time(event["at"])}  {label}'))
-    for minute,bucket in gps_minutes.items():
-        timeline.append((datetime.fromisoformat(minute),f'  {local_time(minute)}  GPS: {bucket["accepted"]} accepted, {bucket["rejected"]} rejected in {bucket["batches"]} batches'))
+        timeline.append((datetime.fromisoformat(event['at'].replace('Z','+00:00')),f'  {local_time(event["at"],zone_for(event))}  {label}'))
+    for (minute,_),bucket in gps_minutes.items():
+        timeline.append((datetime.fromisoformat(minute),f'  {local_time(minute,zone_for(bucket["event"]))}  GPS: {bucket["accepted"]} accepted, {bucket["rejected"]} rejected in {bucket["batches"]} batches'))
     lines.extend(line for _,line in sorted(timeline))
     lines.extend(['', 'Times are driver-reported actions accepted by the server, not GPS geofence detections.',
                   'This report omits rider names, addresses, coordinates, credentials, and signatures.'])
@@ -265,16 +305,17 @@ def main():
     while True:
         try:
             if args.all:
-                day=datetime.now(ZoneInfo('America/Los_Angeles')).date().isoformat()
-                for tenant in enabled_tenants():poll_once(day,tenant,seen_by_file)
-                if args.once:print(json.dumps({'day':day,'businesses':len(enabled_tenants())}));return
+                tenants=enabled_tenants()
+                for tenant in tenants:
+                    for day in current_service_days(tenant):poll_once(day,tenant,seen_by_file)
+                if args.once:print(json.dumps({'businesses':len(tenants)}));return
             else:
                 count,total=poll_once(args.day,args.tenant,seen_by_file)
                 if args.once:print(json.dumps({'day':args.day,'newEvents':count,'totalEvents':total}));return
         except (subprocess.CalledProcessError,subprocess.TimeoutExpired,ValueError,OSError,sqlite3.Error) as error:
             print(f'TRIP_LOG_POLL_FAILED:{type(error).__name__}',flush=True)
             if args.once:raise SystemExit(1)
-        if not args.all and datetime.now(ZoneInfo('America/Los_Angeles')).date()>date.fromisoformat(args.day)+timedelta(days=1):
+        if not args.all and datetime.now(timezone.utc).date()>date.fromisoformat(args.day)+timedelta(days=2):
             return
         time.sleep(60)
 

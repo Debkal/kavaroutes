@@ -67,7 +67,7 @@ export async function createRuntimeApi(input) {
     const locationPath=/^\/v1\/organizations\/[^/]+\/(?:driver\/shifts\/[^/]+\/location-batches|dispatch\/tracking\/\d{4}-\d{2}-\d{2})$/.test(path);
     // The money surface: costing, estimates, payer invoices and client history.
     const accountingPath=/^\/v1\/organizations\/[^/]+\/(?:billing\/(?:cost-profile(?:\/commands\/update)?|estimates\/\d{4}-\d{2}-\d{2}|invoices(?:\/commands\/create|\/[^/]+(?:\/commands\/forward)?)?)|clients\/[^/]+\/history)$/.test(path);
-    const roadRoutingPath=/^\/v1\/organizations\/[^/]+\/(?:dispatch\/legs\/[^/]+\/road-route(?:\/preview|\/commands\/select)?|driver\/legs\/[^/]+\/road-route)$/.test(path);
+    const roadRoutingPath=/^\/v1\/organizations\/[^/]+\/(?:dispatch\/legs\/[^/]+\/road-route(?:\/preview|\/commands\/select)?|dispatch\/pickup-timezones\/resolve|driver\/legs\/[^/]+\/road-route)$/.test(path);
     if(closurePath)return; // Authentication/capability checks remain in the registered handlers.
     if(locationPath)return;
     if(accountingPath)return;

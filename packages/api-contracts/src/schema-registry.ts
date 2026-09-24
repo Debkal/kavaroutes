@@ -5,7 +5,7 @@ import { ClientCreateReceiptSchema, ClientCreateRequestSchema, ClientRosterSchem
 import { DriverAccountCreateRequestSchema, DriverAccountReceiptSchema, DriverLoginClaimRequestSchema, DriverLoginCreateRequestSchema, DriverLoginReceiptSchema, DriverLoginStateSchema, DriverLoginVerifyRequestSchema } from "./driver-logins.js";
 import { FacilityDaySchema } from "./facility-day.js";
 import { RouteDecisionRequestSchema, RouteProposalReceiptSchema, RouteProposalRequestSchema, RouteProposalViewSchema } from "./route-proposals.js";
-import { RoadRouteGoalSchema, RoadRoutePreviewRequestSchema, RoadRouteSelectRequestSchema, RoadRouteSelectionSchema, RoadRoutePreviewSchema, RoadRouteDriverViewSchema } from './road-routing.js';
+import { RoadRouteGoalSchema, RoadRoutePreviewRequestSchema, RoadRouteSelectRequestSchema, RoadRouteSelectionSchema, RoadRoutePreviewSchema, RoadRouteDriverViewSchema, PickupTimezoneRequestSchema, PickupTimezoneSchema } from './road-routing.js';
 import {
   DriverClosureReceiptSchema, DriverClosureRequestSchema, DriverClosureViewSchema, DriverReturnOverrideRequestSchema,
   DriverReturnReviewSchema, DriverSyntheticLocationReceiptSchema, DriverSyntheticLocationRequestSchema,
@@ -56,5 +56,6 @@ export const allSchemas: readonly TSchema[] = Object.freeze([
   DriverReturnOverrideRequestSchema, DriverReturnReviewSchema,
   RouteProposalRequestSchema, RouteDecisionRequestSchema, RouteProposalReceiptSchema, RouteProposalViewSchema,
   RoadRouteGoalSchema, RoadRoutePreviewRequestSchema, RoadRouteSelectRequestSchema, RoadRouteSelectionSchema, RoadRoutePreviewSchema, RoadRouteDriverViewSchema,
+  PickupTimezoneRequestSchema, PickupTimezoneSchema,
   BrowserCommandEnvelopeSchema, BrowserCommandPrepareSchema, BrowserCommandViewSchema, BrowserCommandPendingSchema,
 ]);

@@ -100,12 +100,19 @@ test('dispatch chooses a road-route goal and only the assigned driver reads dire
     mapImageUrl:null,googleMapsUrl:'https://www.google.com/maps/dir/?api=1&origin=1%2C2&destination=3%2C4',
     note:'Prefers toll-free roads.'};
   const roadRoutingService={configured:true,
+    async pickupTimezone(input){calls.push(['timezone',input]);return {serviceTimezone:'America/Chicago'};},
     async selection(input){calls.push(['selection',input]);return selected;},
     async preview(input){calls.push(['preview',input]);return preview;},
     async select(input){calls.push(['select',input]);return selected;}};
   const app=await createWp007Api({application:memoryApplication(),roadRoutingService});t.after(()=>app.close());
   const base=`/v1/organizations/${syntheticIds.organizationA}`;
-  let response=await app.inject({method:'POST',url:`${base}/dispatch/legs/${legId}/road-route/preview`,
+  let response=await app.inject({method:'POST',url:`${base}/dispatch/pickup-timezones/resolve`,
+    headers:auth('principal_dispatcher'),payload:{address:'100 Main St, Chicago, IL'}});
+  assert.equal(response.statusCode,200,response.body);assert.equal(response.json().serviceTimezone,'America/Chicago');
+  response=await app.inject({method:'POST',url:`${base}/dispatch/pickup-timezones/resolve`,
+    headers:auth('principal_driver'),payload:{address:'100 Main St, Chicago, IL'}});
+  assert.equal(response.statusCode,404);
+  response=await app.inject({method:'POST',url:`${base}/dispatch/legs/${legId}/road-route/preview`,
     headers:{...auth('principal_dispatcher'),'idempotency-key':'route-preview-001'},payload:{goal:'LOW_COST'}});
   assert.equal(response.statusCode,200,response.body);assert.equal(response.json().distanceMeters,9000);
   response=await app.inject({method:'POST',url:`${base}/dispatch/legs/${legId}/road-route/commands/select`,

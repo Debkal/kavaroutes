@@ -92,7 +92,7 @@ export interface ShiftTrack {
   readonly shiftReference: string; readonly driverId: string; readonly driverLabel: string; readonly serviceDate: string;
   /** When the assigned run was planned to start, when the shift actually began, and the
    * vehicle on the assignment. The board names a shift by its part of day, not by its id. */
-  readonly plannedStartAt: string; readonly startedAt: string; readonly vehicleLabel: string | null;
+  readonly plannedStartAt: string; readonly serviceTimezone: string; readonly startedAt: string; readonly vehicleLabel: string | null;
   readonly lifecycle: string; readonly status: string; readonly reason: string; readonly contactDriver: boolean;
   readonly silentSeconds: number; readonly lastReceivedAt: string | null; readonly lastCapturedAt: string | null;
   readonly staleAfterSeconds: number; readonly retryAfterSeconds: number;
@@ -134,7 +134,7 @@ export function createDispatchTrackingReader(pool: Pool) {
         accuracyMeters: value.accuracy_meters === undefined || value.accuracy_meters === null ? null : Number(value.accuracy_meters),
         capturedAt: new Date(value.captured_at as Date).toISOString() });
       tracks.push({ shiftReference: String(row.id), driverId: String(row.driver_id), driverLabel: String(row.driver_label),
-        serviceDate, plannedStartAt: instantOr(row.planned_start_at, serviceDate), startedAt: instantOr(row.pinned_at, serviceDate),
+        serviceDate, plannedStartAt: instantOr(row.planned_start_at, serviceDate), serviceTimezone:String(row.service_timezone), startedAt: instantOr(row.pinned_at, serviceDate),
         vehicleLabel: row.vehicle_label === null || row.vehicle_label === undefined ? null : String(row.vehicle_label),
         lifecycle: String(row.lifecycle), status: String(row.alert_status ?? evaluation.status),
         reason: String(row.alert_reason ?? evaluation.reason), contactDriver: Boolean(row.alert_contact ?? evaluation.contactDriver),

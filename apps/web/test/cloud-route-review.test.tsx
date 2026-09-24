@@ -10,7 +10,7 @@ it('dispatcher recovers the identical decision after a lost response and refresh
  const api:any={dispatchSnapshot:async()=>({value:{resources:[{kind:'driver-shift',reference:`driver-shift:${shift}`,version:1}]}}),
   // The shift is named the way the tracking panel names it: driver and part of day.
   tracking:async()=>({value:{serviceDate:'2026-09-14',shifts:[{shiftReference:shift,driverId:'44444444-4444-4444-8444-444444444444',
-    driverLabel:'Synthetic Driver 042',plannedStartAt:'2026-09-14T15:00:00.000Z',startedAt:'2026-09-14T14:58:00.000Z',vehicleLabel:'Synthetic Van 12',
+    driverLabel:'Synthetic Driver 042',plannedStartAt:'2026-09-14T15:00:00.000Z',serviceTimezone:'America/Los_Angeles',startedAt:'2026-09-14T14:58:00.000Z',vehicleLabel:'Synthetic Van 12',
     lifecycle:'ACTIVE',status:'UPDATES_CURRENT',reason:'RECENT_SAMPLE_RECEIVED',contactDriver:false,silentSeconds:0,lastReceivedAt:null,lastCapturedAt:null,
     staleAfterSeconds:60,retryAfterSeconds:30,position:null,trace:[]}]}}),
   routeProposals:async()=>({value:{shiftId:shift,runId:shift,runVersion:approved?2:1,factsVersion:1,shiftGeneration:shift,policyDigest:'a'.repeat(64),expectedTag:tag,mode:'DISPATCH_APPROVAL_REQUIRED',nodes:[{nodeId:node,tripLegId:shift,kind:'PICKUP',locked:false}],proposals:[{proposalId,expectedTag:tag,nodeOrder:[node],runVersion:1,state:approved?'APPROVED':'PENDING_DISPATCH_APPROVAL'}]}}),

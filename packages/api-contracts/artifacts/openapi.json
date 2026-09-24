@@ -1847,6 +1847,121 @@
         "type": "object"
       },
       "def-118": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "address"
+        ],
+        "title": "PickupTimezoneRequest",
+        "type": "object"
+      },
+      "def-119": {
+        "additionalProperties": false,
+        "properties": {
+          "serviceTimezone": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "serviceTimezone"
+        ],
+        "title": "PickupTimezone",
+        "type": "object"
+      },
+      "def-12": {
+        "additionalProperties": false,
+        "properties": {
+          "lifecycle": {
+            "anyOf": [
+              {
+                "enum": [
+                  "DRAFT"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "CANCELLED"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "recordState": {
+            "anyOf": [
+              {
+                "enum": [
+                  "DRAFT"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "PLANNED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "IN_PROGRESS"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "DELIVERED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "CANCELLED"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "resolvedServiceAt": {
+            "$ref": "#/components/schemas/def-2"
+          },
+          "riderReference": {
+            "$ref": "#/components/schemas/def-1"
+          },
+          "serviceDate": {
+            "$ref": "#/components/schemas/def-3"
+          },
+          "serviceTimezone": {
+            "$ref": "#/components/schemas/def-4"
+          },
+          "tripId": {
+            "$ref": "#/components/schemas/def-1"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tripId",
+          "riderReference",
+          "serviceDate",
+          "serviceTimezone",
+          "resolvedServiceAt",
+          "lifecycle",
+          "version"
+        ],
+        "title": "DispatcherTrip",
+        "type": "object"
+      },
+      "def-120": {
         "anyOf": [
           {
             "additionalProperties": false,
@@ -1978,11 +2093,11 @@
         ],
         "title": "BrowserCommandEnvelope"
       },
-      "def-119": {
+      "def-121": {
         "additionalProperties": false,
         "properties": {
           "envelope": {
-            "$ref": "#/components/schemas/def-118"
+            "$ref": "#/components/schemas/def-120"
           },
           "id": {
             "format": "uuid",
@@ -1996,99 +2111,14 @@
         "title": "BrowserCommandPrepare",
         "type": "object"
       },
-      "def-12": {
-        "additionalProperties": false,
-        "properties": {
-          "lifecycle": {
-            "anyOf": [
-              {
-                "enum": [
-                  "DRAFT"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "CANCELLED"
-                ],
-                "type": "string"
-              }
-            ]
-          },
-          "recordState": {
-            "anyOf": [
-              {
-                "enum": [
-                  "DRAFT"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "PLANNED"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "IN_PROGRESS"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "DELIVERED"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "CANCELLED"
-                ],
-                "type": "string"
-              }
-            ]
-          },
-          "resolvedServiceAt": {
-            "$ref": "#/components/schemas/def-2"
-          },
-          "riderReference": {
-            "$ref": "#/components/schemas/def-1"
-          },
-          "serviceDate": {
-            "$ref": "#/components/schemas/def-3"
-          },
-          "serviceTimezone": {
-            "$ref": "#/components/schemas/def-4"
-          },
-          "tripId": {
-            "$ref": "#/components/schemas/def-1"
-          },
-          "version": {
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "tripId",
-          "riderReference",
-          "serviceDate",
-          "serviceTimezone",
-          "resolvedServiceAt",
-          "lifecycle",
-          "version"
-        ],
-        "title": "DispatcherTrip",
-        "type": "object"
-      },
-      "def-120": {
+      "def-122": {
         "additionalProperties": false,
         "properties": {
           "acknowledged": {
             "type": "boolean"
           },
           "envelope": {
-            "$ref": "#/components/schemas/def-118"
+            "$ref": "#/components/schemas/def-120"
           },
           "expired": {
             "type": "boolean"
@@ -2197,13 +2227,13 @@
         "title": "BrowserCommandView",
         "type": "object"
       },
-      "def-121": {
+      "def-123": {
         "additionalProperties": false,
         "properties": {
           "command": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/def-120"
+                "$ref": "#/components/schemas/def-122"
               },
               {
                 "type": "null"
@@ -7755,6 +7785,11 @@
             "minimum": 1,
             "type": "integer"
           },
+          "serviceTimezone": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
           "shiftReference": {
             "format": "uuid",
             "type": "string"
@@ -7802,6 +7837,7 @@
           "driverId",
           "driverLabel",
           "plannedStartAt",
+          "serviceTimezone",
           "startedAt",
           "vehicleLabel",
           "lifecycle",
@@ -7932,6 +7968,11 @@
                   "minimum": 1,
                   "type": "integer"
                 },
+                "serviceTimezone": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
                 "shiftReference": {
                   "format": "uuid",
                   "type": "string"
@@ -7979,6 +8020,7 @@
                 "driverId",
                 "driverLabel",
                 "plannedStartAt",
+                "serviceTimezone",
                 "startedAt",
                 "vehicleLabel",
                 "lifecycle",
@@ -11136,7 +11178,7 @@
                 "additionalProperties": false,
                 "properties": {
                   "envelope": {
-                    "$ref": "#/components/schemas/def-118"
+                    "$ref": "#/components/schemas/def-120"
                   },
                   "id": {
                     "format": "uuid",
@@ -11158,7 +11200,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-120"
+                  "$ref": "#/components/schemas/def-122"
                 }
               }
             },
@@ -11374,7 +11416,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-121"
+                  "$ref": "#/components/schemas/def-123"
                 }
               }
             },
@@ -11618,7 +11660,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-120"
+                  "$ref": "#/components/schemas/def-122"
                 }
               }
             },
@@ -11862,7 +11904,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-120"
+                  "$ref": "#/components/schemas/def-122"
                 }
               }
             },
@@ -13797,6 +13839,173 @@
               }
             },
             "description": "Dependency timeout"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/dispatch/pickup-timezones/resolve": {
+      "post": {
+        "operationId": "resolveDispatchPickupTimezone",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "address": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "address"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-119"
+                }
+              }
+            },
+            "description": "IANA timezone for the pickup address",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Dependency failure"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
           }
         },
         "security": [

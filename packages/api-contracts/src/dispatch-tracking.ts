@@ -22,6 +22,7 @@ export const DispatchShiftTrackSchema = Type.Object({
   /** The board names a shift by its part of day: the assigned run's planned start, when
    * the driver actually began, and the vehicle on the assignment. */
   plannedStartAt: Type.String({ format: "date-time", maxLength: 35 }),
+  serviceTimezone: Type.String({ minLength: 1, maxLength: 100 }),
   startedAt: Type.String({ format: "date-time", maxLength: 35 }),
   vehicleLabel: Type.Union([Type.String({ minLength: 1, maxLength: 200 }), Type.Null()]),
   lifecycle: Type.String({ minLength: 1, maxLength: 64 }),

@@ -67,8 +67,10 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
           if(!Array.isArray(row.trace)||row.trace.length>500)throw new Error('INVALID_DISPATCH_TRACKING');
           if(row.position!==null&&row.position!==undefined&&typeof row.position!=='object')throw new Error('INVALID_DISPATCH_TRACKING');
           if(typeof row.plannedStartAt!=='string'||!Number.isFinite(Date.parse(row.plannedStartAt))||typeof row.startedAt!=='string'||!Number.isFinite(Date.parse(row.startedAt)))throw new Error('INVALID_DISPATCH_TRACKING');
+          if(typeof row.serviceTimezone!=='string'||row.serviceTimezone.length>100)throw new Error('INVALID_DISPATCH_TRACKING');
+          try{new Intl.DateTimeFormat('en-US',{timeZone:row.serviceTimezone}).format();}catch{throw new Error('INVALID_DISPATCH_TRACKING');}
           if(row.vehicleLabel!==null&&row.vehicleLabel!==undefined&&typeof row.vehicleLabel!=='string')throw new Error('INVALID_DISPATCH_TRACKING');
-          return {shiftReference:row.shiftReference,driverId:row.driverId,driverLabel:row.driverLabel,plannedStartAt:row.plannedStartAt,
+          return {shiftReference:row.shiftReference,driverId:row.driverId,driverLabel:row.driverLabel,plannedStartAt:row.plannedStartAt,serviceTimezone:row.serviceTimezone,
             startedAt:row.startedAt,vehicleLabel:(row.vehicleLabel??null) as string|null,
             lifecycle:String(row.lifecycle),status:String(row.status),
             reason:String(row.reason),contactDriver:row.contactDriver,silentSeconds:Math.round(row.silentSeconds),lastReceivedAt:(row.lastReceivedAt??null) as string|null,
@@ -85,6 +87,17 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
     board(serviceDate:string,signal?:AbortSignal){
       if(!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate))throw new Error('INVALID_SERVICE_DATE');
       return transport.request(`${prefix}/dispatch-board/${serviceDate}`,body=>decodeCloudBoard(body,serviceDate),undefined,signal);
+    },
+    pickupTimezone(address:string){
+      if(!address.trim()||address.length>512)throw new Error('INVALID_PICKUP_ADDRESS');
+      return transport.request(`${prefix}/dispatch/pickup-timezones/resolve`,body=>{
+        const value=object(body);
+        if(Object.keys(value).join()!=='serviceTimezone'||typeof value.serviceTimezone!=='string'||value.serviceTimezone.length>100)
+          throw new Error('INVALID_PICKUP_TIMEZONE');
+        try{new Intl.DateTimeFormat('en-US',{timeZone:value.serviceTimezone}).format();}
+        catch{throw new Error('INVALID_PICKUP_TIMEZONE');}
+        return {serviceTimezone:value.serviceTimezone};
+      },{body:{address:address.trim()},idempotencyKey:`pickup-zone-${crypto.randomUUID()}`});
     },
     roadRouteSelection(legId:string){
       if(!uuid.test(legId))throw new Error('INVALID_LEG_REFERENCE');

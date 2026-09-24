@@ -92,7 +92,7 @@ async function geocode(fetcher,key,label){
   const match=data.results?.[0];
   if(!validNumber(match?.lat)||!validNumber(match?.lon)||Math.abs(match.lat)>90||Math.abs(match.lon)>180||Number(match.rank?.confidence??0)<0.75)
     throw new RoadRoutingError(502,'MAPS_ADDRESS_UNRESOLVED');
-  return [match.lat,match.lon];
+  return {point:[match.lat,match.lon],timezone:match.timezone?.name??null};
 }
 async function geoapifyRoutes(fetcher,key,origin,destination,goal){
   const requested=goal==='FASTEST'?['FASTEST','LOW_COST','EASIEST']:[goal];
@@ -138,8 +138,7 @@ const selectionFrom=row=>row?{goal:row.goal,version:Number(row.version),selected
 export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch}={}){
   const configured=typeof apiKey==='string'&&/^[A-Za-z0-9_-]{20,200}$/.test(apiKey);
   const geocodeCache=new Map();
-  const resolvePoint=(label,lat,lon)=>{
-    if(validNumber(Number(lat))&&validNumber(Number(lon))&&lat!==null&&lon!==null)return Promise.resolve([Number(lat),Number(lon)]);
+  const resolveAddress=label=>{
     if(!geocodeCache.has(label)){
       if(geocodeCache.size>=500)geocodeCache.delete(geocodeCache.keys().next().value);
       const pending=geocode(fetcher,apiKey,label).catch(error=>{geocodeCache.delete(label);throw error;});
@@ -147,8 +146,22 @@ export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch
     }
     return geocodeCache.get(label);
   };
+  const resolvePoint=(label,lat,lon)=>{
+    if(validNumber(Number(lat))&&validNumber(Number(lon))&&lat!==null&&lon!==null)return Promise.resolve([Number(lat),Number(lon)]);
+    return resolveAddress(label).then(result=>result.point);
+  };
   return Object.freeze({
     configured,
+    async pickupTimezone({address}){
+      if(!configured)throw new RoadRoutingError(503,'MAPS_NOT_CONFIGURED');
+      if(typeof address!=='string'||!address.trim()||address.length>512)throw new RoadRoutingError(502,'MAPS_ADDRESS_UNRESOLVED');
+      const result=await resolveAddress(address.trim());
+      const zone=result.timezone;
+      if(typeof zone!=='string')throw new RoadRoutingError(502,'MAPS_TIMEZONE_UNAVAILABLE');
+      try{new Intl.DateTimeFormat('en-US',{timeZone:zone}).format();}
+      catch{throw new RoadRoutingError(502,'MAPS_TIMEZONE_UNAVAILABLE');}
+      return {serviceTimezone:zone};
+    },
     async selection({organizationId,legId,driverId}){
       return withTenantTransaction(pool,organizationId,'kavaroutes_api',async client=>{
         await leg(client,organizationId,legId,driverId);

@@ -13,9 +13,23 @@ vi.mock('../src/cloud-client-api',()=>({createCloudClientApi:()=>({roster:async(
   {ordinal:1,addressLabel:'200 Frequent Clinic',usageCount:9,lastUsedAt:'2026-09-10T16:00:00.000Z'},
   {ordinal:2,addressLabel:'300 Recent Center',usageCount:2,lastUsedAt:'2026-09-17T16:00:00.000Z'},
  ]}]}}),create:async()=>{throw new Error('NOT_STUBBED');},update:async()=>{throw new Error('NOT_STUBBED');}})}));
-function mount(){const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
- render(<QueryClientProvider client={client}><DispatchRouteForm api={{} as ReturnType<typeof createCloudApi>} serviceDate="2026-09-17" onServiceDateChange={()=>{}}/></QueryClientProvider>);}
+function mount(api={} as ReturnType<typeof createCloudApi>){const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
+ render(<QueryClientProvider client={client}><DispatchRouteForm api={api} serviceDate="2026-09-17" onServiceDateChange={()=>{}}/></QueryClientProvider>);}
 describe('dispatch route entry controls',()=>{
+ it('uses the pickup address timezone when saving a run',async()=>{
+  const pickupTimezone=vi.fn(async()=>({value:{serviceTimezone:'America/New_York'}}));
+  const planRun=vi.fn(async()=>({value:{legCount:1,runId:'11111111-1111-4111-8111-111111111111'}}));
+  mount({pickupTimezone,planRun} as unknown as ReturnType<typeof createCloudApi>);
+  fireEvent.change(screen.getByLabelText('Client name'),{target:{value:'Test Rider'}});
+  fireEvent.change(screen.getByLabelText('Pickup address'),{target:{value:'100 Broadway, New York, NY'}});
+  fireEvent.change(screen.getByLabelText('Drop-off address'),{target:{value:'200 Main St, New York, NY'}});
+  fireEvent.click(screen.getByRole('button',{name:'Save route for the driver'}));
+  await waitFor(()=>expect(planRun).toHaveBeenCalledOnce());
+  expect(pickupTimezone).toHaveBeenCalledWith('100 Broadway, New York, NY');
+  const request=planRun.mock.calls[0]![0];
+  expect(request.serviceTimezone).toBe('America/New_York');
+  expect(request.legs[0].plannedStartAt).toBe('2026-09-17T13:00:00.000Z');
+ });
  it('defaults to the most recent client drop-off and can sort the directory by frequency',async()=>{
   mount();
   const client=screen.getByLabelText('Client');

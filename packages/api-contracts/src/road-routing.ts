@@ -8,6 +8,11 @@ export const RoadRouteGoalSchema = Type.Union([
 ], { $id: 'RoadRouteGoal' });
 export type RoadRouteGoal = Static<typeof RoadRouteGoalSchema>;
 
+export const PickupTimezoneRequestSchema = Type.Object({address:Type.String({minLength:1,maxLength:512})},
+  {additionalProperties:false,$id:'PickupTimezoneRequest'});
+export const PickupTimezoneSchema = Type.Object({serviceTimezone:Type.String({minLength:1,maxLength:100})},
+  {additionalProperties:false,$id:'PickupTimezone'});
+
 export const RoadRoutePreviewRequestSchema = Type.Object({ goal: goal() },
   { additionalProperties: false, $id: 'RoadRoutePreviewRequest' });
 export const RoadRouteSelectRequestSchema = Type.Object({
@@ -47,6 +52,7 @@ export const RoadRouteDriverViewSchema = Type.Object({
 
 export interface RoadRoutingService {
   readonly configured: boolean;
+  pickupTimezone(input: { address: string }): Promise<{ serviceTimezone: string }>;
   selection(input: { organizationId: string; legId: string; driverId?: string }): Promise<RoadRouteSelection>;
   preview(input: { organizationId: string; legId: string; goal: RoadRouteGoal; includeMap: boolean; driverId?: string }): Promise<RoadRoutePreview>;
   select(input: { organizationId: string; legId: string; actorId: string; goal: RoadRouteGoal; expectedVersion: number; key: string }): Promise<RoadRouteSelection>;

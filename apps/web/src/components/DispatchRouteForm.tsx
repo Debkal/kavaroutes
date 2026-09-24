@@ -5,7 +5,7 @@ import type { createCloudApi } from "../cloud-api";
 import type { CloudPlanRequest } from "../cloud-board-contract";
 import { createCloudClientApi, type ClientDropoff } from "../cloud-client-api";
 import { resolveLocalServiceStart } from "../cloud-service-time";
-import {businessTimezone,businessTimezoneLabel} from "../business-time";
+import {businessTimezone} from "../business-time";
 import {ServiceDatePicker} from "./ServiceDatePicker";
 
 /** A dispatcher-authored run. The form only collects what the server records:
@@ -48,7 +48,9 @@ export function DispatchRouteForm({ api, serviceDate, onServiceDateChange, onPla
   const [clientId, setClientId] = useState("");
   const [dropoffSort,setDropoffSort]=useState<DropoffSort>("RECENT");
   const clients = useQuery({ queryKey: ["private-cloud", "clients", "plan-picker"], queryFn: ({ signal }) => clientApi.current.roster(undefined, signal), retry: false });
-  const timezone = businessTimezone;
+  const [timezoneMode,setTimezoneMode]=useState<"AUTO"|"MANUAL">("AUTO");
+  const [manualTimezone,setManualTimezone]=useState(businessTimezone);
+  const [detectedTimezone,setDetectedTimezone]=useState<string|null>(null);
   const [legs, setLegs] = useState<LegDraft[]>([emptyLeg()]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -66,10 +68,12 @@ export function DispatchRouteForm({ api, serviceDate, onServiceDateChange, onPla
   },[initialClientId,clients.data]);
   // Edits run through the return generator, so a round trip's return leg always
   // mirrors the outbound leg it belongs to.
-  const patch = (index: number, change: Partial<LegDraft>) =>
+  const patch = (index: number, change: Partial<LegDraft>) => {
+    if(change.pickupLabel!==undefined)setDetectedTimezone(null);
     setLegs(current => syncReturns(current.map((leg, position) => position === index ? { ...leg, ...change } : leg)));
+  };
 
-  const build = (): CloudPlanRequest => {
+  const build = (timezone:string): CloudPlanRequest => {
     const resolved = legs.map(leg => {
       const duration = Number(leg.durationMinutes);
       const appointmentLength=Number(leg.appointmentLengthMinutes);
@@ -136,15 +140,33 @@ export function DispatchRouteForm({ api, serviceDate, onServiceDateChange, onPla
     setLegs(current => syncReturns([...current, { ...current[index]!, dropoffLabel: "", recordClientDropoff:!!clientId, generatedReturn: false }]));
   const plan = async () => {
     if (busy) return;
+    setBusy(true);
     if (!pending.current) {
-      try { pending.current = { request: build(), key: `web-plan-${crypto.randomUUID()}` }; }
-      catch (error) { setMessage(error instanceof Error ? error.message : "Review the route fields."); return; }
+      try {
+        let timezone=manualTimezone.trim();
+        if(timezoneMode==="AUTO"){
+          setMessage("Checking pickup location time zones…");
+          const pickups=[...new Set(legs.map(leg=>trimmed(leg.pickupLabel,"pickup address")))];
+          const found=await Promise.all(pickups.map(address=>api.pickupTimezone(address)));
+          const zones=[...new Set(found.map(result=>result.value.serviceTimezone))];
+          if(zones.length!==1)throw new Error("Pickups span different time zones. Schedule each time zone as a separate run.");
+          timezone=zones[0]!;
+          setDetectedTimezone(timezone);
+        }
+        pending.current = { request: build(timezone), key: `web-plan-${crypto.randomUUID()}` };
+      } catch (error) {
+        setMessage(error instanceof DevelopmentApiError
+          ? "Could not determine the pickup time zone. Check the full pickup address or choose a time zone manually."
+          : error instanceof Error ? error.message : "Review the pickup address and time zone.");
+        setBusy(false);return;
+      }
     }
-    setBusy(true); setMessage("Submitting the route to the server…");
+    setMessage("Submitting the route to the server…");
     try {
       const receipt = await api.planRun(pending.current.request, pending.current.key);
       pending.current = null;
       setLegs([emptyLeg()]);
+      setDetectedTimezone(null);
       setClientId("");
       setMessage(`Transport scheduled with ${receipt.value.legCount} trip(s). Assign a driver and vehicle on the Dispatch board below.`);
       onPlanned?.(receipt.value.runId);
@@ -164,7 +186,11 @@ export function DispatchRouteForm({ api, serviceDate, onServiceDateChange, onPla
     <h2>Schedule transport</h2>
     <p>Choose a client, confirm pickup, and enter the requested destination. Assign a driver and vehicle on the board after saving.</p>
     <ServiceDatePicker value={serviceDate} disabled={busy || !!pending.current} onChange={onServiceDateChange}/>
-    <p className="form-hint">All appointment times use {businessTimezoneLabel}, the configured business timezone.</p>
+    <label>Pickup time zone <select value={timezoneMode} disabled={busy || !!pending.current} onChange={event=>{setTimezoneMode(event.target.value as "AUTO"|"MANUAL");setDetectedTimezone(null);}}>
+      <option value="AUTO">Detect from pickup address</option><option value="MANUAL">Enter time zone manually</option>
+    </select></label>
+    {timezoneMode==="MANUAL"?<label>IANA time zone <input value={manualTimezone} disabled={busy || !!pending.current} onChange={event=>setManualTimezone(event.target.value)} placeholder="America/New_York"/></label>
+      :<p className="form-hint">{detectedTimezone?`Pickup time zone: ${detectedTimezone}.`:'The pickup address sets the appointment clock when you save. Enter a full address for an accurate match.'}</p>}
     <label>Client <select value={clientId} disabled={busy || !!pending.current} onChange={event => {
       initialized.current=true;
       const id=event.target.value; setClientId(id);

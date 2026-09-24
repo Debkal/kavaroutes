@@ -32,6 +32,24 @@ test('routing is unavailable until a server secret is configured',async()=>{
   await assert.rejects(()=>service.preview({organizationId:'a',legId:'b',goal:'FASTEST',includeMap:true}),error=>error.code==='MAPS_NOT_CONFIGURED');
 });
 
+test('pickup timezone comes from the resolved address, not the server clock or API key',async()=>{
+  const calls=[];
+  const fetcher=async url=>{const parsed=new URL(url);calls.push(parsed);
+    return {ok:true,json:async()=>({results:[{lat:40.73,lon:-73.99,rank:{confidence:0.96},timezone:{name:'America/New_York'}}]})};};
+  const service=createGeoapifyRoadRoutingService(null,{apiKey:key,fetcher});
+  assert.deepEqual(await service.pickupTimezone({address:' 100 Broadway, New York, NY '}),{serviceTimezone:'America/New_York'});
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].searchParams.get('text'),'100 Broadway, New York, NY');
+  assert.ok(!JSON.stringify(await service.pickupTimezone({address:'100 Broadway, New York, NY'})).includes(key));
+  assert.equal(calls.length,1);
+});
+
+test('pickup timezone fails closed when geocoding has no IANA zone',async()=>{
+  const fetcher=async()=>({ok:true,json:async()=>({results:[{lat:40.73,lon:-73.99,rank:{confidence:0.96}}]})});
+  const service=createGeoapifyRoadRoutingService(null,{apiKey:key,fetcher});
+  await assert.rejects(()=>service.pickupTimezone({address:'100 Broadway'}),error=>error.code==='MAPS_TIMEZONE_UNAVAILABLE');
+});
+
 test('route, geocode and static map stay server side while selected goal persists',async()=>{
   const calls=[];let selected=null;
   const client={release(){},async query(sql,params){
