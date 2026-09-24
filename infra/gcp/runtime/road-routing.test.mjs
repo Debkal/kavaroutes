@@ -77,6 +77,10 @@ test('route, geocode and static map stay server side while selected goal persist
   assert.equal(calls.filter(call=>call.path==='/v1/geocode/search').length,2);
   assert.equal(calls.filter(call=>call.path==='/v1/routing').length,1);
   assert.equal(calls.filter(call=>call.path==='/v1/staticmap').length,1);
+  const driverRoute=await service.preview({...scope,goal:'LOW_COST',includeMap:false,driverId:'44444444-4444-4444-8444-444444444444'});
+  assert.equal(driverRoute.pathFingerprint,preview.pathFingerprint);
+  assert.equal(calls.filter(call=>call.path==='/v1/routing').length,1);
+  assert.equal(calls.filter(call=>call.path==='/v1/staticmap').length,1);
   assert.equal((await service.selection(scope)).goal,null);
   const first=await service.select({...scope,actorId:'22222222-2222-4222-8222-222222222222',goal:'LOW_COST',expectedVersion:0,key:'road-select-one'});
   assert.equal(first.version,1);

@@ -46,7 +46,14 @@ it('shows the assigned driver concise route instructions and a Google Maps navig
   const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
   render(<QueryClientProvider client={client}><DriverRoadDirections api={api as any} legId={legId} pickup="1 Main St" dropoff="2 Main St"/></QueryClientProvider>);
   await screen.findByText(/Dispatch chose/);
-  expect(screen.getByRole('link',{name:'Navigate in Google Maps'})).toHaveAttribute('href',preview.googleMapsUrl);
+  const pickupLink=new URL(screen.getByRole('link',{name:'Navigate to pickup from my location'}).getAttribute('href')!);
+  expect(pickupLink.searchParams.has('origin')).toBe(false);
+  expect(pickupLink.searchParams.get('destination')).toBe('1 Main St');
+  expect(pickupLink.searchParams.get('dir_action')).toBe('navigate');
+  const tripLink=new URL(screen.getByRole('link',{name:'Navigate pickup to drop-off in Google Maps'}).getAttribute('href')!);
+  expect(tripLink.searchParams.get('origin')).toBe('1,2');
+  expect(tripLink.searchParams.get('destination')).toBe('3,4');
+  expect(tripLink.searchParams.get('dir_action')).toBe('navigate');
   fireEvent.click(screen.getByText(/Route directions/));
   expect(screen.getByText(/Turn right on Main St\. Continue for/)).toBeInTheDocument();
   expect(api.roadRoute).toHaveBeenCalledTimes(1);
