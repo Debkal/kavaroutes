@@ -441,6 +441,77 @@
       ]
     },
     {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/legs/{legId}/road-route",
+      "operationId": "getDispatchRoadRouteSelection",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/legs/{legId}/road-route/commands/select",
+      "operationId": "selectDispatchRoadRoute",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "409",
+        "412",
+        "413",
+        "415",
+        "422",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/v1/organizations/{organizationId}/dispatch/legs/{legId}/road-route/preview",
+      "operationId": "previewDispatchRoadRoute",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "422",
+        "429",
+        "500",
+        "502",
+        "503",
+        "504"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
       "method": "POST",
       "path": "/v1/organizations/{organizationId}/dispatch/route-proposals/{proposalId}/commands/decide",
       "operationId": "decideRouteProposal",
@@ -875,6 +946,29 @@
         "429",
         "500",
         "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/driver/legs/{legId}/road-route",
+      "operationId": "getDriverRoadRoute",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "502",
+        "503",
+        "504"
       ],
       "security": [
         {

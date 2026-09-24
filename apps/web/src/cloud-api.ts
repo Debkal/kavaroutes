@@ -3,6 +3,7 @@ import {createCloudCommandRecovery} from './cloud-command-recovery';
 import {decodeCloudBoard,decodeCloudAssignment,decodeCloudPlanReceipt,decodeCloudDriverAccount,decodeCloudDriverLogin,decodeCloudRelease,type CloudAssignmentCommand,type CloudPlanRequest} from './cloud-board-contract';
 import {decodeRouteView,decodeRouteReceipt} from '@kavaroutes/api-contracts/client-route-proposals';
 import { createPrivateDevelopmentTransport, type DevelopmentFetch } from "@kavaroutes/api-contracts/private-development-transport";
+import {decodeRoadSelection,decodeRoadPreview,type RoadGoal} from './road-route-contract';
 
 const organizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const prefix = `/v1/organizations/${organizationId}`;
@@ -84,6 +85,23 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
     board(serviceDate:string,signal?:AbortSignal){
       if(!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate))throw new Error('INVALID_SERVICE_DATE');
       return transport.request(`${prefix}/dispatch-board/${serviceDate}`,body=>decodeCloudBoard(body,serviceDate),undefined,signal);
+    },
+    roadRouteSelection(legId:string){
+      if(!uuid.test(legId))throw new Error('INVALID_LEG_REFERENCE');
+      return transport.request(`${prefix}/dispatch/legs/${legId}/road-route`,decodeRoadSelection);
+    },
+    previewRoadRoute(legId:string,goal:RoadGoal){
+      if(!uuid.test(legId))throw new Error('INVALID_LEG_REFERENCE');
+      return transport.request(`${prefix}/dispatch/legs/${legId}/road-route/preview`,body=>decodeRoadPreview(body,goal),
+        {body:{goal},idempotencyKey:`road-preview-${crypto.randomUUID()}`});
+    },
+    selectRoadRoute(legId:string,goal:RoadGoal,expectedVersion:number,key:string){
+      if(!uuid.test(legId)||!Number.isSafeInteger(expectedVersion)||expectedVersion<0)throw new Error('INVALID_ROAD_SELECTION');
+      return transport.request(`${prefix}/dispatch/legs/${legId}/road-route/commands/select`,body=>{
+        const selection=decodeRoadSelection(body);
+        if(selection.goal!==goal||selection.version!==expectedVersion+1)throw new Error('ROAD_SELECTION_RECEIPT_MISMATCH');
+        return selection;
+      },{body:{goal,expectedVersion},idempotencyKey:key});
     },
     assign(command:CloudAssignmentCommand){
       if(!uuid.test(command.runId)||!uuid.test(command.driverId)||!uuid.test(command.vehicleId))throw new Error('INVALID_ASSIGNMENT_REFERENCE');

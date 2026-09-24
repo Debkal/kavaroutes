@@ -18,13 +18,14 @@ export function validateConfig(input) {
   validateManifest();
   if (process.env.NODE_ENV === 'production') throw new Error('PRODUCTION_COMPOSITION_UNAVAILABLE');
   const keys = ['profile', 'databaseUrl', 'etagSecret', 'cursorSecret', 'port'];
-  if (!input || typeof input !== 'object' || Array.isArray(input) || keys.some(k => !(k in input)) || Object.keys(input).some(k => !keys.includes(k))) throw new Error('RUNTIME_CONFIG_INVALID');
+  if (!input || typeof input !== 'object' || Array.isArray(input) || keys.some(k => !(k in input)) || Object.keys(input).some(k => ![...keys,'mapsApiKey'].includes(k))) throw new Error('RUNTIME_CONFIG_INVALID');
   if (input.profile !== 'private-synthetic' || !Number.isInteger(input.port) || input.port < 1024 || input.port > 65535) throw new Error('RUNTIME_PROFILE_INVALID');
   let url;
   try { url = new URL(input.databaseUrl); } catch { throw new Error('RUNTIME_DATABASE_INVALID'); }
   if (url.protocol !== 'postgresql:' || url.hostname !== '127.0.0.1' || url.pathname !== '/kavaroutes_cloud' || url.search || url.hash || !url.password ||
       !['kr_cloud_api', 'kr_cloud_worker', 'kr_cloud_admin'].includes(url.username)) throw new Error('RUNTIME_DATABASE_INVALID');
   if (!/^synthetic-etag-secret-[A-Za-z0-9_-]{32,}$/.test(input.etagSecret) || !/^[A-Za-z0-9_-]{43,}$/.test(input.cursorSecret)) throw new Error('RUNTIME_SECRET_INVALID');
+  if(input.mapsApiKey!==undefined && (typeof input.mapsApiKey!=='string'||!/^[A-Za-z0-9_-]{20,200}$/.test(input.mapsApiKey)))throw new Error('RUNTIME_MAPS_KEY_INVALID');
   return Object.freeze({ ...input });
 }
 

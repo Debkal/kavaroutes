@@ -13,6 +13,7 @@ import {withTenantTransaction} from '@kavaroutes/postgres-persistence';
 import { makePool, verifyRuntimeDatabase } from './database.mjs';
 import { validateConfig, tenantId, branchScopeReference } from './config.mjs';
 import {createDriverSessions} from './driver-sessions.mjs';
+import {createGoogleRoadRoutingService} from './road-routing.mjs';
 
 export async function createRuntimeApi(input) {
   const config = validateConfig(input);
@@ -30,6 +31,7 @@ export async function createRuntimeApi(input) {
     browserRecoveryService:createPostgresBrowserRecoveryService(pool,{application,dispatchService:createPostgresDispatchService(pool,{etag:application.etag}),routeProposalService:createPostgresRouteProposalService(pool),driverClosureService:createPostgresDriverClosureService(pool)}),
     dispatchService: createPostgresDispatchService(pool,{etag:application.etag}),
     routeProposalService: createPostgresRouteProposalService(pool),
+    roadRoutingService: createGoogleRoadRoutingService(pool,{apiKey:config.mapsApiKey}),
     facilityService:createPostgresFacilityService(pool),
     clientService:createPostgresClientService(pool),
     driverLoginService:createPostgresDriverLoginService(pool,{allowUnauthenticatedLogin:true}),
@@ -65,9 +67,11 @@ export async function createRuntimeApi(input) {
     const locationPath=/^\/v1\/organizations\/[^/]+\/(?:driver\/shifts\/[^/]+\/location-batches|dispatch\/tracking\/\d{4}-\d{2}-\d{2})$/.test(path);
     // The money surface: costing, estimates, payer invoices and client history.
     const accountingPath=/^\/v1\/organizations\/[^/]+\/(?:billing\/(?:cost-profile(?:\/commands\/update)?|estimates\/\d{4}-\d{2}-\d{2}|invoices(?:\/commands\/create|\/[^/]+(?:\/commands\/forward)?)?)|clients\/[^/]+\/history)$/.test(path);
+    const roadRoutingPath=/^\/v1\/organizations\/[^/]+\/(?:dispatch\/legs\/[^/]+\/road-route(?:\/preview|\/commands\/select)?|driver\/legs\/[^/]+\/road-route)$/.test(path);
     if(closurePath)return; // Authentication/capability checks remain in the registered handlers.
     if(locationPath)return;
     if(accountingPath)return;
+    if(roadRoutingPath)return;
     if (!routeProposalPath && !/^\/(health\/ready|v1\/me|v1\/realtime|v1\/organizations\/[^/]+\/(trips(?:\/[^/]+(?:\/commands\/cancel)?)?|clients(?:\/commands\/create|\/[^/]+\/commands\/update)?|fleet\/drivers\/commands\/create|driver-logins\/(?:commands\/(?:create|verify)|[^/]+\/commands\/claim)|dispatch-board\/\d{4}-\d{2}-\d{2}|dispatch\/runs\/(?:[^/]+\/commands\/(?:assign|unassign)|commands\/plan)|driver\/(?:itineraries\/\d{4}-\d{2}-\d{2}|action-batches|shifts\/(?:commands\/start|assignments\/[^/]+|[^/]+\/(?:commands\/precheck|legs\/[^/]+\/evidence\/signatures)))|runtime-dispatch-snapshot|realtime-change-queries))$/.test(path)) {
       return reply.code(503).send({ code: 'RUNTIME_PATH_NOT_PROMOTED' });
     }

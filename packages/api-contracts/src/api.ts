@@ -3,6 +3,7 @@ import {BrowserCommandPrepareSchema,BrowserCommandViewSchema,BrowserCommandPendi
 import {FacilityDaySchema,type FacilityService} from './facility-day.js';
 import {DriverClosureRequestSchema,DriverClosureReceiptSchema,DriverClosureViewSchema,DriverSyntheticLocationRequestSchema,DriverSyntheticLocationReceiptSchema,DriverReturnOverrideRequestSchema,DriverReturnReviewSchema,type DriverClosureService} from './driver-closure.js';
 import {RouteProposalRequestSchema,RouteDecisionRequestSchema,RouteProposalReceiptSchema,RouteProposalViewSchema,type RouteProposalService} from './route-proposals.js';
+import {RoadRoutePreviewRequestSchema,RoadRouteSelectRequestSchema,RoadRouteSelectionSchema,RoadRoutePreviewSchema,RoadRouteDriverViewSchema,RoadRoutingError,type RoadRoutingService,type RoadRouteGoal} from './road-routing.js';
 import {DispatchBoardSchema,AssignDispatchRunRequestSchema,AssignDispatchRunReceiptSchema,PlanDispatchRunRequestSchema,PlanDispatchRunReceiptSchema,UnassignDispatchRunRequestSchema,UnassignDispatchRunReceiptSchema,type DispatchService,type AssignDispatchRunRequest,type PlanDispatchRunRequest,type UnassignDispatchRunRequest} from './dispatch-board.js';
 import {ClientCreateRequestSchema,ClientCreateReceiptSchema,ClientRosterSchema,ClientUpdateRequestSchema,type ClientService,type ClientCreateRequest,type ClientUpdateRequest} from './client-records.js';
 import {DriverAccountCreateRequestSchema,DriverAccountReceiptSchema,DriverLoginClaimRequestSchema,DriverLoginCreateRequestSchema,DriverLoginReceiptSchema,DriverLoginStateSchema,DriverLoginVerifyRequestSchema,type DriverLoginService,type DriverLoginState,type DriverAccountCreateRequest,type DriverLoginCreateRequest,type DriverLoginClaimRequest,type DriverLoginVerifyRequest} from './driver-logins.js';
@@ -56,6 +57,7 @@ export interface Wp007ApiOptions {
   readonly driverClosureService?:DriverClosureService;
   readonly facilityService?:FacilityService;
   readonly routeProposalService?: RouteProposalService;
+  readonly roadRoutingService?: RoadRoutingService;
   readonly dispatchService?: DispatchService;
   readonly clientService?: ClientService;
   readonly driverLoginService?: DriverLoginService;
@@ -533,6 +535,48 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   });
   };
   await api.register(dispatchRoutes);
+
+  const roadRoutingRoutes: FastifyPluginAsync = async routes => {
+    const params=Type.Object({organizationId:Type.Ref(OpaqueIdSchema),legId:Type.Ref(OpaqueIdSchema)},{additionalProperties:false});
+    const service=()=>{if(!options.roadRoutingService)throw new ProtocolError(503,'MAPS_NOT_CONFIGURED','road routing unavailable');return options.roadRoutingService;};
+    const guarded=async<T>(operation:()=>Promise<T>):Promise<T>=>{
+      try{return await operation();}
+      catch(error){if(error instanceof RoadRoutingError)throw new ProtocolError(error.statusCode,error.code,error.code);throw error;}
+    };
+    const base='/v1/organizations/:organizationId/dispatch/legs/:legId/road-route';
+    routes.get(base,{schema:{operationId:'getDispatchRoadRouteSelection',tags:['dispatch'],security,headers:AuthorizationHeaders,params,response:responseWithErrors({200:jsonResponse(RoadRouteSelectionSchema,'Saved road-route goal for this leg')},[400,401,403,404,406,429,500,503])}},async(request,reply)=>{
+      const {organizationId,legId}=request.params as {organizationId:string;legId:string};
+      await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchRoadRouteSelection');
+      reply.header('cache-control','no-store');request.wp007Context.resultCode='ROAD_ROUTE_SELECTION_RETURNED';
+      return reply.send(await guarded(()=>service().selection({organizationId,legId})));
+    });
+    routes.post(base+'/preview',{bodyLimit:1024,schema:{operationId:'previewDispatchRoadRoute',tags:['dispatch'],security,headers:IdempotentHeaders,params,body:RoadRoutePreviewRequestSchema,response:responseWithErrors({200:jsonResponse(RoadRoutePreviewSchema,'Fresh Google road route and map preview')},[400,401,403,404,406,422,429,500,502,503,504])}},async(request,reply)=>{
+      const {organizationId,legId}=request.params as {organizationId:string;legId:string};
+      await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'previewDispatchRoadRoute');
+      const {goal}=request.body as {goal:RoadRouteGoal};
+      reply.header('cache-control','no-store');request.wp007Context.resultCode='ROAD_ROUTE_PREVIEW_RETURNED';
+      return reply.send(await guarded(()=>service().preview({organizationId,legId,goal,includeMap:true})));
+    });
+    routes.post(base+'/commands/select',{bodyLimit:1024,schema:{operationId:'selectDispatchRoadRoute',tags:['dispatch'],security,headers:IdempotentHeaders,params,body:RoadRouteSelectRequestSchema,response:responseWithErrors({200:jsonResponse(RoadRouteSelectionSchema,'Saved road-route goal for the assigned driver')},[400,401,403,404,406,409,412,413,415,422,429,500,503])}},async(request,reply)=>{
+      const {organizationId,legId}=request.params as {organizationId:string;legId:string};
+      const principal=await requireAccess(request,organizationId,{capability:'dispatch:command',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'selectDispatchRoadRoute');
+      const {goal,expectedVersion}=request.body as {goal:RoadRouteGoal;expectedVersion:number};
+      reply.header('cache-control','no-store');request.wp007Context.resultCode='ROAD_ROUTE_SELECTED';
+      return reply.send(await guarded(()=>service().select({organizationId,legId,actorId:principal.id,goal,expectedVersion,key:String(request.headers['idempotency-key'])})));
+    });
+    routes.get('/v1/organizations/:organizationId/driver/legs/:legId/road-route',{schema:{operationId:'getDriverRoadRoute',tags:['driver'],security,headers:AuthorizationHeaders,params,response:responseWithErrors({200:jsonResponse(RoadRouteDriverViewSchema,'Selected leg route and fresh turn instructions')},[400,401,403,404,406,429,500,502,503,504])}},async(request,reply)=>{
+      const {organizationId,legId}=request.params as {organizationId:string;legId:string};
+      const principal=await requireAccess(request,organizationId,{capability:'driver:manifest:read',purpose:'ASSIGNED_SERVICE_DELIVERY'},'getDriverRoadRoute');
+      const driverId=principal.subjectId;
+      if(!driverId)throw new ProtocolError(404,'RESOURCE_NOT_FOUND','driver subject required');
+      const selected=await guarded(()=>service().selection({organizationId,legId,driverId}));
+      const selectedGoal=selected.goal;
+      const route=selectedGoal?await guarded(()=>service().preview({organizationId,legId,goal:selectedGoal,includeMap:false,driverId})):null;
+      reply.header('cache-control','no-store');request.wp007Context.resultCode='DRIVER_ROAD_ROUTE_RETURNED';
+      return reply.send({selection:selected,route});
+    });
+  };
+  await api.register(roadRoutingRoutes);
 
   const driverRoutes: FastifyPluginAsync = async (routes) => {
   routes.post("/v1/organizations/:organizationId/driver/shifts/commands/start", { bodyLimit: 16 * 1024, schema: {

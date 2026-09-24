@@ -91,6 +91,34 @@ test("Command creates a closed, capability-protected driver account", async (t) 
   assert.equal(response.statusCode,400);
 });
 
+test('dispatch chooses a Google road-route goal and only the assigned driver reads directions',async(t)=>{
+  const legId='40000000-0000-4000-8000-000000000002',calls=[];
+  const selected={goal:'LOW_COST',version:1,selectedAt:'2026-09-23T12:00:00.000Z'};
+  const preview={goal:'LOW_COST',provider:'GOOGLE_ROUTES',distanceMeters:9000,durationSeconds:780,
+    tollEstimate:null,tollsExpected:false,maneuverCount:2,pathFingerprint:'a'.repeat(64),
+    steps:[{instruction:'Turn right on Main St',maneuver:'TURN_RIGHT',distanceMeters:200}],
+    mapImageDataUrl:null,googleMapsUrl:'https://www.google.com/maps/dir/?api=1&origin=1%2C2&destination=3%2C4',
+    note:'Prefers toll-free roads.'};
+  const roadRoutingService={configured:true,
+    async selection(input){calls.push(['selection',input]);return selected;},
+    async preview(input){calls.push(['preview',input]);return preview;},
+    async select(input){calls.push(['select',input]);return selected;}};
+  const app=await createWp007Api({application:memoryApplication(),roadRoutingService});t.after(()=>app.close());
+  const base=`/v1/organizations/${syntheticIds.organizationA}`;
+  let response=await app.inject({method:'POST',url:`${base}/dispatch/legs/${legId}/road-route/preview`,
+    headers:{...auth('principal_dispatcher'),'idempotency-key':'route-preview-001'},payload:{goal:'LOW_COST'}});
+  assert.equal(response.statusCode,200,response.body);assert.equal(response.json().distanceMeters,9000);
+  response=await app.inject({method:'POST',url:`${base}/dispatch/legs/${legId}/road-route/commands/select`,
+    headers:{...auth('principal_dispatcher'),'idempotency-key':'route-select-001'},payload:{goal:'LOW_COST',expectedVersion:0}});
+  assert.equal(response.statusCode,200,response.body);assert.equal(response.json().goal,'LOW_COST');
+  response=await app.inject({method:'POST',url:`${base}/dispatch/legs/${legId}/road-route/preview`,
+    headers:{...auth('principal_driver'),'idempotency-key':'route-preview-002'},payload:{goal:'LOW_COST'}});
+  assert.equal(response.statusCode,404);
+  response=await app.inject({method:'GET',url:`${base}/driver/legs/${legId}/road-route`,headers:auth('principal_driver')});
+  assert.equal(response.statusCode,200,response.body);assert.equal(response.json().route.steps[0].instruction,'Turn right on Main St');
+  assert.equal(calls.at(-1)[0],'preview');assert.equal(typeof calls.at(-1)[1].driverId,'string');
+});
+
 test("strict bodies, driver batch limits/order/replay, operation access, and rate limits are enforced", async (t) => {
   let clock = new Date("2026-09-01T12:00:00.000Z");
   const app = await createWp007Api({ application: memoryApplication(), rateLimitPerOperation: 1, now: () => clock });

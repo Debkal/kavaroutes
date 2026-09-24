@@ -1533,6 +1533,322 @@
       "def-112": {
         "anyOf": [
           {
+            "enum": [
+              "LOW_COST"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "FASTEST"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "EASIEST"
+            ],
+            "type": "string"
+          }
+        ],
+        "title": "RoadRouteGoal"
+      },
+      "def-113": {
+        "additionalProperties": false,
+        "properties": {
+          "goal": {
+            "anyOf": [
+              {
+                "enum": [
+                  "LOW_COST"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "FASTEST"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "EASIEST"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "goal"
+        ],
+        "title": "RoadRoutePreviewRequest",
+        "type": "object"
+      },
+      "def-114": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "enum": [
+                  "LOW_COST"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "FASTEST"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "EASIEST"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "goal",
+          "expectedVersion"
+        ],
+        "title": "RoadRouteSelectRequest",
+        "type": "object"
+      },
+      "def-115": {
+        "additionalProperties": false,
+        "properties": {
+          "goal": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "LOW_COST"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "FASTEST"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "EASIEST"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selectedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "goal",
+          "version",
+          "selectedAt"
+        ],
+        "title": "RoadRouteSelection",
+        "type": "object"
+      },
+      "def-116": {
+        "additionalProperties": false,
+        "properties": {
+          "distanceMeters": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "durationSeconds": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "enum": [
+                  "LOW_COST"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "FASTEST"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "EASIEST"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "googleMapsUrl": {
+            "maxLength": 2048,
+            "pattern": "^https://www\\.google\\.com/maps/dir/\\?api=1&",
+            "type": "string"
+          },
+          "maneuverCount": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "mapImageDataUrl": {
+            "anyOf": [
+              {
+                "maxLength": 700000,
+                "pattern": "^data:image/(?:png|jpeg);base64,[A-Za-z0-9+/=]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "note": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "pathFingerprint": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "GOOGLE_ROUTES"
+            ],
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "distanceMeters": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "instruction": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maneuver": {
+                  "maxLength": 60,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "instruction",
+                "maneuver",
+                "distanceMeters"
+              ],
+              "type": "object"
+            },
+            "maxItems": 300,
+            "type": "array"
+          },
+          "tollEstimate": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "amount": {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "currencyCode": {
+                    "maxLength": 3,
+                    "minLength": 3,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currencyCode",
+                  "amount"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "tollsExpected": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "goal",
+          "provider",
+          "distanceMeters",
+          "durationSeconds",
+          "tollEstimate",
+          "tollsExpected",
+          "maneuverCount",
+          "pathFingerprint",
+          "steps",
+          "mapImageDataUrl",
+          "googleMapsUrl",
+          "note"
+        ],
+        "title": "RoadRoutePreview",
+        "type": "object"
+      },
+      "def-117": {
+        "additionalProperties": false,
+        "properties": {
+          "route": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/def-116"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selection": {
+            "$ref": "#/components/schemas/def-115"
+          }
+        },
+        "required": [
+          "selection",
+          "route"
+        ],
+        "title": "RoadRouteDriverView",
+        "type": "object"
+      },
+      "def-118": {
+        "anyOf": [
+          {
             "additionalProperties": false,
             "properties": {
               "body": {
@@ -1662,11 +1978,11 @@
         ],
         "title": "BrowserCommandEnvelope"
       },
-      "def-113": {
+      "def-119": {
         "additionalProperties": false,
         "properties": {
           "envelope": {
-            "$ref": "#/components/schemas/def-112"
+            "$ref": "#/components/schemas/def-118"
           },
           "id": {
             "format": "uuid",
@@ -1680,14 +1996,99 @@
         "title": "BrowserCommandPrepare",
         "type": "object"
       },
-      "def-114": {
+      "def-12": {
+        "additionalProperties": false,
+        "properties": {
+          "lifecycle": {
+            "anyOf": [
+              {
+                "enum": [
+                  "DRAFT"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "CANCELLED"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "recordState": {
+            "anyOf": [
+              {
+                "enum": [
+                  "DRAFT"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "PLANNED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "IN_PROGRESS"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "DELIVERED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "CANCELLED"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "resolvedServiceAt": {
+            "$ref": "#/components/schemas/def-2"
+          },
+          "riderReference": {
+            "$ref": "#/components/schemas/def-1"
+          },
+          "serviceDate": {
+            "$ref": "#/components/schemas/def-3"
+          },
+          "serviceTimezone": {
+            "$ref": "#/components/schemas/def-4"
+          },
+          "tripId": {
+            "$ref": "#/components/schemas/def-1"
+          },
+          "version": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tripId",
+          "riderReference",
+          "serviceDate",
+          "serviceTimezone",
+          "resolvedServiceAt",
+          "lifecycle",
+          "version"
+        ],
+        "title": "DispatcherTrip",
+        "type": "object"
+      },
+      "def-120": {
         "additionalProperties": false,
         "properties": {
           "acknowledged": {
             "type": "boolean"
           },
           "envelope": {
-            "$ref": "#/components/schemas/def-112"
+            "$ref": "#/components/schemas/def-118"
           },
           "expired": {
             "type": "boolean"
@@ -1796,13 +2197,13 @@
         "title": "BrowserCommandView",
         "type": "object"
       },
-      "def-115": {
+      "def-121": {
         "additionalProperties": false,
         "properties": {
           "command": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/def-114"
+                "$ref": "#/components/schemas/def-120"
               },
               {
                 "type": "null"
@@ -1814,91 +2215,6 @@
           "command"
         ],
         "title": "BrowserCommandPending",
-        "type": "object"
-      },
-      "def-12": {
-        "additionalProperties": false,
-        "properties": {
-          "lifecycle": {
-            "anyOf": [
-              {
-                "enum": [
-                  "DRAFT"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "CANCELLED"
-                ],
-                "type": "string"
-              }
-            ]
-          },
-          "recordState": {
-            "anyOf": [
-              {
-                "enum": [
-                  "DRAFT"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "PLANNED"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "IN_PROGRESS"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "DELIVERED"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "CANCELLED"
-                ],
-                "type": "string"
-              }
-            ]
-          },
-          "resolvedServiceAt": {
-            "$ref": "#/components/schemas/def-2"
-          },
-          "riderReference": {
-            "$ref": "#/components/schemas/def-1"
-          },
-          "serviceDate": {
-            "$ref": "#/components/schemas/def-3"
-          },
-          "serviceTimezone": {
-            "$ref": "#/components/schemas/def-4"
-          },
-          "tripId": {
-            "$ref": "#/components/schemas/def-1"
-          },
-          "version": {
-            "minimum": 1,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "tripId",
-          "riderReference",
-          "serviceDate",
-          "serviceTimezone",
-          "resolvedServiceAt",
-          "lifecycle",
-          "version"
-        ],
-        "title": "DispatcherTrip",
         "type": "object"
       },
       "def-13": {
@@ -10820,7 +11136,7 @@
                 "additionalProperties": false,
                 "properties": {
                   "envelope": {
-                    "$ref": "#/components/schemas/def-112"
+                    "$ref": "#/components/schemas/def-118"
                   },
                   "id": {
                     "format": "uuid",
@@ -10842,7 +11158,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-114"
+                  "$ref": "#/components/schemas/def-120"
                 }
               }
             },
@@ -11058,7 +11374,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-115"
+                  "$ref": "#/components/schemas/def-121"
                 }
               }
             },
@@ -11302,7 +11618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-114"
+                  "$ref": "#/components/schemas/def-120"
                 }
               }
             },
@@ -11546,7 +11862,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/def-114"
+                  "$ref": "#/components/schemas/def-120"
                 }
               }
             },
@@ -12902,6 +13218,585 @@
               }
             },
             "description": "Internal error"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/dispatch/legs/{legId}/road-route": {
+      "get": {
+        "operationId": "getDispatchRoadRouteSelection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "legId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-115"
+                }
+              }
+            },
+            "description": "Saved road-route goal for this leg",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/dispatch/legs/{legId}/road-route/commands/select": {
+      "post": {
+        "operationId": "selectDispatchRoadRoute",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "legId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "expectedVersion": {
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "goal": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "LOW_COST"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "FASTEST"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "EASIEST"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "goal",
+                  "expectedVersion"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-115"
+                }
+              }
+            },
+            "description": "Saved road-route goal for the assigned driver",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "412": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Precondition failed"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Payload too large"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Unsupported media type"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/dispatch/legs/{legId}/road-route/preview": {
+      "post": {
+        "operationId": "previewDispatchRoadRoute",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "legId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-5"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "LOW_COST"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "FASTEST"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "EASIEST"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "goal"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-116"
+                }
+              }
+            },
+            "description": "Fresh Google road route and map preview",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Semantic validation failed"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Dependency failure"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          },
+          "504": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Dependency timeout"
           }
         },
         "security": [
@@ -16718,6 +17613,160 @@
               }
             },
             "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "driver"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/driver/legs/{legId}/road-route": {
+      "get": {
+        "operationId": "getDriverRoadRoute",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "legId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-117"
+                }
+              }
+            },
+            "description": "Selected leg route and fresh turn instructions",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "502": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Dependency failure"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          },
+          "504": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Dependency timeout"
           }
         },
         "security": [

@@ -26,3 +26,4 @@ export * from './route-proposals.js';
 export * from './driver-closure.js';
 export * from './facility-day.js';
 export * from './browser-recovery.js';
+export * from './road-routing.js';

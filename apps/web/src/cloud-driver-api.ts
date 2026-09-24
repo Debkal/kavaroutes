@@ -15,6 +15,7 @@ import {
   type StartDriverShiftReceipt,
 } from "@kavaroutes/api-contracts/client-web";
 import { createPrivateDevelopmentTransport, type DevelopmentFetch } from "@kavaroutes/api-contracts/private-development-transport";
+import {decodeDriverRoadRoute} from './road-route-contract';
 import type { DriverLocationBatchRequest, DriverLocationReceipt } from "@kavaroutes/api-contracts";
 
 export const driverOrganizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -123,6 +124,10 @@ const loginPrefix = `/v1/organizations/${driverOrganizationId}`;
     itinerary(serviceDate: string, signal?: AbortSignal) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate)) throw new Error("INVALID_SERVICE_DATE");
       return transport.request(`${prefix}/itineraries/${serviceDate}`,value=>decodeDriverItinerary(value,authenticatedDriver()), undefined, signal);
+    },
+    roadRoute(legId:string,signal?:AbortSignal){
+      if(!uuid.test(legId))throw new Error('INVALID_LEG_REFERENCE');
+      return transport.request(`${prefix}/legs/${legId}/road-route`,decodeDriverRoadRoute,undefined,signal);
     },
     startShift(leg: DriverItinerary["legs"][number], serviceDate: string, key: string, loginId?: string) {
       return transport.request(`${prefix}/shifts/commands/start`, value => {

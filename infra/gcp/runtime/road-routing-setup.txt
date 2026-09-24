@@ -1,0 +1,37 @@
+# Dispatch road routing
+
+Dispatch opens a planned run, chooses a trip leg and then chooses one of three
+route goals. Each choice generates a fresh road route and map. **Shortest
+distance / lower toll cost** asks the provider to avoid tolls and chooses the
+shortest remaining distance; it does not calculate fuel, labor or total trip
+cost. **Fastest drive** chooses the shortest traffic-aware duration. **Easiest to
+traverse** avoids ferries and favors fewer difficult turns, merges and ramps,
+while bounding the detour relative to the fastest candidate. Alternatives may
+use the same roads. The selected *goal*, rather than provider map content, is
+stored for the trip leg. The assigned driver receives newly generated directions
+for that goal.
+
+The present provider is Google Routes API with Maps Static API for the dispatch
+map. It is optional at startup: when no key is configured, the rest of dispatch
+and the driver app remain available and the driver can still open basic pickup
+to drop-off directions in Google Maps. Route generation itself is unavailable
+until the provider is configured. This provider can be replaced by a routing
+engine with equivalent geocoding, alternative roads, turn instructions and a
+map; the Google Maps sharing URL remains an independent driver convenience.
+
+To activate it, enable **Routes API** and **Maps Static API** in the Google
+Cloud project, attach a billing account, and create a server-side API key
+restricted to those APIs. Restrict its application to the VM's stable egress IP
+if the environment supplies one. Add `mapsApiKey` to the private API runtime
+JSON in Secret Manager (`kavaroutes-wp013-runtime`, `files/api.json`) and rotate
+the runtime configuration; never put the key in source, the web build or a
+browser-visible environment variable. The key is read only by the API
+container. Routes and Static Maps are metered provider calls. The dispatcher
+requests a route only after selecting a goal; the driver fetches a fresh route
+for the saved goal. Check provider quotas and spend limits before live use.
+
+The map and directions are guidance for the dispatcher and driver. Google Maps
+may recalculate the shared URL, and the URL cannot pin the exact route returned
+by Routes API. Confirm pickup side, vehicle access, road restrictions and live
+conditions before driving. The route result is never used as proof of pickup or
+drop-off time; the existing driver action receipts record those events.

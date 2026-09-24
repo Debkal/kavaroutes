@@ -5,6 +5,7 @@ import type {createCloudApi} from '../cloud-api';
 import type {CloudAssignmentCommand} from '../cloud-board-contract';
 import {connectCloudDispatch} from '../cloud-live';
 import {CloudRouteReview} from './CloudRouteReview';
+import {RoadRoutePlanner} from './RoadRoutePlanner';
 import {businessToday} from '../business-time';
 import {ServiceDatePicker} from './ServiceDatePicker';
 
@@ -113,6 +114,7 @@ export function CloudBoard({api,enabled,serviceDate,onServiceDateChange,focusRun
    {run.assignmentId&&<button disabled={busy||board.isError} onClick={()=>void release()}>{releasePending?'Retry original removal':'Remove assignment'}</button>}
    <a className="action-link" href="/command#driver-access">Manage driver accounts</a></div>
    <p className="form-hint">The server rechecks availability, vehicle capacity, qualifications, defects, and started work before accepting an assignment.</p>
+   <RoadRoutePlanner api={api} legs={data.legs.filter(l=>l.runId===run.runId)} enabled={enabled&&!board.isError}/>
   </section>}
   <p role="status">{message}</p>
   <CloudRouteReview api={api} day={day} enabled={enabled}/>

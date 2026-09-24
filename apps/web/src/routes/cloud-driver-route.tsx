@@ -8,6 +8,7 @@ import { DriverSignaturePad } from "../components/DriverSignaturePad";
 import {businessToday} from "../business-time";
 import {ServiceDatePicker} from "../components/ServiceDatePicker";
 import {LocationSharingPanel} from "../components/LocationSharingPanel";
+import {DriverRoadDirections} from '../components/DriverRoadDirections';
 import {useLocationSharing} from "../use-location-sharing";
 
 
@@ -346,7 +347,7 @@ export function Component() {
       {active && <section className="driver-card driver-current"><p className="driver-step">Current client · Stop {active.ordinal}</p><h2>{active.riderLabel}</h2>
         <div className="driver-route-line"><div><span>Pickup</span><strong>{active.pickupLabel}</strong><small>{time(active.plannedStartAt, active.serviceTimezone)}</small></div><div><span>Drop-off</span><strong>{active.dropoffLabel}</strong><small>{time(active.plannedEndAt, active.serviceTimezone)}</small></div></div>
         {(active.appointmentLengthMinutes??0)>0&&<p className="driver-notice">Appointment / planned wait: <strong>{active.appointmentLengthMinutes} minutes</strong></p>}
-        <a className="driver-secondary driver-link" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(active.pickupLabel)}&destination=${encodeURIComponent(active.dropoffLabel)}`}>Open route in Google Maps</a>
+        <DriverRoadDirections api={api} legId={active.tripLegId} pickup={active.pickupLabel} dropoff={active.dropoffLabel}/>
         {!control && !terminal.has(active.execution?.lifecycle ?? "") && <p role="alert" className="driver-error">{blockedControlMessage(active)}</p>}
         {control?.signature && !signatureEvent && <button className="driver-primary" disabled={busy} onClick={() => setSignatureEvent(control.signature!)}>{control.label}</button>}
         {control?.command && <button className="driver-primary" disabled={busy} onClick={() => void submitAction(active, control.command!, control.details)}>{busy ? "Sending…" : control.label}</button>}
