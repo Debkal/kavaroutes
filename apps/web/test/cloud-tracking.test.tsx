@@ -53,3 +53,40 @@ it('refreshes the active list automatically as saved fixes arrive',async()=>{
  expect(screen.getByText(/Last saved fix/)).toBeInTheDocument();
  interval.mockRestore();client.clear();
 });
+
+it('breaks the plotted path when tracking has an unobserved gap',async()=>{
+ const trace=[
+  {latitude:34.0500,longitude:-118.2400,accuracyMeters:15,capturedAt:'2026-09-14T23:55:00Z'},
+  {latitude:34.0501,longitude:-118.2401,accuracyMeters:15,capturedAt:'2026-09-14T23:55:10Z'},
+  {latitude:34.0522,longitude:-118.2437,accuracyMeters:12,capturedAt:'2026-09-14T23:58:00Z'},
+ ];
+ const client=mount({tracking:async()=>({value:track({trace,position:trace[2]})})});
+ expect(await screen.findByRole('img',{name:/1 tracking gap/})).toBeInTheDocument();
+ const lines=document.querySelectorAll('.driver-trace-line');
+ expect(lines).toHaveLength(1);
+ expect(lines[0]!.getAttribute('points')!.split(' ')).toHaveLength(2);
+ expect(screen.getByText(/1 unobserved gap/)).toBeInTheDocument();
+ client.clear();
+});
+
+it('keeps a newer manual refresh when an earlier poll finishes later',async()=>{
+ let finishOld:(value:any)=>void=()=>{};
+ let calls=0;
+ const api={tracking:vi.fn(()=>{
+  calls++;
+  if(calls===1)return Promise.resolve({value:track({driverLabel:'Initial driver'})});
+  if(calls===2)return new Promise(resolve=>{finishOld=resolve;});
+  return Promise.resolve({value:track({driverLabel:'Fresh driver'})});
+ })};
+ const callbacks:Function[]=[];
+ const interval=vi.spyOn(window,'setInterval').mockImplementation((callback:TimerHandler)=>{callbacks.push(callback as Function);return 1;});
+ const client=mount(api);
+ await screen.findByRole('button',{name:/Initial driver/});
+ act(()=>{void callbacks[0]!();});
+ act(()=>{screen.getByRole('button',{name:'Refresh tracking'}).click();});
+ await screen.findByRole('button',{name:/Fresh driver/});
+ await act(async()=>{finishOld({value:track({driverLabel:'Stale driver'})});});
+ expect(screen.queryByRole('button',{name:/Stale driver/})).not.toBeInTheDocument();
+ expect(screen.getByRole('button',{name:/Fresh driver/})).toBeInTheDocument();
+ interval.mockRestore();client.clear();
+});

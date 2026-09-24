@@ -332,9 +332,9 @@ export function Component() {
   const needsPrecheck = !shift.precheck || shift.precheck.vehicleState !== "READY";
 
   return <main id="main-content" className="driver-shell">
-    <header className="driver-mobile-header"><div><p className="driver-step">Signed in · {shift.effectivePolicy.commercialTier.replaceAll("_", " ")}</p><h1>Today’s route</h1></div><span className={closure?.tracking.contactDriver ? "driver-status warning" : "driver-status"}>{closure?.lifecycle === "SHIFT_ENDED" ? "Signed off" : "Tracking " + label(closure?.tracking.status ?? "starting")}</span></header>
+    <header className="driver-mobile-header"><div><p className="driver-step">Signed in · {shift.effectivePolicy.commercialTier.replaceAll("_", " ")}</p><h1>Today’s route</h1></div><span className={closure?.lifecycle!=="SHIFT_ENDED"&&(sharing.deliveryError||closure?.tracking.contactDriver) ? "driver-status warning" : "driver-status"}>{closure?.lifecycle === "SHIFT_ENDED" ? "Signed off" : sharing.deliveryError ? "Updates delayed" : "Tracking " + label(closure?.tracking.status ?? "starting")}</span></header>
     {message && <p role="status" className="driver-message">{message}</p>}
-    <section className="driver-summary"><div><span>Vehicle</span><strong>{assigned[0]?.vehicleLabel ?? "Pending"}</strong></div><div><span>Trips</span><strong>{assigned.filter(leg => terminal.has(leg.execution?.lifecycle ?? "")).length}/{assigned.length}</strong></div><div><span>Updates</span><strong>{closure?.tracking.status === "UPDATES_CURRENT" ? "Live" : "Foreground"}</strong></div></section>
+    <section className="driver-summary"><div><span>Vehicle</span><strong>{assigned[0]?.vehicleLabel ?? "Pending"}</strong></div><div><span>Trips</span><strong>{assigned.filter(leg => terminal.has(leg.execution?.lifecycle ?? "")).length}/{assigned.length}</strong></div><div><span>Updates</span><strong>{closure?.lifecycle==="SHIFT_ENDED"?"Stopped":sharing.deliveryError?"Delayed":closure?.tracking.status === "UPDATES_CURRENT" ? "Live" : "Foreground"}</strong></div></section>
 
     {closure?.lifecycle === "SHIFT_ENDED" ? <section className="driver-card driver-complete"><p className="driver-step">Shift complete</p><h2>You’re signed off</h2><p>Your shift end is recorded. Location sharing has stopped.</p></section>
     : needsPrecheck ? <DriverInspectionForm stage="pre" shift={shift} vehicleId={assigned[0]?.vehicleId ?? ""} busy={busy} onSubmit={request => submitCheck(request, "pre")} />
@@ -356,7 +356,7 @@ export function Component() {
         {signatureEvent && <DriverSignaturePad leg={active} shiftReference={shift.shiftReference} shiftGeneration={shift.shiftGeneration} event={signatureEvent} busy={busy} onSubmit={request => submitSignature(active, request)} />}
       </section>}
     </div>}
-    {closure?.lifecycle !== "SHIFT_ENDED" && <aside className="driver-safety"><div><strong>Tracking transparency</strong><span>{label(closure?.tracking.status ?? "starting")} · {closure?.tracking.reason?.replaceAll("_", " ") ?? "Shift started"}</span></div><button disabled={busy} onClick={() => void emergencyStop()}>Emergency: stop sharing</button></aside>}
+    {closure?.lifecycle !== "SHIFT_ENDED" && <aside className="driver-safety"><div><strong>Tracking transparency</strong><span>{sharing.deliveryError?"Location upload delayed · retrying":`${label(closure?.tracking.status ?? "starting")} · ${closure?.tracking.reason?.replaceAll("_", " ") ?? "Shift started"}`}</span></div><button disabled={busy} onClick={() => void emergencyStop()}>Emergency: stop sharing</button></aside>}
     <LocationSharingPanel controller={sharing} busy={busy}/>
   </main>;
 }

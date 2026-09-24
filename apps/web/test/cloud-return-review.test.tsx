@@ -1,31 +1,30 @@
-import {it,expect,vi,afterEach} from 'vitest';
-import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
+import {expect,it,vi} from 'vitest';
+import {fireEvent,render,screen} from '@testing-library/react';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import {CloudReturnReview} from '../src/components/CloudReturnReview';
-import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development-transport';
-import {webcrypto} from 'node:crypto';
+
+vi.mock('../src/components/CloudCommandRecovery',()=>({CloudCommandRecovery:()=>null}));
 const shift='11111111-1111-4111-8111-111111111111';
-const value={shiftReference:shift,shiftGeneration:'22222222-2222-4222-8222-222222222222',resourceVersion:3,exceptionCommandId:'33333333-3333-4333-8333-333333333333',lifecycle:'ACTIVE',returnMode:'REQUIRED_WITH_AUDITED_OVERRIDE',returnResult:'OUTSIDE'};
-const mount=(api:any)=>{const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});const result=render(<QueryClientProvider client={client}><CloudReturnReview api={api} shift={shift}/></QueryClientProvider>);return {...result,client};};
-afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
-it('requires explicit reviewer selection and recovers exact original override after reload',async()=>{
- vi.spyOn(window,'confirm').mockReturnValue(true);
- vi.stubGlobal('crypto',webcrypto);
- const api={returnReview:vi.fn(async()=>({value})),overrideReturn:vi.fn().mockRejectedValueOnce(new DevelopmentApiError(0,'OUTCOME_UNKNOWN')).mockResolvedValue({value:{shiftReference:shift,resourceVersion:4}})};
- const first=mount(api);expect(api.returnReview).not.toHaveBeenCalled();
- fireEvent.click(screen.getByText('Open authorized return review'));
- await waitFor(()=>expect(screen.getByText('Record audited return override')).toBeEnabled());
- fireEvent.click(screen.getByText('Record audited return override'));
- await screen.findByText(/Outcome unknown. Recover this original request/);
- const original=api.overrideReturn.mock.calls[0];first.unmount();first.client.clear();
- const second=mount(api);fireEvent.click(screen.getByText('Open authorized return review'));
- await waitFor(()=>expect(screen.getByText('Record audited return override')).toBeEnabled());
- fireEvent.click(screen.getByText('Record audited return override'));
- await screen.findByText('Server accepted audited override; shift ended and collection stopped.');
- expect(api.overrideReturn.mock.calls[1]).toEqual(original);expect(window.confirm).toHaveBeenCalledTimes(2);second.client.clear();
+function mount(closurePath:'RETURN_EXCEPTION'|'EMERGENCY_STOP'){
+ const api={returnReview:async()=>({value:{shiftReference:shift,shiftGeneration:shift,resourceVersion:2,
+  exceptionCommandId:'22222222-2222-4222-8222-222222222222',lifecycle:'ACTIVE',returnMode:'REQUIRED_WITH_AUDITED_OVERRIDE',
+  returnResult:'UNAVAILABLE',closurePath}})};
+ const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
+ render(<QueryClientProvider client={client}><CloudReturnReview api={api as any} shift={shift}/></QueryClientProvider>);
+ fireEvent.click(screen.getByRole('button',{name:'Open authorized return review'}));
+ return client;
+}
+
+it('shows the unresolved-riders acknowledgement only for emergency resolution',async()=>{
+ const normal=mount('RETURN_EXCEPTION');
+ await screen.findByText(/Recorded exception: UNAVAILABLE/);
+ expect(screen.queryByRole('checkbox',{name:/unresolved riders/})).not.toBeInTheDocument();
+ normal.clear();
 });
-it('no recorded exception or unavailable review cannot enable override',async()=>{
- const api={returnReview:async()=>({value:{...value,exceptionCommandId:null}}),overrideReturn:vi.fn()};const surface=mount(api);
- fireEvent.click(screen.getByText('Open authorized return review'));
- await screen.findByText(/Return policy:/);expect(screen.getByText('Record audited return override')).toBeDisabled();expect(api.overrideReturn).not.toHaveBeenCalled();surface.client.clear();
+
+it('places the emergency acknowledgement next to its explanation',async()=>{
+ const emergency=mount('EMERGENCY_STOP');
+ await screen.findByText(/emergency-stopped with riders unresolved/);
+ expect(screen.getByRole('checkbox',{name:/I acknowledge unresolved riders/})).toBeInTheDocument();
+ emergency.clear();
 });

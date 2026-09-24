@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import type {createCloudApi} from '../cloud-api';
 import {CloudReturnReview} from './CloudReturnReview';
 import {shiftBandLabel} from '../shift-band';
@@ -9,25 +9,42 @@ type Track=Awaited<ReturnType<Api['tracking']>>['value']['shifts'][number];
 const time=(value:string,zone:string)=>new Date(value).toLocaleTimeString('en-US',{timeZone:zone,hour:'numeric',minute:'2-digit',timeZoneName:'short'});
 const stamp=(value:string|null,zone:string)=>value?new Date(value).toLocaleTimeString('en-US',{timeZone:zone,hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'}):'Nothing received';
 
-/** The trace on a plain SVG: no tile provider and no third-party map call, which keeps
- * the location data inside this origin while still showing where the driver went. */
+const GAP_AFTER_MS=90_000;
+/** Keep the driver's fixes on this origin. A broken feed must never be rendered as a
+ * straight, observed road segment, and the plot must not distort the route shape. */
 function TracePlot({track}:{track:Track}){
   const points=track.trace.length?track.trace:(track.position?[track.position]:[]);
   if(!points.length)return <p role="status">No position received yet for this driver.</p>;
-  const lats=points.map(p=>p.latitude),lngs=points.map(p=>p.longitude);
-  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
-  const spanLat=Math.max(maxLat-minLat,0.0008),spanLng=Math.max(maxLng-minLng,0.0008);
-  const padLat=spanLat*0.15,padLng=spanLng*0.15;
-  const x=(lng:number)=>((lng-(minLng-padLng))/(spanLng+2*padLng))*100;
-  const y=(lat:number)=>100-((lat-(minLat-padLat))/(spanLat+2*padLat))*100;
-  const path=points.map(p=>`${x(p.longitude).toFixed(2)},${y(p.latitude).toFixed(2)}`).join(' ');
+  const width=600,height=240,padding=28;
+  const projected=points.map(point=>({x:point.longitude*Math.PI/180,
+    y:Math.log(Math.tan(Math.PI/4+Math.max(-85,Math.min(85,point.latitude))*Math.PI/360))}));
+  const xs=projected.map(point=>point.x),ys=projected.map(point=>point.y);
+  const left=Math.min(...xs),right=Math.max(...xs),bottom=Math.min(...ys),top=Math.max(...ys);
+  const scale=Math.max((right-left)/(width-2*padding),(top-bottom)/(height-2*padding),0.0000003);
+  const centerX=(left+right)/2,centerY=(bottom+top)/2;
+  const plot=(index:number)=>({x:width/2+(projected[index]!.x-centerX)/scale,
+    y:height/2-(projected[index]!.y-centerY)/scale});
+  const segments:number[][]=[];
+  let gaps=0;
+  points.forEach((point,index)=>{
+    const previous=points[index-1];
+    if(!previous||Date.parse(point.capturedAt)-Date.parse(previous.capturedAt)>GAP_AFTER_MS){
+      if(previous)gaps++;
+      segments.push([]);
+    }
+    segments[segments.length-1]!.push(index);
+  });
+  const start=plot(0),end=plot(points.length-1);
   const last=points[points.length-1]!;
-  return <svg viewBox="0 0 100 100" role="img" preserveAspectRatio="none" className="driver-trace"
-    aria-label={`${track.driverLabel}: trace of ${points.length} fix${points.length===1?'':'es'} from ${time(points[0]!.capturedAt,track.serviceTimezone)} to ${time(last.capturedAt,track.serviceTimezone)}, last fix within ${last.accuracyMeters===null?'unknown':Math.round(last.accuracyMeters)} metres.`}>
-    <rect x="0" y="0" width="100" height="100" className="driver-trace-bg"/>
-    {points.length>1&&<polyline points={path} className="driver-trace-line" fill="none"/>}
-    <circle cx={x(last.longitude)} cy={y(last.latitude)} r="2.4" className="driver-trace-marker"/>
-  </svg>;
+  return <figure className="driver-trace-figure"><svg viewBox={`0 0 ${width} ${height}`} role="img" preserveAspectRatio="xMidYMid meet" className="driver-trace"
+    aria-label={`${track.driverLabel}: trace of ${points.length} fix${points.length===1?'':'es'} from ${time(points[0]!.capturedAt,track.serviceTimezone)} to ${time(last.capturedAt,track.serviceTimezone)}; ${gaps} tracking gap${gaps===1?'':'s'}; last fix within ${last.accuracyMeters===null?'unknown':Math.round(last.accuracyMeters)} metres.`}>
+    <rect x="0" y="0" width={width} height={height} className="driver-trace-bg"/>
+    <path d="M150 0V240 M300 0V240 M450 0V240 M0 60H600 M0 120H600 M0 180H600" className="driver-trace-grid"/>
+    <text x="570" y="24" className="driver-trace-north">N ↑</text>
+    {segments.map((segment,index)=>segment.length>1?<polyline key={index} points={segment.map(i=>{const p=plot(i);return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;}).join(' ')} className="driver-trace-line" fill="none"/>:null)}
+    <circle cx={start.x} cy={start.y} r="5" className="driver-trace-start"><title>First visible fix</title></circle>
+    <circle cx={end.x} cy={end.y} r="7" className="driver-trace-marker"><title>Latest saved fix</title></circle>
+  </svg><figcaption>Recent GPS path · {points.length} saved fix{points.length===1?'':'es'}{gaps?` · ${gaps} unobserved gap${gaps===1?'':'s'}`:''}. The path uses the latest 500 fixes and is not snapped to streets.</figcaption></figure>;
 }
 
 const stateCopy=(track:Track)=>{
@@ -44,20 +61,26 @@ export function DispatchDriverTracking({api,day,enabled}:{api:Api;day:string;ena
   const [error,setError]=useState(false);
   const [busy,setBusy]=useState(false);
   const [updatedAt,setUpdatedAt]=useState<string|null>(null);
+  const requestId=useRef(0);
   // Poll the selected service day; a late response from yesterday must never
   // replace today's list. Manual refresh remains available between polls.
   useEffect(()=>{
-    if(!enabled){setTracks(null);setUpdatedAt(null);return;}
+    if(!enabled){requestId.current++;setTracks(null);setUpdatedAt(null);return;}
     let current=true;
+    let polling=false;
     const poll=async()=>{
-      try{const result=await api.tracking(day);if(current){setTracks(result.value.shifts);setError(false);setUpdatedAt(new Date().toISOString());}}
-      catch{if(current)setError(true);}
+      if(polling)return;
+      polling=true;
+      const requested=++requestId.current;
+      try{const result=await api.tracking(day);if(current&&requested===requestId.current){setTracks(result.value.shifts);setError(false);setUpdatedAt(new Date().toISOString());}}
+      catch{if(current&&requested===requestId.current)setError(true);}
+      finally{polling=false;}
     };
     setTracks(null);setSelected(null);void poll();
     const timer=window.setInterval(()=>void poll(),10_000);
-    return()=>{current=false;window.clearInterval(timer);};
+    return()=>{current=false;requestId.current++;window.clearInterval(timer);};
   },[api,day,enabled]);
-  const refresh=async()=>{setBusy(true);try{setTracks((await api.tracking(day)).value.shifts);setError(false);setUpdatedAt(new Date().toISOString());}catch{setError(true);}finally{setBusy(false);}};
+  const refresh=async()=>{const requested=++requestId.current;setBusy(true);try{const result=await api.tracking(day);if(requested===requestId.current){setTracks(result.value.shifts);setError(false);setUpdatedAt(new Date().toISOString());}}catch{if(requested===requestId.current)setError(true);}finally{setBusy(false);}};
   const active=(tracks??[]).filter(track=>track.lifecycle!=='SHIFT_ENDED');
   const ended=(tracks??[]).filter(track=>track.lifecycle==='SHIFT_ENDED');
   const detail=active.find(track=>track.shiftReference===selected)??active[0]??null;

@@ -14,8 +14,8 @@ export const DRIVER_INSPECTION_ITEMS = [
 ] as const;
 
 type Item = typeof DRIVER_INSPECTION_ITEMS[number];
-type Draft = { defect: boolean; severity: "CRITICAL_OUT_OF_SERVICE" | "SERVICE_AFFECTING" | "MINOR"; note: string; photo: File | null };
-const initial = () => Object.fromEntries(DRIVER_INSPECTION_ITEMS.map(item => [item, { defect: false, severity: "MINOR", note: "", photo: null }])) as Record<Item, Draft>;
+type Draft = { defect: boolean | null; severity: "CRITICAL_OUT_OF_SERVICE" | "SERVICE_AFFECTING" | "MINOR"; note: string; photo: File | null };
+const initial = () => Object.fromEntries(DRIVER_INSPECTION_ITEMS.map(item => [item, { defect: null, severity: "MINOR", note: "", photo: null }])) as Record<Item, Draft>;
 
 async function photo(file: File) {
   if (file.type !== "image/jpeg" || file.size < 100 || file.size > 150_000) throw new Error("Photos must be JPEG and no larger than 150 KB.");
@@ -40,6 +40,7 @@ export function DriverInspectionForm({ stage, shift, vehicleId, busy, onSubmit }
   const inspectionMode = stage === "pre" ? policy.preInspection.mode : policy.postInspection.mode;
   const odometerMode = stage === "pre" ? policy.startOdometer.mode : policy.endOdometer.mode;
   const defects = useMemo(() => Object.values(answers).filter(answer => answer.defect).length, [answers]);
+  const reviewed = useMemo(() => Object.values(answers).filter(answer => answer.defect !== null).length, [answers]);
   const submit = async () => {
     setMessage("");
     try {
@@ -48,7 +49,8 @@ export function DriverInspectionForm({ stage, shift, vehicleId, busy, onSubmit }
       for (const item of DRIVER_INSPECTION_ITEMS) {
         if (skipInspection) break;
         const answer = answers[item];
-        if (!answer.defect) { entries.push({ item, response: "NO_DEFECT" }); continue; }
+        if (answer.defect === null) throw new Error(`Review this item before submitting: ${item}`);
+        if (answer.defect === false) { entries.push({ item, response: "NO_DEFECT" }); continue; }
         if (answer.note.trim().length < 2 || !answer.photo) throw new Error(`Add a note and JPEG photo for: ${item}`);
         const evidence = await photo(answer.photo); photos.push(evidence);
         entries.push({ item, response: "DEFECT_FOUND", severity: answer.severity, note: answer.note.trim(), photoDigest: evidence.digest });
@@ -66,15 +68,16 @@ export function DriverInspectionForm({ stage, shift, vehicleId, busy, onSubmit }
   };
   return <section className="driver-card driver-inspection" aria-labelledby={`${stage}-inspection-title`}>
     <div className="driver-card-heading"><div><p className="driver-step">{stage === "pre" ? "Step 2" : "End of shift"}</p><h2 id={`${stage}-inspection-title`}>{stage === "pre" ? "Vehicle check before departure" : "Vehicle check after return"}</h2></div><span className="driver-pill">{defects} issue{defects === 1 ? "" : "s"}</span></div>
-    <p>Mark every item. Any reported issue requires a note and a JPEG photo. Critical defects block vehicle release.</p>
+    <p>Review every item and choose No issue or Issue found. Any reported issue requires a note and a JPEG photo. Critical defects block vehicle release.</p>
     {inspectionMode === "OPTIONAL" && <label className="driver-optional"><input type="checkbox" checked={skipInspection} disabled={defects > 0} onChange={event => setSkipInspection(event.target.checked)} /> Skip optional inspection</label>}
+    {inspectionMode !== "DISABLED" && !skipInspection && <p role="status" className="driver-check-progress">{reviewed} of {DRIVER_INSPECTION_ITEMS.length} items reviewed</p>}
     {inspectionMode !== "DISABLED" && !skipInspection && <div className="driver-checklist">{DRIVER_INSPECTION_ITEMS.map((item, index) => {
       const answer = answers[item];
       return <fieldset key={item} className={answer.defect ? "driver-hazard has-defect" : "driver-hazard"}>
         <legend><span>{index + 1}</span>{item}</legend>
         <div className="driver-segmented">
-          <label><input type="radio" name={`${stage}-${index}`} checked={!answer.defect} onChange={() => setAnswers(current => ({ ...current, [item]: { ...current[item], defect: false, note: "", photo: null } }))} /> No issue</label>
-          <label><input type="radio" name={`${stage}-${index}`} checked={answer.defect} onChange={() => setAnswers(current => ({ ...current, [item]: { ...current[item], defect: true } }))} /> Issue found</label>
+          <label><input type="radio" name={`${stage}-${index}`} checked={answer.defect === false} onChange={() => setAnswers(current => ({ ...current, [item]: { ...current[item], defect: false, note: "", photo: null } }))} /> No issue</label>
+          <label><input type="radio" name={`${stage}-${index}`} checked={answer.defect === true} onChange={() => setAnswers(current => ({ ...current, [item]: { ...current[item], defect: true } }))} /> Issue found</label>
         </div>
         {answer.defect && <div className="driver-defect-fields">
           <label>Severity<select value={answer.severity} onChange={event => setAnswers(current => ({ ...current, [item]: { ...current[item], severity: event.target.value as Draft["severity"] } }))}><option value="MINOR">Minor</option><option value="SERVICE_AFFECTING">Service affecting</option><option value="CRITICAL_OUT_OF_SERVICE">Critical — out of service</option></select></label>

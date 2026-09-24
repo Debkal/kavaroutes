@@ -3,7 +3,6 @@ import {useQuery} from '@tanstack/react-query';
 import type {createCloudApi} from '../cloud-api';
 import type {RouteView} from '@kavaroutes/api-contracts/client-route-proposals';
 import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development-transport';
-import {businessTimezone} from '../business-time';
 import {shiftBandLabel} from '../shift-band';
 type Api=ReturnType<typeof createCloudApi>;
 export function CloudRouteReview({api,day,enabled}:{api:Api;day:string;enabled:boolean}){
@@ -14,7 +13,7 @@ export function CloudRouteReview({api,day,enabled}:{api:Api;day:string;enabled:b
  const [selected,setSelected]=useState('');
  const shifts=snapshot.data?.value.resources.filter(r=>r.kind==='driver-shift')??[];
  const label=(reference:string)=>{const row=tracking.data?.value.shifts.find(item=>`driver-shift:${item.shiftReference}`===reference);
-  return row?`${row.driverLabel} · ${shiftBandLabel(row.plannedStartAt,businessTimezone)}`:'Recorded shift';};
+  return row?`${row.driverLabel} · ${shiftBandLabel(row.plannedStartAt,row.serviceTimezone)}`:'Recorded shift';};
  return <section aria-label="Driver route proposals"><h2>Driver route proposals</h2>
   <p>Review future-stop order. The server rechecks policy, current work and safety constraints on approval.</p>
   {snapshot.isError&&<p role="alert">Shift list unavailable. Refresh before reviewing proposals.</p>}

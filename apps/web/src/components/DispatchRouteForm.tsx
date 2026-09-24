@@ -221,9 +221,11 @@ export function DispatchRouteForm({ api, serviceDate, onServiceDateChange, onPla
         <label>Pickup time <input type="time" value={leg.localTime} onChange={event => patch(index, { localTime: event.target.value })}/></label>
         <label>Estimated trip duration (minutes) <input type="number" min={MIN_DURATION_MINUTES} max={MAX_DURATION_MINUTES} value={leg.durationMinutes} onChange={event => patch(index, { durationMinutes: event.target.value })}/></label>
         {!leg.generatedReturn&&<label>Appointment / planned wait (minutes) <input type="number" min="0" max="1440" value={leg.appointmentLengthMinutes} onChange={event=>patch(index,{appointmentLengthMinutes:event.target.value})}/></label>}
-        <label><input type="checkbox" checked={leg.pickupRequired} onChange={event => patch(index, { pickupRequired: event.target.checked })}/> Pickup signature required</label>
-        <label><input type="checkbox" checked={leg.dropoffRequired} onChange={event => patch(index, { dropoffRequired: event.target.checked })}/> Drop-off signature required</label>
-        <label><input type="checkbox" checked={leg.mobilitySecurementRequired} onChange={event => patch(index, { mobilitySecurementRequired: event.target.checked })}/> Mobility securement required</label>
+        <div className="plan-leg-options" role="group" aria-label={`Trip ${index+1} service requirements`}>
+          <label><input type="checkbox" checked={leg.pickupRequired} onChange={event => patch(index, { pickupRequired: event.target.checked })}/> Pickup signature required</label>
+          <label><input type="checkbox" checked={leg.dropoffRequired} onChange={event => patch(index, { dropoffRequired: event.target.checked })}/> Drop-off signature required</label>
+          <label><input type="checkbox" checked={leg.mobilitySecurementRequired} onChange={event => patch(index, { mobilitySecurementRequired: event.target.checked })}/> Mobility securement required</label>
+        </div>
         {!leg.generatedReturn && <button disabled={busy || !!pending.current || legs.length >= MAX_LEGS} onClick={() => addTripFromThisPickup(index)}>Add another trip from this pickup</button>}
       </fieldset>
       {legs.length > 1 && <button disabled={busy || !!pending.current} onClick={() => setLegs(current => syncReturns(current.filter((_, position) => position !== index)))}>Remove trip {index + 1}</button>}

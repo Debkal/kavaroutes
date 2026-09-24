@@ -14,7 +14,7 @@ function fixture(t){
   const store=openStore(':memory:');
   store.run("INSERT INTO businesses VALUES(?,?,?,'TRIAL','STARTER',1,?,?)",businessId,'test_pony',recipient,Date.now(),Date.now());
   store.run('INSERT INTO business_workspaces(business_id,tenant_id) VALUES(?,?)',businessId,tenantId);
-  const text=`KavaRoutes live trip test — ${day} (Pacific time)\nGenerated: Sep 24, 11:00:00 AM PDT\nEvents: 2 | Legs: 1 | Driver actions: 0 | Rejected actions: 0\n\nTRIP LEGS\n  No rider details.\n`;
+  const text=`KavaRoutes live trip test — service date ${day}\nReport revision: 3\nGenerated: Sep 24, 11:00:00 AM PDT\nArchived run/shift events: 2 | Legs: 1 | Driver actions: 0 | Rejected actions: 0\n\nTRIP LEGS\n  No rider details.\n`;
   writeFileSync(join(tenantDirectory,`trip-test-${day}.txt`),text,{mode:0o600});
   t.after(()=>{store.close();rmSync(root,{recursive:true,force:true});});
   return {store,directory,text};
@@ -31,6 +31,16 @@ test('owner trip report preview requires a private, date-matched file',async t=>
   assert.deepEqual(setBusinessLogging(store,recipient,businessId,true),{enabled:true});
   assert.equal(store.get('SELECT logging_enabled FROM business_workspaces WHERE business_id=?',businessId).logging_enabled,1);
   assert.deepEqual(setBusinessLogging(store,recipient,businessId,false),{enabled:false});
+});
+test('historical Pacific reports remain readable, while mismatched or incomplete reports are rejected',async t=>{
+  const {store,directory}=fixture(t),path=join(directory,tenantId,`trip-test-${day}.txt`);
+  const legacy=`KavaRoutes live trip test — ${day} (Pacific time)\nGenerated: Sep 24, 11:00:00 AM PDT\nEvents: 1 | Legs: 1\n`;
+  writeFileSync(path,legacy,{mode:0o600});
+  assert.equal((await tripReportView(store,{},recipient,businessId,day,{directory})).eventCount,1);
+  writeFileSync(path,legacy.replace(day,'2026-09-23'),{mode:0o600});
+  await assert.rejects(tripReportView(store,{},recipient,businessId,day,{directory}),/TRIP_REPORT_INVALID/);
+  writeFileSync(path,`KavaRoutes live trip test — service date ${day}\nReport revision: 3\n`,{mode:0o600});
+  await assert.rejects(tripReportView(store,{},recipient,businessId,day,{directory}),/TRIP_REPORT_INVALID/);
 });
 test('report email uses admin Gmail, records acceptance, and prevents duplicates',async t=>{
   const {store,directory,text}=fixture(t),calls=[];

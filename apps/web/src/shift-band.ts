@@ -1,7 +1,7 @@
 /**
  * Shifts are named by the part of day they cover, not by an identifier: an operator reads
  * "Driver 042 · Morning shift", never "shift 0ed656ea". The band comes from the assigned
- * run's planned start in the business timezone, so a 09:00 run is Morning even when the
+ * run's planned start in its service timezone, so a 09:00 run is Morning even when the
  * driver signs in late.
  */
 export type ShiftBand = "Morning" | "Afternoon" | "Evening" | "Night";

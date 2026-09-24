@@ -47,8 +47,10 @@ async function readReport(day,directory){
   try{info=await lstat(path);}catch(error){if(error.code==='ENOENT')fail(404,'TRIP_REPORT_NOT_FOUND');throw error;}
   if(!info.isFile()||info.size>512_000||info.size<30||(info.mode&0o077))fail(500,'TRIP_REPORT_INVALID');
   const text=await readFile(path,'utf8');
-  if(!text.startsWith(`KavaRoutes live trip test — ${day} (Pacific time)\n`))fail(500,'TRIP_REPORT_INVALID');
-  const count=Number(/^Events: (\d+)/m.exec(text)?.[1]);
+  const current=text.startsWith(`KavaRoutes live trip test — service date ${day}\n`);
+  const legacy=text.startsWith(`KavaRoutes live trip test — ${day} (Pacific time)\n`);
+  if(!current&&!legacy)fail(500,'TRIP_REPORT_INVALID');
+  const count=Number((current?/^Archived run\/shift events: (\d+)(?:\s|\|)/m:/^Events: (\d+)(?:\s|\|)/m).exec(text)?.[1]);
   if(!Number.isSafeInteger(count))fail(500,'TRIP_REPORT_INVALID');
   return {text,eventCount:count,updatedAt:info.mtime.toISOString()};
 }

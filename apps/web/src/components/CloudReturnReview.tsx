@@ -73,7 +73,7 @@ function Review({api,shift,label}:{api:Api;shift:string;label?:string}){
   {v?.lifecycle==='SHIFT_ENDED'?<p>Server confirms this shift has ended. No further override is allowed.</p>:null}
   {!pending&&v&&v.lifecycle==='ACTIVE'&&!v.exceptionCommandId?<p role="status">This shift has no recorded exception yet, so there is nothing to resolve. The driver records sign-off, or an emergency stop is recorded, first.</p>:null}
   {!pending&&v&&v.lifecycle==='ACTIVE'&&v.exceptionCommandId&&!emergency&&v.returnMode!=='REQUIRED_WITH_AUDITED_OVERRIDE'?<p role="status">This shift does not require an audited override ({v.returnMode}), so the control stays disabled.</p>:null}
-  <label><input type="checkbox" checked={acknowledgeUnresolved} disabled={busy} onChange={event=>setAcknowledgeUnresolved(event.target.checked)}/> I acknowledge unresolved riders for an emergency resolution</label>
+  {emergency&&v?.lifecycle==='ACTIVE'&&<label className="return-review-ack"><input type="checkbox" checked={acknowledgeUnresolved} disabled={busy} onChange={event=>setAcknowledgeUnresolved(event.target.checked)}/><span>I acknowledge unresolved riders for this emergency resolution</span></label>}
   <button disabled={busy||(!pending&&blocked)} onClick={()=>void submit()}>{pending?'Recover original return override':emergency?'Resolve emergency stop and end shift':'Record audited return override'}</button>
   <p>If the override is refused although the shift qualifies, an earlier reviewer command is still unacknowledged: acknowledge it in Command recovery above, then submit once.</p>
   <p role="status">{message}</p>
