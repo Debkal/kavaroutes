@@ -4,7 +4,7 @@ import {createIdentity} from './identity.mjs';
 import {createSiteApp} from './app.mjs';
 import {siteReady} from './logging.mjs';
 const config=readConfig();
-const store=openStore(config.database);
+const store=openStore(config.database,{registrationDirectory:config.registrationDirectory});
 const app=createSiteApp({config,store,identity:createIdentity(config)});
 app.addHook('onClose',async()=>store.close());
 await app.listen({host:'127.0.0.1',port:config.port});

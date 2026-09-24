@@ -6,6 +6,7 @@ import QRCode from 'qrcode';
 import { base32, decrypt, digest, encrypt, equal, publicKey, randomToken, verifySignature, verifyTotp } from './crypto.mjs';
 import { identityVerifier } from './identity.mjs';
 import {accountingView,saveSubscription,createInvoice,changeInvoice,createExpense,voidExpense,recordUsage} from './accounting.mjs';
+import {tripReportView,sendTripReport,setBusinessLogging} from './trip-reports.mjs';
 
 const fail = (status = 401, code = 'AUTHENTICATION_FAILED') => { throw Object.assign(new Error(code), { status, code }); };
 const emailValue = value => {
@@ -36,7 +37,7 @@ async function body(request) {
   } catch { fail(400, 'INVALID_JSON'); }
 }
 
-export function createAdminServer({ config, store, verifyIdentity = identityVerifier(config) }) {
+export function createAdminServer({ config, store, verifyIdentity = identityVerifier(config), tripReportDirectory }) {
   const local = config.mode === 'local';
   const prefix = local ? 'kr_admin_' : '__Host-kr_admin_';
   const cookie = (name, value, age) => `${prefix}${name}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${local ? '' : '; Secure'}`;
@@ -183,12 +184,16 @@ export function createAdminServer({ config, store, verifyIdentity = identityVeri
         reply.setHeader('Set-Cookie',cookie('session','',0)); return send({ok:true});
       }
       if (path === '/api/dashboard') return send({
-        businesses:store.all('SELECT * FROM businesses ORDER BY updated DESC LIMIT 500'),
+        businesses:store.all(`SELECT b.*,w.tenant_id AS runtime_tenant_id,w.logging_enabled AS debug_logging_enabled FROM businesses b
+          LEFT JOIN business_workspaces w ON w.business_id=b.id ORDER BY b.updated DESC LIMIT 500`),
         admins:store.all('SELECT email,role,state FROM admins ORDER BY role,email'),
         audit:store.all('SELECT * FROM audit ORDER BY id DESC LIMIT 100'),
         integration:'TEST_REGISTRY',
       });
       owner(admin);
+      if(path==='/api/trip-report')return send(await tripReportView(store,config,admin.email,data.businessId,data.day,{directory:tripReportDirectory}));
+      if(path==='/api/trip-report-send')return send(await sendTripReport(store,config,admin.email,data.businessId,data.day,{directory:tripReportDirectory}));
+      if(path==='/api/business-debug-logging')return send(setBusinessLogging(store,admin.email,data.businessId,data.enabled));
       const mailCommands={'/api/customer-contact':saveCustomer,'/api/email-template':saveTemplate,'/api/email-preview':previewEmail,'/api/email-queue':queueEmail,'/api/email-cancel':cancelEmail,'/api/email-rule':saveRule};
       if(mailCommands[path])return send(mailCommands[path](store,admin.email,data));
       const financialCommands={'/api/subscription':saveSubscription,'/api/invoice':createInvoice,'/api/invoice-status':changeInvoice,'/api/expense':createExpense,'/api/expense-void':voidExpense,'/api/usage':recordUsage};

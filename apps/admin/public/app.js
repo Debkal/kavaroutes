@@ -1,10 +1,10 @@
 import {setupCustomers,refreshCustomers} from './customers.js';
 import {setupFinance,refreshFinance} from './finance.js';
 const $ = id => document.getElementById(id);
-let csrf='', current=null, configuration, enrollment='', businesses=[], editing=null, challengeUrl='';
+let csrf='', current=null, configuration, enrollment='', businesses=[], editing=null, selectedBusiness=null, challengeUrl='';
 const message = text => { $('message').textContent=text; $('challenge-status').textContent=text; };
 async function api(path,data={}) {
-  const response=await fetch(`/api/${path}`,{method:'POST',credentials:'same-origin',signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/json','X-Admin-CSRF':csrf},body:JSON.stringify(data)});
+  const response=await fetch(`/api/${path}`,{method:'POST',credentials:'same-origin',signal:AbortSignal.timeout(path==='trip-report-send'?35000:15000),headers:{'Content-Type':'application/json','X-Admin-CSRF':csrf},body:JSON.stringify(data)});
   if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) throw new Error('Your Cloudflare sign-in may have expired. Refresh the page and sign in again.');
   const result=await response.json();
   if (!response.ok) {
@@ -31,7 +31,7 @@ function bind(id,fn) {
   });
 }
 function showLogin() {
-  csrf='';current=null;enrollment='';$('qr').removeAttribute('src');
+  csrf='';current=null;enrollment='';selectedBusiness=null;$('business-workspace').hidden=true;$('qr').removeAttribute('src');
   $('login').hidden=false;$('dashboard').hidden=true;$('logout').hidden=true;
   $('proof-panel').hidden=true;$('enroll-panel').hidden=true;
   $('session-info').textContent='A signed challenge and authenticator code are required for every new session.';
@@ -44,6 +44,38 @@ async function signedIn(result) {
   $('session-info').textContent=`${current.email} · ${current.role} · Session expires ${new Date(current.expires).toLocaleTimeString()}`;
   await refresh();
 }
+let loadedTripDay=null;
+function tripReportStatus(result){
+  if(result.emailStatus==='ACCEPTED')return `Report emailed to ${result.recipient}. Gmail accepted the message; inbox delivery is not confirmed.`;
+  if(result.emailStatus==='UNKNOWN'||result.emailStatus==='PROCESSING')return 'An email attempt may be in progress or unconfirmed. Check Gmail Sent before trying again.';
+  if(!result.emailReady)return 'Report ready. Connect and enable Gmail in Customer email before sending it to your admin address.';
+  if(!result.eventCount)return 'No trip events are recorded yet. The report updates as the test runs.';
+  return `Report updated ${new Date(result.updatedAt).toLocaleString()}. Review it below, then email it to ${result.recipient}.`;
+}
+async function loadTripReport(){
+  if(current?.role!=='OWNER'||!selectedBusiness?.runtime_tenant_id)return;
+  const day=$('trip-report-day').value;
+  loadedTripDay=null;$('trip-report-send').disabled=true;$('trip-report-load').disabled=true;
+  try{
+    const result=await api('trip-report',{businessId:selectedBusiness.id,day});
+    $('trip-report-text').textContent=result.text;$('trip-report-text').hidden=false;
+    $('trip-report-status').textContent=tripReportStatus(result);
+    loadedTripDay=day;
+    $('trip-report-send').disabled=!result.emailReady||!result.eventCount||['ACCEPTED','UNKNOWN','PROCESSING'].includes(result.emailStatus);
+  }catch(error){$('trip-report-text').hidden=true;$('trip-report-status').textContent=error.message==='TRIP_REPORT_NOT_FOUND'?'No trip log is available for this date yet.':error.message.replaceAll('_',' ');}
+  finally{$('trip-report-load').disabled=false;}
+}
+const pacificDate=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+const datePart=type=>pacificDate.find(part=>part.type===type).value;
+$('trip-report-day').value=`${datePart('year')}-${datePart('month')}-${datePart('day')}`;
+$('trip-report-day').addEventListener('change',()=>{loadedTripDay=null;$('trip-report-send').disabled=true;$('trip-report-text').hidden=true;$('trip-report-status').textContent='Load the report for the selected service date.';});
+$('trip-report-load').addEventListener('click',loadTripReport);
+$('trip-report-send').addEventListener('click',async()=>{
+  if(!selectedBusiness||!loadedTripDay||loadedTripDay!==$('trip-report-day').value)return;
+  $('trip-report-send').disabled=true;
+  try{await api('trip-report-send',{businessId:selectedBusiness.id,day:loadedTripDay});await loadTripReport();}
+  catch(error){$('trip-report-status').textContent=error.message.replaceAll('_',' ');await loadTripReport();}
+});
 bind('challenge-form',async()=>{
   if (!configuration) throw new Error('Sign-in controls have not finished loading. Refresh the page and try again.');
   let invite='';const email=$('email').value.trim().toLowerCase();
@@ -78,10 +110,31 @@ function renderBusinesses() {
   $('empty').textContent=businesses.length?'No businesses match your search.':'No businesses yet. Add your first test business below.';
   for(const item of filtered){const row=document.createElement('tr');cell(row,item.name);cell(row,item.contact);cell(row,item.plan);
     const badge=document.createElement('span');badge.className=`badge ${item.status.toLowerCase()}`;badge.textContent=item.status;cell(row,'').append(badge);
-    const action=cell(row,'');if(current.role==='OWNER'){const button=document.createElement('button');button.textContent='Edit';button.addEventListener('click',()=>{editing=item;for(const key of ['name','contact','plan','status'])$('business-form').elements.namedItem(key).value=item[key];$('editor-title').textContent='Edit business';$('business-editor').scrollIntoView({behavior:'smooth'});});action.append(button);}else action.textContent='Read only';
+    const action=cell(row,'');if(current.role==='OWNER'){const open=document.createElement('button');open.textContent='Workspace';open.addEventListener('click',()=>openBusinessWorkspace(item));action.append(open);const button=document.createElement('button');button.textContent='Edit';button.addEventListener('click',()=>{editing=item;for(const key of ['name','contact','plan','status'])$('business-form').elements.namedItem(key).value=item[key];$('editor-title').textContent='Edit business';$('business-editor').scrollIntoView({behavior:'smooth'});});action.append(button);}else action.textContent='Read only';
     $('business-rows').append(row);
   }
 }
+function openBusinessWorkspace(item){
+  selectedBusiness=item;loadedTripDay=null;
+  $('workspace-title').textContent=`${item.name} · workspace`;
+  $('workspace-status').textContent=item.runtime_tenant_id?`Business ID ${item.id}. Operations tenant ${item.runtime_tenant_id}.`:`Business ID ${item.id}. No operations workspace is linked to this account yet.`;
+  $('workspace-links').hidden=!item.runtime_tenant_id;
+  $('workspace-trip').hidden=!item.runtime_tenant_id;
+  $('workspace-logging').checked=!!item.debug_logging_enabled;
+  $('trip-report-text').hidden=true;$('trip-report-send').disabled=true;
+  $('trip-report-status').textContent='Choose a service date to load its report.';
+  $('business-workspace').hidden=false;$('business-workspace').scrollIntoView({behavior:'smooth'});
+  if(item.runtime_tenant_id)void loadTripReport();
+}
+$('workspace-close').addEventListener('click',()=>{selectedBusiness=null;$('business-workspace').hidden=true;});
+$('workspace-logging').addEventListener('change',async()=>{
+  if(!selectedBusiness)return;
+  const enabled=$('workspace-logging').checked;
+  $('workspace-logging').disabled=true;
+  try{await api('business-debug-logging',{businessId:selectedBusiness.id,enabled});selectedBusiness.debug_logging_enabled=Number(enabled);$('trip-report-status').textContent=enabled?'Diagnostic logging enabled. New events should appear within a minute.':'Diagnostic logging paused. Existing reports remain available.';}
+  catch(error){$('workspace-logging').checked=!enabled;$('trip-report-status').textContent=error.message.replaceAll('_',' ');}
+  finally{$('workspace-logging').disabled=false;}
+});
 async function refresh(){
   const result=await api('dashboard');businesses=result.businesses;
   $('count-total').textContent=businesses.length;$('count-active').textContent=businesses.filter(b=>b.status==='ACTIVE').length;$('count-trial').textContent=businesses.filter(b=>b.status==='TRIAL').length;$('count-support').textContent=result.admins.filter(a=>a.role==='SUPPORT'&&a.state==='ACTIVE').length;

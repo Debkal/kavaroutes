@@ -10,6 +10,8 @@ if ! id kavaroutes-site >/dev/null 2>&1; then
 fi
 site_uid=$(id -u kavaroutes-site)
 site_gid=$(id -g kavaroutes-site)
+if id kavaroutes-admin >/dev/null 2>&1; then registration_gid=$(id -g kavaroutes-admin); else registration_gid=$site_gid; fi
+install -d -o "$site_uid" -g "$registration_gid" -m 2750 /var/lib/kavaroutes-registrations
 install -d -m 755 /opt/kavaroutes-site
 tar --no-same-owner -xzf "$bundle" -C /opt/kavaroutes-site
 chown -R root:root /opt/kavaroutes-site
@@ -19,6 +21,7 @@ cat > /etc/kavaroutes-site.env <<'ENV'
 KR_SITE_ORIGIN=https://kavaroutes.com
 KR_SITE_PORT=58110
 KR_SITE_DATABASE=/var/lib/kavaroutes-site/accounts.sqlite
+KR_SITE_REGISTRATIONS_DIRECTORY=/var/lib/kavaroutes-registrations
 KR_SITE_FIREBASE_PROJECT_ID=kavaroutes
 ENV
 chmod 600 /etc/kavaroutes-site.env
@@ -31,7 +34,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/docker run --rm --name kavaroutes-public-site --no-healthcheck --network host --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 256m --user $site_uid:$site_gid --env-file /etc/kavaroutes-site.env --mount type=bind,src=/opt/kavaroutes-site,dst=/app/apps/site,readonly --mount type=bind,src=/var/lib/kavaroutes-site,dst=/var/lib/kavaroutes-site --workdir /app/apps/site --entrypoint node $image server/main.mjs
+ExecStart=/usr/bin/docker run --rm --name kavaroutes-public-site --no-healthcheck --network host --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 256m --user $site_uid:$site_gid --env-file /etc/kavaroutes-site.env --mount type=bind,src=/opt/kavaroutes-site,dst=/app/apps/site,readonly --mount type=bind,src=/var/lib/kavaroutes-site,dst=/var/lib/kavaroutes-site --mount type=bind,src=/var/lib/kavaroutes-registrations,dst=/var/lib/kavaroutes-registrations --workdir /app/apps/site --entrypoint node $image server/main.mjs
 ExecStop=/usr/bin/docker stop --time 15 kavaroutes-public-site
 Restart=on-failure
 RestartSec=5

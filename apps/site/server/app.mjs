@@ -6,7 +6,7 @@ const fail=(status,code)=>{throw Object.assign(new Error(code),{status,code});};
 const providers=new Set(['password','google.com','microsoft.com']);
 export function admitBusinessIdentity(identity,tenantId,now=Date.now()) {
   if(identity.firebase?.tenant!==tenantId||!providers.has(identity.firebase?.sign_in_provider)||
-    identity.email_verified!==true||typeof identity.uid!=='string'||!identity.uid||
+    identity.email_verified!==true||typeof identity.email!=='string'||! /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity.email)||typeof identity.uid!=='string'||!identity.uid||
     !Number.isSafeInteger(identity.auth_time)||now/1000-identity.auth_time>300||identity.auth_time>now/1000||
     String(identity.role??'').toUpperCase()==='DRIVER'||String(identity.accountType??'').toUpperCase()==='DRIVER')fail(403,'BUSINESS_SIGN_IN_REQUIRED');
   return identity.uid;
@@ -51,7 +51,7 @@ export function createSiteApp({config,store,identity,webRoot=resolve(import.meta
     }
     const business=store.get(session.subject);
     if(!business||business.state==='DISABLED')fail(403,'BUSINESS_ACCESS_UNAVAILABLE');
-    return {businessName:business.businessName,email:user.email??'',subscription:'PENDING',checkoutEnabled:false,softwareAccess:false};
+    return {businessId:business.businessId,businessName:business.businessName,email:user.email??'',subscription:'PENDING',checkoutEnabled:false,softwareAccess:false};
   };
   app.post('/api/session',async(request,reply)=>{
     if(!config.authEnabled||!identity)fail(503,'SIGN_IN_UNAVAILABLE');
@@ -64,9 +64,10 @@ export function createSiteApp({config,store,identity,webRoot=resolve(import.meta
     if(!store.get(subject)){
       const businessName=body.businessName??(claims.firebase.sign_in_provider==='password'?claims.name:undefined);
       if(typeof businessName!=='string'||!businessName.trim()||businessName.length>120||/[\x00-\x1f]/.test(businessName))fail(409,'BUSINESS_PROFILE_REQUIRED');
-      store.enroll(subject,businessName.trim());
+      store.enroll(subject,businessName.trim(),claims.email);
     }
     if(store.get(subject).state==='DISABLED')fail(403,'BUSINESS_ACCESS_UNAVAILABLE');
+    store.refreshRegistration(subject,claims.email);
     // No roles, entitlements, application sessions or Stripe state are created.
     const old=tokenFrom(request);if(old)store.revoke(old);
     reply.header('Set-Cookie',cookie(store.issue(subject),3600));

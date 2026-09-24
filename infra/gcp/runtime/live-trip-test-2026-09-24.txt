@@ -1,0 +1,57 @@
+KavaRoutes live trip diagnostic — 2026-09-24 (America/Los_Angeles)
+
+The read-only VM service kavaroutes-live-trip-test.service polls each business
+with diagnostic logging enabled every minute. The test_pony business is linked
+to the existing synthetic operations tenant. Its private raw log is:
+  /var/lib/kavaroutes-site/diagnostics/trip-test-2026-09-24.jsonl
+Its readable, redacted report appears under test_pony > Workspace in the
+platform admin dashboard. The report is private to the linked business ID.
+
+The log includes run, leg, assignment and shift IDs; accepted/rejected driver
+commands with both phone capture and server receipt timestamps; signature events;
+and GPS batch receipt time, accepted sample count and maximum accuracy. It omits
+rider names, street addresses, raw positions, passwords and signatures.
+
+To see the current summary on the VM:
+  sudo python3 /opt/kavaroutes-live-test/live-trip-test-log.py 2026-09-24 --report
+To see the readable timeline:
+  sudo python3 /opt/kavaroutes-live-test/live-trip-test-log.py 2026-09-24 --readable
+
+In the admin dashboard, open Business accounts > test_pony > Workspace. There
+you can pause/restart diagnostic logging, view the dated report, and email it
+to the signed-in admin owner. Email requires the existing admin Gmail sender
+to be connected and enabled first; no mail is sent while it is unconfigured.
+
+Interpretation of trip times:
+  pickupArrivalAt = server acceptance of ARRIVE_PICKUP
+  boardedAt = server acceptance of BOARD_RIDER
+  dropoffArrivalAt = server acceptance of ARRIVE_DROPOFF
+  completedAt = server acceptance of COMPLETE_LEG
+
+These times record when the driver reported each event; they are not automatic
+GPS geofences. GPS batches report persistence, not continuous background tracking.
+The driver must keep the web page open with location permission granted. A mobile
+browser may pause updates when its screen is locked.
+The current driver location banner counts device fixes before the server confirms
+them. Use the GPS_BATCH receipts and dispatch tracking view to verify delivery.
+
+Driver identity update deployed 2026-09-23: the Driver web client now uses the
+driver ID returned by a successful invite claim or password verification. The
+runtime issues a short-lived, memory-only session bound to that credential's
+driver ID and version. A password reset or another successful sign-in invalidates
+the prior session. Reloading the page requires another password sign-in.
+
+For Joel's test on 2026-09-24:
+  1. One published run with two legs is already assigned to Joel and a vehicle.
+     Joel's driver login and the assigned shift are active.
+  2. In Dispatch, choose the desired route goal for each leg. The operator is
+     making this choice; neither goal was selected at the readiness check.
+  3. Joel signs in, allows location, and uses the driver actions at pickup and
+     dropoff. If an old browser session fails, sign in again with his password.
+  4. Dispatch watches Active drivers for live fixes and contact warnings.
+  5. In platform admin, open test_pony > Workspace and reload the trip report
+     after each milestone; compare pickup/dropoff action times with Dispatch.
+
+Cloudflare Access must permit Joel's browser to reach app.kavaroutes.com before
+the Driver page can load. Dispatcher and Driver sign-in routes remain a later
+workflow split; this release changes the driver identity inside the current app.

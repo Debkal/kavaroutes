@@ -15,6 +15,8 @@ if ! id kavaroutes-admin >/dev/null 2>&1; then
 fi
 admin_uid=$(id -u kavaroutes-admin)
 admin_gid=$(id -g kavaroutes-admin)
+if id kavaroutes-site >/dev/null 2>&1; then registration_owner=$(id -u kavaroutes-site); else registration_owner=0; fi
+install -d -o "$registration_owner" -g "$admin_gid" -m 2750 /var/lib/kavaroutes-registrations
 install -d -m 755 /opt/kavaroutes-admin
 tar --no-same-owner -xzf "$bundle" -C /opt/kavaroutes-admin
 chown -R root:root /opt/kavaroutes-admin
@@ -35,7 +37,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/docker run --rm --name kavaroutes-platform-admin --no-healthcheck --network host --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 256m --user $admin_uid:$admin_gid --mount type=bind,src=/opt/kavaroutes-admin,dst=/opt/kavaroutes-admin,readonly --mount type=bind,src=/var/lib/kavaroutes-admin,dst=/var/lib/kavaroutes-admin --workdir /opt/kavaroutes-admin --entrypoint node $image apps/admin/src/main.mjs /var/lib/kavaroutes-admin/config.json
+ExecStart=/usr/bin/docker run --rm --name kavaroutes-platform-admin --no-healthcheck --network host --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 256m --user $admin_uid:$admin_gid --mount type=bind,src=/opt/kavaroutes-admin,dst=/opt/kavaroutes-admin,readonly --mount type=bind,src=/var/lib/kavaroutes-admin,dst=/var/lib/kavaroutes-admin --mount type=bind,src=/var/lib/kavaroutes-registrations,dst=/var/lib/kavaroutes-registrations,readonly --workdir /opt/kavaroutes-admin --entrypoint node $image apps/admin/src/main.mjs /var/lib/kavaroutes-admin/config.json
 ExecStop=/usr/bin/docker stop --time 15 kavaroutes-platform-admin
 Restart=on-failure
 RestartSec=5

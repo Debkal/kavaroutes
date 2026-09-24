@@ -11,5 +11,6 @@ export function readConfig(env=process.env) {
   // A dedicated business tenant is mandatory. Default-project driver identities
   // and synthetic driver credentials cannot be exchanged for site sessions.
   const authEnabled=Boolean(firebase.apiKey&&firebase.authDomain&&firebase.tenantId);
-  return {origin,local,port,firebase,authEnabled,database:env.KR_SITE_DATABASE??'/tmp/kavaroutes-site/accounts.sqlite'};
+  return {origin,local,port,firebase,authEnabled,database:env.KR_SITE_DATABASE??'/tmp/kavaroutes-site/accounts.sqlite',
+    registrationDirectory:env.KR_SITE_REGISTRATIONS_DIRECTORY??(local?'/tmp/kavaroutes-site/registrations':'/var/lib/kavaroutes-registrations')};
 }

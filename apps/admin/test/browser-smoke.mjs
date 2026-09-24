@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { mkdir, readFile } from 'node:fs/promises';
+import {mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import { chromium } from '@playwright/test';
 import { createAdminServer } from '../src/server.mjs';
 import { openStore } from '../src/store.mjs';
@@ -8,9 +11,10 @@ import { decrypt, digest, totp } from '../src/crypto.mjs';
 import { signedResponse } from '../bin/signer.mjs';
 
 const owner='kavasupport@kavaroutes.com',store=openStore(':memory:');
+const reportRoot=mkdtempSync(join(tmpdir(),'kr-admin-browser-reports-'));
 const config={mode:'local',origin:'',encryptionKey:randomBytes(32)};
 store.run("INSERT INTO admins(email,role,state,invite_hash,invite_expiry) VALUES(?,'OWNER','INVITED',?,?)",owner,digest('browser-only-invite'),Date.now()+60000);
-const server=createAdminServer({config,store});
+const server=createAdminServer({config,store,tripReportDirectory:reportRoot});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));config.origin=`http://127.0.0.1:${server.address().port}`;
 let browser;
 try {
@@ -33,10 +37,26 @@ try {
   const pending=store.get('SELECT * FROM enrollments WHERE email=?',owner);
   await page.locator('#enroll-code').fill(totp(decrypt(pending.secret,config.encryptionKey,owner)));
   await page.getByRole('button',{name:'Finish enrollment'}).click();await page.locator('#dashboard').waitFor({state:'visible'});
+  let linked;
   for(const [name,contact] of [['North Coast Medical Transport','office@example.com'],['Valley Mobility Services','dispatch@example.com']]){
     await page.getByLabel('Business name',{exact:true}).fill(name);await page.getByLabel('Contact email',{exact:true}).fill(contact);
     await page.getByRole('button',{name:'Save test business'}).click();await page.locator('#business-rows').getByRole('cell',{name,exact:true}).waitFor();
+    if(name==='North Coast Medical Transport'){
+      linked=store.get("SELECT id FROM businesses WHERE name='North Coast Medical Transport'").id;
+      store.run('INSERT INTO business_workspaces(business_id,tenant_id,logging_enabled) VALUES(?,?,1)',linked,linked);
+      mkdirSync(join(reportRoot,linked));
+      writeFileSync(join(reportRoot,linked,'trip-test-2026-09-24.txt'),
+        'KavaRoutes live trip test — 2026-09-24 (Pacific time)\nEvents: 1 | Legs: 0 | Driver actions: 0 | Rejected actions: 0\n\nTIMELINE\n  Run created\n',{mode:0o600});
+    }
   }
+  await page.locator('#business-rows').getByRole('row').filter({hasText:'North Coast Medical Transport'}).getByRole('button',{name:'Workspace'}).click();
+  await page.locator('#trip-report-day').fill('2026-09-24');
+  await page.locator('#trip-report-load').click();
+  await page.locator('#trip-report-text').filter({hasText:'Run created'}).waitFor();
+  assert.equal(await page.locator('#trip-report-send').isDisabled(),true);
+  await page.locator('#workspace-logging').uncheck();
+  assert.equal(store.get('SELECT logging_enabled FROM business_workspaces WHERE business_id=?',linked).logging_enabled,0);
+  await page.locator('#workspace-close').click();
   await page.locator('#business-rows').getByRole('row').filter({hasText:'North Coast Medical Transport'}).getByRole('button',{name:'Edit'}).click();
   await page.getByLabel('Account status').selectOption('ACTIVE');await page.getByLabel('Plan').selectOption('GROWTH');
   await page.getByRole('button',{name:'Save test business'}).click();await page.locator('#business-rows').getByRole('row').filter({hasText:'North Coast Medical Transport'}).getByText('ACTIVE',{exact:true}).waitFor();
@@ -76,4 +96,4 @@ try {
   await page.getByRole('button',{name:'Sign out',exact:true}).click();await page.locator('#login').waitFor({state:'visible'});
   assert.deepEqual(errors,[]);
   console.log('ADMIN_BROWSER_SMOKE_PASSED: enrollment, business management, subscription, invoice create/issue/payment, expenses, CSV download, usage-informed planning, customer directory, email templates/preview/schedule/cancel, reminder rules, automatic payment receipt, invitation, reload, mobile, logout');
-} finally {await browser?.close();await new Promise(resolve=>server.close(resolve));store.close();}
+} finally {await browser?.close();await new Promise(resolve=>server.close(resolve));store.close();rmSync(reportRoot,{recursive:true,force:true});}

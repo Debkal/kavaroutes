@@ -2,6 +2,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { chmodSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { initCustomerMail } from './customer-mail.mjs';
+import {initTripReports} from './trip-reports.mjs';
+import {initBusinessSync} from './business-sync.mjs';
 import { initAccounting } from './accounting.mjs';
 
 export function openStore(path) {
@@ -61,5 +63,7 @@ export function openStore(path) {
   };
   initAccounting(store);
   initCustomerMail(store);
+  initTripReports(store);
+  initBusinessSync(store);
   return store;
 }

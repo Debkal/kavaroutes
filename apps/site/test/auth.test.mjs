@@ -5,7 +5,7 @@ import {openStore} from '../server/store.mjs';
 import {readConfig} from '../server/config.mjs';
 
 const origin='https://kavaroutes.com',tenantId='business-tenant';
-const claim=(extra={})=>({uid:'business-owner-1',email_verified:true,auth_time:Math.floor(Date.now()/1000),
+const claim=(extra={})=>({uid:'business-owner-1',email:'owner@example.com',email_verified:true,auth_time:Math.floor(Date.now()/1000),
   firebase:{tenant:tenantId,sign_in_provider:'password'},...extra});
 async function fixture(t,claims=claim()){
   const store=openStore(':memory:');let disabled=false,revoked=false;
@@ -28,7 +28,8 @@ test('verified signup persists a pending business and creates a secure, revocabl
   const setCookie=login.headers['set-cookie'];assert.match(setCookie,/__Host-kr_business_session=/);assert.match(setCookie,/HttpOnly/);assert.match(setCookie,/Secure/);assert.match(setCookie,/SameSite=Strict/);assert.doesNotMatch(setCookie,/valid-token/);
   const cookie=setCookie.split(';')[0];
   const account=await f.app.inject({url:'/api/account',headers:{cookie}});
-  assert.equal(account.statusCode,200);assert.deepEqual(account.json(),{businessName:'Calm Transit',email:'owner@example.com',subscription:'PENDING',checkoutEnabled:false,softwareAccess:false});
+  assert.equal(account.statusCode,200);assert.match(account.json().businessId,/^[0-9a-f]{8}-[0-9a-f-]{27}$/);
+  assert.deepEqual(account.json(),{businessId:f.store.get('business-owner-1').businessId,businessName:'Calm Transit',email:'owner@example.com',subscription:'PENDING',checkoutEnabled:false,softwareAccess:false});
   assert.equal((await f.post('/api/checkout',{}, {cookie})).statusCode,503);
   assert.equal((await f.app.inject({url:'/api/software',headers:{cookie}})).statusCode,403);
   assert.equal((await f.post('/api/logout',{}, {cookie})).statusCode,204);
