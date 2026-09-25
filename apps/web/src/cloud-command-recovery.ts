@@ -1,7 +1,9 @@
 import type {BrowserCommandEnvelope} from '@kavaroutes/api-contracts/client-web';
 import {DevelopmentApiError,type createPrivateDevelopmentTransport} from '@kavaroutes/api-contracts/private-development-transport';
+import {decodeCloudAssignment,type CloudAssignmentCommand} from './cloud-board-contract';
 type Transport=ReturnType<typeof createPrivateDevelopmentTransport>;
 export type RecoverySummary={id:string;kind:BrowserCommandEnvelope['kind'];expired:boolean;acknowledged:boolean;outcome:'PENDING'|'ACCEPTED'|'REJECTED';code:string|null};
+export type PendingAssignment=RecoverySummary&{command:CloudAssignmentCommand;receipt:ReturnType<typeof decodeCloudAssignment>|null};
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const kinds=['CREATE_TRIP','CANCEL_TRIP','ASSIGN_RUN','DECIDE_ROUTE','OVERRIDE_RETURN'];
 const prefix='/v1/organizations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/browser-commands';
@@ -28,8 +30,22 @@ export async function recoveryIdentity(kind:string,key:string){
 }
 export function createCloudCommandRecovery(transport:Transport){
  const command=async(action:'execute'|'acknowledge',id:string)=>{if(!uuid.test(id))throw new Error('INVALID_RECOVERY_ID');return transport.request(`${prefix}/${id}/${action}`,value=>{const r=record(value);if(r.summary.id!==id)throw new Error('INVALID_RECOVERY_ID');return r;},{body:{},idempotencyKey:`browser-${action}-${id}`});};
+ const pendingRecord=(signal?:AbortSignal)=>transport.request(prefix+'/pending',value=>{const v=obj(value);keys(v,['command']);return v.command===null?null:record(v.command);},undefined,signal);
  return {
-  async pending(signal?:AbortSignal){return transport.request(prefix+'/pending',value=>{const v=obj(value);keys(v,['command']);return v.command===null?null:record(v.command).summary;},undefined,signal);},
+  async pending(signal?:AbortSignal){const result=await pendingRecord(signal);return {...result,value:result.value?.summary??null};},
+  async pendingAssignment(signal?:AbortSignal):Promise<PendingAssignment|null>{
+   const row=(await pendingRecord(signal)).value;
+   if(!row||row.summary.kind!=='ASSIGN_RUN')return null;
+   const body=obj(row.envelope.body);
+   keys(body,['expectedVersion','driverId','vehicleId']);
+   const command:CloudAssignmentCommand={runId:String(row.envelope.resourceId),expectedTag:String(row.envelope.expectedTag),
+    expectedVersion:body.expectedVersion as number,driverId:String(body.driverId),vehicleId:String(body.vehicleId),key:''};
+   if(![command.runId,command.driverId,command.vehicleId].every(value=>uuid.test(value))||
+    !Number.isSafeInteger(command.expectedVersion)||command.expectedVersion<1||
+    !/^"kr1\.[A-Za-z0-9_-]{43}"$/.test(command.expectedTag))throw new Error('INVALID_RECOVERY_ASSIGNMENT');
+   const receipt=row.result?.outcome==='ACCEPTED'?decodeCloudAssignment(row.result.body,command):null;
+   return {...row.summary,command,receipt};
+  },
   async execute(id:string){return (await command('execute',id)).value.summary;},
   async acknowledge(id:string){return (await command('acknowledge',id)).value.summary;},
   async run<T>(envelope:BrowserCommandEnvelope,key:string,decode:(value:unknown)=>T){

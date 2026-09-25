@@ -6,6 +6,16 @@ import {createPrivateDevelopmentTransport} from '@kavaroutes/api-contracts/priva
 import {createCloudCommandRecovery} from '../src/cloud-command-recovery';
 import {CloudCommandRecovery} from '../src/components/CloudCommandRecovery';
 const envelope={kind:'CANCEL_TRIP' as const,resourceId:'11111111-1111-4111-8111-111111111111',expectedTag:'"kr1.'+'A'.repeat(43)+'"',body:{reasonCode:'SYNTHETIC_REQUESTER_CANCELLED' as const}};
+it('decodes an accepted assignment for safe board reconciliation',async()=>{
+ const runId='11111111-1111-4111-8111-111111111111',assignmentId='44444444-4444-4444-8444-444444444444';
+ const stored={id:'55555555-5555-4555-8555-555555555555',expired:false,acknowledged:false,
+  envelope:{kind:'ASSIGN_RUN',resourceId:runId,expectedTag:'"kr1.'+'A'.repeat(43)+'"',body:{expectedVersion:1,driverId:'22222222-2222-4222-8222-222222222222',vehicleId:'33333333-3333-4333-8333-333333333333'}},
+  result:{outcome:'ACCEPTED',statusCode:200,etag:null,body:{assignmentId,runId,version:2,serviceDate:'2026-09-25'}}};
+ const transport={request:vi.fn(async(_path:string,decode:(value:unknown)=>unknown)=>({value:decode({command:stored})}))};
+ const recovery=createCloudCommandRecovery(transport as any);
+ expect(await recovery.pendingAssignment()).toMatchObject({id:stored.id,outcome:'ACCEPTED',receipt:{assignmentId,runId,version:2,serviceDate:'2026-09-25'}});
+ expect(transport.request).toHaveBeenCalledOnce();
+});
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals();});
 it('reopens an accepted unknown-outcome command without replacing or automatically acknowledging it',async()=>{
  vi.stubGlobal('crypto',webcrypto);vi.spyOn(window,'confirm').mockReturnValue(true);

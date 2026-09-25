@@ -33,6 +33,77 @@ describe('cloud dispatch authority',()=>{
   await screen.findByText('Assignment confirmed by the server. Driver itinerary updated.');
   expect(commands[0]).toEqual(commands[1]);expect(assign).toHaveBeenCalledTimes(2);client.clear();
  });
+ it('clears an earlier accepted assignment only after the board confirms the same driver and vehicle',async()=>{
+  const current=fixture();current.runs[0]={...current.runs[0]!,assignmentId,driverId,vehicleId,version:2};
+  const id='55555555-5555-4555-8555-555555555555';
+  const recovery={pendingAssignment:vi.fn(async()=>({id,kind:'ASSIGN_RUN',outcome:'ACCEPTED',acknowledged:false,expired:false,code:null,
+    command:{runId,expectedVersion:1,expectedTag,driverId,vehicleId,key:''},receipt:{assignmentId,runId,version:2,serviceDate:current.serviceDate}})),
+    acknowledge:vi.fn(async()=>({acknowledged:true}))};
+  const client=mount({board:async()=>({value:structuredClone(current)}),recovery,assign:vi.fn()});
+  await screen.findByText('Earlier assignment confirmed by the server. Driver and vehicle are assigned.');
+  expect(recovery.acknowledge).toHaveBeenCalledWith(id);
+  expect(screen.queryByRole('button',{name:'Check earlier assignment'})).not.toBeInTheDocument();client.clear();
+ });
+ it('acknowledges a newly accepted assignment after the board confirms it',async()=>{
+  const current=fixture();
+  const recovery={pendingAssignment:vi.fn(async()=>null),acknowledge:vi.fn(async()=>({acknowledged:true}))};
+  const assign=vi.fn(async()=>{current.runs[0]={...current.runs[0]!,assignmentId,driverId,vehicleId,version:2};return {value:{assignmentId,runId,version:2,serviceDate:current.serviceDate}};});
+  const client=mount({board:async()=>({value:structuredClone(current)}),recovery,assign});
+  vi.spyOn(window,'confirm').mockReturnValue(true);
+  fireEvent.click(await screen.findByRole('button',{name:'Assign driver'}));
+  fireEvent.change(screen.getByLabelText('Driver'),{target:{value:driverId}});
+  fireEvent.change(screen.getByLabelText('Vehicle'),{target:{value:vehicleId}});
+  fireEvent.click(screen.getByRole('button',{name:'Assign driver and vehicle'}));
+  await screen.findByText('Assignment confirmed by the server. Driver itinerary updated.');
+  expect(recovery.acknowledge).toHaveBeenCalledOnce();
+  expect(assign).toHaveBeenCalledOnce();client.clear();
+ });
+ it('resolves an accepted prior assignment inline when a new request meets the unacknowledged-command block',async()=>{
+  const current=fixture(),id='55555555-5555-4555-8555-555555555555';
+  let earlierAccepted=false;
+  const recovery={pendingAssignment:vi.fn(async()=>earlierAccepted?{id,kind:'ASSIGN_RUN',outcome:'ACCEPTED',acknowledged:false,expired:false,code:null,
+    command:{runId,expectedVersion:1,expectedTag,driverId,vehicleId,key:''},receipt:{assignmentId,runId,version:2,serviceDate:current.serviceDate}}:null),
+    acknowledge:vi.fn(async()=>({acknowledged:true}))};
+  const assign=vi.fn(async()=>{earlierAccepted=true;current.runs[0]={...current.runs[0]!,assignmentId,driverId,vehicleId,version:2};
+    throw new DevelopmentApiError(409,'PERSISTENCE_IDEMPOTENCY_IN_PROGRESS','req_wp007_00028542');});
+  const client=mount({board:async()=>({value:structuredClone(current)}),recovery,assign});
+  vi.spyOn(window,'confirm').mockReturnValue(true);
+  await waitFor(()=>expect(recovery.pendingAssignment).toHaveBeenCalledOnce());
+  fireEvent.click(await screen.findByRole('button',{name:'Assign driver'}));
+  fireEvent.change(screen.getByLabelText('Driver'),{target:{value:driverId}});
+  fireEvent.change(screen.getByLabelText('Vehicle'),{target:{value:vehicleId}});
+  fireEvent.click(screen.getByRole('button',{name:'Assign driver and vehicle'}));
+  await screen.findByText('Earlier assignment confirmed by the server. Driver and vehicle are assigned.');
+  expect(recovery.acknowledge).toHaveBeenCalledWith(id);
+  expect(assign).toHaveBeenCalledOnce();client.clear();
+ });
+ it('checks the authoritative receipt after a lost assignment response',async()=>{
+  const current=fixture(),id='55555555-5555-4555-8555-555555555555';
+  let accepted=false;
+  const recovery={pendingAssignment:vi.fn(async()=>accepted?{id,kind:'ASSIGN_RUN',outcome:'ACCEPTED',acknowledged:false,expired:false,code:null,
+    command:{runId,expectedVersion:1,expectedTag,driverId,vehicleId,key:''},receipt:{assignmentId,runId,version:2,serviceDate:current.serviceDate}}:null),
+    acknowledge:vi.fn(async()=>({acknowledged:true}))};
+  const assign=vi.fn(async()=>{accepted=true;current.runs[0]={...current.runs[0]!,assignmentId,driverId,vehicleId,version:2};throw new DevelopmentApiError(0,'OUTCOME_UNKNOWN');});
+  const client=mount({board:async()=>({value:structuredClone(current)}),recovery,assign});
+  vi.spyOn(window,'confirm').mockReturnValue(true);
+  await waitFor(()=>expect(recovery.pendingAssignment).toHaveBeenCalledOnce());
+  fireEvent.click(await screen.findByRole('button',{name:'Assign driver'}));
+  fireEvent.change(screen.getByLabelText('Driver'),{target:{value:driverId}});
+  fireEvent.change(screen.getByLabelText('Vehicle'),{target:{value:vehicleId}});
+  fireEvent.click(screen.getByRole('button',{name:'Assign driver and vehicle'}));
+  await screen.findByText('Earlier assignment confirmed by the server. Driver and vehicle are assigned.');
+  expect(recovery.acknowledge).toHaveBeenCalledWith(id);
+  expect(assign).toHaveBeenCalledOnce();client.clear();
+ });
+ it('does not clear an accepted receipt if the board shows a different assignment',async()=>{
+  const current=fixture(),id='55555555-5555-4555-8555-555555555555';
+  const recovery={pendingAssignment:vi.fn(async()=>({id,kind:'ASSIGN_RUN',outcome:'ACCEPTED',acknowledged:false,expired:false,code:null,
+    command:{runId,expectedVersion:1,expectedTag,driverId,vehicleId,key:''},receipt:{assignmentId,runId,version:2,serviceDate:current.serviceDate}})),
+    acknowledge:vi.fn()};
+  const client=mount({board:async()=>({value:structuredClone(current)}),recovery});
+  await screen.findByRole('button',{name:'Check earlier assignment'});
+  expect(recovery.acknowledge).not.toHaveBeenCalled();client.clear();
+ });
  it('refreshes a conflict without applying optimistic assignment',async()=>{
   const board=vi.fn(async()=>({value:fixture()}));
   const client=mount({board,assign:async()=>{throw new DevelopmentApiError(412,'VERSION_CONFLICT');}});
