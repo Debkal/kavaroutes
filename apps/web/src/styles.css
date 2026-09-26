@@ -280,3 +280,11 @@ td small, td span { display: block; }.route-arrow { display: inline !important; 
 .accounting-page .accounting-forward { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; margin-top: .5rem; }
 .accounting-page .accounting-forward label { margin: 0; font-size: .78rem; }
 .accounting-page th small { display: block; margin-top: .15rem; color: var(--muted); font-weight: 500; }
+.driver-access-manager>label{display:grid;gap:.35rem;max-width:22rem;margin:1rem 0;font-weight:600}
+.driver-access-manager>label input{min-height:2.7rem;padding:.55rem .7rem;border:1px solid #afc3b8;border-radius:.5rem;background:#fff;color:#244238}
+.driver-access-manager .form-actions{display:flex;flex-wrap:wrap;gap:.65rem;margin:1rem 0}
+.driver-access-manager h3{margin:1.5rem 0 .65rem}
+.driver-access-manager table button{margin:.15rem .2rem .15rem 0}
+.driver-access-manager table small{display:block;color:#526d60}
+.driver-access-manager details{margin:1.4rem 0}
+.driver-access-manager details ul{max-height:15rem;overflow:auto;padding-left:1.3rem}

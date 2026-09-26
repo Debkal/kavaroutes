@@ -15,12 +15,13 @@ import { validateConfig, tenantId, branchScopeReference } from './config.mjs';
 import {createDriverSessions} from './driver-sessions.mjs';
 import {createGeoapifyRoadRoutingService} from './road-routing.mjs';
 import {registerDriverAdmin} from './driver-admin.mjs';
+import {registerDriverAccessManagement} from './driver-access-management.mjs';
 
 export async function createRuntimeApi(input) {
   const config = validateConfig(input);
   if (new URL(config.databaseUrl).username !== 'kr_cloud_api') throw new Error('RUNTIME_DATABASE_ROLE_INVALID');
   const pool = makePool(config);
-  const sessions=createDriverSessions({synthetic:createSyntheticTestVerifier(),allowSyntheticDriver:process.env.KR_CLOUD_LOCAL_TEST==='1',credentialVersion:async(organizationId,driverId)=>
+  const sessions=createDriverSessions({synthetic:createSyntheticTestVerifier(),allowSyntheticDriver:process.env.KR_CLOUD_LOCAL_TEST==='1',sessionFile:process.env.KR_DRIVER_SESSIONS_FILE,credentialVersion:async(organizationId,driverId)=>
     withTenantTransaction(pool,organizationId,'kavaroutes_api',async client=>{
       const row=(await client.query(`SELECT status,credential_version FROM platform.driver_credential WHERE tenant_id=$1 AND driver_id=$2`,[organizationId,driverId])).rows[0];
       return row?{status:String(row.status),version:Number(row.credential_version)}:null;
@@ -52,6 +53,7 @@ export async function createRuntimeApi(input) {
     verifier, etagSecret: config.etagSecret, cursorSecret: `synthetic-cursor-secret-${config.cursorSecret}` });
   const store = createPostgresRealtimeStore(pool, createTestOnlyCursorCodec({ secret: config.cursorSecret }));
   registerDriverAdmin(app,{accountsFile:process.env.KR_DRIVER_ADMINS_FILE,driverLogins});
+  registerDriverAccessManagement(app,{directory:process.env.KR_DRIVER_ACCESS_DIRECTORY,verify:authorization=>verifier.verify(authorization)});
   let gateway;
   let stopped = false;
   let timer;
@@ -59,6 +61,7 @@ export async function createRuntimeApi(input) {
   app.addHook('onRequest', async (request, reply) => {
     const path = request.url.split('?')[0];
     if(path.startsWith('/driver-admin/'))return;
+    if(/^\/v1\/organizations\/[^/]+\/driver-access(?:\/codes(?:\/[^/]+\/(?:reset|disable))?|\/devices\/[^/]+\/signout)?$/.test(path))return;
     if(/^\/v1\/organizations\/[^/]+\/facility\/(?:days\/\d{4}-\d{2}-\d{2}|trips\/[^/]+)$/.test(path))return;
     if(/^\/v1\/organizations\/[^/]+\/browser-commands(?:\/pending|\/[^/]+\/(?:execute|acknowledge))?$/.test(path))return;
     const routeProposalPath=/^\/v1\/organizations\/[^/]+\/(?:(?:driver|dispatch)\/shifts\/[^/]+\/route-proposals|dispatch\/route-proposals\/[^/]+\/commands\/decide)$/.test(path);

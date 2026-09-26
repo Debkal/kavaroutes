@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DriverActionItem, DriverClosureView, DriverItinerary, DriverShiftState, DriverSignatureRequest } from "@kavaroutes/api-contracts/client-web";
 import { DevelopmentApiError } from "@kavaroutes/api-contracts/private-development-transport";
 import { createCloudDriverWebApi, driverOrganizationId, type DriverCommand, type DriverLeg } from "../cloud-driver-api";
@@ -131,6 +131,7 @@ export function Component() {
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const [signedIn, setSignedIn] = useState(false);
   const [verifiedLogin,setVerifiedLogin]=useState<{driverId:string;loginId:string}|null>(null);
   const [nativeTracking, setNativeTracking] = useState<NativeTrackingStatus>({state:'idle',message:'Location starts when your shift starts.'});
+  const nativeResumeAttempted=useRef(false);
   const assignmentId = shift?.effectivePolicy.assignmentId;
   const refresh = useCallback(async (selectedAssignment = assignmentId) => {
     if (!selectedAssignment) return;
@@ -202,7 +203,7 @@ export function Component() {
       if (nativeDriver) {
         setNativeTracking({state:'starting',message:'Starting background location…'});
         const session = api.nativeTrackingSession();
-        setNativeTracking(await nativeDriverCommand({type:'START',...session,shiftReference:state.shiftReference,shiftGeneration:state.shiftGeneration}));
+        setNativeTracking(await nativeDriverCommand({type:'START',...session,shiftReference:state.shiftReference,shiftGeneration:state.shiftGeneration,loginId:login?.loginId??'driver'}));
       }
       setSignedIn(true); setItinerary(manifest); setShift(state); setSelectedLeg(leg.tripLegId);
       setClosure((await api.closure(state.shiftReference)).value);
@@ -210,6 +211,18 @@ export function Component() {
     } catch (error) { setMessage(failureText(error, "Driver sign-in failed.")); }
     finally { setBusy(false); }
   };
+
+  useEffect(()=>{
+    if(!nativeDriver||nativeResumeAttempted.current)return;
+    nativeResumeAttempted.current=true;
+    void nativeDriverCommand({type:'RESUME'}).then(status=>{
+      setNativeTracking(status);
+      if(status.state!=='active'||!status.token||!status.driverId||status.organizationId!==businessId||!status.loginId)return;
+      api.restoreNativeSession({token:status.token,driverId:status.driverId,organizationId:status.organizationId});
+      const login={driverId:status.driverId,loginId:status.loginId};
+      setVerifiedLogin(login);void signIn(login);
+    }).catch(()=>setNativeTracking({state:'delayed',message:'Could not restore the active shift. Sign in again; saved GPS fixes will retry.'}));
+  },[nativeDriver,api,businessId]);
 
   const submitCheck = async (request: Parameters<typeof api.precheck>[1], stage: "pre" | "post") => {
     if (!shift) return; setBusy(true); setMessage("");

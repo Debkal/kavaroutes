@@ -7,6 +7,10 @@ import {decodeRoadSelection,decodeRoadPreview,type RoadGoal} from './road-route-
 
 const organizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const prefix = `/v1/organizations/${organizationId}`;
+export type DriverAccessCode={id:string;businessId:string;code:string;kind:'SHARED'|'ONE_DEVICE';label:string;enabled:boolean;uses:number;createdAt:number;updatedAt:number};
+export type DriverAccessDevice={id:string;businessId:string;codeId:string;label:string;createdAt:number;lastSeenAt:number;expiresAt:number;revokedAt:number|null};
+export type DriverAccessEvent={at:number;businessId:string;action:string;actor:string;target:string};
+export type DriverAccessView={codes:DriverAccessCode[];devices:DriverAccessDevice[];events:DriverAccessEvent[]};
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 function tripPath(id: string) { if (!uuid.test(id)) throw new Error("INVALID_TRIP_REFERENCE"); return `${prefix}/trips/${id}`; }
 function object(value: unknown): Record<string, unknown> {
@@ -22,6 +26,32 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
   const recovery=createCloudCommandRecovery(transport),reviewerRecovery=createCloudCommandRecovery(reviewer);
   return Object.freeze({
     recovery,reviewerRecovery,
+    driverAccess(){return transport.request(`${prefix}/driver-access`,(body):DriverAccessView=>{
+      const value=object(body);
+      if(!Array.isArray(value.codes)||!Array.isArray(value.devices)||!Array.isArray(value.events))throw new Error('INVALID_DRIVER_ACCESS_RESPONSE');
+      return value as unknown as DriverAccessView;
+    });},
+    createDriverAccessCode(kind:'SHARED'|'ONE_DEVICE',label:string){
+      return transport.request(`${prefix}/driver-access/codes`,(body):DriverAccessCode&{password:string}=>{
+        const value=object(body);if(typeof value.password!=='string'||typeof value.code!=='string')throw new Error('INVALID_DRIVER_ACCESS_RESPONSE');
+        return value as DriverAccessCode&{password:string};
+      },{body:{kind,label},idempotencyKey:`driver-access-${crypto.randomUUID()}`});
+    },
+    resetDriverAccessCode(id:string){
+      if(!uuid.test(id))throw new Error('INVALID_ACCESS_CODE');
+      return transport.request(`${prefix}/driver-access/codes/${id}/reset`,(body):DriverAccessCode&{password:string}=>{
+        const value=object(body);if(typeof value.password!=='string'||value.id!==id)throw new Error('INVALID_DRIVER_ACCESS_RESPONSE');
+        return value as DriverAccessCode&{password:string};
+      },{body:{},idempotencyKey:`driver-access-${crypto.randomUUID()}`});
+    },
+    disableDriverAccessCode(id:string){
+      if(!uuid.test(id))throw new Error('INVALID_ACCESS_CODE');
+      return transport.request(`${prefix}/driver-access/codes/${id}/disable`,(body):DriverAccessCode=>body as DriverAccessCode,{body:{},idempotencyKey:`driver-access-${crypto.randomUUID()}`});
+    },
+    signOutDriverDevice(id:string){
+      if(!uuid.test(id))throw new Error('INVALID_ACCESS_DEVICE');
+      return transport.request(`${prefix}/driver-access/devices/${id}/signout`,(body):DriverAccessDevice=>body as DriverAccessDevice,{body:{},idempotencyKey:`driver-access-${crypto.randomUUID()}`});
+    },
     returnReview(shift:string){
       if(!uuid.test(shift))throw new Error('INVALID_SHIFT');
       return reviewer.request(`${prefix}/dispatch/shifts/${shift}/return-review`,body=>{

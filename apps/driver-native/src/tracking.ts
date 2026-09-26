@@ -14,7 +14,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const TOKEN = /^dvs_[A-Za-z0-9_-]{43}$/;
 
 export type Status = {state:'idle'|'starting'|'active'|'delayed'|'stopped'; message:string};
-export type Binding = {token:string; organizationId:string; driverId:string; shiftReference:string; shiftGeneration:string; deviceId:string};
+export type Binding = {token:string; organizationId:string; driverId:string; shiftReference:string; shiftGeneration:string; deviceId:string;loginId?:string};
 type Sample = {sample_id:string; sequence:number; captured_at:string; latitude:number; longitude:number; accuracy_meters:number|null; batch_ref:string|null};
 let dbPromise:Promise<SQLiteDatabase>|null=null;
 let uploadPromise:Promise<Status>|null=null;
@@ -37,7 +37,7 @@ async function database() {
 function validBinding(value:unknown):value is Binding {
   if (!value||typeof value!=='object') return false;
   const b=value as Record<string,unknown>;
-  return typeof b.token==='string'&&TOKEN.test(b.token)&&[b.organizationId,b.driverId,b.shiftReference,b.shiftGeneration,b.deviceId].every(v=>typeof v==='string'&&UUID.test(v));
+  return typeof b.token==='string'&&TOKEN.test(b.token)&&[b.organizationId,b.driverId,b.shiftReference,b.shiftGeneration,b.deviceId].every(v=>typeof v==='string'&&UUID.test(v))&&(b.loginId===undefined||(typeof b.loginId==='string'&&/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(b.loginId)));
 }
 async function readBinding():Promise<Binding|null> {
   const raw=await SecureStore.getItemAsync(BINDING,STORE_OPTIONS);
@@ -167,6 +167,16 @@ export async function trackingStatus():Promise<Status> {
   const running=await Location.hasStartedLocationUpdatesAsync(TASK);
   if (!running) return {state:'delayed',message:'Background tracking stopped unexpectedly. Sign in again to restart it.'};
   return flushTracking();
+}
+
+export async function resumeTracking():Promise<Status&{token?:string;organizationId?:string;driverId?:string;loginId?:string}> {
+  const binding=await readBinding();
+  if(!binding)return {state:'idle',message:'Sign in with your driver account.'};
+  if(!(await serverShiftIsActive(binding))){await stopTracking();return {state:'stopped',message:'The previous shift has ended. Sign in again.'};}
+  if(!(await Location.hasStartedLocationUpdatesAsync(TASK))){
+    await startTracking(binding);
+  }
+  return {state:'active',message:'Active shift restored. Background location is running.',token:binding.token,organizationId:binding.organizationId,driverId:binding.driverId,...(binding.loginId?{loginId:binding.loginId}:{})};
 }
 
 TaskManager.defineTask<{locations?:Location.LocationObject[]}>(TASK,async({data,error})=>{

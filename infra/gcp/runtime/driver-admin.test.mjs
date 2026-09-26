@@ -17,13 +17,15 @@ test('business driver admin creates accounts only in its own tenant',async()=>{
   assert.equal(provision.status,0,provision.stderr);
   const calls=[];const app=Fastify();
   registerDriverAdmin(app,{accountsFile:file,driverLogins:{createAccount:async input=>{calls.push(input);return {body:{driverId:'11111111-1111-4111-8111-111111111111',inviteCode:'private-code',loginId:input.request.loginId}};}}});
-  const post=(url,payload,headers={})=>app.inject({method:'POST',url,headers:{origin:'https://driver.kavaroutes.com','content-type':'application/json',...headers},payload});
+  const post=(url,payload,headers={})=>app.inject({method:'POST',url,headers:{origin:'https://driver.kavaroutes.com','x-kr-driver-business-id':businessId,'content-type':'application/json',...headers},payload});
   try{
     const wrong=await post('/driver-admin/session',{loginId:'test_pony_admin',password:'wrong-password-here'});
     assert.equal(wrong.statusCode,401);
     const signed=await post('/driver-admin/session',{loginId:'test_pony_admin',password});
     assert.equal(signed.statusCode,200);
     assert.equal(signed.json().businessId,businessId);
+    const wrongBusiness=await post('/driver-admin/session',{loginId:'test_pony_admin',password},{'x-kr-driver-business-id':'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'});
+    assert.equal(wrongBusiness.statusCode,401);
     const denied=await post('/driver-admin/drivers',{displayName:'Joel',loginId:'joeldriver',workforceRelationship:'EMPLOYEE'},
       {'idempotency-key':`driver-admin-${'a'.repeat(36)}`});
     assert.equal(denied.statusCode,401);

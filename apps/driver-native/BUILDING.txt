@@ -2,8 +2,10 @@ KavaRoutes Driver native shell
 ==============================
 
 This app is for drivers only. It loads the existing production driver screen at
-https://driver.kavaroutes.com/driver on Android and iPhone. Dispatch, admin and
-business login pages are not part of this app.
+https://driver.kavaroutes.com/driver on Android and iPhone. A generic business
+access screen opens first; drivers enter their business code and separate access
+password, then use their own driver login. Dispatch and driver-admin screens are
+not part of the native app.
 
 During an active shift, the phone's native location task collects GPS fixes and
 posts them to the existing driver shift location-batches endpoint. The Android
@@ -37,18 +39,25 @@ apps/driver-native/android/app/build/outputs/apk/release/app-release.apk.
 This project currently signs that release-mode APK with the generated Android
 debug key. It is installable for private testing and is not store-ready.
 
-On a real phone, sign in with a driver account, grant precise/always location,
+On a real phone, enter the business access credentials, sign in with a driver
+account, grant precise/always location,
 start the shift, open Google Maps from the trip link, lock and unlock the phone,
 then check Dispatch Active Drivers for fresh fixes. Finish the shift and confirm
 the Android notification/iOS indicator ends. Also test network loss and return.
 Location is queued in an encrypted device database for retry while the app is
-running; a driver session currently expires after 12 hours and must be renewed
-by signing in again. Force quitting an iPhone app can prevent further background
+running; a driver session expires after 36 hours and must be renewed by signing
+in again. A short phone shutdown preserves the business access session and the
+active driver session; reopen Driver after powering on to resume tracking.
+Force quitting an iPhone app can prevent further background
 delivery until it is reopened. Phone power settings can also affect update
 frequency, so a physical test is required before relying on continuous tracking.
 
-The Driver hostname is public but serves only Driver pages and driver-specific
-endpoints. The driver's login ID and password issue a DriverSession; the same
-session authorizes the native background uploader. If that session expires,
-reopen Driver and sign in again. Each business driver admin manages invitations
-at https://driver.kavaroutes.com/driver-admin, outside the native app.
+The public Driver hostname shows only a generic business access form until a
+business-scoped password is accepted. Driver and driver-admin pages and login
+APIs require that session. The driver's own login issues a DriverSession; this
+token authorizes native background uploads even while the WebView is away.
+If it expires, reopen Driver and sign in again. Business driver admins manage
+invitations at https://driver.kavaroutes.com/driver-admin in a regular browser,
+after the same business access screen. To rotate a business access password on
+the VM, pipe the new password into provision-driver-access.py with the accounts
+file path, business UUID and code; existing business sessions are revoked.

@@ -2,20 +2,21 @@ import './src/tracking';
 import {useCallback, useRef, useState} from 'react';
 import {ActivityIndicator, Linking, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import WebView, {type WebViewMessageEvent, type WebViewNavigation} from 'react-native-webview';
-import {flushTracking, prepareTracking, startTracking, stopTracking, trackingStatus, type Status} from './src/tracking';
+import {flushTracking, prepareTracking, resumeTracking, startTracking, stopTracking, trackingStatus, type Status} from './src/tracking';
 
 const DRIVER_URL='https://driver.kavaroutes.com/driver';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN=/^dvs_[A-Za-z0-9_-]{43}$/;
-type Command={requestId:string;type:'PREPARE'|'STATUS'|'STOP'|'START';token?:string;organizationId?:string;driverId?:string;shiftReference?:string;shiftGeneration?:string};
+type Command={requestId:string;type:'PREPARE'|'STATUS'|'STOP'|'START'|'RESUME';token?:string;organizationId?:string;driverId?:string;shiftReference?:string;shiftGeneration?:string;loginId?:string};
 function safeDriverUrl(raw:string) {try {const url=new URL(raw);return url.origin==='https://driver.kavaroutes.com'&&url.pathname==='/driver';}catch{return false;}}
+function safeGateUrl(raw:string) {try {const url=new URL(raw);return url.origin==='https://driver.kavaroutes.com'&&['/business-access','/business-access/logout'].includes(url.pathname);}catch{return false;}}
 function mapsUrl(raw:string) {try {const url=new URL(raw);return url.protocol==='https:'&&['www.google.com','maps.google.com','maps.apple.com'].includes(url.hostname)&&url.pathname.startsWith('/maps');}catch{return false;}}
 function parseCommand(raw:string):Command {
   const value:unknown=JSON.parse(raw);
   if (!value||typeof value!=='object'||Array.isArray(value)) throw new Error('INVALID_DRIVER_COMMAND');
   const command=value as Record<string,unknown>;
-  if (typeof command.requestId!=='string'||!UUID.test(command.requestId)||!['PREPARE','STATUS','STOP','START'].includes(String(command.type))) throw new Error('INVALID_DRIVER_COMMAND');
-  if (command.type==='START'&&!(typeof command.token==='string'&&TOKEN.test(command.token)&&[command.organizationId,command.driverId,command.shiftReference,command.shiftGeneration].every(v=>typeof v==='string'&&UUID.test(v)))) throw new Error('INVALID_DRIVER_BINDING');
+  if (typeof command.requestId!=='string'||!UUID.test(command.requestId)||!['PREPARE','STATUS','STOP','START','RESUME'].includes(String(command.type))) throw new Error('INVALID_DRIVER_COMMAND');
+  if (command.type==='START'&&!(typeof command.token==='string'&&TOKEN.test(command.token)&&[command.organizationId,command.driverId,command.shiftReference,command.shiftGeneration].every(v=>typeof v==='string'&&UUID.test(v))&&typeof command.loginId==='string'&&/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(command.loginId))) throw new Error('INVALID_DRIVER_BINDING');
   return command as Command;
 }
 
@@ -33,7 +34,7 @@ export default function App() {
     try {command=parseCommand(event.nativeEvent.data);} catch {return;}
     setWorking(true);
     try {
-      const status=command.type==='PREPARE'?await prepareTracking():command.type==='STATUS'?await trackingStatus():command.type==='STOP'?await stopTracking():await startTracking({token:command.token!,organizationId:command.organizationId!,driverId:command.driverId!,shiftReference:command.shiftReference!,shiftGeneration:command.shiftGeneration!});
+      const status=command.type==='PREPARE'?await prepareTracking():command.type==='STATUS'?await trackingStatus():command.type==='STOP'?await stopTracking():command.type==='RESUME'?await resumeTracking():await startTracking({token:command.token!,organizationId:command.organizationId!,driverId:command.driverId!,shiftReference:command.shiftReference!,shiftGeneration:command.shiftGeneration!,loginId:command.loginId!});
       reply(command.requestId,status);
       if (command.type==='START'||command.type==='STATUS') void flushTracking();
     } catch(error) {
@@ -43,7 +44,7 @@ export default function App() {
   },[reply]);
   const onNavigation=useCallback((request:WebViewNavigation)=>{
     if (request.url==='about:blank') return true;
-    if (safeDriverUrl(request.url)) return true;
+    if (safeDriverUrl(request.url)||safeGateUrl(request.url)) return true;
     if (mapsUrl(request.url)) void Linking.openURL(request.url);
     return false;
   },[]);

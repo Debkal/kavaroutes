@@ -4,11 +4,13 @@ import { createServer, request as upstreamRequest } from 'node:http';
 import { connect } from 'node:net';
 import { extname, resolve, sep } from 'node:path';
 import {driverGatewayDecision} from './driver-gateway-policy.mjs';
+import {createDriverBusinessGate} from './driver-business-gate.mjs';
 
 const webRoot = resolve(process.env.KR_WEB_ROOT ?? '/srv/kavaroutes-web/dist');
 const driverRoot = resolve(process.env.KR_DRIVER_WEB_ROOT ?? '/srv/kavaroutes-web/dist-driver');
 const listenPort = Number(process.env.KR_WEB_PORT ?? 58080);
 const apiPort = Number(process.env.KR_API_PORT ?? 58082);
+const businessGate=createDriverBusinessGate({storeDirectory:process.env.KR_DRIVER_ACCESS_DIRECTORY});
 if (![listenPort, apiPort].every(port => Number.isInteger(port) && port >= 1024 && port <= 65535) || listenPort === apiPort) {
   throw new Error('PROTOTYPE_GATEWAY_PORT_INVALID');
 }
@@ -32,15 +34,31 @@ const securityHeaders = Object.freeze({
 
 function cleanProxyHeaders(headers) {
   const clean = { ...headers, host: `127.0.0.1:${apiPort}` };
-  for (const name of ['cf-access-jwt-assertion', 'cf-authorization', 'connection', 'cookie', 'proxy-authorization', 'proxy-connection', 'upgrade']) delete clean[name];
+  for (const name of ['cf-access-jwt-assertion', 'cf-authorization', 'connection', 'cookie', 'proxy-authorization', 'proxy-connection', 'upgrade','x-kr-driver-business-id']) delete clean[name];
   return clean;
 }
 
-function proxy(request, response) {
+function proxy(request, response, businessId,loginDeviceId) {
+  const headers=cleanProxyHeaders(request.headers);
+  if(businessId)headers['x-kr-driver-business-id']=businessId;
   const upstream = upstreamRequest({ hostname: '127.0.0.1', port: apiPort, method: request.method,
-    path: request.url, headers: cleanProxyHeaders(request.headers), timeout: 30_000 }, upstreamResponse => {
+    path: request.url, headers, timeout: 30_000 }, async upstreamResponse => {
     const headers = { ...upstreamResponse.headers };
     delete headers.connection; delete headers['keep-alive']; delete headers.server;
+    if(loginDeviceId&&upstreamResponse.statusCode>=200&&upstreamResponse.statusCode<300){
+      try{
+        const parts=[];let size=0;
+        for await(const part of upstreamResponse){size+=part.length;if(size>65536)throw new Error('DRIVER_LOGIN_RESPONSE_TOO_LARGE');parts.push(part);}
+        const body=Buffer.concat(parts),token=JSON.parse(body.toString('utf8')).sessionToken;
+        await businessGate.bindDriverToken(businessId,loginDeviceId,token);
+        response.writeHead(upstreamResponse.statusCode,headers).end(body);
+      }catch(error){
+        process.stderr.write(`DRIVER_SESSION_BIND_ERROR ${error instanceof Error?error.message:'unknown'}\n`);
+        if(!response.headersSent)response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});
+        response.end('{"code":"DRIVER_SESSION_UNAVAILABLE"}');
+      }
+      return;
+    }
     response.writeHead(upstreamResponse.statusCode ?? 502, headers);
     upstreamResponse.pipe(response);
   });
@@ -52,7 +70,7 @@ function proxy(request, response) {
   request.pipe(upstream);
 }
 
-async function staticResponse(request, response, pathname, root=webRoot, entry='index.html') {
+async function staticResponse(request, response, pathname, root=webRoot, entry='index.html',privateAssets=false) {
   if (!['GET', 'HEAD'].includes(request.method ?? '')) {
     response.writeHead(405, { allow: 'GET, HEAD', ...securityHeaders }).end(); return;
   }
@@ -73,7 +91,7 @@ async function staticResponse(request, response, pathname, root=webRoot, entry='
     response.writeHead(200, { ...securityHeaders,
       'content-type': contentTypes[extname(candidate)] ?? 'application/octet-stream',
       'content-length': metadata.size,
-      'cache-control': isAsset ? 'public, max-age=31536000, immutable' : 'no-store',
+      'cache-control': isAsset ? (privateAssets?'private, max-age=3600':'public, max-age=31536000, immutable') : 'no-store',
     });
     if (request.method === 'HEAD') response.end(); else createReadStream(candidate).pipe(response);
   } catch {
@@ -82,16 +100,39 @@ async function staticResponse(request, response, pathname, root=webRoot, entry='
   }
 }
 
-const server = createServer((request, response) => {
-  let pathname;
-  try { pathname = new URL(request.url ?? '/', 'http://gateway.invalid').pathname; }
+const server = createServer(async(request, response) => {
+  let url,pathname;
+  try { url=new URL(request.url ?? '/', 'http://gateway.invalid'); pathname=url.pathname; }
   catch { response.writeHead(400).end(); return; }
   if (request.headers.host === 'driver.kavaroutes.com') {
-    const decision=driverGatewayDecision(request.method,pathname,request.headers.authorization);
-    if(decision==='deny') {response.writeHead(404,{...securityHeaders,'cache-control':'no-store'}).end();return;}
-    if(decision==='proxy') {proxy(request,response);return;}
-    if(pathname==='/') {response.writeHead(302,{...securityHeaders,location:'/driver','cache-control':'no-store'}).end();return;}
-    void staticResponse(request,response,pathname,driverRoot,'driver.html');return;
+    try{
+      if(await businessGate.handle(request,response,url))return;
+      const account=await businessGate.account(request);
+      const decision=driverGatewayDecision(request.method,pathname,request.headers.authorization,account?.businessId);
+      if(decision==='deny') {
+        if(!account&&['GET','HEAD'].includes(request.method??'')&&(pathname==='/'||pathname==='/driver'||pathname==='/driver-admin')){
+          const next=pathname==='/'?'/driver':`${pathname}${url.search}`;
+          response.writeHead(303,{...securityHeaders,location:`/business-access?next=${encodeURIComponent(next)}`,'cache-control':'no-store'}).end();return;
+        }
+        response.writeHead(404,{...securityHeaders,'cache-control':'no-store'}).end();return;
+      }
+      if(decision==='proxy') {
+        const driverToken=/^DriverSession (dvs_[A-Za-z0-9_-]{43})$/.exec(request.headers.authorization??'')?.[1];
+        if(driverToken&&await businessGate.driverTokenAccess(driverToken)===false){response.writeHead(401,{...securityHeaders,'content-type':'application/json','cache-control':'no-store'}).end('{"code":"DRIVER_ACCESS_REVOKED"}');return;}
+        const loginDeviceId=request.method==='POST'&&/\/driver-logins\//.test(pathname)?account?.deviceId:undefined;
+        proxy(request,response,account?.businessId,loginDeviceId);return;
+      }
+      if(pathname==='/') {response.writeHead(303,{...securityHeaders,location:businessGate.destination('/driver',account.businessId),'cache-control':'no-store'}).end();return;}
+      if(pathname==='/driver'){
+        const safe=businessGate.destination(`${pathname}${url.search}`,account.businessId);
+        if(`${pathname}${url.search}`!==safe){response.writeHead(303,{...securityHeaders,location:safe,'cache-control':'no-store'}).end();return;}
+      }
+      void staticResponse(request,response,pathname,driverRoot,'driver.html',true);return;
+    }catch(error){
+      process.stderr.write(`DRIVER_BUSINESS_GATE_ERROR ${error instanceof Error?error.message:'unknown'}\n`);
+      if(!response.headersSent)response.writeHead(503,{...securityHeaders,'cache-control':'no-store'});
+      response.end();return;
+    }
   }
   if (pathname === '/health/ready' || pathname.startsWith('/v1/')) proxy(request, response);
   else void staticResponse(request, response, pathname);

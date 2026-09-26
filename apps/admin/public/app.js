@@ -151,20 +151,33 @@ async function loadManualCharges(){
     if(manualCharges.length)$('manual-charge-status').textContent=`${manualCharges.length} manual route charge event${manualCharges.length===1?'':'s'} for this business.`;
   }catch(error){$('manual-charge-status').textContent=error.message.replaceAll('_',' ');}
 }
+async function loadDriverAccessLog(){
+  const businessId=selectedBusiness?.id;if(!businessId)return;
+  $('driver-access-log-status').textContent='Loading access activity…';
+  try{
+    const result=await api('driver-access-log',{businessId});
+    if(selectedBusiness?.id!==businessId)return;
+    $('driver-access-log-list').replaceChildren();
+    for(const event of result.events){const item=document.createElement('li');item.textContent=`${new Date(event.at).toLocaleString()} · ${event.action.replaceAll('_',' ').toLowerCase()} · ${event.actor} · ${event.target}`;$('driver-access-log-list').append(item);}
+    $('driver-access-log-status').textContent=result.events.length?`${result.events.length} recent access event${result.events.length===1?'':'s'}.`:'No driver access activity is recorded for this business yet.';
+  }catch(error){$('driver-access-log-status').textContent=error.message.replaceAll('_',' ');}
+}
 function openBusinessWorkspace(item){
   selectedBusiness=item;loadedTripDay=null;
   $('workspace-title').textContent=`${item.name} · workspace`;
   $('workspace-status').textContent=item.runtime_tenant_id?`Business ID ${item.id}. Operations tenant ${item.runtime_tenant_id}.`:`Business ID ${item.id}. No operations workspace is linked to this account yet.`;
   $('workspace-links').hidden=!item.runtime_tenant_id;
   $('workspace-trip').hidden=!item.runtime_tenant_id;
+  $('workspace-driver-access').hidden=!item.runtime_tenant_id||current.role!=='OWNER';
   $('workspace-logging').checked=!!item.debug_logging_enabled;
   $('trip-report-text').hidden=true;$('trip-report-send').disabled=true;
   $('trip-report-status').textContent='Choose a service date to load its report.';
   manualCharges=[];renderManualCharges();clearManualCharge();
   $('business-workspace').hidden=false;$('business-workspace').scrollIntoView({behavior:'smooth'});
-  if(item.runtime_tenant_id)void loadTripReport();
+  if(item.runtime_tenant_id){void loadTripReport();if(current.role==='OWNER')void loadDriverAccessLog();}
   void loadManualCharges();
 }
+$('driver-access-log-load').addEventListener('click',loadDriverAccessLog);
 $('workspace-close').addEventListener('click',()=>{selectedBusiness=null;$('business-workspace').hidden=true;});
 $('workspace-logging').addEventListener('change',async()=>{
   if(!selectedBusiness)return;

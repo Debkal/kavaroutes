@@ -37,7 +37,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/docker run --rm --name kavaroutes-platform-admin --no-healthcheck --network host --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 256m --user $admin_uid:$admin_gid --mount type=bind,src=/opt/kavaroutes-admin,dst=/opt/kavaroutes-admin,readonly --mount type=bind,src=/var/lib/kavaroutes-admin,dst=/var/lib/kavaroutes-admin --mount type=bind,src=/var/lib/kavaroutes-registrations,dst=/var/lib/kavaroutes-registrations,readonly --workdir /opt/kavaroutes-admin --entrypoint node $image apps/admin/src/main.mjs /var/lib/kavaroutes-admin/config.json
+ExecStart=/usr/bin/docker run --rm --name kavaroutes-platform-admin --no-healthcheck --network host --read-only --cap-drop ALL --security-opt no-new-privileges --pids-limit 128 --memory 256m --user $admin_uid:$admin_gid --mount type=bind,src=/opt/kavaroutes-admin,dst=/opt/kavaroutes-admin,readonly --mount type=bind,src=/var/lib/kavaroutes-admin,dst=/var/lib/kavaroutes-admin --mount type=bind,src=/var/lib/kavaroutes-registrations,dst=/var/lib/kavaroutes-registrations,readonly --mount type=bind,src=/opt/kavaroutes/driver-access,dst=/run/kavaroutes-driver-access,readonly --workdir /opt/kavaroutes-admin --entrypoint node $image apps/admin/src/main.mjs /var/lib/kavaroutes-admin/config.json
 ExecStop=/usr/bin/docker stop --time 15 kavaroutes-platform-admin
 Restart=on-failure
 RestartSec=5

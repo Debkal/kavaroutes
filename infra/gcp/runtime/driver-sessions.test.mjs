@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDriverSessions} from './driver-sessions.mjs';
+import {mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
 const organizationId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const driverId='44444444-4444-4444-8444-444444444444';
@@ -27,4 +30,19 @@ test('driver sessions bind API authority to the claimed driver and expire on cre
   assert.equal(await sessions.verify('Synthetic principal_driver'),null);
   clock=12*60*60*1000+1;
   assert.equal(await sessions.verify(`DriverSession ${token}`),null);
+});
+test('an active driver token survives an API restart until its credential changes',async t=>{
+  const directory=mkdtempSync(join(tmpdir(),'kr-driver-sessions-'));
+  t.after(()=>rmSync(directory,{recursive:true,force:true}));
+  const sessionFile=join(directory,'sessions.json');
+  let clock=0,version=1;
+  const options={synthetic,sessionFile,now:()=>clock,credentialVersion:async()=>({status:'ACTIVE',version})};
+  const first=createDriverSessions(options);
+  const token=first.issue(organizationId,{driverId,status:'ACTIVE',version});
+  const reopened=createDriverSessions(options);
+  assert.equal((await reopened.verify(`DriverSession ${token}`)).subjectId,driverId);
+  clock=24*60*60*1000;
+  assert.equal((await reopened.verify(`DriverSession ${token}`)).subjectId,driverId);
+  version=2;
+  assert.equal(await reopened.verify(`DriverSession ${token}`),null);
 });

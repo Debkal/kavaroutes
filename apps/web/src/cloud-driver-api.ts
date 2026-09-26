@@ -100,6 +100,10 @@ export function createCloudDriverWebApi(baseUrl: string, fetcher: DevelopmentFet
 // not under the /driver prefix this client uses for shift and itinerary calls.
 const loginPrefix = `/v1/organizations/${organizationId}`;
   return Object.freeze({
+    restoreNativeSession(binding:{token:string;driverId:string;organizationId:string}){
+      if(binding.organizationId!==organizationId||!uuid.test(binding.driverId)||!/^dvs_[A-Za-z0-9_-]{43}$/.test(binding.token))throw new Error('INVALID_NATIVE_DRIVER_SESSION');
+      activeDriverId=binding.driverId;sessionToken=binding.token;
+    },
     /** Hand the live session only to the trusted Driver native shell after login. */
     nativeTrackingSession() {
       if (!sessionToken || !activeDriverId) throw new Error('DRIVER_SESSION_REQUIRED');

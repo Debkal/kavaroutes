@@ -2,10 +2,16 @@ services:
   api:
     environment:
       KR_DRIVER_ADMINS_FILE: /run/secrets/driver-admins.json
+      KR_DRIVER_ACCESS_DIRECTORY: /run/driver-access
+      KR_DRIVER_SESSIONS_FILE: /run/driver-access/sessions.json
     volumes:
       - /opt/kavaroutes/web/api.mjs:/app/infra/gcp/runtime/api.mjs:ro
       - /opt/kavaroutes/web/driver-admin.mjs:/app/infra/gcp/runtime/driver-admin.mjs:ro
+      - /opt/kavaroutes/web/driver-sessions.mjs:/app/infra/gcp/runtime/driver-sessions.mjs:ro
+      - /opt/kavaroutes/web/driver-access-management.mjs:/app/infra/gcp/runtime/driver-access-management.mjs:ro
+      - /opt/kavaroutes/web/driver-access-store.mjs:/app/infra/gcp/runtime/driver-access-store.mjs:ro
       - ${KR_SECRETS_DIRECTORY}/driver-admins.json:/run/secrets/driver-admins.json:ro
+      - /opt/kavaroutes/driver-access:/run/driver-access:rw
     healthcheck:
       test: [CMD, node, infra/gcp/runtime/health.mjs, "58082"]
   gateway:
@@ -25,10 +31,12 @@ services:
     environment:
       KR_WEB_ROOT: /srv/kavaroutes-web/dist
       KR_DRIVER_WEB_ROOT: /srv/kavaroutes-web/dist-driver
+      KR_DRIVER_ACCESS_DIRECTORY: /run/driver-access
       KR_WEB_PORT: "58080"
       KR_API_PORT: "58082"
     volumes:
       - /opt/kavaroutes/web:/srv/kavaroutes-web:ro
+      - /opt/kavaroutes/driver-access:/run/driver-access:rw
     depends_on:
       api: {condition: service_healthy}
     healthcheck:

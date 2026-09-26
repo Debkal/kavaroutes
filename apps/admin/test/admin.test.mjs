@@ -187,7 +187,7 @@ test('support has read-only access and revocation immediately invalidates sessio
   assert.equal((await support.post('dashboard')).status,200);
   assert.equal((await support.post('accounting',{month:'2026-09'})).status,200);
   assert.equal((await support.post('customer-mail')).status,200);
-  for(const path of ['business','invite','revoke','subscription','invoice','invoice-status','expense','expense-void','usage','customer-contact','email-template','email-preview','email-queue','email-cancel','email-rule','trip-report','trip-report-send','business-debug-logging','manual-route-charge-save'])assert.equal((await support.post(path,{})).status,403);
+  for(const path of ['business','invite','revoke','subscription','invoice','invoice-status','expense','expense-void','usage','customer-contact','email-template','email-preview','email-queue','email-cancel','email-rule','trip-report','trip-report-send','business-debug-logging','manual-route-charge-save','driver-access-log'])assert.equal((await support.post(path,{})).status,403);
   assert.equal((await c.post('revoke',{email:owner})).status,400);
   assert.equal((await c.post('revoke',{email:'support@example.com'})).status,200);
   assert.equal((await support.post('dashboard')).status,401);

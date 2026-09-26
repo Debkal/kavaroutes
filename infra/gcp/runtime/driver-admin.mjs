@@ -15,6 +15,7 @@ export function registerDriverAdmin(app,{accountsFile,driverLogins,now=()=>Date.
   const fail=(reply,status,code)=>reply.code(status).header('cache-control','no-store').send({code});
   const body=request=>request.body&&typeof request.body==='object'&&!Array.isArray(request.body)?request.body:{};
   const origin=request=>request.headers.origin==='https://driver.kavaroutes.com';
+  const gatedBusiness=request=>request.headers['x-kr-driver-business-id'];
   const load=async()=>{
     const value=JSON.parse(await readFile(accountsFile,'utf8'));
     if(!Array.isArray(value.accounts))throw new Error('DRIVER_ADMIN_ACCOUNTS_INVALID');
@@ -26,7 +27,7 @@ export function registerDriverAdmin(app,{accountsFile,driverLogins,now=()=>Date.
     const saved=sessions.get(digest(token));
     if(!saved||saved.expires<=now()){if(saved)sessions.delete(digest(token));return null;}
     const accounts=await load();
-    if(!accounts.some(account=>account.businessId===saved.businessId&&account.loginId===saved.loginId&&account.enabled===true))return null;
+    if(gatedBusiness(request)!==saved.businessId||!accounts.some(account=>account.businessId===saved.businessId&&account.loginId===saved.loginId&&account.enabled===true))return null;
     return saved;
   };
   app.post('/driver-admin/session',async(request,reply)=>{
@@ -43,7 +44,7 @@ export function registerDriverAdmin(app,{accountsFile,driverLogins,now=()=>Date.
     const salt=account?.salt??'00000000000000000000000000000000';
     const expected=account?.hash??'0'.repeat(128);
     const calculated=await scrypt(password,salt,64,{N:16384,r:8,p:1,maxmem:32*1024*1024});
-    if(!account||!uuid.test(account.businessId)||!timingSafeEqual(calculated,Buffer.from(expected,'hex')))
+    if(!account||!uuid.test(account.businessId)||gatedBusiness(request)!==account.businessId||!timingSafeEqual(calculated,Buffer.from(expected,'hex')))
       return fail(reply,401,'LOGIN_REJECTED');
     for(const [key,value] of sessions)if(value.expires<=now())sessions.delete(key);
     const token=randomBytes(32).toString('base64url');

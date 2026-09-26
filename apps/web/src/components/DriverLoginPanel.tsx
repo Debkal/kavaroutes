@@ -10,7 +10,6 @@ export function DriverLoginPanel({api,driverReference,businessId,onVerified}:{ap
   driverReference:string|null;businessId:string;onVerified:(driverId:string,loginId:string)=>void}){
   const [code,setCode]=useState(""),[password,setPassword]=useState("");
   const [loginId,setLoginId]=useState(""),[signInPassword,setSignInPassword]=useState("");
-  const [selectedBusiness,setSelectedBusiness]=useState(businessId);
   const [message,setMessage]=useState(""),[busy,setBusy]=useState(false);
   const fail=(error:unknown,fallback:string)=>{
     if(error instanceof DevelopmentApiError&&error.code==="DRIVER_LOGIN_REJECTED")return "That login ID and password did not match a driver login.";
@@ -48,7 +47,8 @@ export function DriverLoginPanel({api,driverReference,businessId,onVerified}:{ap
   return <section className="driver-login-panel" aria-label="Driver login">
     <h2>Driver login</h2>
     <p><a href="/driver-admin">Business driver admin sign in</a></p>
-    <details><summary>Use a different business</summary><label>Business ID <input value={selectedBusiness} onChange={event=>setSelectedBusiness(event.target.value.trim())}/></label><button type="button" disabled={!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(selectedBusiness)} onClick={()=>{const url=new URL(window.location.href);url.searchParams.set('businessId',selectedBusiness);url.searchParams.delete('driverId');window.location.assign(url.toString());}}>Use business</button></details>
+    <p className="driver-fineprint">Business: {businessId}. To change businesses, sign out of business access.</p>
+    <form method="post" action="/business-access/logout"><button type="submit">Sign out of business access</button></form>
     <p>First time here: open the setup link your business driver admin gave you, enter the one-time code, and choose your own password. After that, sign in with your login ID and password.</p>
     <details>
       <summary>First login: set your password</summary>
