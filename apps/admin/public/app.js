@@ -31,7 +31,7 @@ function bind(id,fn) {
   });
 }
 function showLogin() {
-  csrf='';current=null;enrollment='';selectedBusiness=null;manualCharges=[];editingCharge=null;$('business-workspace').hidden=true;$('qr').removeAttribute('src');
+  csrf='';current=null;enrollment='';selectedBusiness=null;manualCharges=[];editingCharge=null;$('business-workspace').hidden=true;clearDriverAccessCredentials();$('qr').removeAttribute('src');
   $('login').hidden=false;$('dashboard').hidden=true;$('logout').hidden=true;
   $('proof-panel').hidden=true;$('enroll-panel').hidden=true;
   $('session-info').textContent='A signed challenge and authenticator code are required for every new session.';
@@ -162,8 +162,34 @@ async function loadDriverAccessLog(){
     $('driver-access-log-status').textContent=result.events.length?`${result.events.length} recent access event${result.events.length===1?'':'s'}.`:'No driver access activity is recorded for this business yet.';
   }catch(error){$('driver-access-log-status').textContent=error.message.replaceAll('_',' ');}
 }
+function clearDriverAccessCredentials(){
+  $('driver-access-new-credentials').hidden=true;
+  $('driver-access-new-code').textContent='';
+  $('driver-access-new-password').textContent='';
+  $('driver-access-reset-status').textContent='';
+}
+async function resetAllDriverAccess(){
+  const business=selectedBusiness;
+  if(current?.role!=='OWNER'||!business?.runtime_tenant_id)return;
+  if(!confirm(`Reset all driver access codes for ${business.name}? Every enrolled device will be signed out. Active GPS tracking may pause until drivers enter the new credentials and sign in again.`))return;
+  clearDriverAccessCredentials();
+  const button=$('driver-access-reset-all');button.disabled=true;
+  $('driver-access-reset-status').textContent='Resetting access…';
+  try{
+    const result=await api('driver-access-reset-all',{businessId:business.id});
+    if(current?.role!=='OWNER')return;
+    if(selectedBusiness?.id!==business.id)openBusinessWorkspace(business);
+    $('driver-access-new-code').textContent=result.code;
+    $('driver-access-new-password').textContent=result.password;
+    $('driver-access-new-credentials').hidden=false;
+    $('driver-access-reset-status').textContent=`Reset complete: ${result.disabledCodeCount} old code${result.disabledCodeCount===1?'':'s'} disabled and ${result.signedOutDeviceCount} device${result.signedOutDeviceCount===1?'':'s'} signed out.`;
+    void loadDriverAccessLog();
+  }catch(error){if(selectedBusiness?.id===business.id)$('driver-access-reset-status').textContent=error.message.replaceAll('_',' ');}
+  finally{button.disabled=false;}
+}
 function openBusinessWorkspace(item){
   selectedBusiness=item;loadedTripDay=null;
+  clearDriverAccessCredentials();
   $('workspace-title').textContent=`${item.name} · workspace`;
   $('workspace-status').textContent=item.runtime_tenant_id?`Business ID ${item.id}. Operations tenant ${item.runtime_tenant_id}.`:`Business ID ${item.id}. No operations workspace is linked to this account yet.`;
   $('workspace-links').hidden=!item.runtime_tenant_id;
@@ -178,7 +204,8 @@ function openBusinessWorkspace(item){
   void loadManualCharges();
 }
 $('driver-access-log-load').addEventListener('click',loadDriverAccessLog);
-$('workspace-close').addEventListener('click',()=>{selectedBusiness=null;$('business-workspace').hidden=true;});
+$('driver-access-reset-all').addEventListener('click',resetAllDriverAccess);
+$('workspace-close').addEventListener('click',()=>{selectedBusiness=null;clearDriverAccessCredentials();$('business-workspace').hidden=true;});
 $('workspace-logging').addEventListener('change',async()=>{
   if(!selectedBusiness)return;
   const enabled=$('workspace-logging').checked;

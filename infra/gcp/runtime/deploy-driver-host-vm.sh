@@ -56,7 +56,7 @@ if ! python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if 
 fi
 access_directory=/opt/kavaroutes/driver-access
 admin_group=$(stat -c %g /var/lib/kavaroutes-admin)
-install -d -o 1000 -g "$admin_group" -m 2750 "$access_directory"
+install -d -o 1000 -g "$admin_group" -m 2770 "$access_directory"
 python3 "${stage}/infra/gcp/runtime/migrate-driver-access.py" "$admins" "$access_directory"
 chown 1000:"$admin_group" "$access_directory/access.json"
 chmod 0640 "$access_directory/access.json"

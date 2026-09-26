@@ -8,7 +8,7 @@ import { identityVerifier } from './identity.mjs';
 import {accountingView,saveSubscription,createInvoice,changeInvoice,createExpense,voidExpense,recordUsage} from './accounting.mjs';
 import {tripReportView,sendTripReport,setBusinessLogging} from './trip-reports.mjs';
 import {manualChargeCatalog,saveManualChargeEvent} from './manual-charge-events.mjs';
-import {driverAccessLog} from './driver-access-log.mjs';
+import {driverAccessLog,resetAllDriverAccess} from './driver-access-log.mjs';
 
 const fail = (status = 401, code = 'AUTHENTICATION_FAILED') => { throw Object.assign(new Error(code), { status, code }); };
 const emailValue = value => {
@@ -196,6 +196,7 @@ export function createAdminServer({ config, store, verifyIdentity = identityVeri
       owner(admin);
       if(path==='/api/manual-route-charge-save')return send(saveManualChargeEvent(store,admin.email,data));
       if(path==='/api/driver-access-log')return send(await driverAccessLog(store,data.businessId,{directory:driverAccessDirectory}));
+      if(path==='/api/driver-access-reset-all')return send(await resetAllDriverAccess(store,data.businessId,admin.email,{directory:driverAccessDirectory}));
       if(path==='/api/trip-report')return send(await tripReportView(store,config,admin.email,data.businessId,data.day,{directory:tripReportDirectory}));
       if(path==='/api/trip-report-send')return send(await sendTripReport(store,config,admin.email,data.businessId,data.day,{directory:tripReportDirectory}));
       if(path==='/api/business-debug-logging')return send(setBusinessLogging(store,admin.email,data.businessId,data.enabled));

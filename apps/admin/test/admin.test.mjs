@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { request } from 'node:http';
@@ -187,11 +187,27 @@ test('support has read-only access and revocation immediately invalidates sessio
   assert.equal((await support.post('dashboard')).status,200);
   assert.equal((await support.post('accounting',{month:'2026-09'})).status,200);
   assert.equal((await support.post('customer-mail')).status,200);
-  for(const path of ['business','invite','revoke','subscription','invoice','invoice-status','expense','expense-void','usage','customer-contact','email-template','email-preview','email-queue','email-cancel','email-rule','trip-report','trip-report-send','business-debug-logging','manual-route-charge-save','driver-access-log'])assert.equal((await support.post(path,{})).status,403);
+  for(const path of ['business','invite','revoke','subscription','invoice','invoice-status','expense','expense-void','usage','customer-contact','email-template','email-preview','email-queue','email-cancel','email-rule','trip-report','trip-report-send','business-debug-logging','manual-route-charge-save','driver-access-log','driver-access-reset-all'])assert.equal((await support.post(path,{})).status,403);
   assert.equal((await c.post('revoke',{email:owner})).status,400);
   assert.equal((await c.post('revoke',{email:'support@example.com'})).status,200);
   assert.equal((await support.post('dashboard')).status,401);
   assert.equal((await support.post('session')).status,401);
+});
+test('owner reset endpoint requires a linked business and keeps plaintext out of storage',async t=>{
+  const directory=mkdtempSync(join(tmpdir(),'kr-admin-access-'));
+  t.after(()=>rmSync(directory,{recursive:true,force:true}));
+  writeFileSync(join(directory,'access.json'),JSON.stringify({version:1,codes:[],devices:[],driverTokens:[],events:[]}),{mode:0o640});
+  const f=await fixture(t,{driverAccessDirectory:directory}),c=f.client();await f.enroll(c);
+  const businessId='11111111-1111-4111-8111-111111111111',tenantId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  f.store.run("INSERT INTO businesses VALUES(?,?,?,'TRIAL','STARTER',1,?,?)",businessId,'test_pony',owner,Date.now(),Date.now());
+  assert.equal((await c.post('driver-access-reset-all',{businessId})).status,404);
+  f.store.run('INSERT INTO business_workspaces(business_id,tenant_id) VALUES(?,?)',businessId,tenantId);
+  const response=await c.post('driver-access-reset-all',{businessId});
+  assert.equal(response.status,200);
+  assert.equal(response.body.businessId,businessId);
+  assert.ok(response.body.password.length>=32);
+  assert.ok(!readFileSync(join(directory,'access.json'),'utf8').includes(response.body.password));
+  assert.equal((await c.post('driver-access-log',{businessId})).body.events[0].action,'ACCESS_CODES_RESET_ALL');
 });
 test('rejects cross-origin requests, DNS rebinding hosts, expired challenges, oversized JSON and rate bursts',async t=>{
   const f=await fixture(t),c=f.client();
