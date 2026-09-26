@@ -99,6 +99,11 @@ export function createCloudDriverWebApi(baseUrl: string, fetcher: DevelopmentFet
 // not under the /driver prefix this client uses for shift and itinerary calls.
 const loginPrefix = `/v1/organizations/${driverOrganizationId}`;
   return Object.freeze({
+    /** Hand the live session only to the trusted Driver native shell after login. */
+    nativeTrackingSession() {
+      if (!sessionToken || !activeDriverId) throw new Error('DRIVER_SESSION_REQUIRED');
+      return { token: sessionToken, driverId: activeDriverId };
+    },
     async authenticate(signal?: AbortSignal) {
       return transport.request("/v1/me", value => {
         const body = object(value);

@@ -11,6 +11,7 @@ import {LocationSharingPanel} from "../components/LocationSharingPanel";
 import {DriverRoadDirections} from '../components/DriverRoadDirections';
 import {useLocationSharing} from "../use-location-sharing";
 import {useDriverScreenAwake} from "../use-driver-screen-awake";
+import {nativeDriverAvailable, nativeDriverCommand, type NativeTrackingStatus} from '../native-driver-bridge';
 
 
 /** Name the failure the server actually reported. The transport keeps a refused
@@ -96,6 +97,7 @@ function blockedControlMessage(leg: DriverLeg): string {
 }
 
 export function Component() {
+  const nativeDriver = useMemo(nativeDriverAvailable, []);
   const api = useMemo(() => createCloudDriverWebApi(window.location.origin, window.fetch.bind(window)), []);
   const invitedDriverId=useMemo(()=>{
     const value=new URLSearchParams(window.location.search).get('driverId');
@@ -109,21 +111,34 @@ export function Component() {
   const [signatureEvent, setSignatureEvent] = useState<"PICKUP_ATTESTATION" | "DROPOFF_ATTESTATION" | null>(null);
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const [signedIn, setSignedIn] = useState(false);
   const [verifiedLogin,setVerifiedLogin]=useState<{driverId:string;loginId:string}|null>(null);
+  const [nativeTracking, setNativeTracking] = useState<NativeTrackingStatus>({state:'idle',message:'Location starts when your shift starts.'});
   const assignmentId = shift?.effectivePolicy.assignmentId;
   const refresh = useCallback(async (selectedAssignment = assignmentId) => {
     if (!selectedAssignment) return;
     const [manifest, state] = await Promise.all([api.itinerary(serviceDate), api.shift(selectedAssignment)]);
     setItinerary(manifest.value); setShift(state.value);
     const status = await api.closure(state.value.shiftReference); setClosure(status.value);
+    if (nativeDriver && status.value.lifecycle === 'SHIFT_ENDED') {
+      void nativeDriverCommand({type:'STOP'}).then(setNativeTracking).catch(() => setNativeTracking({state:'delayed',message:'Tracking stop could not be confirmed. Reopen the Driver app.'}));
+    }
     const unfinished = manifest.value.legs.find(leg => leg.assignmentId === selectedAssignment && !terminal.has(leg.execution?.lifecycle ?? ""));
     setSelectedLeg(current => current && manifest.value.legs.some(leg => leg.tripLegId === current) ? current : unfinished?.tripLegId ?? manifest.value.legs.find(leg => leg.assignmentId === selectedAssignment)?.tripLegId ?? null);
-  }, [api, assignmentId, serviceDate]);
+  }, [api, assignmentId, serviceDate, nativeDriver]);
 
   useEffect(() => {
     if (!signedIn || !assignmentId || shift?.lifecycle !== "ACTIVE") return;
     const timer = window.setInterval(() => void refresh(assignmentId).catch(() => setMessage("Live status is temporarily unavailable. Previously loaded information may be stale.")), 10_000);
     return () => window.clearInterval(timer);
   }, [assignmentId, refresh, shift?.lifecycle, signedIn]);
+
+  useEffect(() => {
+    if (!nativeDriver || !signedIn || shift?.lifecycle !== 'ACTIVE') return;
+    const check = () => { if (document.visibilityState === 'visible') void nativeDriverCommand({type:'STATUS'}).then(setNativeTracking).catch(() => setNativeTracking({state:'delayed',message:'Could not confirm phone tracking. Reopen Driver or contact Dispatch.'})); };
+    check();
+    const timer=window.setInterval(check,60_000);
+    document.addEventListener('visibilitychange',check);
+    return () => {window.clearInterval(timer);document.removeEventListener('visibilitychange',check);};
+  },[nativeDriver,signedIn,shift?.lifecycle]);
 
   // Location is a condition of the shift: the browser is asked when the driver signs in,
   // a refusal fails that sign-in, and the feed is watched for the whole open shift
@@ -134,7 +149,8 @@ export function Component() {
   const signIn = async (login=verifiedLogin) => {
     setBusy(true); setMessage("");
     try {
-      if (!(await sharing.requestSharing()))
+      if (nativeDriver) await nativeDriverCommand({type:'PREPARE'});
+      else if (!(await sharing.requestSharing()))
         throw new Error("Location sharing is required to sign in. Allow location for this site, then sign in again.");
       await api.authenticate(); const manifest = (await api.itinerary(serviceDate)).value;
       const unfinished = manifest.legs.filter(item => !terminal.has(item.execution?.lifecycle ?? ""));
@@ -169,9 +185,14 @@ export function Component() {
         state = (await api.shift(leg.assignmentId)).value;
       }
       if (state.lifecycle !== "ACTIVE") throw new Error("This assigned shift has already ended or requires dispatch review.");
+      if (nativeDriver) {
+        setNativeTracking({state:'starting',message:'Starting background location…'});
+        const session = api.nativeTrackingSession();
+        setNativeTracking(await nativeDriverCommand({type:'START',...session,shiftReference:state.shiftReference,shiftGeneration:state.shiftGeneration}));
+      }
       setSignedIn(true); setItinerary(manifest); setShift(state); setSelectedLeg(leg.tripLegId);
       setClosure((await api.closure(state.shiftReference)).value);
-      setMessage("Signed in. Command control received the shift-start event; browser tracking state is now visible.");
+      setMessage(nativeDriver ? 'Signed in. Background location is active for this shift.' : "Signed in. Command control received the shift-start event; browser tracking state is now visible.");
     } catch (error) { setMessage(failureText(error, "Driver sign-in failed.")); }
     finally { setBusy(false); }
   };
@@ -291,7 +312,13 @@ export function Component() {
         kind: "SIGN_OFF", reason: "NORMAL_SIGN_OFF", parkedAttestation: true }, `driver-signoff-${commandId}`);
       setMessage(result.value.lifecycle === "SHIFT_ENDED" ? "You are signed off. Location sharing has stopped and your shift end is recorded." : "Return request recorded. Dispatch must review your parked location and end the shift; keep location sharing on until then.");
       // The shift is what the feed belongs to: closure ends it, an exception review does not.
-      if (result.value.lifecycle === "SHIFT_ENDED") sharing.stopSharing("SHIFT_ENDED");
+      if (result.value.lifecycle === "SHIFT_ENDED") {
+        if (nativeDriver) {
+          try {setNativeTracking(await nativeDriverCommand({type:'STOP'}));}
+          catch {setNativeTracking({state:'delayed',message:'Shift ended, but phone tracking could not be confirmed stopped. Reopen Driver or turn off location access.'});setMessage('Shift end recorded. Phone tracking stop could not be confirmed; reopen Driver or turn off location access.');}
+        }
+        else sharing.stopSharing("SHIFT_ENDED");
+      }
       await refresh(shift.effectivePolicy.assignmentId);
     } catch (error) { setMessage(failureText(error, "Sign-off was not accepted.")); }
     finally { setBusy(false); }
@@ -299,10 +326,13 @@ export function Component() {
 
   const emergencyStop = async () => {
     if (!shift) return; setBusy(true);
+    if (nativeDriver) {
+      try { setNativeTracking(await nativeDriverCommand({type:'STOP'})); }
+      catch { setNativeTracking({state:'delayed',message:'Could not confirm the phone stopped sharing. Close the app and contact dispatch.'}); }
+    } else sharing.stopSharing('EMERGENCY_STOP');
     try { const current = (await api.closure(shift.shiftReference)).value; const commandId = crypto.randomUUID(); await api.close(shift.shiftReference,
       { commandId, shiftGeneration: shift.shiftGeneration, expectedVersion: current.resourceVersion, kind: "EMERGENCY_STOP", reason: "SAFETY", parkedAttestation: false }, `driver-emergency-${commandId}`);
-      setMessage("Emergency stop recorded. Browser tracking is stopped; contact dispatch for next steps.");
-      sharing.stopSharing("EMERGENCY_STOP");
+      setMessage("Emergency stop recorded. Location sharing is stopped; contact dispatch for next steps.");
       await refresh(shift.effectivePolicy.assignmentId);
     } catch (error) { setMessage(error instanceof Error ? error.message : "Location sharing has stopped on this device. We could not notify dispatch; please contact them directly."); }
     finally { setBusy(false); }
@@ -320,9 +350,9 @@ export function Component() {
       {message && <p role="alert" className="driver-error">{message}</p>}
       <DriverLoginPanel api={api} driverReference={invitedDriverId} onVerified={(driverId,loginId)=>{const login={driverId,loginId};setVerifiedLogin(login);void signIn(login);}}/>
       {verifiedLogin&&busy&&<p role="status">Login verified. Loading your assigned work…</p>}
-      <p className="driver-fineprint">Keep KavaRoutes open during your shift. Mobile browsers may pause location updates when the screen is locked.</p>
+      <p className="driver-fineprint">{nativeDriver?'Background location runs during an active shift, including while Google Maps is open.':'Keep KavaRoutes open during your shift. Mobile browsers may pause location updates when the screen is locked.'}</p>
     </section>
-    <LocationSharingPanel controller={sharing} busy={busy}/>
+    {nativeDriver?<NativeLocationPanel status={nativeTracking}/>:<LocationSharingPanel controller={sharing} busy={busy}/>}
   </main>;
 
   const assigned = itinerary.legs.filter(leg => leg.assignmentId === shift.effectivePolicy.assignmentId).sort((a, b) => a.ordinal - b.ordinal);
@@ -334,9 +364,9 @@ export function Component() {
   const needsPrecheck = !shift.precheck || shift.precheck.vehicleState !== "READY";
 
   return <main id="main-content" className="driver-shell">
-    <header className="driver-mobile-header"><div><p className="driver-step">Signed in · {shift.effectivePolicy.commercialTier.replaceAll("_", " ")}</p><h1>Today’s route</h1></div><span className={closure?.lifecycle!=="SHIFT_ENDED"&&(sharing.deliveryError||closure?.tracking.contactDriver) ? "driver-status warning" : "driver-status"}>{closure?.lifecycle === "SHIFT_ENDED" ? "Signed off" : sharing.deliveryError ? "Updates delayed" : "Tracking " + label(closure?.tracking.status ?? "starting")}</span></header>
+    <header className="driver-mobile-header"><div><p className="driver-step">Signed in · {shift.effectivePolicy.commercialTier.replaceAll("_", " ")}</p><h1>Today’s route</h1></div><span className={closure?.lifecycle!=="SHIFT_ENDED"&&((nativeDriver&&nativeTracking.state==='delayed')||sharing.deliveryError||closure?.tracking.contactDriver) ? "driver-status warning" : "driver-status"}>{closure?.lifecycle === "SHIFT_ENDED" ? "Signed off" : nativeDriver ? nativeTracking.state==='delayed'?'Updates delayed':'Background GPS' : sharing.deliveryError ? "Updates delayed" : "Tracking " + label(closure?.tracking.status ?? "starting")}</span></header>
     {message && <p role="status" className="driver-message">{message}</p>}
-    <section className="driver-summary"><div><span>Vehicle</span><strong>{assigned[0]?.vehicleLabel ?? "Pending"}</strong></div><div><span>Trips</span><strong>{assigned.filter(leg => terminal.has(leg.execution?.lifecycle ?? "")).length}/{assigned.length}</strong></div><div><span>Updates</span><strong>{closure?.lifecycle==="SHIFT_ENDED"?"Stopped":sharing.deliveryError?"Delayed":closure?.tracking.status === "UPDATES_CURRENT" ? "Live" : "Foreground"}</strong></div></section>
+    <section className="driver-summary"><div><span>Vehicle</span><strong>{assigned[0]?.vehicleLabel ?? "Pending"}</strong></div><div><span>Trips</span><strong>{assigned.filter(leg => terminal.has(leg.execution?.lifecycle ?? "")).length}/{assigned.length}</strong></div><div><span>Updates</span><strong>{closure?.lifecycle==="SHIFT_ENDED"?"Stopped":nativeDriver?nativeTracking.state==='delayed'?'Delayed':'Background':sharing.deliveryError?"Delayed":closure?.tracking.status === "UPDATES_CURRENT" ? "Live" : "Foreground"}</strong></div></section>
 
     {closure?.lifecycle === "SHIFT_ENDED" ? <section className="driver-card driver-complete"><p className="driver-step">Shift complete</p><h2>You’re signed off</h2><p>Your shift end is recorded. Location sharing has stopped.</p></section>
     : needsPrecheck ? <DriverInspectionForm stage="pre" shift={shift} vehicleId={assigned[0]?.vehicleId ?? ""} busy={busy} onSubmit={request => submitCheck(request, "pre")} />
@@ -358,7 +388,13 @@ export function Component() {
         {signatureEvent && <DriverSignaturePad leg={active} shiftReference={shift.shiftReference} shiftGeneration={shift.shiftGeneration} event={signatureEvent} busy={busy} onSubmit={request => submitSignature(active, request)} />}
       </section>}
     </div>}
-    {closure?.lifecycle !== "SHIFT_ENDED" && <aside className="driver-safety"><div><strong>Tracking transparency</strong><span>{sharing.deliveryError?"Location upload delayed · retrying":`${label(closure?.tracking.status ?? "starting")} · ${closure?.tracking.reason?.replaceAll("_", " ") ?? "Shift started"}`}</span></div><button disabled={busy} onClick={() => void emergencyStop()}>Emergency: stop sharing</button></aside>}
-    <LocationSharingPanel controller={sharing} busy={busy} screenAwake={shift.lifecycle==='ACTIVE'&&closure?.lifecycle!=='SHIFT_ENDED'?screenAwake:undefined}/>
+    {closure?.lifecycle !== "SHIFT_ENDED" && <aside className="driver-safety"><div><strong>Tracking transparency</strong><span>{nativeDriver?nativeTracking.message:sharing.deliveryError?"Location upload delayed · retrying":`${label(closure?.tracking.status ?? "starting")} · ${closure?.tracking.reason?.replaceAll("_", " ") ?? "Shift started"}`}</span></div><button disabled={busy} onClick={() => void emergencyStop()}>Emergency: stop sharing</button></aside>}
+    {nativeDriver?<NativeLocationPanel status={nativeTracking}/>:<LocationSharingPanel controller={sharing} busy={busy} screenAwake={shift.lifecycle==='ACTIVE'&&closure?.lifecycle!=='SHIFT_ENDED'?screenAwake:undefined}/>}
   </main>;
+}
+
+function NativeLocationPanel({status}:{status:NativeTrackingStatus}) {
+  return <section className={`driver-location-bar ${status.state==='delayed'?'lost':status.state==='active'?'sharing':'idle'}`} aria-label="Location sharing" role={status.state==='delayed'?'alert':'status'}>
+    <div><strong>{status.state==='active'?'Background location on':status.state==='delayed'?'Location updates delayed':status.state==='stopped'?'Location sharing stopped':'Background location'}</strong><span>{status.message}</span></div>
+  </section>;
 }

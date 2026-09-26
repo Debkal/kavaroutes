@@ -8,6 +8,7 @@ test('docs-only changes do not trigger component suites', () => {
 test('client changes select their own suites', () => {
   assert.deepEqual(selectScope(['apps/web/src/router.tsx']), { server: false, web: true, driver: false, site: false, admin: false, code: true });
   assert.deepEqual(selectScope(['apps/driver/app/index.tsx']), { server: false, web: false, driver: true, site: false, admin: false, code: true });
+  assert.deepEqual(selectScope(['apps/driver-native/App.tsx']), { server: false, web: false, driver: true, site: false, admin: false, code: true });
   assert.deepEqual(selectScope(['apps/site/src/main.tsx']), { server: false, web: false, driver: false, site: true, admin: false, code: true });
   assert.deepEqual(selectScope(['apps/admin/src/main.mjs']), { server: false, web: false, driver: false, site: false, admin: true, code: true });
 });

@@ -1,0 +1,186 @@
+import * as Location from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
+import * as SecureStore from 'expo-secure-store';
+import {getRandomBytes, randomUUID} from 'expo-crypto';
+import {openDatabaseAsync, type SQLiteDatabase} from 'expo-sqlite';
+import CookieManager from '@preeternal/react-native-cookie-manager';
+import {PermissionsAndroid,Platform} from 'react-native';
+
+const TASK = 'kavaroutes.driver.location';
+const ORIGIN = 'https://app.kavaroutes.com';
+const ORGANIZATION = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const KEY = 'driver.location.database.key';
+const BINDING = 'driver.location.shift.binding';
+const STORE_OPTIONS = {keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY};
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TOKEN = /^dvs_[A-Za-z0-9_-]{43}$/;
+
+export type Status = {state:'idle'|'starting'|'active'|'delayed'|'stopped'; message:string};
+export type Binding = {token:string; driverId:string; shiftReference:string; shiftGeneration:string; deviceId:string};
+type Sample = {sample_id:string; sequence:number; captured_at:string; latitude:number; longitude:number; accuracy_meters:number|null; batch_ref:string|null};
+let dbPromise:Promise<SQLiteDatabase>|null=null;
+let uploadPromise:Promise<Status>|null=null;
+
+function hex(bytes:Uint8Array) {return [...bytes].map(byte=>byte.toString(16).padStart(2,'0')).join('');}
+async function database() {
+  dbPromise ??= (async()=>{
+    let key = await SecureStore.getItemAsync(KEY,STORE_OPTIONS);
+    if (!key) {key=hex(getRandomBytes(32)); await SecureStore.setItemAsync(KEY,key,STORE_OPTIONS);}
+    if (!/^[0-9a-f]{64}$/.test(key)) throw new Error('LOCATION_STORAGE_UNAVAILABLE');
+    const db=await openDatabaseAsync('driver-location.sqlite',{useNewConnection:true});
+    await db.execAsync(`PRAGMA key = "x'${key}'"`);
+    const cipher=await db.getFirstAsync<{cipher_version:string}>('PRAGMA cipher_version');
+    if (!cipher?.cipher_version) throw new Error('LOCATION_STORAGE_UNAVAILABLE');
+    await db.execAsync('PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; CREATE TABLE IF NOT EXISTS samples (sequence INTEGER PRIMARY KEY AUTOINCREMENT, sample_id TEXT NOT NULL UNIQUE, captured_at TEXT NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL, accuracy_meters REAL, batch_ref TEXT); CREATE TABLE IF NOT EXISTS state (id INTEGER PRIMARY KEY CHECK(id=1), device_id TEXT NOT NULL, last_upload_at INTEGER NOT NULL DEFAULT 0);');
+    return db;
+  })();
+  try {return await dbPromise;} catch(error) {dbPromise=null;throw error;}
+}
+function validBinding(value:unknown):value is Binding {
+  if (!value||typeof value!=='object') return false;
+  const b=value as Record<string,unknown>;
+  return typeof b.token==='string'&&TOKEN.test(b.token)&&[b.driverId,b.shiftReference,b.shiftGeneration,b.deviceId].every(v=>typeof v==='string'&&UUID.test(v));
+}
+async function readBinding():Promise<Binding|null> {
+  const raw=await SecureStore.getItemAsync(BINDING,STORE_OPTIONS);
+  if (!raw) return null;
+  try {const value:unknown=JSON.parse(raw);return validBinding(value)?value:null;} catch {return null;}
+}
+function url(binding:Binding,path:string) {return `${ORIGIN}/v1/organizations/${ORGANIZATION}/driver/shifts/${binding.shiftReference}/${path}`;}
+async function headers(binding:Binding) {
+  // Cloudflare Access protects the app host. Its HttpOnly application cookie
+  // lives in the WebView store, while iOS native networking uses another store.
+  // Read only this host's Access cookie for each request; never persist or log it.
+  const cookies=await CookieManager.get(ORIGIN,{iosCookieStore:'webKit'});
+  const access=cookies.CF_Authorization?.value;
+  if (!access||!(/^[A-Za-z0-9._-]+$/.test(access))) throw new Error('DRIVER_ACCESS_SESSION_REQUIRED');
+  return {authorization:`DriverSession ${binding.token}`,cookie:`CF_Authorization=${access}`,accept:'application/json'};
+}
+async function responseJson(response:Response):Promise<Record<string,unknown>> {
+  if (!response.headers.get('content-type')?.includes('application/json')||(response.url&&new URL(response.url).origin!==ORIGIN)) throw new Error('DRIVER_API_ACCESS_BLOCKED');
+  const value:unknown=await response.json();
+  if (!value||typeof value!=='object'||Array.isArray(value)) throw new Error('LOCATION_SERVER_RESPONSE_INVALID');
+  return value as Record<string,unknown>;
+}
+async function serverShiftIsActive(binding:Binding):Promise<boolean> {
+  const response=await fetch(url(binding,'status'),{headers:await headers(binding),credentials:'omit',cache:'no-store'});
+  if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('DRIVER_API_ACCESS_BLOCKED');
+  if (!response.ok) throw new Error(response.status===401?'DRIVER_SESSION_EXPIRED':'SHIFT_STATUS_UNAVAILABLE');
+  const body=await responseJson(response);
+  if (body.shiftReference!==binding.shiftReference||body.driverId!==binding.driverId||body.shiftGeneration!==binding.shiftGeneration) throw new Error('SHIFT_IDENTITY_MISMATCH');
+  return body.lifecycle==='ACTIVE'&&body.collectionStopped===false;
+}
+
+export async function prepareTracking():Promise<Status> {
+  if (Platform.OS==='android'&&Number(Platform.Version)>=33) {
+    // The service still runs if this is declined, but Android may hide its
+    // persistent notification from the drawer.
+    await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+  }
+  const foreground=await Location.requestForegroundPermissionsAsync();
+  if (!foreground.granted) throw new Error('Allow location to start a Driver shift.');
+  const background=await Location.requestBackgroundPermissionsAsync();
+  if (!background.granted) throw new Error('Allow location at all times in phone settings to track while Google Maps is open.');
+  if (!(await Location.hasServicesEnabledAsync())) throw new Error('Turn on phone location services to start a Driver shift.');
+  await database();
+  return {state:'idle',message:'Background location permission is ready.'};
+}
+
+async function saveLocations(locations:Location.LocationObject[],binding:Binding) {
+  const db=await database();
+  await db.withExclusiveTransactionAsync(async tx=>{
+    for (const point of locations) {
+      const {latitude,longitude,accuracy}=point.coords;
+      if (!Number.isFinite(latitude)||!Number.isFinite(longitude)||latitude < -90||latitude > 90||longitude < -180||longitude > 180) continue;
+      await tx.runAsync('INSERT INTO samples (sample_id,captured_at,latitude,longitude,accuracy_meters,batch_ref) VALUES (?,?,?,?,?,NULL)',randomUUID(),new Date(point.timestamp||Date.now()).toISOString(),latitude,longitude,Number.isFinite(accuracy)&&accuracy!==null?Math.max(0,Math.round(accuracy)):null);
+    }
+    // Keep no more than four hours at roughly one fix per minute during outages.
+    await tx.runAsync('DELETE FROM samples WHERE batch_ref IS NULL AND sequence NOT IN (SELECT sequence FROM samples ORDER BY sequence DESC LIMIT 240)');
+  });
+  void binding;
+}
+
+async function upload():Promise<Status> {
+  const binding=await readBinding();
+  if (!binding) return {state:'stopped',message:'Location sharing is stopped.'};
+  const db=await database();
+  const state=await db.getFirstAsync<{last_upload_at:number}>('SELECT last_upload_at FROM state WHERE id=1');
+  if (state && Date.now()-state.last_upload_at<60_000) return {state:'active',message:'Background location is running. Dispatch receives updates about once a minute.'};
+  if (!(await serverShiftIsActive(binding))) {await stopTracking();return {state:'stopped',message:'Shift ended; location sharing stopped.'};}
+  let rows:Sample[]=[];
+  let batchReference='';
+  await db.withExclusiveTransactionAsync(async tx=>{
+    const first=await tx.getFirstAsync<{batch_ref:string|null}>('SELECT batch_ref FROM samples ORDER BY sequence LIMIT 1');
+    if (!first) return;
+    batchReference=first.batch_ref??randomUUID();
+    if (!first.batch_ref) await tx.runAsync('UPDATE samples SET batch_ref=? WHERE sequence IN (SELECT sequence FROM samples WHERE batch_ref IS NULL ORDER BY sequence LIMIT 60)',batchReference);
+    rows=await tx.getAllAsync<Sample>('SELECT * FROM samples WHERE batch_ref=? ORDER BY sequence LIMIT 60',batchReference);
+  });
+  if (!rows.length) return {state:'active',message:'Waiting for a GPS fix.'};
+  const samples=rows.map(row=>({sampleId:row.sample_id,sequence:row.sequence,capturedAt:row.captured_at,latitude:row.latitude,longitude:row.longitude,accuracyMeters:row.accuracy_meters}));
+  const response=await fetch(url(binding,'location-batches'),{method:'POST',headers:{...await headers(binding),'content-type':'application/json','idempotency-key':`driver-location-${batchReference}`},credentials:'omit',body:JSON.stringify({shiftGeneration:binding.shiftGeneration,batchReference,deviceId:binding.deviceId,samples})});
+  if (!response.ok) throw new Error(response.status===401?'DRIVER_SESSION_EXPIRED':'LOCATION_UPLOAD_DELAYED');
+  const receipt=await responseJson(response);
+  if (receipt.shiftReference!==binding.shiftReference||receipt.batchReference!==batchReference||!Array.isArray(receipt.items)||receipt.items.length!==rows.length||receipt.items.some((item,index)=>!item||typeof item!=='object'||item.sampleId!==rows[index]?.sample_id||!['APPLIED','REPLAYED','REJECTED'].includes(item.outcome))) throw new Error('LOCATION_RECEIPT_INVALID');
+  await db.withExclusiveTransactionAsync(async tx=>{
+    await tx.runAsync('DELETE FROM samples WHERE batch_ref=?',batchReference);
+    await tx.runAsync('UPDATE state SET last_upload_at=? WHERE id=1',Date.now());
+  });
+  return {state:'active',message:'Background location is running. Dispatch receives updates about once a minute.'};
+}
+
+export async function flushTracking():Promise<Status> {
+  uploadPromise ??= upload().catch(error=>({state:'delayed' as const,message:error instanceof Error&&error.message==='DRIVER_SESSION_EXPIRED'?'Driver session expired. Sign in again to resume uploads.':error instanceof Error&&['DRIVER_API_ACCESS_BLOCKED','DRIVER_ACCESS_SESSION_REQUIRED'].includes(error.message)?'Phone Access sign-in expired. Reopen Driver and sign in again to resume uploads.':'Location uploads are delayed. Keep the Driver app open and contact Dispatch if this continues.'})).finally(()=>{uploadPromise=null;});
+  return uploadPromise;
+}
+
+export async function startTracking(input:Omit<Binding,'deviceId'>):Promise<Status> {
+  if (!validBinding({...input,deviceId:randomUUID()})) throw new Error('DRIVER_TRACKING_BINDING_INVALID');
+  await prepareTracking();
+  if (!(await serverShiftIsActive({...input,deviceId:randomUUID()}))) throw new Error('The assigned shift is not active. Refresh Driver and try again.');
+  const db=await database();
+  const previous=await readBinding();
+  if (previous && previous.shiftReference!==input.shiftReference && await Location.hasStartedLocationUpdatesAsync(TASK)) await Location.stopLocationUpdatesAsync(TASK);
+  const priorState=await db.getFirstAsync<{device_id:string}>('SELECT device_id FROM state WHERE id=1');
+  const deviceId=previous?.shiftReference===input.shiftReference?previous.deviceId:priorState?.device_id??randomUUID();
+  if (previous?.shiftReference!==input.shiftReference) await db.runAsync('DELETE FROM samples');
+  await db.runAsync('INSERT OR REPLACE INTO state (id,device_id,last_upload_at) VALUES (1,?,0)',deviceId);
+  await SecureStore.setItemAsync(BINDING,JSON.stringify({...input,deviceId}),STORE_OPTIONS);
+  if (!(await Location.hasStartedLocationUpdatesAsync(TASK))) {
+    try {await Location.startLocationUpdatesAsync(TASK,{
+      accuracy:Location.Accuracy.High,
+      distanceInterval:30,
+      timeInterval:15_000,
+      deferredUpdatesInterval:60_000,
+      showsBackgroundLocationIndicator:true,
+      pausesUpdatesAutomatically:false,
+      activityType:Location.ActivityType.AutomotiveNavigation,
+      ...(Platform.OS==='android'?{foregroundService:{notificationTitle:'KavaRoutes Driver location active',notificationBody:'Sharing location with Dispatch during your shift.',notificationColor:'#47756a'}}:{}),
+    });} catch(error) {await SecureStore.deleteItemAsync(BINDING);throw error;}
+  }
+  return {state:'active',message:'Background location is on, including while Google Maps is open.'};
+}
+
+export async function stopTracking():Promise<Status> {
+  await SecureStore.deleteItemAsync(BINDING);
+  if (await Location.hasStartedLocationUpdatesAsync(TASK)) await Location.stopLocationUpdatesAsync(TASK);
+  const db=await database();
+  await db.runAsync('DELETE FROM samples');
+  return {state:'stopped',message:'Location sharing is stopped.'};
+}
+
+export async function trackingStatus():Promise<Status> {
+  const binding=await readBinding();
+  if (!binding) return {state:'idle',message:'Location starts when your shift starts.'};
+  const running=await Location.hasStartedLocationUpdatesAsync(TASK);
+  if (!running) return {state:'delayed',message:'Background tracking stopped unexpectedly. Sign in again to restart it.'};
+  return flushTracking();
+}
+
+TaskManager.defineTask<{locations?:Location.LocationObject[]}>(TASK,async({data,error})=>{
+  if (error||!data?.locations?.length) return;
+  const binding=await readBinding();
+  if (!binding) return;
+  try {await saveLocations(data.locations,binding);await flushTracking();}
+  catch { /* No coordinates or credentials in logs. The next fix retries the persisted batch. */ }
+});

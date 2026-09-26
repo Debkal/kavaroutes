@@ -1,0 +1,50 @@
+KavaRoutes Driver native shell
+==============================
+
+This app is for drivers only. It loads the existing production driver screen at
+https://app.kavaroutes.com/driver on Android and iPhone. Dispatch, admin and
+business login pages are not part of this app.
+
+During an active shift, the phone's native location task collects GPS fixes and
+posts them to the existing driver shift location-batches endpoint. The Android
+foreground service shows a persistent notification. iOS uses Core Location's
+background-location mode and indicator. Google Maps opens as a separate app,
+leaving the location task running. The web page itself still owns login,
+itinerary, trip actions, signatures and sign-off.
+
+Build prerequisites:
+- Node 24.19.0 and npm 11.17.0; run npm ci at the repository root.
+- Android: Android SDK/JDK and a configured emulator or phone.
+- iPhone: macOS/Xcode, an Apple development team and a connected phone or simulator.
+- Expo Go is insufficient for testing background location. Use a native build.
+
+Commands from the repository root:
+  npm run typecheck --workspace=@kavaroutes/driver-native
+  npm run bundle:android --workspace=@kavaroutes/driver-native
+  npm run bundle:ios --workspace=@kavaroutes/driver-native
+  npm run android --workspace=@kavaroutes/driver-native
+  npm run ios --workspace=@kavaroutes/driver-native
+
+The first three commands validate code and create JavaScript bundles; they do
+not produce signed installable packages. The final two prebuild and install a
+native development app on a device or emulator. Production APK/AAB/IPA signing
+and store distribution require their platform credentials.
+
+On a real phone, sign in with a driver account, grant precise/always location,
+start the shift, open Google Maps from the trip link, lock and unlock the phone,
+then check Dispatch Active Drivers for fresh fixes. Finish the shift and confirm
+the Android notification/iOS indicator ends. Also test network loss and return.
+Location is queued in an encrypted device database for retry while the app is
+running; a driver session currently expires after 12 hours and must be renewed
+by signing in again. Force quitting an iPhone app can prevent further background
+delivery until it is reopened. Phone power settings can also affect update
+frequency, so a physical test is required before relying on continuous tracking.
+
+Cloudflare Access: the production Driver page redirects to Access. Sign in
+through that screen inside the app, then use the Driver account form. Native
+background requests read the app-domain Access cookie from the phone's WebView
+cookie store for each request and also send the driver-specific DriverSession.
+The Access cookie is never copied to the JavaScript web page, saved in SQLite,
+or logged. If Access or DriverSession expires, reopen Driver and sign in again.
+Access authentication through an external identity provider may need a separate
+phone test; WebView providers can impose their own embedded-login restrictions.

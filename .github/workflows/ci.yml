@@ -91,6 +91,9 @@ jobs:
         run: |
           npm run kavaroutes:driver:test
           npm run kavaroutes:driver:test:ui
+          npm run typecheck --workspace=@kavaroutes/driver-native
+          npm run bundle:android --workspace=@kavaroutes/driver-native
+          npm run bundle:ios --workspace=@kavaroutes/driver-native
       - name: Release dependency audit
         if: github.event_name == 'workflow_dispatch'
         run: npm audit --audit-level=moderate
