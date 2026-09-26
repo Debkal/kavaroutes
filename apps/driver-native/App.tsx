@@ -4,19 +4,18 @@ import {ActivityIndicator, Linking, SafeAreaView, StatusBar, StyleSheet, Text, T
 import WebView, {type WebViewMessageEvent, type WebViewNavigation} from 'react-native-webview';
 import {flushTracking, prepareTracking, startTracking, stopTracking, trackingStatus, type Status} from './src/tracking';
 
-const DRIVER_URL='https://app.kavaroutes.com/driver';
+const DRIVER_URL='https://driver.kavaroutes.com/driver';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN=/^dvs_[A-Za-z0-9_-]{43}$/;
-type Command={requestId:string;type:'PREPARE'|'STATUS'|'STOP'|'START';token?:string;driverId?:string;shiftReference?:string;shiftGeneration?:string};
-function safeDriverUrl(raw:string) {try {const url=new URL(raw);return url.origin==='https://app.kavaroutes.com'&&url.pathname==='/driver';}catch{return false;}}
-function accessUrl(raw:string) {try {const url=new URL(raw);return url.protocol==='https:'&&((url.hostname==='app.kavaroutes.com'&&url.pathname.startsWith('/cdn-cgi/access/'))||url.hostname.endsWith('.cloudflareaccess.com'));}catch{return false;}}
+type Command={requestId:string;type:'PREPARE'|'STATUS'|'STOP'|'START';token?:string;organizationId?:string;driverId?:string;shiftReference?:string;shiftGeneration?:string};
+function safeDriverUrl(raw:string) {try {const url=new URL(raw);return url.origin==='https://driver.kavaroutes.com'&&url.pathname==='/driver';}catch{return false;}}
 function mapsUrl(raw:string) {try {const url=new URL(raw);return url.protocol==='https:'&&['www.google.com','maps.google.com','maps.apple.com'].includes(url.hostname)&&url.pathname.startsWith('/maps');}catch{return false;}}
 function parseCommand(raw:string):Command {
   const value:unknown=JSON.parse(raw);
   if (!value||typeof value!=='object'||Array.isArray(value)) throw new Error('INVALID_DRIVER_COMMAND');
   const command=value as Record<string,unknown>;
   if (typeof command.requestId!=='string'||!UUID.test(command.requestId)||!['PREPARE','STATUS','STOP','START'].includes(String(command.type))) throw new Error('INVALID_DRIVER_COMMAND');
-  if (command.type==='START'&&!(typeof command.token==='string'&&TOKEN.test(command.token)&&[command.driverId,command.shiftReference,command.shiftGeneration].every(v=>typeof v==='string'&&UUID.test(v)))) throw new Error('INVALID_DRIVER_BINDING');
+  if (command.type==='START'&&!(typeof command.token==='string'&&TOKEN.test(command.token)&&[command.organizationId,command.driverId,command.shiftReference,command.shiftGeneration].every(v=>typeof v==='string'&&UUID.test(v)))) throw new Error('INVALID_DRIVER_BINDING');
   return command as Command;
 }
 
@@ -34,23 +33,23 @@ export default function App() {
     try {command=parseCommand(event.nativeEvent.data);} catch {return;}
     setWorking(true);
     try {
-      const status=command.type==='PREPARE'?await prepareTracking():command.type==='STATUS'?await trackingStatus():command.type==='STOP'?await stopTracking():await startTracking({token:command.token!,driverId:command.driverId!,shiftReference:command.shiftReference!,shiftGeneration:command.shiftGeneration!});
+      const status=command.type==='PREPARE'?await prepareTracking():command.type==='STATUS'?await trackingStatus():command.type==='STOP'?await stopTracking():await startTracking({token:command.token!,organizationId:command.organizationId!,driverId:command.driverId!,shiftReference:command.shiftReference!,shiftGeneration:command.shiftGeneration!});
       reply(command.requestId,status);
       if (command.type==='START'||command.type==='STATUS') void flushTracking();
     } catch(error) {
-      const message=error instanceof Error&&['DRIVER_API_ACCESS_BLOCKED','DRIVER_ACCESS_SESSION_REQUIRED'].includes(error.message)?'Phone Access sign-in is missing or expired. Complete Access sign-in in Driver, then try again.':error instanceof Error?error.message:'Background location could not start.';
+      const message=error instanceof Error&&error.message==='DRIVER_API_ACCESS_BLOCKED'?'Driver service is unavailable. Try again when connected.':error instanceof Error?error.message:'Background location could not start.';
       reply(command.requestId,undefined,message);
     } finally {setWorking(false);}
   },[reply]);
   const onNavigation=useCallback((request:WebViewNavigation)=>{
     if (request.url==='about:blank') return true;
-    if (safeDriverUrl(request.url)||accessUrl(request.url)) return true;
+    if (safeDriverUrl(request.url)) return true;
     if (mapsUrl(request.url)) void Linking.openURL(request.url);
     return false;
   },[]);
   return <SafeAreaView style={styles.shell}>
     <StatusBar barStyle="dark-content" backgroundColor="#f5f8f5"/>
-    <WebView ref={webview} source={{uri:DRIVER_URL}} originWhitelist={['https://app.kavaroutes.com','https://*.cloudflareaccess.com']} onShouldStartLoadWithRequest={onNavigation}
+    <WebView ref={webview} source={{uri:DRIVER_URL}} originWhitelist={['https://driver.kavaroutes.com']} onShouldStartLoadWithRequest={onNavigation}
       onOpenWindow={event=>{const url=event.nativeEvent.targetUrl;if(mapsUrl(url))void Linking.openURL(url);}}
       setSupportMultipleWindows={false} onMessage={onMessage} onError={()=>setLoadError(true)} onHttpError={event=>{if(safeDriverUrl(event.nativeEvent.url)&&event.nativeEvent.statusCode>=400)setLoadError(true);}}
       onLoadEnd={()=>setWorking(false)} onLoad={()=>setLoadError(false)} javaScriptEnabled domStorageEnabled sharedCookiesEnabled thirdPartyCookiesEnabled

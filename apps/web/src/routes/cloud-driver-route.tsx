@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DriverActionItem, DriverClosureView, DriverItinerary, DriverShiftState, DriverSignatureRequest } from "@kavaroutes/api-contracts/client-web";
 import { DevelopmentApiError } from "@kavaroutes/api-contracts/private-development-transport";
-import { createCloudDriverWebApi, type DriverCommand, type DriverLeg } from "../cloud-driver-api";
+import { createCloudDriverWebApi, driverOrganizationId, type DriverCommand, type DriverLeg } from "../cloud-driver-api";
 import { DriverInspectionForm } from "../components/DriverInspectionForm";
 import { DriverLoginPanel } from "../components/DriverLoginPanel";
 import { DriverSignaturePad } from "../components/DriverSignaturePad";
@@ -63,6 +63,21 @@ const label = (value: string) => value.toLowerCase().replaceAll("_", " ").replac
 
 export type DriverWorkflow = "PICKUP_COMPLETE" | "DROPOFF_COMPLETE" | "PICKUP_CONTROLS" | "DROPOFF_CONTROLS";
 
+export async function chooseDriverWork(manifest:DriverItinerary,readShift:(assignmentId:string)=>Promise<DriverShiftState|null>){
+  const unfinished=new Map<string,DriverLeg>();
+  for(const leg of manifest.legs)if(!terminal.has(leg.execution?.lifecycle??'')&&!unfinished.has(leg.assignmentId))unfinished.set(leg.assignmentId,leg);
+  const checked=new Set<string>();
+  let startable:DriverLeg|null=null;
+  for(const leg of manifest.legs){
+    if(checked.has(leg.assignmentId))continue;
+    checked.add(leg.assignmentId);
+    const shift=await readShift(leg.assignmentId);
+    if(shift?.lifecycle==='ACTIVE')return {leg,shift,hasUnfinished:unfinished.size>0};
+    if(!shift&&unfinished.has(leg.assignmentId)&&!startable)startable=unfinished.get(leg.assignmentId)!;
+  }
+  return {leg:startable,shift:null,hasUnfinished:unfinished.size>0};
+}
+
 export function nextControl(leg: DriverLeg): { label: string; command?: DriverCommand; details?: Record<string, unknown>; signature?: "PICKUP_ATTESTATION" | "DROPOFF_ATTESTATION"; workflow?: DriverWorkflow } | null {
   const execution = leg.execution; const control = execution?.serviceControl; const proof = control?.proofRule;
   if (!execution || control?.incidentOpen) return null;
@@ -98,7 +113,11 @@ function blockedControlMessage(leg: DriverLeg): string {
 
 export function Component() {
   const nativeDriver = useMemo(nativeDriverAvailable, []);
-  const api = useMemo(() => createCloudDriverWebApi(window.location.origin, window.fetch.bind(window)), []);
+  const businessId=useMemo(()=>{
+    const value=new URLSearchParams(window.location.search).get('businessId');
+    return value&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)?value:driverOrganizationId;
+  },[]);
+  const api = useMemo(() => createCloudDriverWebApi(window.location.origin, window.fetch.bind(window),businessId), [businessId]);
   const invitedDriverId=useMemo(()=>{
     const value=new URLSearchParams(window.location.search).get('driverId');
     return value&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)?value:null;
@@ -149,33 +168,28 @@ export function Component() {
   const signIn = async (login=verifiedLogin) => {
     setBusy(true); setMessage("");
     try {
-      if (nativeDriver) await nativeDriverCommand({type:'PREPARE'});
-      else if (!(await sharing.requestSharing()))
-        throw new Error("Location sharing is required to sign in. Allow location for this site, then sign in again.");
       await api.authenticate(); const manifest = (await api.itinerary(serviceDate)).value;
-      const unfinished = manifest.legs.filter(item => !terminal.has(item.execution?.lifecycle ?? ""));
-      if (!unfinished.length) throw new Error("No unfinished Driver assignments are available for this service date.");
       // A driver holds one open shift at a time, and that shift belongs to one
       // assignment. Resume the open shift wherever it is on this day instead of
       // starting a second one, which the server refuses as a shift conflict.
       // Resume an open shift anywhere on this day; otherwise start one for the first
       // unfinished leg that has no shift yet. A leg whose shift already ended is
       // skipped rather than reported as a dead end (audit WEB-A-029).
-      let resumed: { leg: DriverLeg; state: DriverShiftState } | null = null;
-      let startable: DriverLeg | null = null;
-      for (const candidate of unfinished) {
-        let existing: DriverShiftState | null = null;
-        try { existing = (await api.shift(candidate.assignmentId)).value; }
-        catch (error) {
-          if (!(error instanceof DevelopmentApiError) || error.status !== 404) throw error;
-        }
-        if (existing && existing.lifecycle === "ACTIVE") { resumed = { leg: candidate, state: existing }; break; }
-        if (!existing && !startable) startable = candidate;
+      const choice=await chooseDriverWork(manifest,async assignmentId=>{
+        try{return (await api.shift(assignmentId)).value;}
+        catch(error){if(error instanceof DevelopmentApiError&&error.status===404)return null;throw error;}
+      });
+      const leg=choice.leg;
+      if (!leg) {
+        setSignedIn(true);setItinerary(manifest);setShift(null);setClosure(null);
+        setMessage(choice.hasUnfinished?'Signed in. There is no open shift to resume for this date. Ask Dispatch if you expect another run.':manifest.legs.length?'Signed in. All assigned trips for this date are complete.':'Signed in. No trips are assigned for this service date.');
+        return;
       }
-      const leg = resumed?.leg ?? startable;
-      if (!leg) throw new Error("Every unfinished assignment on this service date already has a closed shift. Ask dispatch to plan the next run.");
+      if (nativeDriver) await nativeDriverCommand({type:'PREPARE'});
+      else if (!(await sharing.requestSharing()))
+        throw new Error("Location sharing is required for an active shift. Allow location for this site, then try again.");
       let state: DriverShiftState;
-      if (resumed) state = resumed.state;
+      if (choice.shift) state = choice.shift;
       else {
         // The server refuses a start whose credential is not ACTIVE for this driver, so
         // the claimed login is what lets the shift begin (audit WEB-A-026).
@@ -344,11 +358,21 @@ export function Component() {
   const returnExceptionRecorded = !!closure && closure.lifecycle !== "SHIFT_ENDED" && closure.returnResult !== null && closure.returnResult !== "NOT_REQUIRED" && closure.returnResult !== "OVERRIDDEN";
   // The verified login identifies the driver *and* carries the login id the start
   // command must present; the driver id alone is refused by the server (audit WEB-A-029).
+  if (signedIn && itinerary && !shift) return <main id="main-content" className="driver-shell">
+    <section className="driver-welcome"><p className="driver-step">Signed in · {verifiedLogin?.loginId ?? 'Driver'}</p><h1>Assigned work</h1>
+      <p>Choose a service date to check your itinerary. Location sharing starts only when you begin an active shift.</p>
+      <ServiceDatePicker value={serviceDate} onChange={setServiceDate} disabled={busy}/>
+      <button className="driver-primary" disabled={busy} onClick={()=>void signIn()}>{busy?'Checking assignments…':'Load assignments'}</button>
+      {message&&<p role="status" className="driver-message">{message}</p>}
+      {itinerary.legs.length>0&&<ul>{itinerary.legs.map(leg=><li key={leg.tripLegId}>{leg.riderLabel} · {label(leg.execution?.lifecycle??leg.runLifecycle)}</li>)}</ul>}
+    </section>
+    {nativeDriver?<NativeLocationPanel status={nativeTracking}/>:<LocationSharingPanel controller={sharing} busy={busy}/>}
+  </main>;
   if (!signedIn || !itinerary || !shift) return <main id="main-content" className="driver-shell">
     <section className="driver-welcome"><p className="driver-step">KavaRoutes Driver</p><h1>Start your driving day</h1><p>Sign in, confirm your vehicle, follow today’s itinerary, collect required signatures, and sign off.</p>
       <ServiceDatePicker value={serviceDate} onChange={setServiceDate} disabled={busy}/>
       {message && <p role="alert" className="driver-error">{message}</p>}
-      <DriverLoginPanel api={api} driverReference={invitedDriverId} onVerified={(driverId,loginId)=>{const login={driverId,loginId};setVerifiedLogin(login);void signIn(login);}}/>
+      <DriverLoginPanel api={api} driverReference={invitedDriverId} businessId={businessId} onVerified={(driverId,loginId)=>{const login={driverId,loginId};setVerifiedLogin(login);void signIn(login);}}/>
       {verifiedLogin&&busy&&<p role="status">Login verified. Loading your assigned work…</p>}
       <p className="driver-fineprint">{nativeDriver?'Background location runs during an active shift, including while Google Maps is open.':'Keep KavaRoutes open during your shift. Mobile browsers may pause location updates when the screen is locked.'}</p>
     </section>

@@ -6,7 +6,7 @@ afterEach(() => vi.unstubAllGlobals());
 function driverWindow(pathname='/driver') {
   const sent:string[]=[];
   const target=Object.assign(new EventTarget(), {
-    location:{origin:'https://app.kavaroutes.com',pathname},
+    location:{origin:'https://driver.kavaroutes.com',pathname},
     setTimeout:window.setTimeout.bind(window),
     clearTimeout:window.clearTimeout.bind(window),
     ReactNativeWebView:{postMessage:(message:string)=>sent.push(message)},
@@ -24,7 +24,7 @@ test('only the production Driver page enables native tracking',async()=>{
 test('native replies are matched to the initiating command',async()=>{
   const {target,sent}=driverWindow();
   expect(nativeDriverAvailable()).toBe(true);
-  const result=nativeDriverCommand({type:'START',token:'dvs_'+ 'a'.repeat(43),driverId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',shiftReference:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',shiftGeneration:'cccccccc-cccc-4ccc-8ccc-cccccccccccc'});
+  const result=nativeDriverCommand({type:'START',token:'dvs_'+ 'a'.repeat(43),organizationId:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',driverId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',shiftReference:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',shiftGeneration:'cccccccc-cccc-4ccc-8ccc-cccccccccccc'});
   expect(sent).toHaveLength(1);
   const command=JSON.parse(sent[0]!) as {requestId:string;type:string};
   expect(command.type).toBe('START');

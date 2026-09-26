@@ -44,12 +44,12 @@ export function decodeDriverItinerary(value: unknown, driverId: string): DriverI
   return source as unknown as DriverItinerary;
 }
 
-function decodeShift(value: unknown, assignmentId: string, driverId: string): DriverShiftState {
+function decodeShift(value: unknown, assignmentId: string, driverId: string, organizationId: string): DriverShiftState {
   const source = object(value);
   if (typeof source.shiftReference !== "string" || !uuid.test(source.shiftReference) || typeof source.shiftGeneration !== "string" || !uuid.test(source.shiftGeneration) ||
     !Number.isSafeInteger(source.resourceVersion) || !Number.isSafeInteger(source.lastActionSequence) || !["ACTIVE", "INVALIDATE_REVIEW", "SHIFT_ENDED"].includes(String(source.lifecycle))) throw new Error("INVALID_DRIVER_SHIFT");
   const policy = decodeEffectiveDriverPolicy(source.effectivePolicy);
-  if (policy.assignmentId !== assignmentId || policy.driverId !== driverId || policy.organizationId !== driverOrganizationId) throw new Error("INVALID_DRIVER_SHIFT");
+  if (policy.assignmentId !== assignmentId || policy.driverId !== driverId || policy.organizationId !== organizationId) throw new Error("INVALID_DRIVER_SHIFT");
   return { ...source, effectivePolicy: policy } as unknown as DriverShiftState;
 }
 
@@ -82,7 +82,8 @@ function decodeLoginState(value:unknown,expectedDriver?:string){
     ...(source.sessionToken?{sessionToken:source.sessionToken as string}:{})};
 }
 
-export function createCloudDriverWebApi(baseUrl: string, fetcher: DevelopmentFetch) {
+export function createCloudDriverWebApi(baseUrl: string, fetcher: DevelopmentFetch, organizationId=driverOrganizationId) {
+  if(!uuid.test(organizationId))throw new Error('INVALID_BUSINESS_ID');
   const browserSameOrigin = new URL(baseUrl).protocol === "https:";
   let activeDriverId:string|null=null,sessionToken:string|null=null;
   const bootstrap=createPrivateDevelopmentTransport({ baseUrl, persona: "driver", fetch: fetcher, browserSameOrigin, anonymous:true });
@@ -94,23 +95,23 @@ export function createCloudDriverWebApi(baseUrl: string, fetcher: DevelopmentFet
     activeDriverId=state.driverId;sessionToken=state.sessionToken;
     return state;
   };
-  const prefix = `/v1/organizations/${driverOrganizationId}/driver`;
+  const prefix = `/v1/organizations/${organizationId}/driver`;
 // Driver logins are registered on the organization root (dispatch creates them there),
 // not under the /driver prefix this client uses for shift and itinerary calls.
-const loginPrefix = `/v1/organizations/${driverOrganizationId}`;
+const loginPrefix = `/v1/organizations/${organizationId}`;
   return Object.freeze({
     /** Hand the live session only to the trusted Driver native shell after login. */
     nativeTrackingSession() {
       if (!sessionToken || !activeDriverId) throw new Error('DRIVER_SESSION_REQUIRED');
-      return { token: sessionToken, driverId: activeDriverId };
+      return { token: sessionToken, driverId: activeDriverId, organizationId };
     },
     async authenticate(signal?: AbortSignal) {
       return transport.request("/v1/me", value => {
         const body = object(value);
         if (body.principalKind !== "SYNTHETIC_DEVICE" || !Array.isArray(body.organizations)) throw new Error("INVALID_DRIVER_SESSION");
-        const membership = body.organizations.map(object).find(item => item.organizationId === driverOrganizationId);
+        const membership = body.organizations.map(object).find(item => item.organizationId === organizationId);
         if (!membership || !Array.isArray(membership.capabilities) || !membership.capabilities.includes("driver:manifest:read") || !membership.capabilities.includes("driver:execute")) throw new Error("INVALID_DRIVER_SESSION");
-        return { driverId:authenticatedDriver(), organizationId: driverOrganizationId };
+        return { driverId:authenticatedDriver(), organizationId };
       }, undefined, signal);
     },
     /** The driver sets their own password once, on the phone that holds the invite
@@ -143,7 +144,7 @@ const loginPrefix = `/v1/organizations/${driverOrganizationId}`;
     },
     shift(assignmentId: string, signal?: AbortSignal) {
       if (!uuid.test(assignmentId)) throw new Error("INVALID_ASSIGNMENT");
-      return transport.request(`${prefix}/shifts/assignments/${assignmentId}`, value => decodeShift(value, assignmentId,authenticatedDriver()), undefined, signal);
+      return transport.request(`${prefix}/shifts/assignments/${assignmentId}`, value => decodeShift(value, assignmentId,authenticatedDriver(),organizationId), undefined, signal);
     },
     precheck(shiftReference: string, request: DriverPrecheckRequest, key: string, stage: "pre" | "post") {
       if (!uuid.test(shiftReference)) throw new Error("INVALID_SHIFT");

@@ -1,5 +1,11 @@
 services:
   api:
+    environment:
+      KR_DRIVER_ADMINS_FILE: /run/secrets/driver-admins.json
+    volumes:
+      - /opt/kavaroutes/web/api.mjs:/app/infra/gcp/runtime/api.mjs:ro
+      - /opt/kavaroutes/web/driver-admin.mjs:/app/infra/gcp/runtime/driver-admin.mjs:ro
+      - ${KR_SECRETS_DIRECTORY}/driver-admins.json:/run/secrets/driver-admins.json:ro
     healthcheck:
       test: [CMD, node, infra/gcp/runtime/health.mjs, "58082"]
   gateway:
@@ -18,6 +24,7 @@ services:
     command: []
     environment:
       KR_WEB_ROOT: /srv/kavaroutes-web/dist
+      KR_DRIVER_WEB_ROOT: /srv/kavaroutes-web/dist-driver
       KR_WEB_PORT: "58080"
       KR_API_PORT: "58082"
     volumes:

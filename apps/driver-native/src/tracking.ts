@@ -3,12 +3,10 @@ import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
 import {getRandomBytes, randomUUID} from 'expo-crypto';
 import {openDatabaseAsync, type SQLiteDatabase} from 'expo-sqlite';
-import CookieManager from '@preeternal/react-native-cookie-manager';
 import {PermissionsAndroid,Platform} from 'react-native';
 
 const TASK = 'kavaroutes.driver.location';
-const ORIGIN = 'https://app.kavaroutes.com';
-const ORGANIZATION = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const ORIGIN = 'https://driver.kavaroutes.com';
 const KEY = 'driver.location.database.key';
 const BINDING = 'driver.location.shift.binding';
 const STORE_OPTIONS = {keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY};
@@ -16,7 +14,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const TOKEN = /^dvs_[A-Za-z0-9_-]{43}$/;
 
 export type Status = {state:'idle'|'starting'|'active'|'delayed'|'stopped'; message:string};
-export type Binding = {token:string; driverId:string; shiftReference:string; shiftGeneration:string; deviceId:string};
+export type Binding = {token:string; organizationId:string; driverId:string; shiftReference:string; shiftGeneration:string; deviceId:string};
 type Sample = {sample_id:string; sequence:number; captured_at:string; latitude:number; longitude:number; accuracy_meters:number|null; batch_ref:string|null};
 let dbPromise:Promise<SQLiteDatabase>|null=null;
 let uploadPromise:Promise<Status>|null=null;
@@ -39,22 +37,16 @@ async function database() {
 function validBinding(value:unknown):value is Binding {
   if (!value||typeof value!=='object') return false;
   const b=value as Record<string,unknown>;
-  return typeof b.token==='string'&&TOKEN.test(b.token)&&[b.driverId,b.shiftReference,b.shiftGeneration,b.deviceId].every(v=>typeof v==='string'&&UUID.test(v));
+  return typeof b.token==='string'&&TOKEN.test(b.token)&&[b.organizationId,b.driverId,b.shiftReference,b.shiftGeneration,b.deviceId].every(v=>typeof v==='string'&&UUID.test(v));
 }
 async function readBinding():Promise<Binding|null> {
   const raw=await SecureStore.getItemAsync(BINDING,STORE_OPTIONS);
   if (!raw) return null;
   try {const value:unknown=JSON.parse(raw);return validBinding(value)?value:null;} catch {return null;}
 }
-function url(binding:Binding,path:string) {return `${ORIGIN}/v1/organizations/${ORGANIZATION}/driver/shifts/${binding.shiftReference}/${path}`;}
+function url(binding:Binding,path:string) {return `${ORIGIN}/v1/organizations/${binding.organizationId}/driver/shifts/${binding.shiftReference}/${path}`;}
 async function headers(binding:Binding) {
-  // Cloudflare Access protects the app host. Its HttpOnly application cookie
-  // lives in the WebView store, while iOS native networking uses another store.
-  // Read only this host's Access cookie for each request; never persist or log it.
-  const cookies=await CookieManager.get(ORIGIN,{iosCookieStore:'webKit'});
-  const access=cookies.CF_Authorization?.value;
-  if (!access||!(/^[A-Za-z0-9._-]+$/.test(access))) throw new Error('DRIVER_ACCESS_SESSION_REQUIRED');
-  return {authorization:`DriverSession ${binding.token}`,cookie:`CF_Authorization=${access}`,accept:'application/json'};
+  return {authorization:`DriverSession ${binding.token}`,accept:'application/json'};
 }
 async function responseJson(response:Response):Promise<Record<string,unknown>> {
   if (!response.headers.get('content-type')?.includes('application/json')||(response.url&&new URL(response.url).origin!==ORIGIN)) throw new Error('DRIVER_API_ACCESS_BLOCKED');
@@ -130,7 +122,7 @@ async function upload():Promise<Status> {
 }
 
 export async function flushTracking():Promise<Status> {
-  uploadPromise ??= upload().catch(error=>({state:'delayed' as const,message:error instanceof Error&&error.message==='DRIVER_SESSION_EXPIRED'?'Driver session expired. Sign in again to resume uploads.':error instanceof Error&&['DRIVER_API_ACCESS_BLOCKED','DRIVER_ACCESS_SESSION_REQUIRED'].includes(error.message)?'Phone Access sign-in expired. Reopen Driver and sign in again to resume uploads.':'Location uploads are delayed. Keep the Driver app open and contact Dispatch if this continues.'})).finally(()=>{uploadPromise=null;});
+  uploadPromise ??= upload().catch(error=>({state:'delayed' as const,message:error instanceof Error&&error.message==='DRIVER_SESSION_EXPIRED'?'Driver session expired. Sign in again to resume uploads.':error instanceof Error&&error.message==='DRIVER_API_ACCESS_BLOCKED'?'Driver service is unavailable. Reopen Driver and try again.':'Location uploads are delayed. Keep the Driver app open and contact Dispatch if this continues.'})).finally(()=>{uploadPromise=null;});
   return uploadPromise;
 }
 

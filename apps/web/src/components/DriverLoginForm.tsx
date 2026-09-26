@@ -74,7 +74,7 @@ export function DriverLoginForm({api,serviceDate}:{api:ReturnType<typeof createC
   };
   const selected=drivers.find(item=>item.id===driverId);
   return <section id="driver-access" className="workspace-card driver-access-panel" aria-label="Driver access">
-    <div className="section-heading"><div><p className="eyebrow">Account administration</p><h2>Driver accounts</h2><p>Select a driver to issue access or reset a forgotten password.</p></div><Link className="action-link" to="/driver">Open Driver portal →</Link></div>
+    <div className="section-heading"><div><p className="eyebrow">Account administration</p><h2>Driver accounts</h2><p>Select a driver to issue access or reset a forgotten password.</p></div><a className="action-link" href="https://driver.kavaroutes.com/driver">Open Driver portal →</a></div>
     <details className="add-driver-account"><summary>Add driver account</summary>
       <div className="driver-account-create">
         <label>Driver display name <input value={newName} maxLength={120} disabled={busy||!!addPending.current} autoComplete="name" onChange={event=>{const value=event.target.value;setMessage("");setNewName(value);if(!newLoginEdited)setNewLoginId(suggestLoginId(value));}}/></label>
@@ -100,7 +100,7 @@ export function DriverLoginForm({api,serviceDate}:{api:ReturnType<typeof createC
     <button disabled={busy||!driverId||!!pending.current} onClick={()=>void submit(true)}>Reset password</button></div>
     <p className="form-hint">Resetting invalidates the current password and creates a new one-time code. The driver must set a new password before signing in again.</p>
     <p role="status">{message}</p>
-    {invite&&<div role="status" className="driver-login-code"><span>One-time code for {invite.loginId}</span><strong>{invite.inviteCode}</strong><a className="action-link" href={`/driver?driverId=${encodeURIComponent(invite.driverId)}`}>Open driver setup link</a><small>Give this link and code to the driver. The code will not be shown again.</small></div>}
+    {invite&&<div role="status" className="driver-login-code"><span>One-time code for {invite.loginId}</span><strong>{invite.inviteCode}</strong><a className="action-link" href={`https://driver.kavaroutes.com/driver?businessId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&driverId=${encodeURIComponent(invite.driverId)}`}>Open driver setup link</a><small>Give this link and code to the driver. The code will not be shown again.</small></div>}
     </div></div>
   </section>;
 }

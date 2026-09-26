@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { nextControl } from "../src/routes/cloud-driver-route";
+import { describe, expect, it, vi } from "vitest";
+import { chooseDriverWork, nextControl } from "../src/routes/cloud-driver-route";
 import type { DriverLeg } from "../src/cloud-driver-api";
+import type {DriverItinerary,DriverShiftState} from '@kavaroutes/api-contracts/client-web';
 
 /** Regression lock for WEB-A-001/WEB-A-002: the server attests a pickup signature
  * only after the physical controls are recorded, and refuses boarding without the
@@ -67,5 +68,29 @@ describe("driver pickup control order", () => {
 
   it("offers no control while an incident is open", () => {
     expect(nextControl(leg("ARRIVED_PICKUP", { incidentOpen: true }))).toBeNull();
+  });
+});
+
+describe('driver sign-in without an unfinished trip',()=>{
+  const assignment='11111111-1111-4111-8111-111111111111';
+  const manifest=(legs:unknown[])=>({legs}) as unknown as DriverItinerary;
+  const item=(lifecycle:string,reference:string)=>({assignmentId:assignment,tripLegId:reference,execution:{lifecycle}});
+  it('keeps a valid login open when the date has no assignments',async()=>{
+    const read=vi.fn();
+    expect(await chooseDriverWork(manifest([]),read)).toEqual({leg:null,shift:null,hasUnfinished:false});
+    expect(read).not.toHaveBeenCalled();
+  });
+  it('resumes return review after every leg is complete',async()=>{
+    const completed=item('COMPLETED','completed');
+    const active={lifecycle:'ACTIVE'} as DriverShiftState;
+    const selected=await chooseDriverWork(manifest([completed]),async()=>active);
+    expect(selected).toMatchObject({leg:completed,shift:active,hasUnfinished:false});
+  });
+  it('starts at the unfinished leg in a mixed assignment',async()=>{
+    const unfinished=item('DISPATCHED','unfinished');
+    const read=vi.fn(async()=>null);
+    const selected=await chooseDriverWork(manifest([item('COMPLETED','completed'),unfinished]),read);
+    expect(selected).toMatchObject({leg:unfinished,shift:null,hasUnfinished:true});
+    expect(read).toHaveBeenCalledTimes(1);
   });
 });

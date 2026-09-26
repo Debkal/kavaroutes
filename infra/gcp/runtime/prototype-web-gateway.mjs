@@ -3,8 +3,10 @@ import { stat } from 'node:fs/promises';
 import { createServer, request as upstreamRequest } from 'node:http';
 import { connect } from 'node:net';
 import { extname, resolve, sep } from 'node:path';
+import {driverGatewayDecision} from './driver-gateway-policy.mjs';
 
 const webRoot = resolve(process.env.KR_WEB_ROOT ?? '/srv/kavaroutes-web/dist');
+const driverRoot = resolve(process.env.KR_DRIVER_WEB_ROOT ?? '/srv/kavaroutes-web/dist-driver');
 const listenPort = Number(process.env.KR_WEB_PORT ?? 58080);
 const apiPort = Number(process.env.KR_API_PORT ?? 58082);
 if (![listenPort, apiPort].every(port => Number.isInteger(port) && port >= 1024 && port <= 65535) || listenPort === apiPort) {
@@ -50,7 +52,7 @@ function proxy(request, response) {
   request.pipe(upstream);
 }
 
-async function staticResponse(request, response, pathname) {
+async function staticResponse(request, response, pathname, root=webRoot, entry='index.html') {
   if (!['GET', 'HEAD'].includes(request.method ?? '')) {
     response.writeHead(405, { allow: 'GET, HEAD', ...securityHeaders }).end(); return;
   }
@@ -58,16 +60,16 @@ async function staticResponse(request, response, pathname) {
   try {
     const decoded = decodeURIComponent(pathname);
     if (decoded.includes('\0')) throw new Error('INVALID_PATH');
-    candidate = resolve(webRoot, `.${decoded}`);
-    if (candidate !== webRoot && !candidate.startsWith(`${webRoot}${sep}`)) throw new Error('INVALID_PATH');
-    if ((await stat(candidate)).isDirectory()) candidate = resolve(candidate, 'index.html');
+    candidate = resolve(root, `.${decoded}`);
+    if (candidate !== root && !candidate.startsWith(`${root}${sep}`)) throw new Error('INVALID_PATH');
+    if ((await stat(candidate)).isDirectory()) candidate = resolve(candidate, entry);
     if (!(await stat(candidate)).isFile()) throw new Error('NOT_FILE');
   } catch {
-    candidate = resolve(webRoot, 'index.html');
+    candidate = resolve(root, entry);
   }
   try {
     const metadata = await stat(candidate);
-    const isAsset = candidate.startsWith(`${resolve(webRoot, 'assets')}${sep}`);
+    const isAsset = candidate.startsWith(`${resolve(root, 'assets')}${sep}`);
     response.writeHead(200, { ...securityHeaders,
       'content-type': contentTypes[extname(candidate)] ?? 'application/octet-stream',
       'content-length': metadata.size,
@@ -84,6 +86,13 @@ const server = createServer((request, response) => {
   let pathname;
   try { pathname = new URL(request.url ?? '/', 'http://gateway.invalid').pathname; }
   catch { response.writeHead(400).end(); return; }
+  if (request.headers.host === 'driver.kavaroutes.com') {
+    const decision=driverGatewayDecision(request.method,pathname,request.headers.authorization);
+    if(decision==='deny') {response.writeHead(404,{...securityHeaders,'cache-control':'no-store'}).end();return;}
+    if(decision==='proxy') {proxy(request,response);return;}
+    if(pathname==='/') {response.writeHead(302,{...securityHeaders,location:'/driver','cache-control':'no-store'}).end();return;}
+    void staticResponse(request,response,pathname,driverRoot,'driver.html');return;
+  }
   if (pathname === '/health/ready' || pathname.startsWith('/v1/')) proxy(request, response);
   else void staticResponse(request, response, pathname);
 });

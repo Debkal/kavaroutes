@@ -14,6 +14,7 @@ import { makePool, verifyRuntimeDatabase } from './database.mjs';
 import { validateConfig, tenantId, branchScopeReference } from './config.mjs';
 import {createDriverSessions} from './driver-sessions.mjs';
 import {createGeoapifyRoadRoutingService} from './road-routing.mjs';
+import {registerDriverAdmin} from './driver-admin.mjs';
 
 export async function createRuntimeApi(input) {
   const config = validateConfig(input);
@@ -25,6 +26,7 @@ export async function createRuntimeApi(input) {
       return row?{status:String(row.status),version:Number(row.credential_version)}:null;
     })});
   const verifier={verify:authorization=>sessions.verify(authorization)};
+  const driverLogins=createPostgresDriverLoginService(pool,{allowUnauthenticatedLogin:true});
   const application = createWp007PostgresApplication(pool, { etagSecret: config.etagSecret });
   const checkDatabase = async () => { await verifyRuntimeDatabase(pool, 'api'); await application.listTrips(tenantId, { limit: 1 }); };
   const app = await createWp007Api({ application, driverItineraryReader: createDriverItineraryReader(pool),
@@ -34,7 +36,7 @@ export async function createRuntimeApi(input) {
     roadRoutingService: createGeoapifyRoadRoutingService(pool,{apiKey:process.env.GEOAPIFY_API_KEY}),
     facilityService:createPostgresFacilityService(pool),
     clientService:createPostgresClientService(pool),
-    driverLoginService:createPostgresDriverLoginService(pool,{allowUnauthenticatedLogin:true}),
+    driverLoginService:driverLogins,
     publicDriverLogin:true,
     issueDriverSession:(organizationId,state)=>sessions.issue(organizationId,state),
     driverShiftService: createPostgresDriverShiftService(pool),
@@ -49,12 +51,14 @@ export async function createRuntimeApi(input) {
     accountingService: createPostgresAccountingApiService(pool),
     verifier, etagSecret: config.etagSecret, cursorSecret: `synthetic-cursor-secret-${config.cursorSecret}` });
   const store = createPostgresRealtimeStore(pool, createTestOnlyCursorCodec({ secret: config.cursorSecret }));
+  registerDriverAdmin(app,{accountsFile:process.env.KR_DRIVER_ADMINS_FILE,driverLogins});
   let gateway;
   let stopped = false;
   let timer;
   // Refuse scaffold-only domain endpoints rather than silently presenting fake persistence.
   app.addHook('onRequest', async (request, reply) => {
     const path = request.url.split('?')[0];
+    if(path.startsWith('/driver-admin/'))return;
     if(/^\/v1\/organizations\/[^/]+\/facility\/(?:days\/\d{4}-\d{2}-\d{2}|trips\/[^/]+)$/.test(path))return;
     if(/^\/v1\/organizations\/[^/]+\/browser-commands(?:\/pending|\/[^/]+\/(?:execute|acknowledge))?$/.test(path))return;
     const routeProposalPath=/^\/v1\/organizations\/[^/]+\/(?:(?:driver|dispatch)\/shifts\/[^/]+\/route-proposals|dispatch\/route-proposals\/[^/]+\/commands\/decide)$/.test(path);

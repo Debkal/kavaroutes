@@ -12,7 +12,6 @@
     "ios": "expo run:ios"
   },
   "dependencies": {
-    "@preeternal/react-native-cookie-manager": "7.0.0",
     "expo": "57.0.16",
     "expo-crypto": "57.0.2",
     "expo-location": "57.0.13",

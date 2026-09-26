@@ -2,7 +2,7 @@ KavaRoutes Driver native shell
 ==============================
 
 This app is for drivers only. It loads the existing production driver screen at
-https://app.kavaroutes.com/driver on Android and iPhone. Dispatch, admin and
+https://driver.kavaroutes.com/driver on Android and iPhone. Dispatch, admin and
 business login pages are not part of this app.
 
 During an active shift, the phone's native location task collects GPS fixes and
@@ -47,11 +47,8 @@ by signing in again. Force quitting an iPhone app can prevent further background
 delivery until it is reopened. Phone power settings can also affect update
 frequency, so a physical test is required before relying on continuous tracking.
 
-Cloudflare Access: the production Driver page redirects to Access. Sign in
-through that screen inside the app, then use the Driver account form. Native
-background requests read the app-domain Access cookie from the phone's WebView
-cookie store for each request and also send the driver-specific DriverSession.
-The Access cookie is never copied to the JavaScript web page, saved in SQLite,
-or logged. If Access or DriverSession expires, reopen Driver and sign in again.
-Access authentication through an external identity provider may need a separate
-phone test; WebView providers can impose their own embedded-login restrictions.
+The Driver hostname is public but serves only Driver pages and driver-specific
+endpoints. The driver's login ID and password issue a DriverSession; the same
+session authorizes the native background uploader. If that session expires,
+reopen Driver and sign in again. Each business driver admin manages invitations
+at https://driver.kavaroutes.com/driver-admin, outside the native app.

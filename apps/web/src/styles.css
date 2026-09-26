@@ -178,6 +178,13 @@ td small, td span { display: block; }.route-arrow { display: inline !important; 
 .modal-overlay { position: fixed; inset: 0; z-index: 20; background: #071b14aa; display: grid; place-items: center; padding: 1rem; }.modal { width: min(32rem, 100%); }.dialog { background: var(--surface); color: var(--ink); border-radius: .8rem; padding: 1.2rem; box-shadow: 0 15px 50px #0006; }.dialog-actions { display: flex; justify-content: flex-end; gap: .6rem; }
 .facility-page { max-width: 75rem; margin-inline: auto; }.facility-list { padding: 1rem; }.facility-list ul { list-style: none; padding: 0; display: grid; gap: .5rem; }.facility-list li { border: 1px solid var(--line); border-radius: .6rem; padding: .8rem; display: grid; grid-template-columns: 5rem 1fr; gap: .8rem; }.facility-list time { font-size: 1.2rem; font-weight: 900; color: var(--brand); }.facility-list li div { display: grid; }.facility-list span { color: var(--muted); }
 .message-page { min-height: 60vh; display: grid; place-content: center; max-width: 40rem; text-align: center; }
+.driver-admin-page { display:block; min-height:0; max-width:38rem; margin:2rem auto 5rem; text-align:left; padding:0 1rem; }
+.driver-admin-page form { display:grid; gap:1rem; margin:1.5rem 0; padding:1.5rem; border:1px solid #d9e5df; border-radius:12px; background:#f7faf8; }
+.driver-admin-page label { display:grid; gap:.35rem; font-weight:600; }
+.driver-admin-page input,.driver-admin-page select { width:100%; min-height:2.7rem; border:1px solid #aebfb5; border-radius:7px; padding:.55rem .7rem; background:white; color:#1f3e33; }
+.driver-admin-page button { min-height:2.7rem; padding:.55rem 1rem; border:0; border-radius:7px; background:#376b55; color:white; cursor:pointer; }
+.driver-admin-page button:disabled { opacity:.55; cursor:wait; }
+.driver-admin-page strong { display:inline-block; padding:.5rem .75rem; background:#e5f0e8; border-radius:6px; overflow-wrap:anywhere; }
 
 /* Driver web prototype: deliberately phone-first and low-interaction. */
 .driver-shell { max-width: 78rem; margin-inline: auto; padding-bottom: 7rem; }

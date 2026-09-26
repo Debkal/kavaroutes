@@ -4,9 +4,9 @@ declare global { interface Window { ReactNativeWebView?: NativeWebView } }
 
 export type NativeTrackingState = 'idle' | 'starting' | 'active' | 'delayed' | 'stopped';
 export interface NativeTrackingStatus { state: NativeTrackingState; message: string }
-type Command = { type: 'PREPARE' } | { type: 'START'; token: string; driverId: string; shiftReference: string; shiftGeneration: string } | { type: 'STOP' } | { type: 'STATUS' };
+type Command = { type: 'PREPARE' } | { type: 'START'; token: string; organizationId:string; driverId: string; shiftReference: string; shiftGeneration: string } | { type: 'STOP' } | { type: 'STATUS' };
 
-export const nativeDriverAvailable = () => Boolean(window.ReactNativeWebView && window.location.origin === 'https://app.kavaroutes.com' && window.location.pathname === '/driver');
+export const nativeDriverAvailable = () => Boolean(window.ReactNativeWebView && window.location.origin === 'https://driver.kavaroutes.com' && window.location.pathname === '/driver');
 
 export function nativeDriverCommand(command: Command): Promise<NativeTrackingStatus> {
   if (!nativeDriverAvailable()) return Promise.reject(new Error('NATIVE_DRIVER_UNAVAILABLE'));

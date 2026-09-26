@@ -6,21 +6,22 @@ const LOGIN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/;
 /** Driver-side login: claim the invite once and set a password, then sign in with that
  * ID and password. The server answers one rejection code for every failure, so this
  * screen never says whether the ID or the password was wrong. */
-export function DriverLoginPanel({api,driverReference,onVerified}:{api:ReturnType<typeof createCloudDriverWebApi>;
-  driverReference:string|null;onVerified:(driverId:string,loginId:string)=>void}){
+export function DriverLoginPanel({api,driverReference,businessId,onVerified}:{api:ReturnType<typeof createCloudDriverWebApi>;
+  driverReference:string|null;businessId:string;onVerified:(driverId:string,loginId:string)=>void}){
   const [code,setCode]=useState(""),[password,setPassword]=useState("");
   const [loginId,setLoginId]=useState(""),[signInPassword,setSignInPassword]=useState("");
+  const [selectedBusiness,setSelectedBusiness]=useState(businessId);
   const [message,setMessage]=useState(""),[busy,setBusy]=useState(false);
   const fail=(error:unknown,fallback:string)=>{
     if(error instanceof DevelopmentApiError&&error.code==="DRIVER_LOGIN_REJECTED")return "That login ID and password did not match a driver login.";
-    if(error instanceof DevelopmentApiError&&error.code==="DRIVER_LOGIN_DRIVER_MISMATCH")return "This invite belongs to another driver. Ask dispatch to reissue it for your driver.";
+    if(error instanceof DevelopmentApiError&&error.code==="DRIVER_LOGIN_DRIVER_MISMATCH")return "This invite belongs to another driver. Ask your business driver admin to reissue it.";
     if(error instanceof DevelopmentApiError&&error.code==="OUTCOME_UNKNOWN")return "Outcome unknown. Retry the same request; it does not create a second credential.";
     if(error instanceof DevelopmentApiError&&error.status>=400&&error.status<500)return `Rejected: ${error.code.replaceAll("_"," ").toLowerCase()}.`;
     return fallback;
   };
   const claim=async()=>{
     if(busy)return;
-    if(!driverReference){setMessage("Open the driver setup link dispatch gave you to claim this invite.");return;}
+    if(!driverReference){setMessage("Open the setup link your business driver admin gave you to claim this invite.");return;}
     if(code.trim().length<8){setMessage("Enter the one-time code dispatch gave you.");return;}
     if(password.length<8){setMessage("Choose a password of at least 8 characters.");return;}
     setBusy(true);setMessage("Setting your password…");
@@ -46,13 +47,15 @@ export function DriverLoginPanel({api,driverReference,onVerified}:{api:ReturnTyp
   };
   return <section className="driver-login-panel" aria-label="Driver login">
     <h2>Driver login</h2>
-    <p>First time here: open the setup link dispatch gave you, enter the one-time code, and choose your own password. After that, sign in with your login ID and password.</p>
+    <p><a href="/driver-admin">Business driver admin sign in</a></p>
+    <details><summary>Use a different business</summary><label>Business ID <input value={selectedBusiness} onChange={event=>setSelectedBusiness(event.target.value.trim())}/></label><button type="button" disabled={!/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(selectedBusiness)} onClick={()=>{const url=new URL(window.location.href);url.searchParams.set('businessId',selectedBusiness);url.searchParams.delete('driverId');window.location.assign(url.toString());}}>Use business</button></details>
+    <p>First time here: open the setup link your business driver admin gave you, enter the one-time code, and choose your own password. After that, sign in with your login ID and password.</p>
     <details>
       <summary>First login: set your password</summary>
       <label>One-time code <input value={code} disabled={busy} onChange={event=>setCode(event.target.value.trim())}/></label>
       <label>New password <input type="password" value={password} disabled={busy} onChange={event=>setPassword(event.target.value)}/></label>
       <button className="driver-primary" disabled={busy||!driverReference} onClick={()=>void claim()}>Set password and open itinerary</button>
-      {!driverReference&&<p className="driver-fineprint">Ask dispatch for your driver setup link if you have a code but cannot claim it here.</p>}
+      {!driverReference&&<p className="driver-fineprint">Ask your business driver admin for the setup link if you have a code but cannot claim it here.</p>}
     </details>
     <fieldset disabled={busy}>
       <legend>Sign in with your password</legend>
