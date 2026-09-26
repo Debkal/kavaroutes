@@ -15,7 +15,16 @@
       "package": "com.kavaroutes.driver",
       "allowBackup": false,
       "permissions": ["android.permission.POST_NOTIFICATIONS"],
-      "blockedPermissions": ["android.permission.READ_MEDIA_IMAGES", "android.permission.RECORD_AUDIO", "android.permission.READ_EXTERNAL_STORAGE"]
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.VIBRATE"
+      ]
     },
     "plugins": [
       ["expo-sqlite", {"enableFTS": false, "useSQLCipher": true}],

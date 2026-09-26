@@ -30,6 +30,13 @@ not produce signed installable packages. The final two prebuild and install a
 native development app on a device or emulator. Production APK/AAB/IPA signing
 and store distribution require their platform credentials.
 
+For a standalone Android test APK, prebuild Android, then run
+`./gradlew :app:assembleRelease` from apps/driver-native/android with a local
+JDK and Android SDK configured. The output is
+apps/driver-native/android/app/build/outputs/apk/release/app-release.apk.
+This project currently signs that release-mode APK with the generated Android
+debug key. It is installable for private testing and is not store-ready.
+
 On a real phone, sign in with a driver account, grant precise/always location,
 start the shift, open Google Maps from the trip link, lock and unlock the phone,
 then check Dispatch Active Drivers for fresh fixes. Finish the shift and confirm
