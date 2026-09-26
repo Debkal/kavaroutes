@@ -160,12 +160,25 @@ export function useLocationSharing(input: { target: LocationSharingTarget | null
     return () => window.clearInterval(timer);
   }, [flush]);
   useEffect(() => {
-    const resume = () => { if (document.visibilityState === "visible") void flush(); };
+    const visibility = () => {
+      if (document.visibilityState !== "visible") {
+        // Send any buffered fixes before the browser suspends this page.
+        void flush();
+        return;
+      }
+      const stamp = Date.now();
+      setNow(stamp);
+      setState(current => locationSharingReducer(current, { type: "STALE", now: stamp }));
+      // A mobile browser may have discarded the old watcher while Maps or the
+      // lock screen was in front. Re-register it immediately on return.
+      if (targetRef.current && ["SHARING", "SIGNAL_LOST", "ESCALATED"].includes(stateRef.current.phase)) startWatch();
+      void flush();
+    };
     const online = () => void flush();
-    document.addEventListener("visibilitychange", resume);
+    document.addEventListener("visibilitychange", visibility);
     window.addEventListener("online", online);
-    return () => { document.removeEventListener("visibilitychange", resume); window.removeEventListener("online", online); };
-  }, [flush]);
+    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("online", online); };
+  }, [flush, startWatch]);
   useEffect(() => () => stopWatch(), [stopWatch]);
 
   return { state, prompt: locationSharingPrompt(state), silentSeconds: locationSilentSeconds(state, now), retryInSeconds: locationRetryInSeconds(state, now),

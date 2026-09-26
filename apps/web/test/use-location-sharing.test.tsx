@@ -26,3 +26,26 @@ it('retries the exact location batch after an uncertain upload and clears the wa
   hook.unmount();
   vi.unstubAllGlobals();
 });
+
+it('flushes before the tab is hidden and restarts its watcher when the driver returns',async()=>{
+  const position={timestamp:Date.now(),coords:{latitude:41.8,longitude:-87.6,accuracy:10}} as GeolocationPosition;
+  const geolocation={getCurrentPosition:vi.fn((success:(value:GeolocationPosition)=>void)=>success(position)),
+    watchPosition:vi.fn(()=>1),clearWatch:vi.fn()};
+  vi.stubGlobal('navigator',{...navigator,geolocation});
+  vi.stubGlobal('crypto',{randomUUID:()=> '11111111-1111-4111-8111-111111111111'});
+  const visibility=vi.spyOn(document,'visibilityState','get');
+  const api={locationBatch:vi.fn().mockResolvedValue({})};
+  const target={shiftReference:'22222222-2222-4222-8222-222222222222',shiftGeneration:'33333333-3333-4333-8333-333333333333',deviceId:'44444444-4444-4444-8444-444444444444'};
+  const hook=renderHook(({active}:{active:boolean})=>useLocationSharing({target:active?target:null,api}),{initialProps:{active:false}});
+  await act(async()=>{expect(await hook.result.current.requestSharing()).toBe(true);});
+  hook.rerender({active:true});
+  visibility.mockReturnValue('hidden');
+  await act(async()=>{document.dispatchEvent(new Event('visibilitychange'));});
+  expect(api.locationBatch).toHaveBeenCalledTimes(1);
+  visibility.mockReturnValue('visible');
+  await act(async()=>{document.dispatchEvent(new Event('visibilitychange'));});
+  expect(geolocation.watchPosition).toHaveBeenCalledTimes(2);
+  expect(geolocation.clearWatch).toHaveBeenCalledTimes(1);
+  hook.unmount();
+  vi.unstubAllGlobals();
+});
