@@ -56,6 +56,18 @@ try {
   assert.equal(await page.locator('#trip-report-send').isDisabled(),true);
   await page.locator('#workspace-logging').uncheck();
   assert.equal(store.get('SELECT logging_enabled FROM business_workspaces WHERE business_id=?',linked).logging_enabled,0);
+  const charges=page.locator('#manual-charge-form');
+  await charges.locator('[name=serviceDate]').fill('2026-09-25');
+  await charges.locator('[name=reference]').fill('live-route-2026-09-25');
+  await charges.locator('[name=title]').fill('Wheelchair van live run');
+  await charges.locator('[name=tripCharge]').fill('340.00');
+  await charges.locator('[name=waitingRate]').fill('65.00');
+  await charges.locator('[name=passengerMiles]').fill('29.04');
+  await charges.locator('[name=insuranceMonthlyAssumption]').fill('1000.00');
+  await charges.getByRole('button',{name:'Save manual charge'}).click();
+  await page.locator('#manual-charge-rows').getByText('Wheelchair van live run', {exact:false}).waitFor();
+  assert.match(await page.locator('#manual-charge-rows').innerText(),/Pending wait confirmation/);
+  assert.equal(store.get('SELECT count(*) AS n FROM invoices').n,0);
   await page.locator('#workspace-close').click();
   await page.locator('#business-rows').getByRole('row').filter({hasText:'North Coast Medical Transport'}).getByRole('button',{name:'Edit'}).click();
   await page.getByLabel('Account status').selectOption('ACTIVE');await page.getByLabel('Plan').selectOption('GROWTH');

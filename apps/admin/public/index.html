@@ -37,6 +37,21 @@
           <label>Service date<input id="trip-report-day" type="date" required></label><button id="trip-report-load" type="button">Load trip report</button> <button id="trip-report-send" type="button" class="primary" disabled>Email report to my admin address</button>
           <p id="trip-report-status" role="status" aria-live="polite">Choose a service date to load its report.</p><pre id="trip-report-text" class="trip-report-text" hidden></pre>
         </div>
+        <div id="workspace-charges"><h3>Manual route charge catalog</h3><p class="muted">Your independent route examples for this business. Entries here do not read or change the subscriber's accounting, invoices, or subscription.</p>
+          <p id="manual-charge-status" role="status" aria-live="polite"></p>
+          <div class="table-scroll"><table><thead><tr><th>Service date</th><th>Route</th><th>Trip charge</th><th>Waiting rate</th><th>Billable wait</th><th>Recorded total</th><th>Action</th></tr></thead><tbody id="manual-charge-rows"></tbody></table></div>
+          <form id="manual-charge-form" class="owner-only"><h4 id="manual-charge-title">Add manual route charge</h4><div class="fields">
+            <label>Service date<input name="serviceDate" type="date" required></label>
+            <label>Unique route reference<input name="reference" maxlength="80" pattern="[A-Za-z0-9][A-Za-z0-9._-]*" required></label>
+            <label>Route description<input name="title" maxlength="160" required></label>
+            <label>Trip charge ($)<input name="tripCharge" type="number" min="0" max="100000" step="0.01" required></label>
+            <label>Waiting rate ($/hour)<input name="waitingRate" type="number" min="0" max="10000" step="0.01" required></label>
+            <label>Billable waiting minutes (if confirmed)<input name="billableWaitingMinutes" type="number" min="0" max="1440" step="1"></label>
+            <label>Passenger miles (if measured)<input name="passengerMiles" type="number" min="0" max="2000" step="0.01"></label>
+            <label>Monthly insurance assumption ($)<input name="insuranceMonthlyAssumption" type="number" min="0" max="50000" step="0.01"></label>
+          </div><label>Context notes<textarea name="notes" maxlength="1000" rows="3"></textarea></label>
+          <button class="primary">Save manual charge</button> <button id="manual-charge-clear" type="button">New entry</button></form>
+        </div>
       </section>
 
       <section class="card" id="customers"><div class="section-heading"><h2>Customer directory</h2><button id="customer-export">Export customer CSV</button></div><p class="muted">Business customers and their primary billing contacts. Add customers in Business accounts above. Up to 500 records.</p>

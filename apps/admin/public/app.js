@@ -1,7 +1,7 @@
 import {setupCustomers,refreshCustomers} from './customers.js';
 import {setupFinance,refreshFinance} from './finance.js';
 const $ = id => document.getElementById(id);
-let csrf='', current=null, configuration, enrollment='', businesses=[], editing=null, selectedBusiness=null, challengeUrl='';
+let csrf='', current=null, configuration, enrollment='', businesses=[], editing=null, selectedBusiness=null, challengeUrl='', manualCharges=[], editingCharge=null;
 const message = text => { $('message').textContent=text; $('challenge-status').textContent=text; };
 async function api(path,data={}) {
   const response=await fetch(`/api/${path}`,{method:'POST',credentials:'same-origin',signal:AbortSignal.timeout(path==='trip-report-send'?35000:15000),headers:{'Content-Type':'application/json','X-Admin-CSRF':csrf},body:JSON.stringify(data)});
@@ -31,7 +31,7 @@ function bind(id,fn) {
   });
 }
 function showLogin() {
-  csrf='';current=null;enrollment='';selectedBusiness=null;$('business-workspace').hidden=true;$('qr').removeAttribute('src');
+  csrf='';current=null;enrollment='';selectedBusiness=null;manualCharges=[];editingCharge=null;$('business-workspace').hidden=true;$('qr').removeAttribute('src');
   $('login').hidden=false;$('dashboard').hidden=true;$('logout').hidden=true;
   $('proof-panel').hidden=true;$('enroll-panel').hidden=true;
   $('session-info').textContent='A signed challenge and authenticator code are required for every new session.';
@@ -114,6 +114,43 @@ function renderBusinesses() {
     $('business-rows').append(row);
   }
 }
+const dollars=cents=>`$${(cents/100).toFixed(2)}`;
+function clearManualCharge(){
+  editingCharge=null;$('manual-charge-form').reset();$('manual-charge-form').elements.namedItem('serviceDate').value=$('trip-report-day').value;
+  $('manual-charge-title').textContent='Add manual route charge';
+}
+function renderManualCharges(){
+  $('manual-charge-rows').replaceChildren();
+  for(const item of manualCharges){
+    const row=document.createElement('tr');
+    cell(row,item.serviceDate);cell(row,`${item.title} · ${item.reference}`);cell(row,dollars(item.tripChargeCents));
+    cell(row,`${dollars(item.waitingRateCentsPerHour)}/hr`);
+    cell(row,item.billableWaitingMinutes===null?'Unconfirmed':`${item.billableWaitingMinutes} min`);
+    const total=item.billableWaitingMinutes===null?null:item.tripChargeCents+Math.round(item.waitingRateCentsPerHour*item.billableWaitingMinutes/60);
+    cell(row,total===null?'Pending wait confirmation':dollars(total));
+    const action=cell(row,'');const button=document.createElement('button');button.type='button';button.textContent='Edit';
+    button.addEventListener('click',()=>{
+      editingCharge=item;const fields=$('manual-charge-form').elements;
+      for(const key of ['serviceDate','reference','title','notes'])fields.namedItem(key).value=item[key];
+      fields.namedItem('tripCharge').value=(item.tripChargeCents/100).toFixed(2);
+      fields.namedItem('waitingRate').value=(item.waitingRateCentsPerHour/100).toFixed(2);
+      fields.namedItem('billableWaitingMinutes').value=item.billableWaitingMinutes??'';
+      fields.namedItem('passengerMiles').value=item.passengerMiles??'';
+      fields.namedItem('insuranceMonthlyAssumption').value=item.insuranceMonthlyAssumptionCents===null?'':(item.insuranceMonthlyAssumptionCents/100).toFixed(2);
+      $('manual-charge-title').textContent='Edit manual route charge';$('manual-charge-form').scrollIntoView({behavior:'smooth'});
+    });action.append(button);$('manual-charge-rows').append(row);
+  }
+  if(!manualCharges.length)$('manual-charge-status').textContent='No manual route charges for this business yet.';
+}
+async function loadManualCharges(){
+  const businessId=selectedBusiness?.id;if(!businessId)return;
+  try{
+    const result=await api('manual-route-charges',{businessId});
+    if(selectedBusiness?.id!==businessId)return;
+    manualCharges=result.events;renderManualCharges();
+    if(manualCharges.length)$('manual-charge-status').textContent=`${manualCharges.length} manual route charge event${manualCharges.length===1?'':'s'} for this business.`;
+  }catch(error){$('manual-charge-status').textContent=error.message.replaceAll('_',' ');}
+}
 function openBusinessWorkspace(item){
   selectedBusiness=item;loadedTripDay=null;
   $('workspace-title').textContent=`${item.name} · workspace`;
@@ -123,8 +160,10 @@ function openBusinessWorkspace(item){
   $('workspace-logging').checked=!!item.debug_logging_enabled;
   $('trip-report-text').hidden=true;$('trip-report-send').disabled=true;
   $('trip-report-status').textContent='Choose a service date to load its report.';
+  manualCharges=[];renderManualCharges();clearManualCharge();
   $('business-workspace').hidden=false;$('business-workspace').scrollIntoView({behavior:'smooth'});
   if(item.runtime_tenant_id)void loadTripReport();
+  void loadManualCharges();
 }
 $('workspace-close').addEventListener('click',()=>{selectedBusiness=null;$('business-workspace').hidden=true;});
 $('workspace-logging').addEventListener('change',async()=>{
@@ -134,6 +173,20 @@ $('workspace-logging').addEventListener('change',async()=>{
   try{await api('business-debug-logging',{businessId:selectedBusiness.id,enabled});selectedBusiness.debug_logging_enabled=Number(enabled);$('trip-report-status').textContent=enabled?'Diagnostic logging enabled. New events should appear within a minute.':'Diagnostic logging paused. Existing reports remain available.';}
   catch(error){$('workspace-logging').checked=!enabled;$('trip-report-status').textContent=error.message.replaceAll('_',' ');}
   finally{$('workspace-logging').disabled=false;}
+});
+$('manual-charge-clear').addEventListener('click',clearManualCharge);
+bind('manual-charge-form',async()=>{
+  if(!selectedBusiness)throw new Error('Choose a business workspace first.');
+  const form=$('manual-charge-form'),value=name=>form.elements.namedItem(name).value;
+  const money=name=>Math.round(Number(value(name))*100);
+  const data={businessId:selectedBusiness.id,serviceDate:value('serviceDate'),reference:value('reference'),title:value('title'),
+    tripChargeCents:money('tripCharge'),waitingRateCentsPerHour:money('waitingRate'),
+    billableWaitingMinutes:value('billableWaitingMinutes')===''?null:Number(value('billableWaitingMinutes')),
+    passengerMiles:value('passengerMiles')===''?null:Number(value('passengerMiles')),
+    insuranceMonthlyAssumptionCents:value('insuranceMonthlyAssumption')===''?null:money('insuranceMonthlyAssumption'),notes:value('notes')};
+  if(editingCharge)Object.assign(data,{id:editingCharge.id,version:editingCharge.version});
+  await api('manual-route-charge-save',data);clearManualCharge();await loadManualCharges();
+  $('manual-charge-status').textContent='Manual route charge saved for this business. Subscriber accounting is unchanged.';
 });
 async function refresh(){
   const result=await api('dashboard');businesses=result.businesses;

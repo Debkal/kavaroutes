@@ -7,6 +7,7 @@ import { base32, decrypt, digest, encrypt, equal, publicKey, randomToken, verify
 import { identityVerifier } from './identity.mjs';
 import {accountingView,saveSubscription,createInvoice,changeInvoice,createExpense,voidExpense,recordUsage} from './accounting.mjs';
 import {tripReportView,sendTripReport,setBusinessLogging} from './trip-reports.mjs';
+import {manualChargeCatalog,saveManualChargeEvent} from './manual-charge-events.mjs';
 
 const fail = (status = 401, code = 'AUTHENTICATION_FAILED') => { throw Object.assign(new Error(code), { status, code }); };
 const emailValue = value => {
@@ -179,6 +180,7 @@ export function createAdminServer({ config, store, verifyIdentity = identityVeri
       const { admin, saved } = await session(request);
       if(path==='/api/customer-mail')return send(mailView(store,config));
       if(path==='/api/accounting')return send(accountingView(store,data.month));
+      if(path==='/api/manual-route-charges')return send(manualChargeCatalog(store,data.businessId));
       if (path === '/api/logout') {
         store.run('DELETE FROM sessions WHERE token_hash=?',saved.token_hash);
         reply.setHeader('Set-Cookie',cookie('session','',0)); return send({ok:true});
@@ -191,6 +193,7 @@ export function createAdminServer({ config, store, verifyIdentity = identityVeri
         integration:'TEST_REGISTRY',
       });
       owner(admin);
+      if(path==='/api/manual-route-charge-save')return send(saveManualChargeEvent(store,admin.email,data));
       if(path==='/api/trip-report')return send(await tripReportView(store,config,admin.email,data.businessId,data.day,{directory:tripReportDirectory}));
       if(path==='/api/trip-report-send')return send(await sendTripReport(store,config,admin.email,data.businessId,data.day,{directory:tripReportDirectory}));
       if(path==='/api/business-debug-logging')return send(setBusinessLogging(store,admin.email,data.businessId,data.enabled));

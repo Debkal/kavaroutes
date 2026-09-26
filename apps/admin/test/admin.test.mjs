@@ -123,6 +123,33 @@ test('owner enrollment creates persistent business records; optimistic edits, CS
   assert.equal((await c.post('session')).status,200);
   assert.equal((await c.post('logout')).status,200);assert.equal((await c.post('dashboard')).status,401);
 });
+test('manual route charge catalog is business scoped and separate from subscription accounting',async t=>{
+  const f=await fixture(t),c=f.client();await f.enroll(c);
+  const a=(await c.post('business',{name:'test_pony',contact:'pony@example.com',status:'TRIAL',plan:'STARTER'})).body.id;
+  const b=(await c.post('business',{name:'Another operator',contact:'other@example.com',status:'TRIAL',plan:'STARTER'})).body.id;
+  const input={businessId:a,serviceDate:'2026-09-25',reference:'live-route-2026-09-25',title:'Two-leg Illinois wheelchair van trip',
+    tripChargeCents:34000,waitingRateCentsPerHour:6500,billableWaitingMinutes:null,passengerMiles:29.04,
+    insuranceMonthlyAssumptionCents:100000,notes:'Door-through-door assistance; billed wait not confirmed.'};
+  assert.equal((await c.post('manual-route-charge-save',input,{'x-admin-csrf':''})).status,403);
+  const added=await c.post('manual-route-charge-save',input);assert.equal(added.status,200);
+  assert.equal((await c.post('manual-route-charge-save',input)).status,409);
+  let result=await c.post('manual-route-charges',{businessId:a});assert.equal(result.status,200);
+  assert.equal(result.body.events.length,1);
+  assert.equal(result.body.events[0].waitingRateCentsPerHour,6500);
+  assert.equal(result.body.events[0].billableWaitingMinutes,null);
+  assert.equal((await c.post('manual-route-charges',{businessId:b})).body.events.length,0);
+  assert.equal(f.store.get('SELECT count(*) AS n FROM subscriptions').n,0);
+  assert.equal(f.store.get('SELECT count(*) AS n FROM invoices').n,0);
+  assert.equal(f.store.get('SELECT count(*) AS n FROM usage_months').n,0);
+  assert.equal((await c.post('manual-route-charge-save',{...input,id:added.body.id,version:1,businessId:b})).status,409);
+  assert.equal((await c.post('manual-route-charge-save',{...input,id:added.body.id,version:1,billableWaitingMinutes:60})).status,200);
+  assert.equal((await c.post('manual-route-charge-save',{...input,id:added.body.id,version:1,billableWaitingMinutes:55})).status,409);
+  result=await c.post('manual-route-charges',{businessId:a});assert.equal(result.body.events[0].billableWaitingMinutes,60);
+  assert.equal(result.body.events[0].version,2);
+  const reopened=openStore(f.config.database);
+  assert.equal(reopened.get('SELECT trip_charge_cents AS charge FROM manual_route_charge_events WHERE id=?',added.body.id).charge,34000);
+  reopened.close();
+});
 test('challenge requires invite, browser binding, signature and TOTP; proof replay rejected',async t=>{
   const f=await fixture(t),c=f.client();
   assert.equal((await c.post('challenge',{email:owner,invite:'wrong'})).status,401);
@@ -160,7 +187,7 @@ test('support has read-only access and revocation immediately invalidates sessio
   assert.equal((await support.post('dashboard')).status,200);
   assert.equal((await support.post('accounting',{month:'2026-09'})).status,200);
   assert.equal((await support.post('customer-mail')).status,200);
-  for(const path of ['business','invite','revoke','subscription','invoice','invoice-status','expense','expense-void','usage','customer-contact','email-template','email-preview','email-queue','email-cancel','email-rule','trip-report','trip-report-send','business-debug-logging'])assert.equal((await support.post(path,{})).status,403);
+  for(const path of ['business','invite','revoke','subscription','invoice','invoice-status','expense','expense-void','usage','customer-contact','email-template','email-preview','email-queue','email-cancel','email-rule','trip-report','trip-report-send','business-debug-logging','manual-route-charge-save'])assert.equal((await support.post(path,{})).status,403);
   assert.equal((await c.post('revoke',{email:owner})).status,400);
   assert.equal((await c.post('revoke',{email:'support@example.com'})).status,200);
   assert.equal((await support.post('dashboard')).status,401);

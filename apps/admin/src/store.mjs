@@ -5,6 +5,7 @@ import { initCustomerMail } from './customer-mail.mjs';
 import {initTripReports} from './trip-reports.mjs';
 import {initBusinessSync} from './business-sync.mjs';
 import { initAccounting } from './accounting.mjs';
+import {initManualChargeEvents} from './manual-charge-events.mjs';
 
 export function openStore(path) {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
@@ -65,5 +66,6 @@ export function openStore(path) {
   initCustomerMail(store);
   initTripReports(store);
   initBusinessSync(store);
+  initManualChargeEvents(store);
   return store;
 }

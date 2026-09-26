@@ -5,7 +5,7 @@
   "type": "module",
   "engines": { "node": ">=24.19.0 <25" },
   "scripts": {
-    "build": "node --check src/main.mjs && node --check src/server.mjs && node --check src/customer-mail.mjs && node --check src/trip-reports.mjs && node --check src/business-sync.mjs && node --check src/logging.mjs && node --check bin/operator.mjs && node --check bin/link-runtime-business.mjs",
+    "build": "node --check src/main.mjs && node --check src/server.mjs && node --check src/customer-mail.mjs && node --check src/trip-reports.mjs && node --check src/business-sync.mjs && node --check src/manual-charge-events.mjs && node --check src/logging.mjs && node --check bin/operator.mjs && node --check bin/link-runtime-business.mjs && node --check bin/seed-test-pony-2026-09-25.mjs",
     "start": "node src/main.mjs",
     "init": "node bin/operator.mjs init",
     "test": "node --test test/*.test.mjs"
