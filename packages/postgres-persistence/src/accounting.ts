@@ -26,6 +26,26 @@ export interface CostProfileRow {
 }
 const num = (value: unknown, fallback = 0) => value === null || value === undefined ? fallback : Number(value);
 
+// Each trip gets only its own boarded-to-completed trace. Joining a shift to
+// every leg in its run repeats the entire shift distance on every trip, including
+// the untracked waiting gap between legs. Keep this expression shared by the
+// estimate, invoice and client-history readers so their mileage agrees.
+const legTraceMilesSql = `(SELECT round((ST_Length(ST_MakeLine(b.position::geometry ORDER BY b.captured_at)::geography)/1609.344)::numeric,2)
+  FROM realtime.location_breadcrumb b
+  JOIN realtime.location_batch_receipt r ON r.tenant_id=b.tenant_id AND r.id=b.batch_id
+  WHERE b.tenant_id=t.tenant_id AND b.accuracy_meters<=100
+    AND r.shift_id IN (SELECT snapshot.id FROM execution.shift_policy_snapshot snapshot
+      JOIN dispatch.assignment assignment ON assignment.tenant_id=snapshot.tenant_id AND assignment.id=snapshot.assignment_id
+      WHERE assignment.tenant_id=l.tenant_id AND assignment.run_id=e.run_id)
+    AND b.captured_at BETWEEN
+      (SELECT min(action.recorded_at) FROM execution.driver_action_receipt action
+       WHERE action.tenant_id=l.tenant_id AND action.shift_id=r.shift_id AND action.resource_reference=l.id
+         AND action.command_reference='BOARD_RIDER' AND action.outcome='APPLIED')
+      AND
+      (SELECT min(action.recorded_at) FROM execution.driver_action_receipt action
+       WHERE action.tenant_id=l.tenant_id AND action.shift_id=r.shift_id AND action.resource_reference=l.id
+         AND action.command_reference='COMPLETE_LEG' AND action.outcome='APPLIED'))`;
+
 export function createAccountingService(pool: Pool) {
   const tx = <T>(tenantId: string, work: (db: PoolClient) => Promise<T>) => withTenantTransaction(pool, tenantId, 'kavaroutes_api', work);
 
@@ -120,13 +140,7 @@ export function createAccountingService(pool: Pool) {
             t.service_date,t.appointment_length_minutes,l.planned_start_at,l.planned_end_at,
             driver.synthetic_reference AS driver_label,e.lifecycle_reference AS execution_state,
             CASE WHEN e.lifecycle_reference='completed' THEN 'DELIVERED' WHEN t.lifecycle_reference='cancelled' THEN 'CANCELLED' ELSE 'PLANNED' END AS record_state,
-            (SELECT round((ST_Length(ST_MakeLine(b.position::geometry ORDER BY b.captured_at)::geography)/1609.344)::numeric,2)
-               FROM realtime.location_breadcrumb b JOIN realtime.location_batch_receipt r ON r.tenant_id=b.tenant_id AND r.id=b.batch_id
-               JOIN execution.shift_policy_snapshot s ON s.tenant_id=r.tenant_id AND s.id=r.shift_id
-               JOIN dispatch.assignment a ON a.tenant_id=s.tenant_id AND a.id=s.assignment_id
-               JOIN dispatch.run_leg rl ON rl.tenant_id=a.tenant_id AND rl.run_id=a.run_id
-               JOIN intake.trip_leg tl ON tl.tenant_id=rl.tenant_id AND tl.id=rl.trip_leg_id
-              WHERE b.tenant_id=t.tenant_id AND tl.trip_request_id=t.id) AS measured_miles
+            ${legTraceMilesSql} AS measured_miles
           FROM intake.trip_request t
           JOIN intake.trip_leg l ON l.tenant_id=t.tenant_id AND l.trip_request_id=t.id
           LEFT JOIN execution.leg_execution e ON e.tenant_id=l.tenant_id AND e.trip_leg_id=l.id
@@ -161,10 +175,7 @@ export function createAccountingService(pool: Pool) {
         const lines = (await db.query(`SELECT t.id AS trip_id,t.service_date,l.planned_start_at,l.planned_end_at,t.appointment_length_minutes,
             origin.customer_label AS pickup_label,destination.customer_label AS dropoff_label,
             (SELECT 1 FROM execution.driver_service_proof p WHERE p.tenant_id=l.tenant_id AND p.execution_id=e.id LIMIT 1) AS has_proof,
-            (SELECT round((ST_Length(ST_MakeLine(b.position::geometry ORDER BY b.captured_at)::geography)/1609.344)::numeric,2)
-               FROM realtime.location_breadcrumb b JOIN realtime.location_batch_receipt r ON r.tenant_id=b.tenant_id AND r.id=b.batch_id
-              WHERE b.tenant_id=t.tenant_id AND r.shift_id IN (SELECT s.id FROM execution.shift_policy_snapshot s JOIN dispatch.assignment a ON a.tenant_id=s.tenant_id AND a.id=s.assignment_id
-                 WHERE a.run_id=e.run_id)) AS measured_miles
+            ${legTraceMilesSql} AS measured_miles
           FROM intake.trip_request t
           JOIN intake.trip_leg l ON l.tenant_id=t.tenant_id AND l.trip_request_id=t.id
           JOIN execution.leg_execution e ON e.tenant_id=l.tenant_id AND e.trip_leg_id=l.id AND e.lifecycle_reference='completed'
@@ -281,10 +292,7 @@ export function createAccountingService(pool: Pool) {
         const rows = (await db.query(`SELECT t.id AS trip_id,t.service_date,t.lifecycle_reference AS trip_state,
             t.appointment_length_minutes,l.planned_start_at,l.planned_end_at,origin.customer_label AS pickup_label,destination.customer_label AS dropoff_label,
             e.lifecycle_reference AS execution_state,driver.synthetic_reference AS driver_label,
-            (SELECT round((ST_Length(ST_MakeLine(b.position::geometry ORDER BY b.captured_at)::geography)/1609.344)::numeric,2)
-               FROM realtime.location_breadcrumb b JOIN realtime.location_batch_receipt r ON r.tenant_id=b.tenant_id AND r.id=b.batch_id
-              WHERE b.tenant_id=t.tenant_id AND r.shift_id IN (SELECT s.id FROM execution.shift_policy_snapshot s JOIN dispatch.assignment a ON a.tenant_id=s.tenant_id AND a.id=s.assignment_id
-                 WHERE a.run_id=e.run_id)) AS measured_miles,
+            ${legTraceMilesSql} AS measured_miles,
             (SELECT count(*)::int FROM execution.driver_service_proof p WHERE p.tenant_id=l.tenant_id AND p.execution_id=e.id) AS proof_count
           FROM intake.trip_request t
           JOIN intake.trip_leg l ON l.tenant_id=t.tenant_id AND l.trip_request_id=t.id
