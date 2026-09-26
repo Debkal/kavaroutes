@@ -10,6 +10,7 @@ import {ServiceDatePicker} from "../components/ServiceDatePicker";
 import {LocationSharingPanel} from "../components/LocationSharingPanel";
 import {DriverRoadDirections} from '../components/DriverRoadDirections';
 import {useLocationSharing} from "../use-location-sharing";
+import {useDriverScreenAwake} from "../use-driver-screen-awake";
 
 
 /** Name the failure the server actually reported. The transport keeps a refused
@@ -129,6 +130,7 @@ export function Component() {
   // (audit L12). The device id is per tab and never leaves this surface.
   const deviceId = useMemo(() => crypto.randomUUID(), []);
   const sharing = useLocationSharing({ target: shift ? { shiftReference: shift.shiftReference, shiftGeneration: shift.shiftGeneration, deviceId } : null, api });
+  const screenAwake=useDriverScreenAwake(signedIn&&shift?.lifecycle==='ACTIVE'&&closure?.lifecycle!=='SHIFT_ENDED');
   const signIn = async (login=verifiedLogin) => {
     setBusy(true); setMessage("");
     try {
@@ -357,6 +359,6 @@ export function Component() {
       </section>}
     </div>}
     {closure?.lifecycle !== "SHIFT_ENDED" && <aside className="driver-safety"><div><strong>Tracking transparency</strong><span>{sharing.deliveryError?"Location upload delayed · retrying":`${label(closure?.tracking.status ?? "starting")} · ${closure?.tracking.reason?.replaceAll("_", " ") ?? "Shift started"}`}</span></div><button disabled={busy} onClick={() => void emergencyStop()}>Emergency: stop sharing</button></aside>}
-    <LocationSharingPanel controller={sharing} busy={busy}/>
+    <LocationSharingPanel controller={sharing} busy={busy} screenAwake={shift.lifecycle==='ACTIVE'&&closure?.lifecycle!=='SHIFT_ENDED'?screenAwake:undefined}/>
   </main>;
 }
