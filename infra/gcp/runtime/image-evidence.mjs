@@ -37,7 +37,7 @@ console.log(JSON.stringify({bomFormat:'CycloneDX',specVersion:'1.6',version:1,
   metadata:{component:{type:'application',name:'kavaroutes-runtime'}},components}));`;
 const sbom = JSON.parse(run([...sandbox,'--entrypoint','node',image,'--input-type=module','-e',inventoryScript]));
 if(sbom.bomFormat!=='CycloneDX'||!Array.isArray(sbom.components)||sbom.components.length<50)throw new Error('IMAGE_SBOM_INVALID');
-const names = ['api','config','database','driver-access-management','driver-access-store','driver-admin','driver-sessions','guarded-main','health','init','main','manifest','recovery','road-routing','worker'].map(name => `infra/gcp/runtime/${name}.mjs`);
+const names = ['api','config','database','dispatch-trace-map','driver-access-management','driver-access-store','driver-admin','driver-sessions','guarded-main','health','init','main','manifest','recovery','road-routing','worker'].map(name => `infra/gcp/runtime/${name}.mjs`);
 names.push('packages/postgres-persistence/scripts/migration-lib.mjs');
 const script = `import fs from 'node:fs';import{createHash}from'node:crypto';const names=${JSON.stringify(names)};
 for(const file of fs.readdirSync('packages/postgres-persistence/migrations').sort())names.push('packages/postgres-persistence/migrations/'+file);

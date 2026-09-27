@@ -134,6 +134,17 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
         return {serviceDate,truncated:value.truncated,events,tripClients};
       });
     },
+    routeTraceMap(serviceDate:string,shiftId:string,clientId:string|null){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate)||!uuid.test(shiftId)||(clientId!==null&&!uuid.test(clientId)))throw new Error('INVALID_TRACE_MAP_REFERENCE');
+      const query=clientId?`?clientId=${encodeURIComponent(clientId)}`:'';
+      return transport.request(`${prefix}/dispatch/trace-map/${serviceDate}/shifts/${shiftId}${query}`,body=>{
+        const value=object(body);
+        if(Object.keys(value).sort().join(',')!=='clientId,fixCount,mapImageUrl,serviceDate,shiftReference'||value.shiftReference!==shiftId||value.serviceDate!==serviceDate||value.clientId!==clientId||
+          !Number.isSafeInteger(value.fixCount)||Number(value.fixCount)<0||Number(value.fixCount)>500||
+          (value.mapImageUrl!==null&&(typeof value.mapImageUrl!=='string'||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value.mapImageUrl)||value.mapImageUrl.length>1200025)))throw new Error('INVALID_TRACE_MAP');
+        return {shiftReference:shiftId,serviceDate,clientId,fixCount:Number(value.fixCount),mapImageUrl:value.mapImageUrl as string|null};
+      });
+    },
     routeProposals(shiftId:string){if(!uuid.test(shiftId))throw new Error('INVALID_SHIFT');return transport.request(`${prefix}/dispatch/shifts/${shiftId}/route-proposals`,body=>decodeRouteView(body,shiftId));},
     decideRoute(command:{proposalId:string;decision:'APPROVED'|'REJECTED';expectedRunVersion:number;expectedTag:string;key:string}){
       if(!uuid.test(command.proposalId))throw new Error('INVALID_PROPOSAL');

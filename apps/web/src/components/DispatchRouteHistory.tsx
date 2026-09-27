@@ -3,6 +3,7 @@ import {Link} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 import type {createCloudApi} from '../cloud-api';
 import {TracePlot} from './DispatchDriverTracking';
+import {RouteStreetMap} from './RouteStreetMap';
 import {shiftBandLabel} from '../shift-band';
 import {downloadCsv} from '../csv';
 import {routeHistoryRows} from '../route-history-csv';
@@ -88,7 +89,7 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
           {event.occurredAt!==event.recordedAt&&<small>Device time {stamp(event.occurredAt,detail.serviceTimezone)}</small>}
         </li>)}</ol>}
         <h4>GPS trace</h4>{clientId&&<p className="form-hint">Only fixes between this client’s recorded leg actions are shown. Other shift travel is hidden. Missing action times mean a client-bounded trace may be unavailable.</p>}
-        <TracePlot track={shownTrack} history/>
+        <RouteStreetMap api={api} day={day} track={shownTrack} clientId={clientId||null} history fallback={<TracePlot track={shownTrack} history/>}/>
         <dl><dt>First saved fix</dt><dd>{stamp(trace[0]?.capturedAt??null,detail.serviceTimezone)}</dd>
           <dt>Last saved fix</dt><dd>{stamp(trace.at(-1)?.capturedAt??null,detail.serviceTimezone)}</dd>
           <dt>Fixes shown</dt><dd>{trace.length}{!clientId&&detail.trace.length===500?' (latest 500)':''}</dd></dl>
@@ -97,7 +98,7 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
           <div className="table-scroll" tabIndex={0} role="group" aria-label="Scrollable GPS fix log"><table><thead><tr><th scope="col">Fix</th><th scope="col">Captured</th><th scope="col">Latitude</th><th scope="col">Longitude</th><th scope="col">Accuracy</th><th scope="col">Gap</th></tr></thead>
             <tbody>{trace.map((point,index)=>{const gap=gapSeconds(point,trace[index-1]);return <tr key={`${point.capturedAt}-${index}`}><th scope="row">{index+1}</th><td>{stamp(point.capturedAt,detail.serviceTimezone)}</td><td>{point.latitude.toFixed(5)}</td><td>{point.longitude.toFixed(5)}</td><td>{point.accuracyMeters===null?'Unknown':`±${Math.round(point.accuracyMeters)} m`}</td><td>{gap>90?`${gap} s unobserved`:'—'}</td></tr>;})}</tbody></table></div>
         </details>}
-        <p className="form-hint">The geographic trace has no street tiles or road snapping. The server returns at most the latest 500 GPS fixes during raw-location retention; older positions may be unavailable.</p>
+        <p className="form-hint">The street map follows saved GPS fixes without road snapping. The server returns at most the latest 500 fixes during raw-location retention; older positions may be unavailable.</p>
       </article>}</div>}
   </section>;
 }

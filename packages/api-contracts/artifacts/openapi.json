@@ -2411,6 +2411,57 @@
         "title": "DispatchRouteHistory",
         "type": "object"
       },
+      "def-126": {
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fixCount": {
+            "maximum": 500,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "mapImageUrl": {
+            "anyOf": [
+              {
+                "maxLength": 1200025,
+                "pattern": "^data:image/png;base64,[A-Za-z0-9+/=]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "serviceDate": {
+            "format": "date",
+            "maxLength": 10,
+            "type": "string"
+          },
+          "shiftReference": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "shiftReference",
+          "serviceDate",
+          "clientId",
+          "fixCount",
+          "mapImageUrl"
+        ],
+        "title": "DispatchTraceMap",
+        "type": "object"
+      },
       "def-13": {
         "additionalProperties": false,
         "properties": {
@@ -16055,6 +16106,160 @@
         ],
         "tags": [
           "driver"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/dispatch/trace-map/{serviceDate}/shifts/{shiftId}": {
+      "get": {
+        "operationId": "getDispatchTraceMap",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "clientId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceDate",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "maxLength": 10,
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "shiftId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-126"
+                }
+              }
+            },
+            "description": "Street map of observed driver GPS fixes",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
         ]
       }
     },

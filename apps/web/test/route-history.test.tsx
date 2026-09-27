@@ -20,7 +20,8 @@ const history={serviceDate:day,truncated:false,tripClients:[{tripId:tripA,client
   event('SHIFT_STARTED','SHIFT_STARTED',null,0),event('DRIVER_ACTION','MARK_EN_ROUTE',legA,2,'APPLIED'),event('DRIVER_ACTION','ARRIVE_PICKUP',legA,3,'APPLIED'),event('DRIVER_ACTION','COMPLETE_LEG',legA,4,'APPLIED'),
   event('DRIVER_ACTION','MARK_EN_ROUTE',legB,4,'APPLIED'),event('DRIVER_ACTION','COMPLETE_LEG',legB,6,'APPLIED'),event('SHIFT_CLOSURE','SIGN_OFF',null,7,'PASS'),
 ]};
-const api={tracking:async()=>({value:{serviceDate:day,shifts:[track]}}),board:async()=>({value:board}),routeHistory:async()=>({value:history})};
+const api={tracking:async()=>({value:{serviceDate:day,shifts:[track]}}),board:async()=>({value:board}),routeHistory:async()=>({value:history}),
+  routeTraceMap:async()=>({value:{shiftReference:shift,serviceDate:day,clientId:null,fixCount:0,mapImageUrl:null}})};
 
 it('filters real client accounts and bounds the displayed GPS fixes to their leg actions',async()=>{
   const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
@@ -31,7 +32,7 @@ it('filters real client accounts and bounds the displayed GPS fixes to their leg
   fireEvent.change(screen.getByRole('combobox',{name:'Filter route history by client'}),{target:{value:clientA}});
   expect(screen.getByText('Rider A')).toBeInTheDocument();
   expect(screen.queryByText('Rider B')).not.toBeInTheDocument();
-  expect(screen.getByRole('img',{name:/trace of 1 fix/})).toBeInTheDocument();
+  expect(await screen.findByRole('img',{name:/trace of 1 fix/})).toBeInTheDocument();
   expect(screen.getByText('GPS fix log (1 fix)')).toBeInTheDocument();
   const eventList=screen.getByRole('list',{name:/recorded route events/i});
   expect(within(eventList).queryByText(/Rider B/)).not.toBeInTheDocument();

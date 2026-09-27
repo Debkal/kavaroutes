@@ -38,6 +38,7 @@ import { allSchemas } from "./schema-registry.js";
 import type { CancelTripRequest, DriverActionBatch, LocationBatch, PushRegistrationRequest, PushUnregistrationRequest, TripCreateRequest, UpdateDriverControlPolicy } from "./schemas.js";
 import { DispatchTrackingSchema } from "./dispatch-tracking.js";
 import {DispatchRouteHistorySchema,type DispatchRouteHistoryReader} from './dispatch-route-history.js';
+import {DispatchTraceMapSchema,type DispatchTraceMapService} from './dispatch-trace-map.js';
 import { ClientHistorySchema, CostProfileUpdateReceiptSchema, CostProfileUpdateRequestSchema, CostProfileViewSchema, InvoiceCreateRequestSchema,
   InvoiceForwardReceiptSchema, InvoiceForwardRequestSchema, InvoiceListSchema, InvoiceReceiptSchema, InvoiceViewSchema, ServiceDayEstimatesSchema,
   type AccountingApiService } from "./accounting.js";
@@ -111,6 +112,7 @@ export interface Wp007ApiOptions {
   /** Live driver map data for dispatch: current position, trace, lost-signal duration. */
   readonly dispatchTrackingReader?: DispatchTrackingReader;
   readonly dispatchRouteHistoryReader?: DispatchRouteHistoryReader;
+  readonly dispatchTraceMapService?: DispatchTraceMapService;
   /** Route costing, payer invoices and client history: the money surface. */
   readonly accountingService?: AccountingApiService;
   readonly pushRegistrationService?: ReturnType<typeof createRegistrationService>;
@@ -774,6 +776,20 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     if(!options.dispatchRouteHistoryReader)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','route history unavailable');
     request.wp007Context.resultCode='DISPATCH_ROUTE_HISTORY_RETURNED';
     return reply.send(await options.dispatchRouteHistoryReader(organizationId,serviceDate));
+  });
+  routes.get('/v1/organizations/:organizationId/dispatch/trace-map/:serviceDate/shifts/:shiftId',{schema:{
+    operationId:'getDispatchTraceMap',tags:['dispatch'],security,headers:AuthorizationHeaders,
+    params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),serviceDate:Type.String({format:'date',maxLength:10}),shiftId:Type.String({format:'uuid'})},{additionalProperties:false}),
+    querystring:Type.Object({clientId:Type.Optional(Type.String({format:'uuid'}))},{additionalProperties:false}),
+    response:responseWithErrors({200:jsonResponse(DispatchTraceMapSchema,'Street map of observed driver GPS fixes')},[400,401,403,404,406,429,500,503]),
+  }},async(request,reply)=>{
+    const {organizationId,serviceDate,shiftId}=request.params as {organizationId:string;serviceDate:string;shiftId:string};
+    const {clientId}=request.query as {clientId?:string};
+    await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',
+      branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchTraceMap');
+    if(!options.dispatchTraceMapService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','route map unavailable');
+    request.wp007Context.resultCode='DISPATCH_TRACE_MAP_RETURNED';
+    return reply.send(await options.dispatchTraceMapService({organizationId,serviceDate,shiftId,clientId:clientId??null}));
   });
   routes.get("/v1/organizations/:organizationId/driver/shifts/assignments/:assignmentId", { schema: {
     operationId: "getDriverShiftState", tags: ["driver"], security, headers: AuthorizationHeaders,

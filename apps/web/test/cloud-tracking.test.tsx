@@ -11,7 +11,7 @@ const track=(overrides:Record<string,unknown>={})=>({serviceDate:'2026-09-14',sh
   trace:[{latitude:34.0500,longitude:-118.2400,accuracyMeters:15,capturedAt:'2026-09-14T23:55:00Z'},
          {latitude:34.0522,longitude:-118.2437,accuracyMeters:12,capturedAt:'2026-09-14T23:58:00Z'}],...overrides}]});
 const mount=(api:any)=>{const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
- render(<QueryClientProvider client={client}><CloudTrackingStatus api={api} day="2026-09-14" enabled/></QueryClientProvider>);return client;};
+ render(<QueryClientProvider client={client}><CloudTrackingStatus api={{routeTraceMap:async()=>({value:{mapImageUrl:null}}),...api}} day="2026-09-14" enabled/></QueryClientProvider>);return client;};
 
 it('shows one card per driver, named by part of day, with the lost-signal account',async()=>{
  const client=mount({tracking:async()=>({value:track()}),shiftStatus:async()=>({value:{tracking:{status:'UPDATES_OVERDUE',reason:'NO_RECENT_UPDATE_UNKNOWN_CAUSE',contactDriver:true,evaluatedAt:'2026-09-15T00:00:00Z',lastCapturedAt:'2026-09-14T23:58:00Z',lastReceivedAt:'2026-09-14T23:58:01Z',staleAfterSeconds:60}}})});
@@ -22,7 +22,7 @@ it('shows one card per driver, named by part of day, with the lost-signal accoun
  const alerts=screen.getAllByRole('alert').map(node=>node.textContent??'');
  expect(alerts.some(text=>text.includes('No location update for 142 s'))).toBe(true);
  expect(screen.getAllByText('Lost signal')).toHaveLength(2);
- expect(screen.getByRole('img',{name:/trace of 2 fixes/})).toBeInTheDocument();
+ expect(await screen.findByRole('img',{name:/trace of 2 fixes/})).toBeInTheDocument();
  expect(screen.getByRole('link',{name:'Open last position in maps'})).toHaveAttribute('target','_blank');
  client.clear();
 });

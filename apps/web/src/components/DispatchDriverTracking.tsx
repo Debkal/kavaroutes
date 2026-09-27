@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import type {createCloudApi} from '../cloud-api';
 import {CloudReturnReview} from './CloudReturnReview';
 import {shiftBandLabel} from '../shift-band';
+import {RouteStreetMap} from './RouteStreetMap';
 
 type Api=ReturnType<typeof createCloudApi>;
 type Track=Awaited<ReturnType<Api['tracking']>>['value']['shifts'][number];
@@ -103,7 +104,7 @@ export function DispatchDriverTracking({api,day,enabled}:{api:Api;day:string;ena
           <span className={detail.contactDriver?'status status-late':`status ${state?.tone}`}>{state?.label}</span></header>
         {detail.contactDriver?<p role="alert">No location update for {detail.silentSeconds} s. Contact the driver and ask them to enable location sharing; the app retries every {detail.retryAfterSeconds} s.</p>
           :<p role="status">{detail.position?`Last saved fix ${stamp(detail.position.capturedAt,detail.serviceTimezone)}.`:'Waiting for the first saved location fix.'}</p>}
-        <TracePlot track={detail}/>
+        <RouteStreetMap api={api} day={day} track={detail} fallback={<TracePlot track={detail}/>}/>
         <dl><dt>Last fix</dt><dd>{detail.position?`${stamp(detail.position.capturedAt,detail.serviceTimezone)} · ±${detail.position.accuracyMeters===null?'unknown':Math.round(detail.position.accuracyMeters)} m`:'No fix received'}</dd>
           <dt>Received</dt><dd>{stamp(detail.lastReceivedAt,detail.serviceTimezone)}</dd><dt>Fixes</dt><dd>{detail.trace.length}</dd><dt>Silence</dt><dd>{detail.silentSeconds} s</dd></dl>
         {detail.position&&<a className="action-link" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${detail.position.latitude},${detail.position.longitude}`)}`}>Open last position in maps</a>}

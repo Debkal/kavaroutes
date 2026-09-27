@@ -19,6 +19,7 @@ import { DriverSignatureReceiptSchema, DriverSignatureRequestSchema } from "./dr
 import { DriverLocationBatchRequestSchema, DriverLocationReceiptSchema, DriverLocationSampleSchema } from "./driver-locations.js";
 import { DispatchShiftTrackSchema, DispatchTrackPointSchema, DispatchTrackingSchema } from "./dispatch-tracking.js";
 import {DispatchRouteHistoryEventSchema,DispatchRouteHistorySchema} from './dispatch-route-history.js';
+import {DispatchTraceMapSchema} from './dispatch-trace-map.js';
 import { ClientHistorySchema, ClientHistoryTripSchema, CostProfileUpdateReceiptSchema, CostProfileUpdateRequestSchema, CostProfileViewSchema,
   InvoiceCreateRequestSchema, InvoiceForwardReceiptSchema, InvoiceForwardRequestSchema, InvoiceListSchema, InvoiceReceiptSchema,
   InvoiceLineSchema, InvoiceSummarySchema, InvoiceViewSchema, RouteCostProfileSchema, ServiceDayEstimateTripSchema, ServiceDayEstimatesSchema } from "./accounting.js";
@@ -59,5 +60,5 @@ export const allSchemas: readonly TSchema[] = Object.freeze([
   RoadRouteGoalSchema, RoadRoutePreviewRequestSchema, RoadRouteSelectRequestSchema, RoadRouteSelectionSchema, RoadRoutePreviewSchema, RoadRouteDriverViewSchema,
   PickupTimezoneRequestSchema, PickupTimezoneSchema,
   BrowserCommandEnvelopeSchema, BrowserCommandPrepareSchema, BrowserCommandViewSchema, BrowserCommandPendingSchema,
-  DispatchRouteHistoryEventSchema,DispatchRouteHistorySchema,
+  DispatchRouteHistoryEventSchema,DispatchRouteHistorySchema,DispatchTraceMapSchema,
 ]);
