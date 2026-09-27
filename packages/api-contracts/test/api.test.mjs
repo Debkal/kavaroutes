@@ -111,6 +111,23 @@ test('dispatch route history is scoped to an authorized dispatcher and service d
   assert.equal(calls.length,1);
 });
 
+test('dispatch map viewport is scoped and requires a complete center and zoom',async t=>{
+  const day='2026-09-25',shift='40000000-0000-4000-8000-000000000011',calls=[];
+  const app=await createWp007Api({application:memoryApplication(),dispatchTraceMapService:async input=>{
+    calls.push(input);return {shiftReference:shift,serviceDate:day,clientId:null,fixCount:2,mapImageUrl:null};
+  }});
+  t.after(()=>app.close());
+  const url=`/v1/organizations/${syntheticIds.organizationA}/dispatch/trace-map/${day}/shifts/${shift}`;
+  const allowed=await app.inject({method:'GET',url:`${url}?centerLat=41.88&centerLon=-87.62&zoom=15`,headers:auth('principal_dispatcher')});
+  assert.equal(allowed.statusCode,200,allowed.body);
+  assert.deepEqual(calls[0].viewport,{latitude:41.88,longitude:-87.62,zoom:15});
+  const partial=await app.inject({method:'GET',url:`${url}?centerLat=41.88`,headers:auth('principal_dispatcher')});
+  assert.equal(partial.statusCode,400);
+  const denied=await app.inject({method:'GET',url,headers:auth('principal_driver')});
+  assert.notEqual(denied.statusCode,200);
+  assert.equal(calls.length,1);
+});
+
 test('dispatch chooses a road-route goal and only the assigned driver reads directions',async(t)=>{
   const legId='40000000-0000-4000-8000-000000000002',calls=[];
   const selected={goal:'LOW_COST',version:1,selectedAt:'2026-09-23T12:00:00.000Z'};

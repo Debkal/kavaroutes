@@ -780,16 +780,22 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   routes.get('/v1/organizations/:organizationId/dispatch/trace-map/:serviceDate/shifts/:shiftId',{schema:{
     operationId:'getDispatchTraceMap',tags:['dispatch'],security,headers:AuthorizationHeaders,
     params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),serviceDate:Type.String({format:'date',maxLength:10}),shiftId:Type.String({format:'uuid'})},{additionalProperties:false}),
-    querystring:Type.Object({clientId:Type.Optional(Type.String({format:'uuid'}))},{additionalProperties:false}),
+    querystring:Type.Object({clientId:Type.Optional(Type.String({format:'uuid'})),
+      centerLat:Type.Optional(Type.Number({minimum:-85,maximum:85})),centerLon:Type.Optional(Type.Number({minimum:-180,maximum:180})),
+      zoom:Type.Optional(Type.Integer({minimum:4,maximum:19}))},{additionalProperties:false}),
     response:responseWithErrors({200:jsonResponse(DispatchTraceMapSchema,'Street map of observed driver GPS fixes')},[400,401,403,404,406,429,500,503]),
   }},async(request,reply)=>{
     const {organizationId,serviceDate,shiftId}=request.params as {organizationId:string;serviceDate:string;shiftId:string};
-    const {clientId}=request.query as {clientId?:string};
+    const {clientId,centerLat,centerLon,zoom}=request.query as {clientId?:string;centerLat?:number;centerLon?:number;zoom?:number};
     await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',
       branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchTraceMap');
     if(!options.dispatchTraceMapService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','route map unavailable');
+    const viewParts=[centerLat,centerLon,zoom].filter(value=>value!==undefined).length;
+    if(viewParts!==0&&viewParts!==3)throw new ProtocolError(400,'INVALID_MAP_VIEW','map center and zoom must be provided together');
     request.wp007Context.resultCode='DISPATCH_TRACE_MAP_RETURNED';
-    return reply.send(await options.dispatchTraceMapService({organizationId,serviceDate,shiftId,clientId:clientId??null}));
+    try{return reply.send(await options.dispatchTraceMapService({organizationId,serviceDate,shiftId,clientId:clientId??null,
+      viewport:viewParts===3?{latitude:centerLat!,longitude:centerLon!,zoom:zoom!}:null}));}
+    catch(error){if(error instanceof RoadRoutingError)throw new ProtocolError(error.statusCode,error.code,error.code);throw error;}
   });
   routes.get("/v1/organizations/:organizationId/driver/shifts/assignments/:assignmentId", { schema: {
     operationId: "getDriverShiftState", tags: ["driver"], security, headers: AuthorizationHeaders,

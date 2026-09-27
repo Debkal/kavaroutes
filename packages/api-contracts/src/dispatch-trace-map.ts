@@ -8,4 +8,5 @@ export const DispatchTraceMapSchema=Type.Object({
   mapImageUrl:Type.Union([Type.String({pattern:'^data:image/png;base64,[A-Za-z0-9+/=]+$',maxLength:1200025}),Type.Null()]),
 },{additionalProperties:false,$id:'DispatchTraceMap'});
 export type DispatchTraceMap=Static<typeof DispatchTraceMapSchema>;
-export type DispatchTraceMapService=(input:{organizationId:string;serviceDate:string;shiftId:string;clientId:string|null})=>Promise<DispatchTraceMap>;
+export type DispatchTraceMapService=(input:{organizationId:string;serviceDate:string;shiftId:string;clientId:string|null;
+  viewport?:{latitude:number;longitude:number;zoom:number}|null})=>Promise<DispatchTraceMap>;

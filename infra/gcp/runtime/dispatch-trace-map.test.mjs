@@ -17,6 +17,9 @@ test('street overlay draws recorded segments without bridging a reporting or cli
   assert.equal(body.geometries[0].type,'polyline5');
   assert.deepEqual(body.markers.map(marker=>marker.text),['S','E']);
   assert.equal(traceMapRequest(points.map(point=>({...point,window:1}))).geometries.length,2);
+  const zoomed=traceMapRequest(points,{latitude:41.882,longitude:-87.622,zoom:15});
+  assert.deepEqual(zoomed.center,{lat:41.882,lon:-87.622});
+  assert.equal(zoomed.zoom,15);
 });
 
 test('trace map reads one tenant shift, filters client actions, keeps the key server-side, and reuses the rendered image',async()=>{
@@ -34,11 +37,13 @@ test('trace map reads one tenant shift, filters client actions, keeps the key se
   },release(){}};
   const pool={connect:async()=>db};
   let providerCalls=0;
+  const bodies=[];
   const fetcher=async(url,options)=>{
     providerCalls++;
     assert.equal(url.searchParams.get('apiKey'),'private-key-123456789012345');
     assert.equal(options.method,'POST');
     const body=JSON.parse(options.body);
+    bodies.push(body);
     assert.equal(body.markers[0].lat,points[1].latitude);
     assert.equal(body.markers.at(-1).lat,points[2].latitude);
     return {ok:true,headers:{get:()=> 'image/png'},arrayBuffer:async()=>Buffer.from('png')};
@@ -53,6 +58,13 @@ test('trace map reads one tenant shift, filters client actions, keeps the key se
   assert.equal(providerCalls,1);
   assert.ok(queries.some(query=>query.sql.includes('receipt.shift_id=$2')&&query.args[0]===tenant&&query.args[1]===shift));
   assert.ok(queries.some(query=>query.sql.includes('scope.facility_id=$3')&&query.args[2]===client));
+  const zoomed=await service({organizationId:tenant,serviceDate:day,shiftId:shift,clientId:client,viewport:{latitude:points[1].latitude,longitude:points[1].longitude,zoom:15}});
+  assert.equal(zoomed.fixCount,2);
+  assert.equal(providerCalls,2);
+  assert.equal(bodies[1].zoom,15);
+  await assert.rejects(service({organizationId:tenant,serviceDate:day,shiftId:shift,clientId:client,
+    viewport:{latitude:44,longitude:-87.62,zoom:15}}),{statusCode:404});
+  assert.equal(providerCalls,2);
 });
 
 test('a shift missing from the requested service day never reaches the map provider',async()=>{

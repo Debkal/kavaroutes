@@ -10,7 +10,7 @@ const validPoint=point=>Number.isFinite(point.latitude)&&Math.abs(point.latitude
 
 /** The map draws only observed travel. A long reporting gap or another client's
  * leg starts a new line; neither becomes a fictitious street segment. */
-export function traceMapRequest(points){
+export function traceMapRequest(points,viewport=null){
   if(!points.length||points.length>500||points.some(point=>!validPoint(point)))throw new Error('INVALID_TRACE_POINTS');
   const segments=[];
   for(const point of points){
@@ -30,13 +30,15 @@ export function traceMapRequest(points){
     const point=segment[0];
     if(point!==first&&point!==last)markers.push({lat:point.latitude,lon:point.longitude,type:'circle',color:'#17637c',size:12});
   }
-  return {style:'positron',width:900,height:500,format:'png',attribution:'default',geometries,markers};
+  const body={style:'positron',width:900,height:500,format:'png',attribution:'default',geometries,markers};
+  if(viewport){body.center={lat:viewport.latitude,lon:viewport.longitude};body.zoom=viewport.zoom;}
+  return body;
 }
 
-async function renderTraceMap(fetcher,apiKey,points){
+async function renderTraceMap(fetcher,apiKey,points,viewport){
   const url=new URL(STATIC_MAP_URL);url.searchParams.set('apiKey',apiKey);
   let response;
-  try{response=await fetcher(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(traceMapRequest(points)),signal:AbortSignal.timeout(12000)});}
+  try{response=await fetcher(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(traceMapRequest(points,viewport)),signal:AbortSignal.timeout(12000)});}
   catch{return null;}
   if(!response.ok||!String(response.headers?.get('content-type')??'').startsWith('image/png'))return null;
   try{const bytes=Buffer.from(await response.arrayBuffer());return bytes.length>0&&bytes.length<=900000?`data:image/png;base64,${bytes.toString('base64')}`:null;}
@@ -48,7 +50,7 @@ async function renderTraceMap(fetcher,apiKey,points){
 export function createGeoapifyDispatchTraceMapService(pool,{apiKey=null,fetcher=fetch}={}){
   const configured=typeof apiKey==='string'&&/^[A-Za-z0-9_-]{20,200}$/.test(apiKey);
   const cache=new Map();
-  return async({organizationId,serviceDate,shiftId,clientId})=>{
+  return async({organizationId,serviceDate,shiftId,clientId,viewport=null})=>{
     if(!configured)throw new RoadRoutingError(503,'MAPS_NOT_CONFIGURED');
     const points=await withTenantTransaction(pool,organizationId,'kavaroutes_api',async db=>{
       const shift=(await db.query(`SELECT s.id,a.run_id FROM execution.shift_policy_snapshot s
@@ -84,12 +86,20 @@ export function createGeoapifyDispatchTraceMapService(pool,{apiKey=null,fetcher=
       });
     });
     if(!points.length)return {shiftReference:shiftId,serviceDate,clientId,fixCount:0,mapImageUrl:null};
+    if(viewport){
+      const latitudes=points.map(point=>point.latitude),longitudes=points.map(point=>point.longitude);
+      const margin=Math.max(0.5,45/2**Math.max(0,viewport.zoom-4));
+      if(!Number.isFinite(viewport.latitude)||!Number.isFinite(viewport.longitude)||!Number.isInteger(viewport.zoom)||viewport.zoom<4||viewport.zoom>19||
+        viewport.latitude<Math.min(...latitudes)-margin||viewport.latitude>Math.max(...latitudes)+margin||
+        viewport.longitude<Math.min(...longitudes)-margin||viewport.longitude>Math.max(...longitudes)+margin)
+        throw new RoadRoutingError(404,'MAP_VIEW_OUTSIDE_TRACE');
+    }
     const fingerprint=createHash('sha256').update(JSON.stringify(points)).digest('hex');
-    const key=`${organizationId}|${serviceDate}|${shiftId}|${clientId??''}|${fingerprint}`;
+    const key=`${organizationId}|${serviceDate}|${shiftId}|${clientId??''}|${fingerprint}|${viewport?JSON.stringify(viewport):'fit'}`;
     const cached=cache.get(key);
     if(cached&&cached.expires>Date.now())return {shiftReference:shiftId,serviceDate,clientId,fixCount:points.length,mapImageUrl:cached.image};
     if(cache.size>=20)cache.delete(cache.keys().next().value);
-    const image=await renderTraceMap(fetcher,apiKey,points);
+    const image=await renderTraceMap(fetcher,apiKey,points,viewport);
     if(image)cache.set(key,{image,expires:Date.now()+30*60_000});
     return {shiftReference:shiftId,serviceDate,clientId,fixCount:points.length,mapImageUrl:image};
   };

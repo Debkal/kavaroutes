@@ -134,9 +134,12 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
         return {serviceDate,truncated:value.truncated,events,tripClients};
       });
     },
-    routeTraceMap(serviceDate:string,shiftId:string,clientId:string|null){
+    routeTraceMap(serviceDate:string,shiftId:string,clientId:string|null,viewport?:{latitude:number;longitude:number;zoom:number}|null){
       if(!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate)||!uuid.test(shiftId)||(clientId!==null&&!uuid.test(clientId)))throw new Error('INVALID_TRACE_MAP_REFERENCE');
-      const query=clientId?`?clientId=${encodeURIComponent(clientId)}`:'';
+      if(viewport&&(!Number.isFinite(viewport.latitude)||Math.abs(viewport.latitude)>85||!Number.isFinite(viewport.longitude)||Math.abs(viewport.longitude)>180||!Number.isInteger(viewport.zoom)||viewport.zoom<4||viewport.zoom>19))throw new Error('INVALID_TRACE_MAP_VIEW');
+      const params=new URLSearchParams();if(clientId)params.set('clientId',clientId);
+      if(viewport){params.set('centerLat',viewport.latitude.toFixed(6));params.set('centerLon',viewport.longitude.toFixed(6));params.set('zoom',String(viewport.zoom));}
+      const query=params.size?`?${params.toString()}`:'';
       return transport.request(`${prefix}/dispatch/trace-map/${serviceDate}/shifts/${shiftId}${query}`,body=>{
         const value=object(body);
         if(Object.keys(value).sort().join(',')!=='clientId,fixCount,mapImageUrl,serviceDate,shiftReference'||value.shiftReference!==shiftId||value.serviceDate!==serviceDate||value.clientId!==clientId||

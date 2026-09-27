@@ -7,6 +7,7 @@ import {RouteStreetMap} from './RouteStreetMap';
 import {shiftBandLabel} from '../shift-band';
 import {downloadCsv} from '../csv';
 import {routeHistoryRows} from '../route-history-csv';
+import {downloadTraceKml,traceKml} from '../route-trace-export';
 
 type Api=ReturnType<typeof createCloudApi>;
 type Track=Awaited<ReturnType<Api['tracking']>>['value']['shifts'][number];
@@ -51,6 +52,9 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
   const refresh=()=>{void Promise.all([tracks.refetch(),board.refetch(),history.refetch()]);};
   const exportSelected=()=>{if(!detail||!board.data||!history.data)return;
     downloadCsv(`kavaroutes-route-history-${day}-${detail.shiftReference.slice(0,8)}.csv`,routeHistoryRows({day,track:detail,board:board.data.value,history:history.data.value,trace,legIds:legs.map(leg=>leg.tripLegId)}));};
+  const exportMap=()=>{if(!detail||!trace.length)return;
+    const mapped=trace.map(point=>({...point,window:clientId?intervals.findIndex(([start,end])=>Date.parse(point.capturedAt)>=start&&Date.parse(point.capturedAt)<=end):0}));
+    downloadTraceKml(`kavaroutes-gps-${day}-${detail.shiftReference.slice(0,8)}.kml`,traceKml(day,mapped));};
   return <section id="route-history" className="workspace-card route-history" aria-label="Completed route history">
     <div className="section-heading"><div><p className="eyebrow">Dispatch records</p><h2>Route history</h2>
       <p>Review completed shifts, each trip leg, recorded pickup and drop-off actions, and the GPS trace. Times use the route’s service timezone.</p></div>
@@ -75,7 +79,8 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
         <header><div><h3>{detail.driverLabel} · {shiftBandLabel(detail.plannedStartAt,detail.serviceTimezone)}</h3>
           <p>{detail.vehicleLabel??'Vehicle unavailable'} · started {stamp(detail.startedAt,detail.serviceTimezone)} · {detail.serviceTimezone}</p></div>
           <span className="status status-completed">Completed</span></header>
-        <button type="button" disabled={!board.data||!history.data||failed} onClick={exportSelected}>Export selected history CSV</button>
+        <div className="route-history-exports"><button type="button" disabled={!board.data||!history.data||failed} onClick={exportSelected}>Export selected history CSV</button>
+          <button type="button" disabled={!trace.length} onClick={exportMap}>Export GPS for Google My Maps (KML)</button></div>
         <p className="form-hint">Run {runId??'unavailable'} · {legs.length} trip leg{legs.length===1?'':'s'} shown · {detailEvents.length} recorded event{detailEvents.length===1?'':'s'}.</p>
         <h4>Trip legs</h4>{legs.length===0?<p role="status">No trip legs are linked to this recorded shift.</p>:<ol className="route-history-legs">{legs.map(leg=><li key={leg.tripLegId}>
           <strong>{leg.riderLabel}</strong><span>{clientForTrip.get(leg.tripId)?.clientLabel??'No client account linked'} · {leg.pickupLabel} → {leg.dropoffLabel}</span>
@@ -90,6 +95,7 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
         </li>)}</ol>}
         <h4>GPS trace</h4>{clientId&&<p className="form-hint">Only fixes between this client’s recorded leg actions are shown. Other shift travel is hidden. Missing action times mean a client-bounded trace may be unavailable.</p>}
         <RouteStreetMap api={api} day={day} track={shownTrack} clientId={clientId||null} history fallback={<TracePlot track={shownTrack} history/>}/>
+        {trace.length>0&&<p className="form-hint">For the exact recorded path, import the KML file into <a href="https://www.google.com/maps/d/" target="_blank" rel="noopener noreferrer">Google My Maps</a>. The Google Maps directions link uses sampled points and may choose different roads.</p>}
         <dl><dt>First saved fix</dt><dd>{stamp(trace[0]?.capturedAt??null,detail.serviceTimezone)}</dd>
           <dt>Last saved fix</dt><dd>{stamp(trace.at(-1)?.capturedAt??null,detail.serviceTimezone)}</dd>
           <dt>Fixes shown</dt><dd>{trace.length}{!clientId&&detail.trace.length===500?' (latest 500)':''}</dd></dl>
