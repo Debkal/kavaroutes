@@ -109,6 +109,31 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
         return {serviceDate,shifts};
       });
     },
+    routeHistory(serviceDate:string){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate))throw new Error('INVALID_SERVICE_DATE');
+      return transport.request(`${prefix}/dispatch/route-history/${serviceDate}`,body=>{
+        const value=object(body);
+        if(Object.keys(value).sort().join(',')!=='events,serviceDate,tripClients,truncated'||value.serviceDate!==serviceDate||typeof value.truncated!=='boolean'||!Array.isArray(value.events)||value.events.length>3000||!Array.isArray(value.tripClients)||value.tripClients.length>2000)throw new Error('INVALID_ROUTE_HISTORY');
+        const events=value.events.map(raw=>{const row=object(raw);
+          if(Object.keys(row).sort().join(',')!=='action,kind,occurredAt,outcome,reason,recordedAt,runId,shiftReference,tripLegId'||
+            !uuid.test(String(row.shiftReference))||!uuid.test(String(row.runId))||
+            (row.tripLegId!==null&&!uuid.test(String(row.tripLegId)))||
+            !['SHIFT_STARTED','DRIVER_ACTION','SERVICE_PROOF','TRACKING_ALERT','SHIFT_CLOSURE'].includes(String(row.kind))||
+            typeof row.action!=='string'||row.action.length>80||
+            (row.outcome!==null&&(typeof row.outcome!=='string'||row.outcome.length>80))||
+            (row.reason!==null&&(typeof row.reason!=='string'||row.reason.length>96))||
+            typeof row.occurredAt!=='string'||!Number.isFinite(Date.parse(row.occurredAt))||
+            typeof row.recordedAt!=='string'||!Number.isFinite(Date.parse(row.recordedAt)))throw new Error('INVALID_ROUTE_HISTORY');
+          return {shiftReference:String(row.shiftReference),runId:String(row.runId),tripLegId:row.tripLegId as string|null,
+            kind:row.kind as 'SHIFT_STARTED'|'DRIVER_ACTION'|'SERVICE_PROOF'|'TRACKING_ALERT'|'SHIFT_CLOSURE',
+            action:row.action,outcome:row.outcome as string|null,reason:row.reason as string|null,
+            occurredAt:row.occurredAt,recordedAt:row.recordedAt};});
+        const tripClients=value.tripClients.map(raw=>{const row=object(raw);
+          if(Object.keys(row).sort().join(',')!=='clientId,clientLabel,tripId'||!uuid.test(String(row.tripId))||!uuid.test(String(row.clientId))||typeof row.clientLabel!=='string'||!row.clientLabel||row.clientLabel.length>200)throw new Error('INVALID_ROUTE_HISTORY');
+          return {tripId:String(row.tripId),clientId:String(row.clientId),clientLabel:row.clientLabel};});
+        return {serviceDate,truncated:value.truncated,events,tripClients};
+      });
+    },
     routeProposals(shiftId:string){if(!uuid.test(shiftId))throw new Error('INVALID_SHIFT');return transport.request(`${prefix}/dispatch/shifts/${shiftId}/route-proposals`,body=>decodeRouteView(body,shiftId));},
     decideRoute(command:{proposalId:string;decision:'APPROVED'|'REJECTED';expectedRunVersion:number;expectedTag:string;key:string}){
       if(!uuid.test(command.proposalId))throw new Error('INVALID_PROPOSAL');

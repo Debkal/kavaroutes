@@ -19,12 +19,14 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import time
 
 ROOT = pathlib.Path('/opt/kavaroutes/runtime')
 BACKUP_DIR = pathlib.Path('/opt/kavaroutes/backups')
+WEB_API = pathlib.Path('/opt/kavaroutes/web/api.mjs')
 REPOSITORY = 'us-west1-docker.pkg.dev/kavaroutes/kavaroutes-wp013/runtime'
 DATABASE = 'kavaroutes_cloud'
 DIGEST = re.compile(r'sha256:[0-9a-f]{64}')
@@ -54,18 +56,28 @@ def main():
         raise ValueError('invalid invocation')
     previous_config = ROOT / ('vm.env.pre-' + label)
     backup = BACKUP_DIR / (label + '-before.dump')
-    failed_database = DATABASE + '_' + label + '_failed'
+    overlay = ROOT / 'prototype-compose.override.yaml'
+    has_gateway = overlay.is_file()
+    hosts = ['api', 'worker'] + (['gateway'] if has_gateway else [])
+    candidate_api = ROOT / ('api.mjs.' + label + '.candidate')
+    previous_api = ROOT / ('api.mjs.pre-' + label)
+    # Database identifiers cannot contain the hyphen allowed in artifact labels.
+    failed_database = DATABASE + '_' + label.replace('-', '_') + '_failed'
     base = ['docker', 'compose', '--env-file', str(ROOT / 'vm.env'), '-f', str(ROOT / 'compose.yaml')]
+    if has_gateway:
+        base += ['-f', str(overlay)]
     env = (ROOT / 'vm.env').read_text()
     match = re.search(r'^KR_RUNTIME_IMAGE=(' + re.escape(REPOSITORY) + r'@sha256:[0-9a-f]{64})$', env, re.M)
-    if not match or match.group(1) == target or previous_config.exists() or backup.exists():
+    if not match or match.group(1) == target or previous_config.exists() or backup.exists() or previous_api.exists():
         raise ValueError('state requires review')
+    if has_gateway and (not WEB_API.is_file() or WEB_API.is_symlink() or not candidate_api.is_file() or candidate_api.is_symlink()):
+        raise ValueError('candidate API requires review')
     old = match.group(1)
     taken = run(PG + ['psql', '-U', 'kr_cloud_admin', '-d', 'postgres', '-Atc',
         "SELECT count(*) FROM pg_database WHERE datname IN ('" + failed_database + "')"]).decode().strip()
     if taken != '0':
         raise ValueError('state requires review')
-    for host in ['api', 'worker']:
+    for host in hosts:
         if run(['docker', 'inspect', '--format', '{{.Config.Image}}', 'kavaroutes-cloud-' + host + '-1']).decode().strip() != old:
             raise ValueError('source drift')
     run(['docker', 'image', 'inspect', target])  # Pull and verify separately before downtime.
@@ -76,25 +88,38 @@ def main():
     os.chmod(previous_config, 0o600)
     stopped = False
     migrated = False
+    api_replaced = False
+    phase = 'stop'
     try:
-        run(base + ['stop', 'api', 'worker'])
+        run(base + ['stop'] + hosts)
         stopped = True
+        phase = 'database_backup'
         dump = run(PG + ['pg_dump', '-U', 'kr_cloud_admin', '-d', DATABASE, '-Fc'])
         fd = os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         with os.fdopen(fd, 'wb') as stream:
             stream.write(dump)
         # Verify archive readability before any schema mutation.
         run(PG + ['pg_restore', '--list'], dump)
-        (ROOT / 'vm.env').write_text(env.replace('KR_RUNTIME_IMAGE=' + old, 'KR_RUNTIME_IMAGE=' + target))
+        phase = 'runtime_switch'
+        if has_gateway:
+            shutil.copy2(WEB_API, previous_api)
+            shutil.copy2(candidate_api, WEB_API)
+            api_replaced = True
+        next_env = env.replace('KR_RUNTIME_IMAGE=' + old, 'KR_RUNTIME_IMAGE=' + target)
+        next_env = re.sub(r'^KR_BUILD_ID=[a-zA-Z0-9_-]+$', 'KR_BUILD_ID=' + label, next_env, flags=re.M)
+        (ROOT / 'vm.env').write_text(next_env)
         migrated = True  # Initializer can fail after committing one additive migration.
+        phase = 'initialize'
         run(base + ['--profile', 'initialize', 'run', '--rm', '--no-deps', 'initialize'])
-        run(base + ['up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', '--pull', 'never', 'api', 'worker'])
-        for host in ['api', 'worker']:
+        phase = 'start'
+        run(base + ['up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', '--pull', 'never'] + hosts)
+        phase = 'health'
+        for host in hosts:
             if run(['docker', 'inspect', '--format', '{{.Config.Image}}', 'kavaroutes-cloud-' + host + '-1']).decode().strip() != target:
                 raise ValueError('promoted image mismatch')
         healthy = False
         for _ in range(30):
-            if set(container_state(host) for host in ['api', 'worker']) <= {'healthy', 'RUNNING'}:
+            if set(container_state(host) for host in hosts) <= {'healthy', 'RUNNING'}:
                 healthy = True
                 break
             time.sleep(2)
@@ -105,19 +130,42 @@ def main():
         print(json.dumps({'result': 'RUNTIME_PROMOTED', 'label': label, 'image': target, 'previousImage': old,
             'rollbackImage': old, 'backup': str(backup), 'previousConfig': str(previous_config), 'schema': schema}))
     except Exception:
+        print('PROMOTION_FAILED_AT_' + phase.upper())
+        if phase == 'start':
+            for host in hosts:
+                try:
+                    state = run(['docker', 'inspect', '--format',
+                        '{{.State.Status}}:{{.State.ExitCode}}:{{if .State.Health}}{{.State.Health.Status}}{{end}}',
+                        'kavaroutes-cloud-' + host + '-1']).decode().strip()
+                    if re.fullmatch(r'[a-z]+:[0-9]+:[a-z]*', state):
+                        print('START_STATE_' + host.upper() + '_' + state.upper())
+                except Exception:
+                    print('START_STATE_' + host.upper() + '_UNAVAILABLE')
         if stopped:
-            run(base + ['stop', 'api', 'worker'])
-            if migrated:
-                # Preserve post-attempt data; do not overwrite or destroy it.
-                terminate = "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='" + DATABASE + "' AND pid<>pg_backend_pid()"
-                run(PG + ['psql', '-U', 'kr_cloud_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', terminate])
-                run(PG + ['psql', '-U', 'kr_cloud_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c',
-                    'ALTER DATABASE ' + DATABASE + ' RENAME TO ' + failed_database])
-                run(PG + ['createdb', '-U', 'kr_cloud_admin', DATABASE])
-                run(PG + ['pg_restore', '-U', 'kr_cloud_admin', '-d', DATABASE, '--exit-on-error'], backup.read_bytes())
-            (ROOT / 'vm.env').write_text(env)
-            run(base + ['up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', '--pull', 'never', 'api', 'worker'])
-        print('PROMOTION_FAILED_PREVIOUS_RUNTIME_RESTORED')
+            database_restored = True
+            try:
+                run(base + ['stop'] + hosts)
+                if migrated:
+                    # Preserve post-attempt data; do not overwrite or destroy it.
+                    terminate = "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='" + DATABASE + "' AND pid<>pg_backend_pid()"
+                    run(PG + ['psql', '-U', 'kr_cloud_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', terminate])
+                    run(PG + ['psql', '-U', 'kr_cloud_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c',
+                        'ALTER DATABASE ' + DATABASE + ' RENAME TO ' + failed_database])
+                    run(PG + ['createdb', '-U', 'kr_cloud_admin', DATABASE])
+                    run(PG + ['pg_restore', '-U', 'kr_cloud_admin', '-d', DATABASE, '--exit-on-error'], backup.read_bytes())
+            except Exception:
+                database_restored = False
+                print('ROLLBACK_DATABASE_REQUIRES_REVIEW')
+            finally:
+                (ROOT / 'vm.env').write_text(env)
+                if api_replaced:
+                    shutil.copy2(previous_api, WEB_API)
+                if database_restored:
+                    try:
+                        run(base + ['up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', '--pull', 'never'] + hosts)
+                        print('PROMOTION_FAILED_PREVIOUS_RUNTIME_RESTORED')
+                    except Exception:
+                        print('ROLLBACK_RUNTIME_REQUIRES_REVIEW')
         return 1
     return 0
 

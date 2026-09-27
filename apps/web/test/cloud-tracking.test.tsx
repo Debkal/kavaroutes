@@ -29,7 +29,7 @@ it('shows one card per driver, named by part of day, with the lost-signal accoun
 
 it('names an ended shift as ended and stops asking for a fix',async()=>{
  const client=mount({tracking:async()=>({value:track({lifecycle:'SHIFT_ENDED',status:'SHIFT_ENDED',reason:'ACCEPTED_SIGN_OFF',contactDriver:false,silentSeconds:0})})});
- await screen.findByText('1 completed shift');
+ await screen.findByRole('link',{name:'Review route history and GPS trace'});
  expect(screen.getByText(/No active driver shifts/)).toBeInTheDocument();
  expect(screen.queryByRole('link',{name:'Open last position in maps'})).not.toBeInTheDocument();
  client.clear();

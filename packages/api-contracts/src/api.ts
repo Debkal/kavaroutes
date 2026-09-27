@@ -37,6 +37,7 @@ import {
 import { allSchemas } from "./schema-registry.js";
 import type { CancelTripRequest, DriverActionBatch, LocationBatch, PushRegistrationRequest, PushUnregistrationRequest, TripCreateRequest, UpdateDriverControlPolicy } from "./schemas.js";
 import { DispatchTrackingSchema } from "./dispatch-tracking.js";
+import {DispatchRouteHistorySchema,type DispatchRouteHistoryReader} from './dispatch-route-history.js';
 import { ClientHistorySchema, CostProfileUpdateReceiptSchema, CostProfileUpdateRequestSchema, CostProfileViewSchema, InvoiceCreateRequestSchema,
   InvoiceForwardReceiptSchema, InvoiceForwardRequestSchema, InvoiceListSchema, InvoiceReceiptSchema, InvoiceViewSchema, ServiceDayEstimatesSchema,
   type AccountingApiService } from "./accounting.js";
@@ -109,6 +110,7 @@ export interface Wp007ApiOptions {
   readonly driverLocationService?: DriverLocationService;
   /** Live driver map data for dispatch: current position, trace, lost-signal duration. */
   readonly dispatchTrackingReader?: DispatchTrackingReader;
+  readonly dispatchRouteHistoryReader?: DispatchRouteHistoryReader;
   /** Route costing, payer invoices and client history: the money surface. */
   readonly accountingService?: AccountingApiService;
   readonly pushRegistrationService?: ReturnType<typeof createRegistrationService>;
@@ -760,6 +762,18 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     const tracking = await options.dispatchTrackingReader(organizationId, serviceDate);
     request.wp007Context.resultCode = "DISPATCH_TRACKING_RETURNED";
     return reply.send(tracking);
+  });
+  routes.get('/v1/organizations/:organizationId/dispatch/route-history/:serviceDate',{schema:{
+    operationId:'getDispatchRouteHistory',tags:['dispatch'],security,headers:AuthorizationHeaders,params:DispatchDayParams,
+    querystring:Type.Object({},{additionalProperties:false}),
+    response:responseWithErrors({200:jsonResponse(DispatchRouteHistorySchema,'Recorded dispatch shift and trip-leg events for the service day')},[400,401,403,404,406,429,500,503]),
+  }},async(request,reply)=>{
+    const {organizationId,serviceDate}=request.params as {organizationId:string;serviceDate:string};
+    await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',
+      branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchRouteHistory');
+    if(!options.dispatchRouteHistoryReader)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','route history unavailable');
+    request.wp007Context.resultCode='DISPATCH_ROUTE_HISTORY_RETURNED';
+    return reply.send(await options.dispatchRouteHistoryReader(organizationId,serviceDate));
   });
   routes.get("/v1/organizations/:organizationId/driver/shifts/assignments/:assignmentId", { schema: {
     operationId: "getDriverShiftState", tags: ["driver"], security, headers: AuthorizationHeaders,

@@ -90,6 +90,26 @@ test("Command creates a closed, capability-protected driver account", async (t) 
   response=await app.inject({method:"POST",url,headers:{...auth("principal_dispatcher"),"idempotency-key":"driver-account-create-003"},payload:{...payload,role:"admin"}});
   assert.equal(response.statusCode,400);
 });
+test('dispatch route history is scoped to an authorized dispatcher and service day',async t=>{
+  const day='2026-09-25',shift='40000000-0000-4000-8000-000000000011',run='40000000-0000-4000-8000-000000000012';
+  const calls=[];
+  const app=await createWp007Api({application:memoryApplication(),dispatchRouteHistoryReader:async(tenant,date)=>{
+    calls.push([tenant,date]);return {serviceDate:date,truncated:false,tripClients:[],events:[{shiftReference:shift,runId:run,tripLegId:null,
+      kind:'SHIFT_STARTED',action:'SHIFT_STARTED',outcome:null,reason:null,occurredAt:`${day}T15:00:00.000Z`,recordedAt:`${day}T15:00:00.000Z`}]};
+  }});
+  t.after(()=>app.close());
+  const url=`/v1/organizations/${syntheticIds.organizationA}/dispatch/route-history/${day}`;
+  const allowed=await app.inject({method:'GET',url,headers:auth('principal_dispatcher')});
+  assert.equal(allowed.statusCode,200,allowed.body);
+  assert.equal(allowed.json().events[0].shiftReference,shift);
+  assert.deepEqual(calls,[[syntheticIds.organizationA,day]]);
+  const denied=await app.inject({method:'GET',url,headers:auth('principal_driver')});
+  assert.notEqual(denied.statusCode,200);
+  assert.equal(calls.length,1);
+  const outsider=await app.inject({method:'GET',url,headers:auth('principal_outsider')});
+  assert.notEqual(outsider.statusCode,200);
+  assert.equal(calls.length,1);
+});
 
 test('dispatch chooses a road-route goal and only the assigned driver reads directions',async(t)=>{
   const legId='40000000-0000-4000-8000-000000000002',calls=[];

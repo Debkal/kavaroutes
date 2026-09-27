@@ -25,8 +25,14 @@ class PromotionTest(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         root = pathlib.Path(directory.name)
         backups = root / 'backups'
-        original = 'KR_RUNTIME_IMAGE=' + LIVE_IMAGE + '\nKR_SECRETS_DIRECTORY=/opt/kavaroutes/secrets\n'
+        original = 'KR_RUNTIME_IMAGE=' + LIVE_IMAGE + '\nKR_SECRETS_DIRECTORY=/opt/kavaroutes/secrets\nKR_BUILD_ID=previous\n'
         (root / 'vm.env').write_text(original)
+        web_api = root / 'web' / 'api.mjs'
+        if 'gateway' in flags:
+            web_api.parent.mkdir()
+            web_api.write_text('old mounted API')
+            (root / 'prototype-compose.override.yaml').write_text('services: {}\n')
+            (root / ('api.mjs.' + DEFAULT_LABEL + '.candidate')).write_text('new mounted API')
         calls = []
         promoted = [False]
 
@@ -72,7 +78,7 @@ class PromotionTest(unittest.TestCase):
         output = io.StringIO()
         refused = False
         result = None
-        with patch.object(module, 'ROOT', root), patch.object(module, 'BACKUP_DIR', backups), \
+        with patch.object(module, 'ROOT', root), patch.object(module, 'BACKUP_DIR', backups), patch.object(module, 'WEB_API', web_api), \
              patch.object(module, 'run', run), patch.object(module.time, 'sleep', lambda _seconds: None), \
              patch.object(module.os, 'geteuid', return_value=0), patch.object(module.sys, 'argv', argv), \
              contextlib.redirect_stdout(output):
@@ -83,7 +89,8 @@ class PromotionTest(unittest.TestCase):
             else:
                 result = module.main()
         return {'calls': calls, 'root': root, 'backups': backups, 'label': label, 'output': output.getvalue(),
-            'result': result, 'refused': refused, 'env': (root / 'vm.env').read_text(), 'original': original}
+            'result': result, 'refused': refused, 'env': (root / 'vm.env').read_text(), 'original': original,
+            'web_api': web_api}
 
     def flattened(self, scenario):
         return [' '.join(call[0]) for call in scenario['calls']]
@@ -96,6 +103,7 @@ class PromotionTest(unittest.TestCase):
         self.assertEqual(scenario['result'], 0)
         self.assertEqual((scenario['backups'] / (scenario['label'] + '-before.dump')).read_bytes(), b'synthetic-archive')
         self.assertIn(TARGET_DIGEST, scenario['env'])
+        self.assertIn('KR_BUILD_ID=' + scenario['label'], scenario['env'])
         self.assertTrue((scenario['root'] / ('vm.env.pre-' + scenario['label'])).exists())
         self.assertEqual(self.record(scenario)['previousImage'], LIVE_IMAGE)
         self.assertEqual(self.record(scenario)['rollbackImage'], LIVE_IMAGE)
@@ -145,6 +153,19 @@ class PromotionTest(unittest.TestCase):
         self.assertEqual(scenario['result'], 0)
         self.assertTrue((scenario['root'] / 'vm.env.pre-candidate-2').exists())
         self.assertTrue((scenario['backups'] / 'candidate-2-before.dump').exists())
+
+    def test_gateway_promotion_updates_mounted_api_and_preserves_overlay(self):
+        scenario = self.scenario(['gateway'])
+        self.assertEqual(scenario['result'], 0)
+        self.assertEqual(scenario['web_api'].read_text(), 'new mounted API')
+        self.assertEqual((scenario['root'] / ('api.mjs.pre-' + scenario['label'])).read_text(), 'old mounted API')
+        self.assertTrue(any('prototype-compose.override.yaml' in call and 'gateway' in call for call in self.flattened(scenario)))
+
+    def test_gateway_failure_restores_mounted_api(self):
+        scenario = self.scenario(['gateway', 'unhealthy'])
+        self.assertEqual(scenario['result'], 1)
+        self.assertEqual(scenario['web_api'].read_text(), 'old mounted API')
+        self.assertEqual(scenario['env'], scenario['original'])
 
 
 if __name__ == '__main__':

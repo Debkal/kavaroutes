@@ -3,6 +3,7 @@ export * from "./driver-locations.js";
 export * from "./route-costing.js";
 export * from "./accounting.js";
 export * from "./dispatch-tracking.js";
+export * from "./dispatch-route-history.js";
 // Exported so a guarded host can compose its own authenticated scope with the
 // same principal semantics as the wp007 lifecycle plugin.
 export { contextPrincipal, type RequestGuard } from "./api-lifecycle.js";

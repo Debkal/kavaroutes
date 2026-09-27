@@ -23,7 +23,7 @@ async function sourceFiles(directory) {
   const nested = await Promise.all(entries.map(async (entry) => {
     const path = resolve(directory, entry.name);
     if (entry.isDirectory()) {
-      if (["dist", "node_modules", "artifacts", "scripts", "test", "tests"].includes(entry.name)) return [];
+      if (["dist", "dist-driver", "node_modules", "artifacts", "scripts", "test", "tests"].includes(entry.name)) return [];
       return sourceFiles(path);
     }
     return extensions.has(extname(entry.name)) ? [path] : [];

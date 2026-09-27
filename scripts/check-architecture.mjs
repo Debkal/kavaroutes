@@ -9,7 +9,7 @@ const sourceFiles = [];
 
 async function walk(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
-    if (["dist", "node_modules"].includes(entry.name)) continue;
+    if (["dist", "dist-driver", "node_modules"].includes(entry.name)) continue;
     const target = path.join(directory, entry.name);
     if (entry.isDirectory()) await walk(target);
     else if (/\.tsx?$/.test(entry.name)) sourceFiles.push(target);
@@ -61,7 +61,7 @@ for (const file of sourceFiles) {
     }
     if (relative.startsWith("apps/web/src/") && /localStorage|sessionStorage|indexedDB|serviceWorker|process\.env/.test(text)) violations.push(`${relative}: prohibited web persistence/environment access`);
   }
-  if (/import\s*\(/.test(text) && !["apps/api-host/src/main.ts", "apps/worker-host/src/main.ts", "apps/web/src/router.tsx"].includes(relative)) {
+  if (/import\s*\(/.test(text) && !["apps/api-host/src/main.ts", "apps/worker-host/src/main.ts", "apps/web/src/router.tsx", "apps/web/src/driver-router.tsx"].includes(relative)) {
     violations.push(`${relative}: unreviewed dynamic import`);
   }
 }

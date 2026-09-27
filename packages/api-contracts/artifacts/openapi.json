@@ -2247,6 +2247,170 @@
         "title": "BrowserCommandPending",
         "type": "object"
       },
+      "def-124": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "SHIFT_STARTED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "DRIVER_ACTION"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "SERVICE_PROOF"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "TRACKING_ALERT"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "SHIFT_CLOSURE"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "occurredAt": {
+            "format": "date-time",
+            "maxLength": 35,
+            "type": "string"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 96,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recordedAt": {
+            "format": "date-time",
+            "maxLength": 35,
+            "type": "string"
+          },
+          "runId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "shiftReference": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "tripLegId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "shiftReference",
+          "runId",
+          "tripLegId",
+          "kind",
+          "action",
+          "outcome",
+          "reason",
+          "occurredAt",
+          "recordedAt"
+        ],
+        "title": "DispatchRouteHistoryEvent",
+        "type": "object"
+      },
+      "def-125": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/def-124"
+            },
+            "maxItems": 3000,
+            "type": "array"
+          },
+          "serviceDate": {
+            "format": "date",
+            "maxLength": 10,
+            "type": "string"
+          },
+          "tripClients": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "clientId": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "clientLabel": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "tripId": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "tripId",
+                "clientId",
+                "clientLabel"
+              ],
+              "type": "object"
+            },
+            "maxItems": 2000,
+            "type": "array"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "serviceDate",
+          "truncated",
+          "events",
+          "tripClients"
+        ],
+        "title": "DispatchRouteHistory",
+        "type": "object"
+      },
       "def-13": {
         "additionalProperties": false,
         "properties": {
@@ -13996,6 +14160,140 @@
               }
             },
             "description": "Dependency failure"
+          },
+          "503": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Temporarily unavailable"
+          }
+        },
+        "security": [
+          {
+            "syntheticTestPrincipal": []
+          }
+        ],
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/v1/organizations/{organizationId}/dispatch/route-history/{serviceDate}": {
+      "get": {
+        "operationId": "getDispatchRouteHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organizationId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-1"
+            }
+          },
+          {
+            "in": "path",
+            "name": "serviceDate",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/def-3"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "maxLength": 64,
+              "pattern": "^Synthetic principal_[a-z_]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-125"
+                }
+              }
+            },
+            "description": "Recorded dispatch shift and trip-leg events for the service day",
+            "headers": {}
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Malformed request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not found"
+          },
+          "406": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Not acceptable"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Rate limited"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/def-8"
+                }
+              }
+            },
+            "description": "Internal error"
           },
           "503": {
             "content": {

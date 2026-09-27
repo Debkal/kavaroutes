@@ -19,7 +19,7 @@ function AppShell() {
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <header className="app-header">
       <div><span className="brand-mark" aria-hidden="true">KR</span><strong>KavaRoutes</strong><span className="environment">Product testing</span></div>
-      <nav aria-label="Primary"><NavLink to="/dispatch">Dispatch</NavLink><NavLink to="/tracking">Active drivers</NavLink><NavLink to="/clients">Clients</NavLink><NavLink to="/accounting">Accounting</NavLink><NavLink to="/command">Command</NavLink></nav>
+      <nav aria-label="Primary"><NavLink to="/dispatch">Dispatch</NavLink><NavLink to="/tracking">Active drivers</NavLink><NavLink to="/route-history">Route history</NavLink><NavLink to="/clients">Clients</NavLink><NavLink to="/accounting">Accounting</NavLink><NavLink to="/command">Command</NavLink></nav>
     </header>
     <Outlet />
     <footer className="app-footer"><span>Web build {webBuild}</span></footer>
@@ -55,6 +55,7 @@ export const router = createBrowserRouter([{
     { index: true, loader: () => redirect("/dispatch") },
     { path: "dispatch", lazy: () => privateCloud ? import("./routes/cloud-dispatch-route") : import("./routes/dispatch-route") },
     { path: "tracking", lazy: () => import("./routes/cloud-tracking-route") },
+    { path: "route-history", lazy: () => import("./routes/cloud-route-history-route") },
     { path: "clients", lazy: () => privateCloud ? import("./routes/cloud-clients-route") : import("./routes/facility-route") },
     { path: "accounting", lazy: () => import("./routes/cloud-accounting-route") },
     { path: "command", lazy: () => import("./routes/cloud-command-route") },

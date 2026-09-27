@@ -36,6 +36,7 @@ export function Component() {
     <nav className="dispatch-jump-nav" aria-label="Dispatch workspace sections">
       <a href="#schedule-transport">Schedule transport</a>
       <a href="#dispatch-operations">Assign drivers</a>
+      <a href={`/route-history?date=${encodeURIComponent(serviceDate)}`}>Route history</a>
     </nav>
     <section id="schedule-transport" className="workspace-card schedule-panel" aria-label="Schedule transport"><DispatchRouteForm api={api} serviceDate={serviceDate} onServiceDateChange={setServiceDate} initialClientId={initialClientId} onPlanned={setPlannedRunId}/></section>
     <CloudBoard api={api} enabled={session.isSuccess} serviceDate={serviceDate} onServiceDateChange={setServiceDate} focusRunId={plannedRunId} onFocusRunHandled={()=>setPlannedRunId(null)}/>

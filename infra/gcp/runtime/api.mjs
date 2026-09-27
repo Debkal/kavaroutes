@@ -1,6 +1,6 @@
 import { createWp007Api, createWp007PostgresApplication, createPostgresDriverShiftService, createSyntheticTestVerifier,
   createPostgresDriverActionService, createPostgresDriverPrecheckService, createPostgresDriverShiftStateReader, createPostgresDriverSignatureService, createPostgresDispatchService, createPostgresRouteProposalService, createPostgresDriverClosureService } from '@kavaroutes/api-contracts';
-import { createDriverItineraryReader,createDispatchTrackingReader } from '@kavaroutes/postgres-persistence';
+import { createDriverItineraryReader,createDispatchTrackingReader,createDispatchRouteHistoryReader } from '@kavaroutes/postgres-persistence';
 import {createPostgresFacilityService,createPostgresBrowserRecoveryService} from '@kavaroutes/api-contracts';
 import {createPostgresClientService} from '@kavaroutes/api-contracts';
 import {createPostgresDriverLoginService} from '@kavaroutes/api-contracts';
@@ -49,6 +49,7 @@ export async function createRuntimeApi(input) {
     driverSignatureService: createPostgresDriverSignatureService(pool,{etag:application.etag}),
     driverLocationService: createPostgresDriverLocationService(pool),
     dispatchTrackingReader: createDispatchTrackingReader(pool),
+    dispatchRouteHistoryReader: createDispatchRouteHistoryReader(pool),
     accountingService: createPostgresAccountingApiService(pool),
     verifier, etagSecret: config.etagSecret, cursorSecret: `synthetic-cursor-secret-${config.cursorSecret}` });
   const store = createPostgresRealtimeStore(pool, createTestOnlyCursorCodec({ secret: config.cursorSecret }));
@@ -71,7 +72,7 @@ export async function createRuntimeApi(input) {
     if(process.env.KR_CLOUD_LOCAL_TEST==='1'&&/^\/v1\/organizations\/[^/]+\/driver\/shifts\/[^/]+\/synthetic-location-batches$/.test(path))return;
     // Live driver positioning: the driver's device reports fixes and dispatch reads the
     // day's map. Coordinates stay inside these two authorized routes.
-    const locationPath=/^\/v1\/organizations\/[^/]+\/(?:driver\/shifts\/[^/]+\/location-batches|dispatch\/tracking\/\d{4}-\d{2}-\d{2})$/.test(path);
+    const locationPath=/^\/v1\/organizations\/[^/]+\/(?:driver\/shifts\/[^/]+\/location-batches|dispatch\/(?:tracking|route-history)\/\d{4}-\d{2}-\d{2})$/.test(path);
     // The money surface: costing, estimates, payer invoices and client history.
     const accountingPath=/^\/v1\/organizations\/[^/]+\/(?:billing\/(?:cost-profile(?:\/commands\/update)?|estimates\/\d{4}-\d{2}-\d{2}|invoices(?:\/commands\/create|\/[^/]+(?:\/commands\/forward)?)?)|clients\/[^/]+\/history)$/.test(path);
     const roadRoutingPath=/^\/v1\/organizations\/[^/]+\/(?:dispatch\/legs\/[^/]+\/road-route(?:\/preview|\/commands\/select)?|dispatch\/pickup-timezones\/resolve|driver\/legs\/[^/]+\/road-route)$/.test(path);

@@ -40,7 +40,7 @@ details[open] > summary { margin-bottom: 1rem; }
 .dispatch-jump-nav { position: sticky; top: 0; z-index: 7; display: flex; gap: .45rem; overflow-x: auto; margin: 0 0 1rem; padding: .55rem; border: 1px solid var(--line); border-radius: .8rem; background: color-mix(in srgb, var(--surface) 94%, transparent); box-shadow: 0 6px 20px #102a220c; scrollbar-width: thin; }
 .dispatch-jump-nav a { display: inline-flex; align-items: center; flex: 0 0 auto; min-height: 2.35rem; padding: .35rem .7rem; color: var(--brand); border-radius: .5rem; text-decoration: none; font-size: .84rem; font-weight: 800; }
 .dispatch-jump-nav a:hover { background: #0d654d12; }
-#schedule-transport, #dispatch-operations, #driver-access, #live-updates { scroll-margin-top: 4.5rem; }
+#schedule-transport, #dispatch-operations, #driver-access, #live-updates, #route-history { scroll-margin-top: 4.5rem; }
 .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .section-heading h2, .section-heading h3, .section-heading p { margin-bottom: .25rem; }
 .section-heading > div > p:last-child { color: var(--muted); }
@@ -249,6 +249,22 @@ td small, td span { display: block; }.route-arrow { display: inline !important; 
 .driver-tracking-layout .driver-track .action-link { display: inline-block; margin-top: .7rem; }
 .driver-ended-shifts { margin-top: .8rem; color: var(--muted); font-size: .87rem; }
 .driver-ended-shifts ul { margin: .5rem 0; padding-left: 1.2rem; }
+.route-history .driver-tracking-layout { margin-top: .9rem; }
+.route-history .route-history-detail { min-width: 0; }
+.route-history-filters { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .8rem; }
+.route-history-filters select { display: block; width: 100%; min-height: 2.8rem; margin-top: .35rem; padding: .5rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface); color: var(--ink); font: inherit; }
+.route-history-legs, .route-event-list { display: grid; gap: .55rem; padding-left: 1.5rem; }
+.route-history-legs li { padding: .65rem; border: 1px solid var(--line); border-radius: .55rem; }
+.route-history-legs li > span { display: block; margin-top: .3rem; }
+.route-event-list { max-height: 20rem; overflow: auto; }
+.route-event-list li { padding: .35rem .5rem; border-bottom: 1px solid var(--line); }
+.route-event-list small { display: block; color: var(--muted); }
+@media(max-width:700px){.route-history-filters{grid-template-columns:1fr}}
+.route-fix-log { margin-top: 1rem; }
+.route-fix-log .table-scroll { max-height: 22rem; overflow: auto; border: 1px solid var(--line); border-radius: .65rem; }
+.route-fix-log table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.route-fix-log th, .route-fix-log td { padding: .5rem .65rem; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.route-fix-log thead { position: sticky; top: 0; background: var(--surface); }
 @media(max-width:700px){.driver-tracking-layout{grid-template-columns:1fr}.driver-tracking-list{display:flex;overflow-x:auto;max-height:none}.driver-tracking-list button{min-width:12rem;max-width:15rem}}
 .dispatch-map .driver-track.lost { border-color: #b26a00; background: #fff8ec; }
 .dispatch-map .driver-track header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }

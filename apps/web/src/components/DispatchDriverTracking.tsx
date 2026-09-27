@@ -12,7 +12,7 @@ const stamp=(value:string|null,zone:string)=>value?new Date(value).toLocaleTimeS
 const GAP_AFTER_MS=90_000;
 /** Keep the driver's fixes on this origin. A broken feed must never be rendered as a
  * straight, observed road segment, and the plot must not distort the route shape. */
-function TracePlot({track}:{track:Track}){
+export function TracePlot({track,history=false}:{track:Track;history?:boolean}){
   const points=track.trace.length?track.trace:(track.position?[track.position]:[]);
   if(!points.length)return <p role="status">No position received yet for this driver.</p>;
   const width=600,height=240,padding=28;
@@ -44,7 +44,7 @@ function TracePlot({track}:{track:Track}){
     {segments.map((segment,index)=>segment.length>1?<polyline key={index} points={segment.map(i=>{const p=plot(i);return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;}).join(' ')} className="driver-trace-line" fill="none"/>:null)}
     <circle cx={start.x} cy={start.y} r="5" className="driver-trace-start"><title>First visible fix</title></circle>
     <circle cx={end.x} cy={end.y} r="7" className="driver-trace-marker"><title>Latest saved fix</title></circle>
-  </svg><figcaption>Recent GPS path · {points.length} saved fix{points.length===1?'':'es'}{gaps?` · ${gaps} unobserved gap${gaps===1?'':'s'}`:''}. The path uses the latest 500 fixes and is not snapped to streets.</figcaption></figure>;
+  </svg><figcaption>{history?'Recorded GPS path':'Recent GPS path'} · {points.length} saved fix{points.length===1?'':'es'}{gaps?` · ${gaps} unobserved gap${gaps===1?'':'s'}`:''}. This geographic plot has no street background. The server returns at most the latest 500 fixes; lines are not snapped to roads.</figcaption></figure>;
 }
 
 const stateCopy=(track:Track)=>{
@@ -109,6 +109,6 @@ export function DispatchDriverTracking({api,day,enabled}:{api:Api;day:string;ena
         {detail.position&&<a className="action-link" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${detail.position.latitude},${detail.position.longitude}`)}`}>Open last position in maps</a>}
         <CloudReturnReview api={api} shift={detail.shiftReference} label={`the ${shiftBandLabel(detail.plannedStartAt,detail.serviceTimezone)} for ${detail.driverLabel}`}/>
       </article>}</div>}
-    {ended.length>0&&<details className="driver-ended-shifts"><summary>{ended.length} completed shift{ended.length===1?'':'s'}</summary><ul>{ended.map(track=><li key={track.shiftReference}>{track.driverLabel} · {shiftBandLabel(track.plannedStartAt,track.serviceTimezone)} · last fix {stamp(track.lastCapturedAt,track.serviceTimezone)}</li>)}</ul></details>}
+    {ended.length>0&&<p className="driver-ended-shifts">{ended.length} completed shift{ended.length===1?'':'s'} · <a href={`/route-history?date=${encodeURIComponent(day)}`}>Review route history and GPS trace</a></p>}
   </section>;
 }

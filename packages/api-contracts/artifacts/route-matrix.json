@@ -535,6 +535,27 @@
       ]
     },
     {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/route-history/{serviceDate}",
+      "operationId": "getDispatchRouteHistory",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
       "method": "POST",
       "path": "/v1/organizations/{organizationId}/dispatch/route-proposals/{proposalId}/commands/decide",
       "operationId": "decideRouteProposal",

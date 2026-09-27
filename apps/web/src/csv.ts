@@ -12,7 +12,7 @@ export type CsvRow = readonly CsvCell[];
  * treats operator-entered text as text rather than as a formula. */
 export function csvCell(value: CsvCell): string {
   const raw = value === null || value === undefined ? "" : String(value);
-  const safe = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
+  const safe = /^[\s\u0000-\u001f]*[=+\-@]/.test(raw) ? `'${raw}` : raw;
   return `"${safe.replaceAll('"', '""')}"`;
 }
 
