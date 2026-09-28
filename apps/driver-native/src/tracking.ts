@@ -152,14 +152,16 @@ export async function startTracking(input:Omit<Binding,'deviceId'>):Promise<Stat
   if (!(await serverShiftIsActive({...input,deviceId:randomUUID()}))) throw new Error('The assigned shift is not active. Refresh Driver and try again.');
   const db=await database();
   const previous=await readBinding();
-  if (previous && previous.shiftReference!==input.shiftReference && await Location.hasStartedLocationUpdatesAsync(TASK)) await Location.stopLocationUpdatesAsync(TASK);
+  // Expo can keep the task registered after Android kills its foreground
+  // service. A fresh START/RESUME must recreate the service, not trust the
+  // persisted registration alone.
+  if (await Location.hasStartedLocationUpdatesAsync(TASK)) await Location.stopLocationUpdatesAsync(TASK);
   const priorState=await db.getFirstAsync<{device_id:string}>('SELECT device_id FROM state WHERE id=1');
   const deviceId=previous?.shiftReference===input.shiftReference?previous.deviceId:priorState?.device_id??randomUUID();
   if (previous?.shiftReference!==input.shiftReference) await db.runAsync('DELETE FROM samples');
   await db.runAsync('INSERT OR REPLACE INTO state (id,device_id,last_upload_at) VALUES (1,?,0)',deviceId);
   await SecureStore.setItemAsync(BINDING,JSON.stringify({...input,deviceId}),STORE_OPTIONS);
-  if (!(await Location.hasStartedLocationUpdatesAsync(TASK))) {
-    try {await Location.startLocationUpdatesAsync(TASK,{
+  try {await Location.startLocationUpdatesAsync(TASK,{
       accuracy:Location.Accuracy.High,
       distanceInterval:30,
       timeInterval:15_000,
@@ -168,8 +170,11 @@ export async function startTracking(input:Omit<Binding,'deviceId'>):Promise<Stat
       pausesUpdatesAutomatically:false,
       activityType:Location.ActivityType.AutomotiveNavigation,
       ...(Platform.OS==='android'?{foregroundService:{notificationTitle:'Driving shift active · GPS on',notificationBody:'Location tracking for Dispatch, including while Maps is open. Tap to return to Driver.',notificationColor:'#47756a',killServiceOnDestroy:false}}:{}),
-    });} catch(error) {await SecureStore.deleteItemAsync(BINDING);throw error;}
-  }
+    });} catch(error) {
+      if(previous?.shiftReference===input.shiftReference)await SecureStore.setItemAsync(BINDING,JSON.stringify(previous),STORE_OPTIONS);
+      else await SecureStore.deleteItemAsync(BINDING);
+      throw error;
+    }
   return {state:'active',message:'Background location is on, including while Google Maps is open.'};
 }
 
@@ -197,9 +202,7 @@ export async function resumeTracking():Promise<Status&{token?:string;organizatio
   if(!(await serverShiftIsActive(binding))){await stopTracking();return {state:'stopped',message:'The previous shift has ended. Sign in again.'};}
   const problem=await locationProblem();
   if(problem)return {...problem,token:binding.token,organizationId:binding.organizationId,driverId:binding.driverId,...(binding.loginId?{loginId:binding.loginId}:{})};
-  if(!(await Location.hasStartedLocationUpdatesAsync(TASK))){
-    await startTracking(binding);
-  }
+  await startTracking(binding);
   return {state:'active',message:'Active shift restored. Background location is running.',token:binding.token,organizationId:binding.organizationId,driverId:binding.driverId,...(binding.loginId?{loginId:binding.loginId}:{})};
 }
 

@@ -67,11 +67,17 @@ export default function App() {
     setWorking(true);
     if(command.type==='PREPARE')setTrackingProblem(null);
     try {
+      // Android can suppress the foreground-service notification if its
+      // permission is granted only after the location service has started.
+      // Request it after location setup, but before START creates the service.
+      if(command.type==='START'){
+        const granted=await notificationPermissionGranted(true).catch(()=>false);
+        setNotificationProblem(!granted);
+      }
       const status=command.type==='PREPARE'?await prepareTracking(askBackground,()=>setPermissionStep('foreground')):command.type==='STATUS'?await trackingStatus():command.type==='STOP'?await stopTracking():command.type==='RESUME'?await resumeTracking():await startTracking({token:command.token!,organizationId:command.organizationId!,driverId:command.driverId!,shiftReference:command.shiftReference!,shiftGeneration:command.shiftGeneration!,loginId:command.loginId!});
       setTrackingProblem(status.issue?status:null);
       reply(command.requestId,status);
       if (command.type==='START'||command.type==='STATUS') void flushTracking();
-      if(command.type==='START'&&status.state==='active')void notificationPermissionGranted(true).then(granted=>setNotificationProblem(!granted)).catch(()=>setNotificationProblem(true));
       if(command.type==='STOP')setNotificationProblem(false);
     } catch(error) {
       const message=error instanceof Error&&error.message==='DRIVER_API_ACCESS_BLOCKED'?'Driver service is unavailable. Try again when connected.':error instanceof Error?error.message:'Background location could not start.';
@@ -88,6 +94,7 @@ export default function App() {
       backgrounded.current=false;
     }).catch(()=>{});};
     const subscription=AppState.addEventListener('change',state=>{if(state==='active')check();else backgrounded.current=true;});
+    check();
     return()=>subscription.remove();
   },[]);
   const restoreLocation=useCallback(async()=>{
