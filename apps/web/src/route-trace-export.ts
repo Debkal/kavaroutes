@@ -17,7 +17,7 @@ export function googleMapsRouteUrl(points:readonly TraceExportFix[]):string|null
 }
 
 export function traceKml(day:string,points:readonly TraceExportFix[]):string{
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!points.length||points.length>500||points.some(point=>!Number.isFinite(point.latitude)||!Number.isFinite(point.longitude)||Math.abs(point.latitude)>90||Math.abs(point.longitude)>180||!Number.isFinite(Date.parse(point.capturedAt))))throw new Error('INVALID_TRACE_EXPORT');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||!points.length||points.length>100000||points.some(point=>!Number.isFinite(point.latitude)||!Number.isFinite(point.longitude)||Math.abs(point.latitude)>90||Math.abs(point.longitude)>180||!Number.isFinite(Date.parse(point.capturedAt))))throw new Error('INVALID_TRACE_EXPORT');
   const segments:TraceExportFix[][]=[];
   for(const point of points){const previous=segments.at(-1)?.at(-1);
     if(!previous||Date.parse(point.capturedAt)-Date.parse(previous.capturedAt)>90_000||point.window!==previous.window)segments.push([]);

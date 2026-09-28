@@ -45,7 +45,7 @@ export function TracePlot({track,history=false}:{track:Track;history?:boolean}){
     {segments.map((segment,index)=>segment.length>1?<polyline key={index} points={segment.map(i=>{const p=plot(i);return `${p.x.toFixed(1)},${p.y.toFixed(1)}`;}).join(' ')} className="driver-trace-line" fill="none"/>:null)}
     <circle cx={start.x} cy={start.y} r="5" className="driver-trace-start"><title>First visible fix</title></circle>
     <circle cx={end.x} cy={end.y} r="7" className="driver-trace-marker"><title>Latest saved fix</title></circle>
-  </svg><figcaption>{history?'Recorded GPS path':'Recent GPS path'} · {points.length} saved fix{points.length===1?'':'es'}{gaps?` · ${gaps} unobserved gap${gaps===1?'':'s'}`:''}. This geographic plot has no street background. The server returns at most the latest 500 fixes; lines are not snapped to roads.</figcaption></figure>;
+  </svg><figcaption>{history?'Recorded GPS path':'Recent GPS path'} · {points.length} saved fix{points.length===1?'':'es'}{gaps?` · ${gaps} unobserved gap${gaps===1?'':'s'}`:''}. This geographic plot has no street background. Lines follow reported coordinates and are not snapped to roads.</figcaption></figure>;
 }
 
 const stateCopy=(track:Track)=>{

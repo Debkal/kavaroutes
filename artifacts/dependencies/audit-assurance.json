@@ -1,8 +1,8 @@
 {
   "schemaVersion": "kavaroutes.dependency-assurance.v1",
-  "evidenceDate": "2026-09-18",
-  "lockSha256": "9dc868364ff4c545141c6791c66f4bce78afd47f6455c958017e3190809d38c8",
-  "componentCount": 1116,
+  "evidenceDate": "2026-09-27",
+  "lockSha256": "2b6102db863229325b776ffca68bfe5d2ab69decbb354ddf8e05e8c8adc60139",
+  "componentCount": 1119,
   "advisoryCheck": {
     "command": "npm audit --json --audit-level=moderate",
     "online": true,

@@ -5,6 +5,7 @@ export * from "./accounting.js";
 export * from "./dispatch-tracking.js";
 export * from "./dispatch-route-history.js";
 export * from "./dispatch-trace-map.js";
+export * from "./dispatch-tiled-map.js";
 // Exported so a guarded host can compose its own authenticated scope with the
 // same principal semantics as the wp007 lifecycle plugin.
 export { contextPrincipal, type RequestGuard } from "./api-lifecycle.js";

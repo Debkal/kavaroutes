@@ -148,6 +148,60 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
         return {shiftReference:shiftId,serviceDate,clientId,fixCount:Number(value.fixCount),mapImageUrl:value.mapImageUrl as string|null};
       });
     },
+    fullTrace(serviceDate:string,shiftId:string,clientId:string|null){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate)||!uuid.test(shiftId)||(clientId!==null&&!uuid.test(clientId)))throw new Error('INVALID_TRACE_REFERENCE');
+      const query=clientId?`?clientId=${clientId}`:'';
+      return transport.request(`${prefix}/dispatch/full-trace/${serviceDate}/shifts/${shiftId}${query}`,body=>{
+        const v=object(body);
+        if(v.shiftReference!==shiftId||v.serviceDate!==serviceDate||v.clientId!==clientId||typeof v.truncated!=='boolean'||
+          !Number.isSafeInteger(v.fixCount)||Number(v.fixCount)<0||Number(v.fixCount)>100000||!Array.isArray(v.points)||v.points.length!==v.fixCount)throw new Error('INVALID_FULL_TRACE');
+        const points=v.points.map(raw=>{const p=object(raw);
+          if(typeof p.latitude!=='number'||Math.abs(p.latitude)>85||typeof p.longitude!=='number'||Math.abs(p.longitude)>180||
+            (p.accuracyMeters!==null&&(typeof p.accuracyMeters!=='number'||p.accuracyMeters<0))||
+            typeof p.capturedAt!=='string'||!Number.isFinite(Date.parse(p.capturedAt))||!Number.isSafeInteger(p.window)||Number(p.window)<0)throw new Error('INVALID_FULL_TRACE');
+          return {latitude:p.latitude,longitude:p.longitude,accuracyMeters:p.accuracyMeters as number|null,capturedAt:p.capturedAt,window:Number(p.window)};
+        });
+        return {shiftReference:shiftId,serviceDate,clientId,truncated:v.truncated,fixCount:Number(v.fixCount),points};
+      });
+    },
+    traceMatch(serviceDate:string,shiftId:string,clientId:string|null){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate)||!uuid.test(shiftId)||(clientId!==null&&!uuid.test(clientId)))throw new Error('INVALID_TRACE_REFERENCE');
+      const query=clientId?`?clientId=${clientId}`:'';
+      return transport.request(`${prefix}/dispatch/trace-match/${serviceDate}/shifts/${shiftId}${query}`,body=>{
+        const v=object(body);
+        if(!['PENDING','READY','PARTIAL','UNAVAILABLE'].includes(String(v.status))||!Array.isArray(v.segments)||v.segments.length>1000)throw new Error('INVALID_TRACE_MATCH');
+        const segments=v.segments.map(raw=>{
+          if(!Array.isArray(raw)||raw.length<2||raw.length>100000)throw new Error('INVALID_TRACE_MATCH');
+          return raw.map(coordinate=>{
+            if(!Array.isArray(coordinate)||coordinate.length!==2||typeof coordinate[0]!=='number'||Math.abs(coordinate[0])>85||typeof coordinate[1]!=='number'||Math.abs(coordinate[1])>180)throw new Error('INVALID_TRACE_MATCH');
+            return [coordinate[0],coordinate[1]] as [number,number];
+          });
+        });
+        return {status:v.status as 'PENDING'|'READY'|'PARTIAL'|'UNAVAILABLE',segments};
+      });
+    },
+    mapTile(z:number,x:number,y:number){
+      if(!Number.isInteger(z)||z<4||z>19||!Number.isInteger(x)||x<0||x>=2**z||!Number.isInteger(y)||y<0||y>=2**z)throw new Error('INVALID_MAP_TILE');
+      return transport.request(`${prefix}/dispatch/map-tiles/${z}/${x}/${y}`,body=>{
+        const v=object(body);
+        if(typeof v.imageUrl!=='string'||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(v.imageUrl)||v.imageUrl.length>400025)throw new Error('INVALID_MAP_TILE');
+        return {imageUrl:v.imageUrl};
+      });
+    },
+    mapTiles(tiles:readonly {z:number;x:number;y:number}[]){
+      if(!tiles.length||tiles.length>32||tiles.some(({z,x,y})=>!Number.isInteger(z)||z<4||z>19||!Number.isInteger(x)||x<0||x>=2**z||!Number.isInteger(y)||y<0||y>=2**z))throw new Error('INVALID_MAP_TILE_BATCH');
+      const encoded=tiles.map(({z,x,y})=>`${z},${x},${y}`).join(';');
+      return transport.request(`${prefix}/dispatch/map-tiles/batch?tiles=${encodeURIComponent(encoded)}`,body=>{
+        const v=object(body);
+        if(!Array.isArray(v.tiles)||v.tiles.length!==tiles.length)throw new Error('INVALID_MAP_TILE_BATCH');
+        return {tiles:v.tiles.map((raw,index)=>{
+          const row=object(raw),expected=tiles[index]!;
+          if(row.z!==expected.z||row.x!==expected.x||row.y!==expected.y||
+            (row.imageUrl!==null&&(typeof row.imageUrl!=='string'||!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(row.imageUrl)||row.imageUrl.length>400025)))throw new Error('INVALID_MAP_TILE_BATCH');
+          return {z:expected.z,x:expected.x,y:expected.y,imageUrl:row.imageUrl as string|null};
+        })};
+      });
+    },
     routeProposals(shiftId:string){if(!uuid.test(shiftId))throw new Error('INVALID_SHIFT');return transport.request(`${prefix}/dispatch/shifts/${shiftId}/route-proposals`,body=>decodeRouteView(body,shiftId));},
     decideRoute(command:{proposalId:string;decision:'APPROVED'|'REJECTED';expectedRunVersion:number;expectedTag:string;key:string}){
       if(!uuid.test(command.proposalId))throw new Error('INVALID_PROPOSAL');

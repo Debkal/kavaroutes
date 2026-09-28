@@ -1,10 +1,17 @@
-import {it,expect} from 'vitest';
+import {it,expect,vi} from 'vitest';
 import {render,screen,fireEvent,within} from '@testing-library/react';
 import {MemoryRouter} from 'react-router';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import {DispatchRouteHistory} from '../src/components/DispatchRouteHistory';
 import {routeHistoryRows} from '../src/route-history-csv';
 import {csvBody,csvCell} from '../src/csv';
+
+vi.mock('leaflet',()=>{
+  const layer=()=>({addTo(){return this;},bindTooltip(){return this;}});
+  return {default:{map:()=>({remove(){},removeLayer(){},fitBounds(){},invalidateSize(){}}),
+    TileLayer:{extend:()=>class{addTo(){}}},layerGroup:layer,polyline:layer,circleMarker:layer,
+    latLngBounds:()=>({extend(){},pad(){return this;}})}};
+});
 
 const day='2026-09-25',shift='11111111-1111-4111-8111-111111111111',driver='22222222-2222-4222-8222-222222222222';
 const run='33333333-3333-4333-8333-333333333333',tripA='44444444-4444-4444-8444-444444444444',tripB='55555555-5555-4555-8555-555555555555';
@@ -21,7 +28,9 @@ const history={serviceDate:day,truncated:false,tripClients:[{tripId:tripA,client
   event('DRIVER_ACTION','MARK_EN_ROUTE',legB,4,'APPLIED'),event('DRIVER_ACTION','COMPLETE_LEG',legB,6,'APPLIED'),event('SHIFT_CLOSURE','SIGN_OFF',null,7,'PASS'),
 ]};
 const api={tracking:async()=>({value:{serviceDate:day,shifts:[track]}}),board:async()=>({value:board}),routeHistory:async()=>({value:history}),
-  routeTraceMap:async()=>({value:{shiftReference:shift,serviceDate:day,clientId:null,fixCount:0,mapImageUrl:null}})};
+  fullTrace:async(_day:string,_shift:string,selectedClient:string|null)=>({value:{shiftReference:shift,serviceDate:day,clientId:selectedClient,
+    truncated:false,fixCount:selectedClient?1:3,points:(selectedClient?[trace[1]!]:trace).map(point=>({...point,window:selectedClient?1:0}))}}),
+  traceMatch:async()=>({value:{status:'UNAVAILABLE',segments:[]}}),mapTile:async()=>({value:{imageUrl:'data:image/png;base64,cG5n'}})};
 
 it('filters real client accounts and bounds the displayed GPS fixes to their leg actions',async()=>{
   const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
@@ -32,7 +41,7 @@ it('filters real client accounts and bounds the displayed GPS fixes to their leg
   fireEvent.change(screen.getByRole('combobox',{name:'Filter route history by client'}),{target:{value:clientA}});
   expect(screen.getByText('Rider A')).toBeInTheDocument();
   expect(screen.queryByText('Rider B')).not.toBeInTheDocument();
-  expect(await screen.findByRole('img',{name:/trace of 1 fix/})).toBeInTheDocument();
+  expect(await screen.findByRole('region',{name:/Interactive street map/})).toBeInTheDocument();
   expect(screen.getByText('GPS fix log (1 fix)')).toBeInTheDocument();
   const eventList=screen.getByRole('list',{name:/recorded route events/i});
   expect(within(eventList).queryByText(/Rider B/)).not.toBeInTheDocument();

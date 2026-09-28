@@ -442,6 +442,27 @@
     },
     {
       "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/full-trace/{serviceDate}/shifts/{shiftId}",
+      "operationId": "getDispatchFullTrace",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/v1/organizations/{organizationId}/dispatch/legs/{legId}/road-route",
       "operationId": "getDispatchRoadRouteSelection",
       "statuses": [
@@ -504,6 +525,48 @@
         "502",
         "503",
         "504"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/map-tiles/{z}/{x}/{y}",
+      "operationId": "getDispatchMapTile",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/map-tiles/batch",
+      "operationId": "getDispatchMapTileBatch",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
       ],
       "security": [
         {
@@ -759,6 +822,27 @@
       "method": "GET",
       "path": "/v1/organizations/{organizationId}/dispatch/trace-map/{serviceDate}/shifts/{shiftId}",
       "operationId": "getDispatchTraceMap",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/trace-match/{serviceDate}/shifts/{shiftId}",
+      "operationId": "getDispatchTraceMatch",
       "statuses": [
         "200",
         "400",

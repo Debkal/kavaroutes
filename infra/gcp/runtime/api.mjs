@@ -15,6 +15,7 @@ import { validateConfig, tenantId, branchScopeReference } from './config.mjs';
 import {createDriverSessions} from './driver-sessions.mjs';
 import {createGeoapifyRoadRoutingService} from './road-routing.mjs';
 import {createGeoapifyDispatchTraceMapService} from './dispatch-trace-map.mjs';
+import {createDispatchTiledMapServices} from './dispatch-tiled-map.mjs';
 import {registerDriverAdmin} from './driver-admin.mjs';
 import {registerDriverAccessManagement} from './driver-access-management.mjs';
 
@@ -30,6 +31,7 @@ export async function createRuntimeApi(input) {
   const verifier={verify:authorization=>sessions.verify(authorization)};
   const driverLogins=createPostgresDriverLoginService(pool,{allowUnauthenticatedLogin:true});
   const application = createWp007PostgresApplication(pool, { etagSecret: config.etagSecret });
+  const tiledMap=createDispatchTiledMapServices(pool,{apiKey:process.env.GEOAPIFY_API_KEY});
   const checkDatabase = async () => { await verifyRuntimeDatabase(pool, 'api'); await application.listTrips(tenantId, { limit: 1 }); };
   const app = await createWp007Api({ application, driverItineraryReader: createDriverItineraryReader(pool),
     browserRecoveryService:createPostgresBrowserRecoveryService(pool,{application,dispatchService:createPostgresDispatchService(pool,{etag:application.etag}),routeProposalService:createPostgresRouteProposalService(pool),driverClosureService:createPostgresDriverClosureService(pool)}),
@@ -52,6 +54,7 @@ export async function createRuntimeApi(input) {
     dispatchTrackingReader: createDispatchTrackingReader(pool),
     dispatchRouteHistoryReader: createDispatchRouteHistoryReader(pool),
     dispatchTraceMapService:createGeoapifyDispatchTraceMapService(pool,{apiKey:process.env.GEOAPIFY_API_KEY}),
+    dispatchFullTraceReader:tiledMap.trace,dispatchMapMatchService:tiledMap.match,dispatchMapTileService:tiledMap.tile,dispatchMapTileBatchService:tiledMap.tileBatch,
     accountingService: createPostgresAccountingApiService(pool),
     verifier, etagSecret: config.etagSecret, cursorSecret: `synthetic-cursor-secret-${config.cursorSecret}` });
   const store = createPostgresRealtimeStore(pool, createTestOnlyCursorCodec({ secret: config.cursorSecret }));
@@ -74,7 +77,7 @@ export async function createRuntimeApi(input) {
     if(process.env.KR_CLOUD_LOCAL_TEST==='1'&&/^\/v1\/organizations\/[^/]+\/driver\/shifts\/[^/]+\/synthetic-location-batches$/.test(path))return;
     // Live driver positioning: the driver's device reports fixes and dispatch reads the
     // day's map. Coordinates stay inside these two authorized routes.
-    const locationPath=/^\/v1\/organizations\/[^/]+\/(?:driver\/shifts\/[^/]+\/location-batches|dispatch\/(?:tracking|route-history)\/\d{4}-\d{2}-\d{2}|dispatch\/trace-map\/\d{4}-\d{2}-\d{2}\/shifts\/[^/]+)$/.test(path);
+    const locationPath=/^\/v1\/organizations\/[^/]+\/(?:driver\/shifts\/[^/]+\/location-batches|dispatch\/(?:tracking|route-history)\/\d{4}-\d{2}-\d{2}|dispatch\/(?:trace-map|full-trace|trace-match)\/\d{4}-\d{2}-\d{2}\/shifts\/[^/]+|dispatch\/map-tiles\/(?:batch|\d+\/\d+\/\d+))$/.test(path);
     // The money surface: costing, estimates, payer invoices and client history.
     const accountingPath=/^\/v1\/organizations\/[^/]+\/(?:billing\/(?:cost-profile(?:\/commands\/update)?|estimates\/\d{4}-\d{2}-\d{2}|invoices(?:\/commands\/create|\/[^/]+(?:\/commands\/forward)?)?)|clients\/[^/]+\/history)$/.test(path);
     const roadRoutingPath=/^\/v1\/organizations\/[^/]+\/(?:dispatch\/legs\/[^/]+\/road-route(?:\/preview|\/commands\/select)?|dispatch\/pickup-timezones\/resolve|driver\/legs\/[^/]+\/road-route)$/.test(path);

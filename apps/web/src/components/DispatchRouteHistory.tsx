@@ -36,6 +36,8 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
     return board.data?.value.legs.some(leg=>leg.runId===runId&&clientForTrip.get(leg.tripId)?.clientId===clientId)??false;
   });
   const detail=completed.find(track=>track.shiftReference===selected)??completed[0]??null;
+  const fullTrace=useQuery({queryKey:['private-cloud','dispatch-full-trace',day,detail?.shiftReference,clientId],
+    queryFn:()=>api.fullTrace(day,detail!.shiftReference,clientId||null),enabled:enabled&&!!detail,retry:false,staleTime:60_000});
   const runId=detail?runOf(detail.shiftReference):null;
   const legs=(board.data?.value.legs??[]).filter(leg=>leg.runId===runId&&(!clientId||clientForTrip.get(leg.tripId)?.clientId===clientId));
   const legIds=new Set(legs.map(leg=>leg.tripLegId));
@@ -45,15 +47,17 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
     const end=applied(detailEvents,leg.tripLegId,'COMPLETE_LEG')??applied(detailEvents,leg.tripLegId,'MARK_RIDER_NO_SHOW');
     return start?[[Date.parse(start.occurredAt),Date.parse(end?.occurredAt??detail?.lastCapturedAt??start.occurredAt)] as const]:[];
   }):[];
-  const trace=detail?(clientId?detail.trace.filter(point=>intervals.some(([start,end])=>Date.parse(point.capturedAt)>=start&&Date.parse(point.capturedAt)<=end)):detail.trace):[];
-  const shownTrack=detail?{...detail,trace,position:trace.at(-1)??null}:null;
+  const trace=fullTrace.data?.value.points??[];
+  const recentTrace=detail?(clientId?detail.trace.filter(point=>intervals.some(([start,end])=>Date.parse(point.capturedAt)>=start&&Date.parse(point.capturedAt)<=end)):detail.trace):[];
+  const shownTrace=fullTrace.data?trace:recentTrace;
+  const shownTrack=detail?{...detail,trace:shownTrace,position:shownTrace.at(-1)??null}:null;
   const loading=tracks.isPending||board.isPending||history.isPending;
   const failed=tracks.isError||board.isError||history.isError;
-  const refresh=()=>{void Promise.all([tracks.refetch(),board.refetch(),history.refetch()]);};
+  const refresh=()=>{void Promise.all([tracks.refetch(),board.refetch(),history.refetch(),fullTrace.refetch()]);};
   const exportSelected=()=>{if(!detail||!board.data||!history.data)return;
     downloadCsv(`kavaroutes-route-history-${day}-${detail.shiftReference.slice(0,8)}.csv`,routeHistoryRows({day,track:detail,board:board.data.value,history:history.data.value,trace,legIds:legs.map(leg=>leg.tripLegId)}));};
   const exportMap=()=>{if(!detail||!trace.length)return;
-    const mapped=trace.map(point=>({...point,window:clientId?intervals.findIndex(([start,end])=>Date.parse(point.capturedAt)>=start&&Date.parse(point.capturedAt)<=end):0}));
+    const mapped=trace.map(point=>({...point,window:point.window}));
     downloadTraceKml(`kavaroutes-gps-${day}-${detail.shiftReference.slice(0,8)}.kml`,traceKml(day,mapped));};
   return <section id="route-history" className="workspace-card route-history" aria-label="Completed route history">
     <div className="section-heading"><div><p className="eyebrow">Dispatch records</p><h2>Route history</h2>
@@ -61,6 +65,8 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
       <button type="button" disabled={!enabled||tracks.isFetching||board.isFetching||history.isFetching} onClick={refresh}>Refresh history</button></div>
     {loading&&enabled&&<p role="status">Loading route history for {day}…</p>}
     {failed&&<p role="alert">Some route history data could not load. Retry before relying on this report or exporting it.</p>}
+    {fullTrace.isError&&detail&&<p role="alert">The selected shift’s full GPS trace could not load; GPS exports are unavailable.</p>}
+    {fullTrace.data?.value.truncated&&<p role="alert">The selected shift exceeds 100,000 GPS fixes. Its displayed trace and GPS exports are incomplete.</p>}
     {history.data?.value.truncated&&<p role="alert">This service day has more than 3,000 recorded events. The event list and CSV are incomplete.</p>}
     <div className="route-history-filters"><label>Driver <select aria-label="Filter route history by driver" value={driverId} onChange={event=>{setDriverId(event.target.value);setSelected(null);}}>
       <option value="">All drivers</option>{[...new Map(allCompleted.map(track=>[track.driverId,track.driverLabel])).entries()].sort((a,b)=>a[1].localeCompare(b[1])).map(([id,name])=><option key={id} value={id}>{name}</option>)}
@@ -73,14 +79,14 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
         aria-pressed={detail?.shiftReference===track.shiftReference} onClick={()=>setSelected(track.shiftReference)}>
         <strong>{track.driverLabel}</strong><span className="status status-completed">Completed</span>
         <small>{track.vehicleLabel??'Vehicle unavailable'} · {shiftBandLabel(track.plannedStartAt,track.serviceTimezone)}</small>
-        <small>{track.trace.length} saved fix{track.trace.length===1?'':'es'} · last {stamp(track.lastCapturedAt,track.serviceTimezone)}</small>
+        <small>{track.shiftReference===detail?.shiftReference&&fullTrace.data?fullTrace.data.value.fixCount.toLocaleString():`${track.trace.length}${track.trace.length===500?'+':''}`} saved fix{track.trace.length===1?'':'es'} · last {stamp(track.lastCapturedAt,track.serviceTimezone)}</small>
       </button>)}</div>
       {detail&&shownTrack&&<article key={detail.shiftReference} className="driver-track route-history-detail">
         <header><div><h3>{detail.driverLabel} · {shiftBandLabel(detail.plannedStartAt,detail.serviceTimezone)}</h3>
           <p>{detail.vehicleLabel??'Vehicle unavailable'} · started {stamp(detail.startedAt,detail.serviceTimezone)} · {detail.serviceTimezone}</p></div>
           <span className="status status-completed">Completed</span></header>
-        <div className="route-history-exports"><button type="button" disabled={!board.data||!history.data||failed} onClick={exportSelected}>Export selected history CSV</button>
-          <button type="button" disabled={!trace.length} onClick={exportMap}>Export GPS for Google My Maps (KML)</button></div>
+        <div className="route-history-exports"><button type="button" disabled={!board.data||!history.data||failed||fullTrace.isPending||fullTrace.isError} onClick={exportSelected}>Export selected history CSV</button>
+          <button type="button" disabled={!fullTrace.data||!trace.length} onClick={exportMap}>Export GPS for Google My Maps (KML)</button></div>
         <p className="form-hint">Run {runId??'unavailable'} · {legs.length} trip leg{legs.length===1?'':'s'} shown · {detailEvents.length} recorded event{detailEvents.length===1?'':'s'}.</p>
         <h4>Trip legs</h4>{legs.length===0?<p role="status">No trip legs are linked to this recorded shift.</p>:<ol className="route-history-legs">{legs.map(leg=><li key={leg.tripLegId}>
           <strong>{leg.riderLabel}</strong><span>{clientForTrip.get(leg.tripId)?.clientLabel??'No client account linked'} · {leg.pickupLabel} → {leg.dropoffLabel}</span>
@@ -98,13 +104,14 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
         {trace.length>0&&<p className="form-hint">For the exact recorded path, import the KML file into <a href="https://www.google.com/maps/d/" target="_blank" rel="noopener noreferrer">Google My Maps</a>. The Google Maps directions link uses sampled points and may choose different roads.</p>}
         <dl><dt>First saved fix</dt><dd>{stamp(trace[0]?.capturedAt??null,detail.serviceTimezone)}</dd>
           <dt>Last saved fix</dt><dd>{stamp(trace.at(-1)?.capturedAt??null,detail.serviceTimezone)}</dd>
-          <dt>Fixes shown</dt><dd>{trace.length}{!clientId&&detail.trace.length===500?' (latest 500)':''}</dd></dl>
+          <dt>Fixes shown</dt><dd>{trace.length}{fullTrace.isPending?' (loading full trace)':''}</dd></dl>
         {trace.length>0&&<details className="route-fix-log"><summary>GPS fix log ({trace.length} fix{trace.length===1?'':'es'})</summary>
           <p className="form-hint">A gap over 90 seconds is unobserved travel, not a drawn route segment.</p>
           <div className="table-scroll" tabIndex={0} role="group" aria-label="Scrollable GPS fix log"><table><thead><tr><th scope="col">Fix</th><th scope="col">Captured</th><th scope="col">Latitude</th><th scope="col">Longitude</th><th scope="col">Accuracy</th><th scope="col">Gap</th></tr></thead>
-            <tbody>{trace.map((point,index)=>{const gap=gapSeconds(point,trace[index-1]);return <tr key={`${point.capturedAt}-${index}`}><th scope="row">{index+1}</th><td>{stamp(point.capturedAt,detail.serviceTimezone)}</td><td>{point.latitude.toFixed(5)}</td><td>{point.longitude.toFixed(5)}</td><td>{point.accuracyMeters===null?'Unknown':`±${Math.round(point.accuracyMeters)} m`}</td><td>{gap>90?`${gap} s unobserved`:'—'}</td></tr>;})}</tbody></table></div>
+            <tbody>{trace.slice(0,1000).map((point,index)=>{const gap=gapSeconds(point,trace[index-1]);return <tr key={`${point.capturedAt}-${index}`}><th scope="row">{index+1}</th><td>{stamp(point.capturedAt,detail.serviceTimezone)}</td><td>{point.latitude.toFixed(5)}</td><td>{point.longitude.toFixed(5)}</td><td>{point.accuracyMeters===null?'Unknown':`±${Math.round(point.accuracyMeters)} m`}</td><td>{gap>90?`${gap} s unobserved`:'—'}</td></tr>;})}</tbody></table></div>
+          {trace.length>1000&&<p className="form-hint">Showing the first 1,000 fixes in this table. The map and exports include all {trace.length.toLocaleString()} loaded fixes.</p>}
         </details>}
-        <p className="form-hint">The street map follows saved GPS fixes without road snapping. The server returns at most the latest 500 fixes during raw-location retention; older positions may be unavailable.</p>
+        <p className="form-hint">The map loads every retained GPS fix for the selected shift and can align observed movement to roads. Reporting gaps stay open; older raw locations may still be subject to retention.</p>
       </article>}</div>}
   </section>;
 }

@@ -39,6 +39,7 @@ import type { CancelTripRequest, DriverActionBatch, LocationBatch, PushRegistrat
 import { DispatchTrackingSchema } from "./dispatch-tracking.js";
 import {DispatchRouteHistorySchema,type DispatchRouteHistoryReader} from './dispatch-route-history.js';
 import {DispatchTraceMapSchema,type DispatchTraceMapService} from './dispatch-trace-map.js';
+import {DispatchFullTraceSchema,DispatchMapMatchSchema,DispatchMapTileSchema,DispatchMapTileBatchSchema,type DispatchFullTraceReader,type DispatchMapMatchService,type DispatchMapTileService,type DispatchMapTileBatchService} from './dispatch-tiled-map.js';
 import { ClientHistorySchema, CostProfileUpdateReceiptSchema, CostProfileUpdateRequestSchema, CostProfileViewSchema, InvoiceCreateRequestSchema,
   InvoiceForwardReceiptSchema, InvoiceForwardRequestSchema, InvoiceListSchema, InvoiceReceiptSchema, InvoiceViewSchema, ServiceDayEstimatesSchema,
   type AccountingApiService } from "./accounting.js";
@@ -113,6 +114,10 @@ export interface Wp007ApiOptions {
   readonly dispatchTrackingReader?: DispatchTrackingReader;
   readonly dispatchRouteHistoryReader?: DispatchRouteHistoryReader;
   readonly dispatchTraceMapService?: DispatchTraceMapService;
+  readonly dispatchFullTraceReader?:DispatchFullTraceReader;
+  readonly dispatchMapMatchService?:DispatchMapMatchService;
+  readonly dispatchMapTileService?:DispatchMapTileService;
+  readonly dispatchMapTileBatchService?:DispatchMapTileBatchService;
   /** Route costing, payer invoices and client history: the money surface. */
   readonly accountingService?: AccountingApiService;
   readonly pushRegistrationService?: ReturnType<typeof createRegistrationService>;
@@ -795,6 +800,72 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     request.wp007Context.resultCode='DISPATCH_TRACE_MAP_RETURNED';
     try{return reply.send(await options.dispatchTraceMapService({organizationId,serviceDate,shiftId,clientId:clientId??null,
       viewport:viewParts===3?{latitude:centerLat!,longitude:centerLon!,zoom:zoom!}:null}));}
+    catch(error){if(error instanceof RoadRoutingError)throw new ProtocolError(error.statusCode,error.code,error.code);throw error;}
+  });
+  const TiledTraceParams=Type.Object({organizationId:Type.Ref(OpaqueIdSchema),serviceDate:Type.String({format:'date',maxLength:10}),shiftId:Type.String({format:'uuid'})},{additionalProperties:false});
+  const TiledTraceQuery=Type.Object({clientId:Type.Optional(Type.String({format:'uuid'}))},{additionalProperties:false});
+  routes.get('/v1/organizations/:organizationId/dispatch/full-trace/:serviceDate/shifts/:shiftId',{schema:{
+    operationId:'getDispatchFullTrace',tags:['dispatch'],security,headers:AuthorizationHeaders,params:TiledTraceParams,querystring:TiledTraceQuery,
+    response:responseWithErrors({200:jsonResponse(DispatchFullTraceSchema,'All retained GPS fixes for a selected shift')},[400,401,403,404,406,429,500,503]),
+  }},async(request,reply)=>{
+    const {organizationId,serviceDate,shiftId}=request.params as {organizationId:string;serviceDate:string;shiftId:string};
+    const {clientId}=request.query as {clientId?:string};
+    await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',
+      branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchFullTrace');
+    if(!options.dispatchFullTraceReader)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','full trace unavailable');
+    request.wp007Context.resultCode='DISPATCH_FULL_TRACE_RETURNED';
+    try{return reply.send(await options.dispatchFullTraceReader({organizationId,serviceDate,shiftId,clientId:clientId??null}));}
+    catch(error){if(error instanceof RoadRoutingError)throw new ProtocolError(error.statusCode,error.code,error.code);throw error;}
+  });
+  routes.get('/v1/organizations/:organizationId/dispatch/trace-match/:serviceDate/shifts/:shiftId',{schema:{
+    operationId:'getDispatchTraceMatch',tags:['dispatch'],security,headers:AuthorizationHeaders,params:TiledTraceParams,querystring:TiledTraceQuery,
+    response:responseWithErrors({200:jsonResponse(DispatchMapMatchSchema,'Road-aligned geometry for recorded GPS fixes')},[400,401,403,404,406,429,500,503]),
+  }},async(request,reply)=>{
+    const {organizationId,serviceDate,shiftId}=request.params as {organizationId:string;serviceDate:string;shiftId:string};
+    const {clientId}=request.query as {clientId?:string};
+    await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',
+      branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchTraceMatch');
+    if(!options.dispatchMapMatchService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','map matching unavailable');
+    request.wp007Context.resultCode='DISPATCH_TRACE_MATCH_RETURNED';
+    try{return reply.send(await options.dispatchMapMatchService({organizationId,serviceDate,shiftId,clientId:clientId??null}));}
+    catch(error){if(error instanceof RoadRoutingError)throw new ProtocolError(error.statusCode,error.code,error.code);throw error;}
+  });
+  routes.get('/v1/organizations/:organizationId/dispatch/map-tiles/:z/:x/:y',{schema:{
+    operationId:'getDispatchMapTile',tags:['dispatch'],security,headers:AuthorizationHeaders,
+    params:Type.Object({organizationId:Type.Ref(OpaqueIdSchema),z:Type.Integer({minimum:4,maximum:19}),x:Type.Integer({minimum:0}),y:Type.Integer({minimum:0})},{additionalProperties:false}),
+    querystring:Type.Object({},{additionalProperties:false}),
+    response:responseWithErrors({200:jsonResponse(DispatchMapTileSchema,'Cached street map tile')},[400,401,403,404,406,429,500,503]),
+  }},async(request,reply)=>{
+    const {organizationId,z,x,y}=request.params as {organizationId:string;z:number;x:number;y:number};
+    await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',
+      branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchMapTile');
+    if(x>=2**z||y>=2**z)throw new ProtocolError(400,'INVALID_MAP_TILE','tile coordinates outside zoom level');
+    if(!options.dispatchMapTileService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','map tile unavailable');
+    request.wp007Context.resultCode='DISPATCH_MAP_TILE_RETURNED';
+    try{return reply.send(await options.dispatchMapTileService({z,x,y}));}
+    catch(error){if(error instanceof RoadRoutingError)throw new ProtocolError(error.statusCode,error.code,error.code);throw error;}
+  });
+  routes.get('/v1/organizations/:organizationId/dispatch/map-tiles/batch',{schema:{
+    operationId:'getDispatchMapTileBatch',tags:['dispatch'],security,headers:AuthorizationHeaders,
+    params:OrganizationParams,querystring:Type.Object({tiles:Type.String({minLength:5,maxLength:640,pattern:'^[0-9,;]+$'})},{additionalProperties:false}),
+    response:responseWithErrors({200:jsonResponse(DispatchMapTileBatchSchema,'Cached street map tiles for one viewport')},[400,401,403,404,406,429,500,503]),
+  }},async(request,reply)=>{
+    const {organizationId}=request.params as {organizationId:string};
+    const {tiles:encoded}=request.query as {tiles:string};
+    await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',
+      branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchMapTileBatch');
+    const parts=encoded.split(';');
+    if(parts.length<1||parts.length>32)throw new ProtocolError(400,'INVALID_MAP_TILE_BATCH','invalid map tile batch');
+    const tiles=parts.map(part=>{
+      const match=/^(\d{1,2}),(\d{1,6}),(\d{1,6})$/.exec(part);
+      if(!match)throw new ProtocolError(400,'INVALID_MAP_TILE_BATCH','invalid map tile coordinates');
+      const z=Number(match[1]),x=Number(match[2]),y=Number(match[3]);
+      if(z<4||z>19||x>=2**z||y>=2**z)throw new ProtocolError(400,'INVALID_MAP_TILE_BATCH','map tile outside zoom level');
+      return {z,x,y};
+    });
+    if(!options.dispatchMapTileBatchService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','map tiles unavailable');
+    request.wp007Context.resultCode='DISPATCH_MAP_TILES_RETURNED';
+    try{return reply.send(await options.dispatchMapTileBatchService({tiles}));}
     catch(error){if(error instanceof RoadRoutingError)throw new ProtocolError(error.statusCode,error.code,error.code);throw error;}
   });
   routes.get("/v1/organizations/:organizationId/driver/shifts/assignments/:assignmentId", { schema: {

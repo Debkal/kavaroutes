@@ -20,6 +20,7 @@ import { DriverLocationBatchRequestSchema, DriverLocationReceiptSchema, DriverLo
 import { DispatchShiftTrackSchema, DispatchTrackPointSchema, DispatchTrackingSchema } from "./dispatch-tracking.js";
 import {DispatchRouteHistoryEventSchema,DispatchRouteHistorySchema} from './dispatch-route-history.js';
 import {DispatchTraceMapSchema} from './dispatch-trace-map.js';
+import {DispatchFullTraceSchema,DispatchMapMatchSchema,DispatchMapTileSchema,DispatchMapTileBatchSchema} from './dispatch-tiled-map.js';
 import { ClientHistorySchema, ClientHistoryTripSchema, CostProfileUpdateReceiptSchema, CostProfileUpdateRequestSchema, CostProfileViewSchema,
   InvoiceCreateRequestSchema, InvoiceForwardReceiptSchema, InvoiceForwardRequestSchema, InvoiceListSchema, InvoiceReceiptSchema,
   InvoiceLineSchema, InvoiceSummarySchema, InvoiceViewSchema, RouteCostProfileSchema, ServiceDayEstimateTripSchema, ServiceDayEstimatesSchema } from "./accounting.js";
@@ -60,5 +61,5 @@ export const allSchemas: readonly TSchema[] = Object.freeze([
   RoadRouteGoalSchema, RoadRoutePreviewRequestSchema, RoadRouteSelectRequestSchema, RoadRouteSelectionSchema, RoadRoutePreviewSchema, RoadRouteDriverViewSchema,
   PickupTimezoneRequestSchema, PickupTimezoneSchema,
   BrowserCommandEnvelopeSchema, BrowserCommandPrepareSchema, BrowserCommandViewSchema, BrowserCommandPendingSchema,
-  DispatchRouteHistoryEventSchema,DispatchRouteHistorySchema,DispatchTraceMapSchema,
+  DispatchRouteHistoryEventSchema,DispatchRouteHistorySchema,DispatchTraceMapSchema,DispatchFullTraceSchema,DispatchMapMatchSchema,DispatchMapTileSchema,DispatchMapTileBatchSchema,
 ]);

@@ -6232,6 +6232,26 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40types%2Freact-dom@19.2.3",
+      "name": "@types/react-dom",
+      "version": "19.2.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40types%2Freact-dom@19.2.3",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40types%2Freact-dom@19.2.5",
       "name": "@types/react-dom",
       "version": "19.2.5",
@@ -14392,6 +14412,26 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/leaflet@1.9.4",
+      "name": "leaflet",
+      "version": "1.9.4",
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD-2-Clause"
+          }
+        }
+      ],
+      "purl": "pkg:npm/leaflet@1.9.4",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "BSD-2-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/leven@3.1.0",
       "name": "leven",
       "version": "3.1.0",
@@ -17983,6 +18023,26 @@
         }
       ],
       "purl": "pkg:npm/react-native-screens@4.26.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/react-native-webview@13.16.1",
+      "name": "react-native-webview",
+      "version": "13.16.1",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/react-native-webview@13.16.1",
       "properties": [
         {
           "name": "kavaroutes:license-review",
