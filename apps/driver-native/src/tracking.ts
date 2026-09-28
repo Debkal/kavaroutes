@@ -57,7 +57,7 @@ async function responseJson(response:Response):Promise<Record<string,unknown>> {
 async function serverShiftIsActive(binding:Binding):Promise<boolean> {
   const response=await fetch(url(binding,'status'),{headers:await headers(binding),credentials:'omit',cache:'no-store'});
   if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('DRIVER_API_ACCESS_BLOCKED');
-  if (!response.ok) throw new Error(response.status===401?'DRIVER_SESSION_EXPIRED':'SHIFT_STATUS_UNAVAILABLE');
+  if (!response.ok) throw new Error(response.status===401?'DRIVER_SESSION_EXPIRED':`SHIFT_STATUS_HTTP_${response.status}`);
   const body=await responseJson(response);
   if (body.shiftReference!==binding.shiftReference||body.driverId!==binding.driverId||body.shiftGeneration!==binding.shiftGeneration) throw new Error('SHIFT_IDENTITY_MISMATCH');
   return body.lifecycle==='ACTIVE'&&body.collectionStopped===false;
@@ -127,10 +127,12 @@ async function upload():Promise<Status> {
     if (!first.batch_ref) await tx.runAsync('UPDATE samples SET batch_ref=? WHERE sequence IN (SELECT sequence FROM samples WHERE batch_ref IS NULL ORDER BY sequence LIMIT 60)',batchReference);
     rows=await tx.getAllAsync<Sample>('SELECT * FROM samples WHERE batch_ref=? ORDER BY sequence LIMIT 60',batchReference);
   });
-  if (!rows.length) return {state:'active',message:'Waiting for a GPS fix.'};
+  if (!rows.length) return state?.last_upload_at
+    ? {state:'active',message:'Background location is running. Waiting for the next GPS fix.'}
+    : {state:'delayed',message:'Waiting for the first GPS fix. Turn on precise location and keep Driver open.'};
   const samples=rows.map(row=>({sampleId:row.sample_id,sequence:row.sequence,capturedAt:row.captured_at,latitude:row.latitude,longitude:row.longitude,accuracyMeters:row.accuracy_meters}));
   const response=await fetch(url(binding,'location-batches'),{method:'POST',headers:{...await headers(binding),'content-type':'application/json','idempotency-key':`driver-location-${batchReference}`},credentials:'omit',body:JSON.stringify({shiftGeneration:binding.shiftGeneration,batchReference,deviceId:binding.deviceId,samples})});
-  if (!response.ok) throw new Error(response.status===401?'DRIVER_SESSION_EXPIRED':'LOCATION_UPLOAD_DELAYED');
+  if (!response.ok) throw new Error(response.status===401?'DRIVER_SESSION_EXPIRED':`LOCATION_UPLOAD_HTTP_${response.status}`);
   const receipt=await responseJson(response);
   if (receipt.shiftReference!==binding.shiftReference||receipt.batchReference!==batchReference||!Array.isArray(receipt.items)||receipt.items.length!==rows.length||receipt.items.some((item,index)=>!item||typeof item!=='object'||item.sampleId!==rows[index]?.sample_id||!['APPLIED','REPLAYED','REJECTED'].includes(item.outcome))) throw new Error('LOCATION_RECEIPT_INVALID');
   await db.withExclusiveTransactionAsync(async tx=>{
@@ -141,8 +143,28 @@ async function upload():Promise<Status> {
 }
 
 export async function flushTracking():Promise<Status> {
-  uploadPromise ??= upload().catch(error=>({state:'delayed' as const,message:error instanceof Error&&error.message==='DRIVER_SESSION_EXPIRED'?'Driver session expired. Sign in again to resume uploads.':error instanceof Error&&error.message==='DRIVER_API_ACCESS_BLOCKED'?'Driver service is unavailable. Reopen Driver and try again.':'Location uploads are delayed. Keep the Driver app open and contact Dispatch if this continues.'})).finally(()=>{uploadPromise=null;});
+  uploadPromise ??= upload().catch(error=>{
+    const code=error instanceof Error?error.message:'';
+    const message=code==='DRIVER_SESSION_EXPIRED'?'Driver session expired. Sign in again to resume uploads.'
+      :code==='DRIVER_API_ACCESS_BLOCKED'?'Driver service is unavailable. Reopen Driver and try again.'
+      :/^SHIFT_STATUS_HTTP_\d{3}$/.test(code)?`Shift status check failed (${code}). Keep Driver open and contact Dispatch.`
+      :/^LOCATION_UPLOAD_HTTP_\d{3}$/.test(code)?`GPS upload was rejected (${code}). Keep Driver open and contact Dispatch.`
+      :code==='LOCATION_RECEIPT_INVALID'?'GPS upload receipt was invalid. Keep Driver open and contact Dispatch.'
+      :code==='LOCATION_STORAGE_UNAVAILABLE'?'Phone location storage is unavailable. Reopen Driver and contact Dispatch.'
+      :'Location uploads are delayed (network or device error). Keep Driver open and contact Dispatch.';
+    return {state:'delayed' as const,message};
+  }).finally(()=>{uploadPromise=null;});
   return uploadPromise;
+}
+
+async function primeLocation(binding:Binding) {
+  try {
+    const point=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High});
+    const current=await readBinding();
+    if(!current||current.shiftReference!==binding.shiftReference||current.shiftGeneration!==binding.shiftGeneration)return;
+    await saveLocations([point],current);
+    await flushTracking();
+  } catch { /* The foreground service retries with the next GPS fix. */ }
 }
 
 export async function startTracking(input:Omit<Binding,'deviceId'>):Promise<Status> {
@@ -163,7 +185,9 @@ export async function startTracking(input:Omit<Binding,'deviceId'>):Promise<Stat
   await SecureStore.setItemAsync(BINDING,JSON.stringify({...input,deviceId}),STORE_OPTIONS);
   try {await Location.startLocationUpdatesAsync(TASK,{
       accuracy:Location.Accuracy.High,
-      distanceInterval:30,
+      // A minimum movement distance suppresses every fix while parked or
+      // waiting. Keep fixes flowing; upload() still batches to once a minute.
+      distanceInterval:0,
       timeInterval:15_000,
       deferredUpdatesInterval:60_000,
       showsBackgroundLocationIndicator:true,
@@ -175,6 +199,7 @@ export async function startTracking(input:Omit<Binding,'deviceId'>):Promise<Stat
       else await SecureStore.deleteItemAsync(BINDING);
       throw error;
     }
+  void primeLocation({...input,deviceId});
   return {state:'active',message:'Background location is on, including while Google Maps is open.'};
 }
 

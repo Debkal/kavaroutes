@@ -77,7 +77,7 @@ export default function App() {
       const status=command.type==='PREPARE'?await prepareTracking(askBackground,()=>setPermissionStep('foreground')):command.type==='STATUS'?await trackingStatus():command.type==='STOP'?await stopTracking():command.type==='RESUME'?await resumeTracking():await startTracking({token:command.token!,organizationId:command.organizationId!,driverId:command.driverId!,shiftReference:command.shiftReference!,shiftGeneration:command.shiftGeneration!,loginId:command.loginId!});
       setTrackingProblem(status.issue?status:null);
       reply(command.requestId,status);
-      if (command.type==='START'||command.type==='STATUS') void flushTracking();
+      if (command.type==='START') void flushTracking();
       if(command.type==='STOP')setNotificationProblem(false);
     } catch(error) {
       const message=error instanceof Error&&error.message==='DRIVER_API_ACCESS_BLOCKED'?'Driver service is unavailable. Try again when connected.':error instanceof Error?error.message:'Background location could not start.';

@@ -154,11 +154,12 @@ export function Component() {
 
   useEffect(() => {
     if (!nativeDriver || !signedIn || shift?.lifecycle !== 'ACTIVE') return;
-    const check = () => { if (document.visibilityState === 'visible') void nativeDriverCommand({type:'STATUS'}).then(setNativeTracking).catch(() => setNativeTracking({state:'delayed',message:'Could not confirm phone tracking. Reopen Driver or contact Dispatch.'})); };
+    const check = () => { void nativeDriverCommand({type:'STATUS'}).then(setNativeTracking).catch(() => setNativeTracking({state:'delayed',message:'Could not confirm phone tracking. Reopen Driver or contact Dispatch.'})); };
     check();
     const timer=window.setInterval(check,60_000);
     document.addEventListener('visibilitychange',check);
-    return () => {window.clearInterval(timer);document.removeEventListener('visibilitychange',check);};
+    window.addEventListener('kavaroutes-native-resume',check);
+    return () => {window.clearInterval(timer);document.removeEventListener('visibilitychange',check);window.removeEventListener('kavaroutes-native-resume',check);};
   },[nativeDriver,signedIn,shift?.lifecycle]);
   useEffect(()=>{
     if(!nativeDriver||!signedIn||!assignmentId)return;

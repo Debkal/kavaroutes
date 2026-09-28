@@ -16,7 +16,7 @@ itinerary, trip actions, signatures and sign-off.
 
 The native Android login requests foreground location first, then shows an
 in-app Continue button before Android's "Allow all the time" settings screen.
-Notification permission is requested after the shift's GPS service starts so
+Notification permission is requested just before the shift's GPS service starts so
 declining it cannot block sign-in. Grant it to see the ongoing "Driving shift
 active · GPS on" notification in the phone's notification bar.
 
