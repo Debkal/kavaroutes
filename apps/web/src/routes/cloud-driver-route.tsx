@@ -259,6 +259,7 @@ export function Component() {
 
   const submitAction = async (leg: DriverLeg, command: DriverCommand, details?: Record<string, unknown>) => {
     if (!shift || !leg.execution?.expectedTag) return; setBusy(true); setMessage("");
+    let accepted=false;
     try {
       const latest = (await api.shift(shift.effectivePolicy.assignmentId)).value;
       const id = crypto.randomUUID(); const key = `driver-action-${id}`;
@@ -266,13 +267,30 @@ export function Component() {
         resourceReference: leg.tripLegId, expectedTag: leg.execution.expectedTag, idempotencyKey: key, command, ...details } as DriverActionItem;
       const result = await api.action({ deviceSessionId: savedKey("device-session").slice(-36), shiftReference: latest.shiftReference, shiftGeneration: latest.shiftGeneration, items: [item] }, `driver-batch-${id}`);
       const receipt = result.value.items[0]; if (!receipt || receipt.outcome === "REJECTED") throw new Error(receipt?.code ?? "DRIVER_ACTION_REJECTED");
-      setSignatureEvent(null); setMessage(`${label(command)} accepted by dispatch.`); await refresh(latest.effectivePolicy.assignmentId);
-    } catch (error) { setMessage(failureText(error, "Trip update was not accepted.")); }
+      accepted=true;
+      setSignatureEvent(null);setMessage(`${label(command)} accepted by Dispatch.`);
+      try {await refresh(latest.effectivePolicy.assignmentId);}
+      catch {setMessage(`${label(command)} accepted by Dispatch. The screen could not refresh; tap Refresh before the next action.`);}
+    } catch (error) {
+      if(accepted)setMessage(`${label(command)} was accepted by Dispatch. Tap Refresh before the next action.`);
+      else {
+        // A lost response may hide an accepted action. Read the leg again before
+        // suggesting a retry, so the driver does not submit it twice.
+        try {
+          const manifest=(await api.itinerary(serviceDate)).value;
+          const current=manifest.legs.find(item=>item.tripLegId===leg.tripLegId);
+          if(current?.execution?.expectedTag&&current.execution.expectedTag!==leg.execution.expectedTag){
+            setItinerary(manifest);setMessage(`${label(command)} was recorded by Dispatch. Continue from the updated trip status.`);
+          } else setMessage(failureText(error,"Trip update was not accepted."));
+        } catch {setMessage(failureText(error,"Trip update outcome is unknown. Tap Refresh before retrying."));}
+      }
+    }
     finally { setBusy(false); }
   };
 
   const submitWorkflow = async (leg: DriverLeg, workflow: DriverWorkflow) => {
     if (!shift) return; setBusy(true); setMessage("");
+    let acceptedSteps=0;
     try {
       let completionMessage = workflow === "PICKUP_COMPLETE"
         ? "Pickup confirmed. Dispatch can see that the client is onboard."
@@ -327,11 +345,18 @@ export function Component() {
           expectedTag: execution.expectedTag, idempotencyKey: `driver-action-${id}`, command, ...details } as DriverActionItem;
         const result = await api.action({ deviceSessionId: savedKey("device-session").slice(-36), shiftReference: latestShift.shiftReference, shiftGeneration: latestShift.shiftGeneration, items: [item] }, `driver-batch-${id}`);
         const receipt = result.value.items[0]; if (!receipt || receipt.outcome === "REJECTED") throw new Error(receipt?.code ?? "DRIVER_ACTION_REJECTED");
+        acceptedSteps+=1;
       }
       setSignatureEvent(null);
       setMessage(completionMessage);
-      await refresh(shift.effectivePolicy.assignmentId);
-    } catch (error) { setMessage(failureText(error, "Trip update was not accepted.")); }
+      try {await refresh(shift.effectivePolicy.assignmentId);}
+      catch {setMessage(`${completionMessage} The screen could not refresh; tap Refresh before the next action.`);}
+    } catch (error) {
+      if(acceptedSteps){
+        try {await refresh(shift.effectivePolicy.assignmentId);} catch { /* The accepted steps remain recorded. */ }
+        setMessage(`Dispatch recorded ${acceptedSteps} trip step${acceptedSteps===1?'':'s'}, but the next step could not finish. Tap Refresh and review the current status before retrying.`);
+      } else setMessage(failureText(error,"Trip update was not accepted."));
+    }
     finally { setBusy(false); }
   };
 

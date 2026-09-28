@@ -112,34 +112,50 @@ async function saveLocations(locations:Location.LocationObject[],binding:Binding
 }
 
 async function upload():Promise<Status> {
-  const binding=await readBinding();
-  if (!binding) return {state:'stopped',message:'Location sharing is stopped.'};
-  const db=await database();
-  const state=await db.getFirstAsync<{last_upload_at:number}>('SELECT last_upload_at FROM state WHERE id=1');
-  if (state && Date.now()-state.last_upload_at<60_000) return {state:'active',message:'Background location is running. Dispatch receives updates about once a minute.'};
-  if (!(await serverShiftIsActive(binding))) {await stopTracking();return {state:'stopped',message:'Shift ended; location sharing stopped.'};}
-  let rows:Sample[]=[];
-  let batchReference='';
-  await db.withExclusiveTransactionAsync(async tx=>{
-    const first=await tx.getFirstAsync<{batch_ref:string|null}>('SELECT batch_ref FROM samples ORDER BY sequence LIMIT 1');
-    if (!first) return;
-    batchReference=first.batch_ref??randomUUID();
-    if (!first.batch_ref) await tx.runAsync('UPDATE samples SET batch_ref=? WHERE sequence IN (SELECT sequence FROM samples WHERE batch_ref IS NULL ORDER BY sequence LIMIT 60)',batchReference);
-    rows=await tx.getAllAsync<Sample>('SELECT * FROM samples WHERE batch_ref=? ORDER BY sequence LIMIT 60',batchReference);
-  });
-  if (!rows.length) return state?.last_upload_at
-    ? {state:'active',message:'Background location is running. Waiting for the next GPS fix.'}
-    : {state:'delayed',message:'Waiting for the first GPS fix. Turn on precise location and keep Driver open.'};
-  const samples=rows.map(row=>({sampleId:row.sample_id,sequence:row.sequence,capturedAt:row.captured_at,latitude:row.latitude,longitude:row.longitude,accuracyMeters:row.accuracy_meters}));
-  const response=await fetch(url(binding,'location-batches'),{method:'POST',headers:{...await headers(binding),'content-type':'application/json','idempotency-key':`driver-location-${batchReference}`},credentials:'omit',body:JSON.stringify({shiftGeneration:binding.shiftGeneration,batchReference,deviceId:binding.deviceId,samples})});
-  if (!response.ok) throw new Error(response.status===401?'DRIVER_SESSION_EXPIRED':`LOCATION_UPLOAD_HTTP_${response.status}`);
-  const receipt=await responseJson(response);
-  if (receipt.shiftReference!==binding.shiftReference||receipt.batchReference!==batchReference||!Array.isArray(receipt.items)||receipt.items.length!==rows.length||receipt.items.some((item,index)=>!item||typeof item!=='object'||item.sampleId!==rows[index]?.sample_id||!['APPLIED','REPLAYED','REJECTED'].includes(item.outcome))) throw new Error('LOCATION_RECEIPT_INVALID');
-  await db.withExclusiveTransactionAsync(async tx=>{
-    await tx.runAsync('DELETE FROM samples WHERE batch_ref=?',batchReference);
-    await tx.runAsync('UPDATE state SET last_upload_at=? WHERE id=1',Date.now());
-  });
-  return {state:'active',message:'Background location is running. Dispatch receives updates about once a minute.'};
+  let stage='binding';
+  try {
+    const binding=await readBinding();
+    if (!binding) return {state:'stopped',message:'Location sharing is stopped.'};
+    stage='storage';
+    const db=await database();
+    stage='state';
+    const state=await db.getFirstAsync<{last_upload_at:number}>('SELECT last_upload_at FROM state WHERE id=1');
+    if (state && Date.now()-state.last_upload_at<60_000) return {state:'active',message:'Background location is running. Dispatch receives updates about once a minute.'};
+    stage='shift-check';
+    if (!(await serverShiftIsActive(binding))) {await stopTracking();return {state:'stopped',message:'Shift ended; location sharing stopped.'};}
+    let rows:Sample[]=[];
+    let batchReference='';
+    stage='queue';
+    await db.withExclusiveTransactionAsync(async tx=>{
+      const first=await tx.getFirstAsync<{batch_ref:string|null}>('SELECT batch_ref FROM samples ORDER BY sequence LIMIT 1');
+      if (!first) return;
+      batchReference=first.batch_ref??randomUUID();
+      if (!first.batch_ref) await tx.runAsync('UPDATE samples SET batch_ref=? WHERE sequence IN (SELECT sequence FROM samples WHERE batch_ref IS NULL ORDER BY sequence LIMIT 60)',batchReference);
+      rows=await tx.getAllAsync<Sample>('SELECT * FROM samples WHERE batch_ref=? ORDER BY sequence LIMIT 60',batchReference);
+    });
+    if (!rows.length) return state?.last_upload_at
+      ? {state:'active',message:'Background location is running. Waiting for the next GPS fix.'}
+      : {state:'delayed',message:'Waiting for the first GPS fix. Turn on precise location and keep Driver open.'};
+    const samples=rows.map(row=>({sampleId:row.sample_id,sequence:row.sequence,capturedAt:row.captured_at,latitude:row.latitude,longitude:row.longitude,accuracyMeters:row.accuracy_meters}));
+    stage='send';
+    const response=await fetch(url(binding,'location-batches'),{method:'POST',headers:{...await headers(binding),'content-type':'application/json','idempotency-key':`driver-location-${batchReference}`},credentials:'omit',body:JSON.stringify({shiftGeneration:binding.shiftGeneration,batchReference,deviceId:binding.deviceId,samples})});
+    if (!response.ok) throw new Error(response.status===401?'DRIVER_SESSION_EXPIRED':`LOCATION_UPLOAD_HTTP_${response.status}`);
+    stage='receipt';
+    const receipt=await responseJson(response);
+    if (receipt.shiftReference!==binding.shiftReference||receipt.batchReference!==batchReference||!Array.isArray(receipt.items)||receipt.items.length!==rows.length||receipt.items.some((item,index)=>!item||typeof item!=='object'||item.sampleId!==rows[index]?.sample_id||!['APPLIED','REPLAYED','REJECTED'].includes(item.outcome))) throw new Error('LOCATION_RECEIPT_INVALID');
+    stage='commit';
+    await db.withExclusiveTransactionAsync(async tx=>{
+      await tx.runAsync('DELETE FROM samples WHERE batch_ref=?',batchReference);
+      await tx.runAsync('UPDATE state SET last_upload_at=? WHERE id=1',Date.now());
+    });
+    return {state:'active',message:'Background location is running. Dispatch receives updates about once a minute.'};
+  } catch(error) {
+    const known=error instanceof Error&&/^(?:DRIVER_SESSION_EXPIRED|DRIVER_API_ACCESS_BLOCKED|SHIFT_STATUS_HTTP_\d{3}|LOCATION_UPLOAD_HTTP_\d{3}|LOCATION_RECEIPT_INVALID|LOCATION_STORAGE_UNAVAILABLE)$/.test(error.message);
+    if(known)throw error;
+    // Never include raw platform exceptions: they can contain request URLs or
+    // database internals. A bounded stage names the failing operation instead.
+    throw new Error(`LOCATION_STAGE_${stage.toUpperCase().replaceAll('-','_')}_FAILED`);
+  }
 }
 
 export async function flushTracking():Promise<Status> {
@@ -151,6 +167,7 @@ export async function flushTracking():Promise<Status> {
       :/^LOCATION_UPLOAD_HTTP_\d{3}$/.test(code)?`GPS upload was rejected (${code}). Keep Driver open and contact Dispatch.`
       :code==='LOCATION_RECEIPT_INVALID'?'GPS upload receipt was invalid. Keep Driver open and contact Dispatch.'
       :code==='LOCATION_STORAGE_UNAVAILABLE'?'Phone location storage is unavailable. Reopen Driver and contact Dispatch.'
+      :/^LOCATION_STAGE_(?:BINDING|STORAGE|STATE|SHIFT_CHECK|QUEUE|SEND|RECEIPT|COMMIT)_FAILED$/.test(code)?`GPS update failed at ${code.replace('LOCATION_STAGE_','').replace('_FAILED','').replaceAll('_',' ').toLowerCase()} (${code}). Keep Driver open and contact Dispatch.`
       :'Location uploads are delayed (network or device error). Keep Driver open and contact Dispatch.';
     return {state:'delayed' as const,message};
   }).finally(()=>{uploadPromise=null;});

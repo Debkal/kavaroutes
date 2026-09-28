@@ -5,7 +5,7 @@ base=/home/chewy/emulation
 sdk="$base/sdk"
 adb="$sdk/platform-tools/adb"
 emulator="$sdk/emulator/emulator"
-apk=${2:-/home/chewy/kavaroutes/artifacts/mobile-builds/kararoutes_driverv019.apk}
+apk=${2:-/home/chewy/kavaroutes/artifacts/mobile-builds/kararoutes_driverv020.apk}
 mode=${1:-smoke}
 export ANDROID_HOME="$sdk" ANDROID_SDK_ROOT="$sdk" ANDROID_AVD_HOME="$base/avd"
 export ANDROID_USER_HOME="$base/android-user" ANDROID_EMULATOR_HOME="$base/android-user"
@@ -41,8 +41,10 @@ if [[ -r /dev/kvm && -w /dev/kvm ]]; then accel=on; fi
 "$emulator" @KR_API_35 -no-window -gpu swiftshader -accel "$accel" -no-audio -no-boot-anim -no-snapshot -port 5554 -memory 2048 -cores 2 >"$base/logs/emulator.log" 2>&1 &
 emulator_pid=$!
 cleanup() {
-  "$adb" -P 5037 -s emulator-5554 emu kill >/dev/null 2>&1 || true
+  timeout 10 "$adb" -P 5037 -s emulator-5554 emu kill >/dev/null 2>&1 || true
   kill "$emulator_pid" 2>/dev/null || true
+  sleep 1
+  kill -KILL "$emulator_pid" 2>/dev/null || true
   wait "$emulator_pid" 2>/dev/null || true
   if [[ -n $adb_pid ]]; then kill "$adb_pid" 2>/dev/null || true; wait "$adb_pid" 2>/dev/null || true; fi
 }
