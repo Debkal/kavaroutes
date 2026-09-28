@@ -32,6 +32,7 @@ export const RoadRoutePreviewSchema = Type.Object({
   tollEstimate: Type.Union([Type.Null(), Type.Object({ currencyCode: Type.String({ minLength: 3, maxLength: 3 }), amount: Type.Number({ minimum: 0 }) }, { additionalProperties: false })]),
   tollsExpected: Type.Boolean(), maneuverCount: Type.Integer({ minimum: 0 }),
   pathFingerprint: Type.String({ pattern: '^[a-f0-9]{64}$' }),
+  encodedPolyline: Type.String({ minLength: 2, maxLength: 50000 }),
   steps: Type.Array(Type.Object({ instruction: Type.String({ minLength: 1, maxLength: 500 }), maneuver: Type.String({ maxLength: 60 }), distanceMeters: Type.Integer({ minimum: 0 }) }, { additionalProperties: false }), { maxItems: 300 }),
   mapImageUrl: Type.Union([Type.String({ pattern: '^data:image/png;base64,[A-Za-z0-9+/=]+$', maxLength: 600025 }), Type.Null()]),
   googleMapsUrl: Type.String({ pattern: '^https://www\\.google\\.com/maps/dir/\\?api=1&', maxLength: 2048 }),

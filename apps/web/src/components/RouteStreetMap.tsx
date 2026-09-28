@@ -5,23 +5,12 @@ import 'leaflet/dist/leaflet.css';
 import type {createCloudApi} from '../cloud-api';
 import {googleMapsRouteUrl} from '../route-trace-export';
 import {distanceByWindow,miles} from '../route-distance';
+import {addAuthorizedStreetTiles} from './authorized-street-tiles';
 
 type Api=ReturnType<typeof createCloudApi>;
 type Track=Awaited<ReturnType<Api['tracking']>>['value']['shifts'][number];
 type Point=Track['trace'][number]&{window?:number};
 export const legColor=(window:number)=>window===0?'#65758a':['#17637c','#a13f67','#8c631b','#614ba5','#2e7658'][(window-1)%5]!;
-const TILE_CACHE=new Map<string,string>();
-let tileCacheBytes=0;
-function rememberTile(key:string,imageUrl:string){
-  const prior=TILE_CACHE.get(key);
-  if(prior){tileCacheBytes-=prior.length;TILE_CACHE.delete(key);}
-  while(TILE_CACHE.size&&(TILE_CACHE.size>=256||tileCacheBytes+imageUrl.length>16*1024*1024)){
-    const oldest=TILE_CACHE.keys().next().value!;
-    tileCacheBytes-=TILE_CACHE.get(oldest)!.length;TILE_CACHE.delete(oldest);
-  }
-  if(imageUrl.length<=16*1024*1024){TILE_CACHE.set(key,imageUrl);tileCacheBytes+=imageUrl.length;}
-}
-
 function split(points:readonly Point[]):{window:number;coords:[number,number][]}[]{
   const segments:{window:number;coords:[number,number][]}[]=[];
   for(let i=0;i<points.length;i++){
@@ -66,41 +55,8 @@ export function RouteStreetMap({api,day,track,clientId=null,history=false,select
     if(!container.current||!points.length||map.current)return;
     const instance=L.map(container.current,{minZoom:4,maxZoom:19,zoomControl:true,preferCanvas:true});
     map.current=instance;
-    const waiting=new Map<string,{coords:{z:number;x:number;y:number};listeners:{img:HTMLImageElement;done:(error:Error|null,tile:HTMLImageElement)=>void}[]}>();
-    let timer:number|undefined;
-    const deliver=(key:string,imageUrl:string|null,listeners:{img:HTMLImageElement;done:(error:Error|null,tile:HTMLImageElement)=>void}[])=>{
-      if(imageUrl){
-        rememberTile(key,imageUrl);
-      }
-      for(const {img,done} of listeners){
-        if(imageUrl)img.src=imageUrl;
-        else{setTileError(true);done(new Error('MAP_TILE_UNAVAILABLE'),img);}
-      }
-    };
-    const flush=()=>{
-      timer=undefined;
-      const batch=[...waiting.entries()].slice(0,32);
-      for(const [key] of batch)waiting.delete(key);
-      if(waiting.size)timer=window.setTimeout(flush,16);
-      if(!batch.length)return;
-      void api.mapTiles(batch.map(([,item])=>item.coords)).then(result=>{
-        batch.forEach(([key,item],index)=>deliver(key,result.value.tiles[index]?.imageUrl??null,item.listeners));
-      }).catch(()=>batch.forEach(([key,item])=>deliver(key,null,item.listeners)));
-    };
-    const AuthorizedTiles=L.TileLayer.extend({createTile(coords:{z:number;x:number;y:number},done:(error:Error|null,tile:HTMLImageElement)=>void){
-      const img=document.createElement('img');img.alt='';img.width=256;img.height=256;
-      const key=`${coords.z}/${coords.x}/${coords.y}`;
-      img.onload=()=>done(null,img);img.onerror=()=>{setTileError(true);done(new Error('MAP_TILE_UNAVAILABLE'),img);};
-      const cached=TILE_CACHE.get(key);
-      if(cached){rememberTile(key,cached);img.src=cached;return img;}
-      const queued=waiting.get(key);
-      if(queued)queued.listeners.push({img,done});
-      else waiting.set(key,{coords,listeners:[{img,done}]});
-      if(timer===undefined)timer=window.setTimeout(flush,16);
-      return img;
-    }});
-    new AuthorizedTiles('',{tileSize:256,maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · <a href="https://www.geoapify.com/">Geoapify</a>'}).addTo(instance);
-    return()=>{if(timer!==undefined)window.clearTimeout(timer);waiting.clear();instance.remove();map.current=null;overlay.current=null;};
+    const removeTiles=addAuthorizedStreetTiles(instance,api,()=>setTileError(true));
+    return()=>{removeTiles();instance.remove();map.current=null;overlay.current=null;};
   },[api,points.length>0,day,track.shiftReference,clientId]);
 
   useEffect(()=>{

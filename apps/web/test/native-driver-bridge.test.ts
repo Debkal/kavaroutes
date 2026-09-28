@@ -36,3 +36,18 @@ test('native replies are matched to the initiating command',async()=>{
   target.dispatchEvent(new CustomEvent('kavaroutes-native-reply',{detail:{requestId:command.requestId,state:'active',message:'Background location on'}}));
   await expect(result).resolves.toEqual({state:'active',message:'Background location on'});
 });
+
+test('location permission can take longer than twenty seconds without failing sign-in',async()=>{
+  vi.useFakeTimers();
+  try {
+    const {target,sent}=driverWindow();
+    const result=nativeDriverCommand({type:'PREPARE'});
+    const requestId=(JSON.parse(sent[0]!) as {requestId:string}).requestId;
+    let settled=false;
+    void result.finally(()=>{settled=true;});
+    await vi.advanceTimersByTimeAsync(20_001);
+    expect(settled).toBe(false);
+    target.dispatchEvent(new CustomEvent('kavaroutes-native-reply',{detail:{requestId,state:'idle',message:'Location ready'}}));
+    await expect(result).resolves.toEqual({state:'idle',message:'Location ready'});
+  } finally {vi.useRealTimers();}
+});

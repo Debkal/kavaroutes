@@ -215,7 +215,7 @@ export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch
         ?'Shortest estimated time among the proposed routes. Traffic is approximate, not live.':'Prefers fewer maneuvers and avoids ferries when practical.';
       return {goal,provider:'GEOAPIFY',distanceMeters:route.distanceMeters,durationSeconds:route.durationSeconds,
         tollEstimate:route.tollEstimate,tollsExpected:route.tollsExpected,maneuverCount:route.maneuverCount,
-        pathFingerprint:digest(route.encoded),steps:route.steps,mapImageUrl,googleMapsUrl:mapsUrl(route.points,goal,row.origin,row.destination),note};
+        pathFingerprint:digest(route.encoded),encodedPolyline:route.encoded,steps:route.steps,mapImageUrl,googleMapsUrl:mapsUrl(route.points,goal,row.origin,row.destination),note};
     },
     async select({organizationId,legId,actorId,goal,expectedVersion,key}){
       if(!configured)throw new RoadRoutingError(503,'MAPS_NOT_CONFIGURED');

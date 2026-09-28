@@ -3,14 +3,27 @@ import {fireEvent,render,screen,waitFor} from '@testing-library/react';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 import {RoadRoutePlanner} from '../src/components/RoadRoutePlanner';
 import {DriverRoadDirections} from '../src/components/DriverRoadDirections';
+import {decodeRoutePolyline} from '../src/components/InteractiveRoadRoutePreview';
+
+vi.mock('leaflet',()=>{
+  const layer=()=>({addTo(){return this;},bindTooltip(){return this;}});
+  return {default:{map:()=>({remove(){},removeLayer(){},fitBounds(){},invalidateSize(){}}),
+    TileLayer:{extend:()=>class{addTo(){}}},polyline:layer,circleMarker:layer,
+    latLngBounds:()=>({pad(){return this;}})}};
+});
 
 const legId='11111111-1111-4111-8111-111111111111';
 const leg={runId:'22222222-2222-4222-8222-222222222222',tripLegId:legId,tripId:'33333333-3333-4333-8333-333333333333',ordinal:1,
   riderLabel:'Rider',pickupLabel:'1 Main St',dropoffLabel:'2 Main St',plannedStartAt:'2026-09-24T15:00:00Z',plannedEndAt:'2026-09-24T16:00:00Z',
   appointmentLengthMinutes:0,tripState:'scheduled',executionId:null,lifecycle:'planned',version:0};
 const preview={goal:'FASTEST',provider:'GEOAPIFY',distanceMeters:10000,durationSeconds:800,tollEstimate:null,tollsExpected:false,
-  maneuverCount:2,pathFingerprint:'a'.repeat(64),steps:[{instruction:'Turn right on Main St',maneuver:'TURN_RIGHT',distanceMeters:200}],
+  maneuverCount:2,pathFingerprint:'a'.repeat(64),encodedPolyline:'_p~iF~ps|U_ulLnnqC_mqNvxq`@',steps:[{instruction:'Turn right on Main St',maneuver:'TURN_RIGHT',distanceMeters:200}],
   mapImageUrl:'data:image/png;base64,aGVsbG8=',googleMapsUrl:'https://www.google.com/maps/dir/?api=1&origin=1%2C2&destination=3%2C4',note:'Estimated.'};
+
+it('decodes the planned street path without fetching another route',()=>{
+  expect(decodeRoutePolyline(preview.encodedPolyline)).toEqual([[38.5,-120.2],[40.7,-120.95],[43.252,-126.453]]);
+  expect(()=>decodeRoutePolyline('invalid')).toThrow('INVALID_ROAD_ROUTE_GEOMETRY');
+});
 
 it('generates a map only after choosing a goal and saves that goal for the driver',async()=>{
   const api={roadRouteSelection:vi.fn(async()=>({value:{goal:null,version:0,selectedAt:null}})),
@@ -20,8 +33,8 @@ it('generates a map only after choosing a goal and saves that goal for the drive
   expect(api.previewRoadRoute).not.toHaveBeenCalled();
   await screen.findByLabelText('Route goal');
   fireEvent.change(screen.getByLabelText('Route goal'),{target:{value:'FASTEST'}});
-  await screen.findByRole('img',{name:/Fastest drive road map/});
-  expect(screen.getByRole('img',{name:/Fastest drive road map/})).toHaveAttribute('src',preview.mapImageUrl);
+  await screen.findByRole('region',{name:/Interactive Fastest drive road map/});
+  expect(screen.getByRole('button',{name:'Fit route'})).toBeInTheDocument();
   expect(api.previewRoadRoute).toHaveBeenCalledWith(legId,'FASTEST');
   fireEvent.click(screen.getByRole('button',{name:'Choose for driver'}));
   await screen.findByText(/Route choice saved/);

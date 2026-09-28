@@ -1689,6 +1689,11 @@
             "minimum": 1,
             "type": "integer"
           },
+          "encodedPolyline": {
+            "maxLength": 50000,
+            "minLength": 2,
+            "type": "string"
+          },
           "goal": {
             "anyOf": [
               {
@@ -1814,6 +1819,7 @@
           "tollsExpected",
           "maneuverCount",
           "pathFingerprint",
+          "encodedPolyline",
           "steps",
           "mapImageUrl",
           "googleMapsUrl",

@@ -575,7 +575,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'previewDispatchRoadRoute');
       const {goal}=request.body as {goal:RoadRouteGoal};
       reply.header('cache-control','no-store');request.wp007Context.resultCode='ROAD_ROUTE_PREVIEW_RETURNED';
-      return reply.send(await guarded(()=>service().preview({organizationId,legId,goal,includeMap:true})));
+      return reply.send(await guarded(()=>service().preview({organizationId,legId,goal,includeMap:false})));
     });
     routes.post(base+'/commands/select',{bodyLimit:1024,schema:{operationId:'selectDispatchRoadRoute',tags:['dispatch'],security,headers:IdempotentHeaders,params,body:RoadRouteSelectRequestSchema,response:responseWithErrors({200:jsonResponse(RoadRouteSelectionSchema,'Saved road-route goal for the assigned driver')},[400,401,403,404,406,409,412,413,415,422,429,500,503])}},async(request,reply)=>{
       const {organizationId,legId}=request.params as {organizationId:string;legId:string};

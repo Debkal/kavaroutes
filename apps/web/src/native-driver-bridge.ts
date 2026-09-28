@@ -12,7 +12,10 @@ export function nativeDriverCommand(command: Command): Promise<NativeTrackingSta
   if (!nativeDriverAvailable()) return Promise.reject(new Error('NATIVE_DRIVER_UNAVAILABLE'));
   const requestId = crypto.randomUUID();
   return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => { cleanup(); reject(new Error('NATIVE_DRIVER_TIMEOUT')); }, 20_000);
+    // Android may open Settings for "Allow all the time". The WebView stays
+    // alive, but the driver needs time to grant permission and return to it.
+    const timeoutMs = command.type === 'PREPARE' ? 5 * 60_000 : command.type === 'START' || command.type === 'RESUME' ? 60_000 : 20_000;
+    const timeout = window.setTimeout(() => { cleanup(); reject(new Error('NATIVE_DRIVER_TIMEOUT')); }, timeoutMs);
     const listener = (event: Event) => {
       const detail = (event as CustomEvent).detail as {requestId?: string; state?: NativeTrackingState; message?: string; error?: string;token?:string;organizationId?:string;driverId?:string;loginId?:string} | undefined;
       if (detail?.requestId !== requestId) return;

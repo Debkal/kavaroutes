@@ -148,7 +148,7 @@ test('dispatch chooses a road-route goal and only the assigned driver reads dire
   const legId='40000000-0000-4000-8000-000000000002',calls=[];
   const selected={goal:'LOW_COST',version:1,selectedAt:'2026-09-23T12:00:00.000Z'};
   const preview={goal:'LOW_COST',provider:'GEOAPIFY',distanceMeters:9000,durationSeconds:780,
-    tollEstimate:null,tollsExpected:false,maneuverCount:2,pathFingerprint:'a'.repeat(64),
+    tollEstimate:null,tollsExpected:false,maneuverCount:2,pathFingerprint:'a'.repeat(64),encodedPolyline:'_p~iF~ps|U_ulLnnqC_mqNvxq`@',
     steps:[{instruction:'Turn right on Main St',maneuver:'TURN_RIGHT',distanceMeters:200}],
     mapImageUrl:null,googleMapsUrl:'https://www.google.com/maps/dir/?api=1&origin=1%2C2&destination=3%2C4',
     note:'Prefers toll-free roads.'};
@@ -168,6 +168,8 @@ test('dispatch chooses a road-route goal and only the assigned driver reads dire
   response=await app.inject({method:'POST',url:`${base}/dispatch/legs/${legId}/road-route/preview`,
     headers:{...auth('principal_dispatcher'),'idempotency-key':'route-preview-001'},payload:{goal:'LOW_COST'}});
   assert.equal(response.statusCode,200,response.body);assert.equal(response.json().distanceMeters,9000);
+  assert.equal(response.json().encodedPolyline,preview.encodedPolyline);
+  assert.equal(calls.at(-1)[1].includeMap,false);
   response=await app.inject({method:'POST',url:`${base}/dispatch/legs/${legId}/road-route/commands/select`,
     headers:{...auth('principal_dispatcher'),'idempotency-key':'route-select-001'},payload:{goal:'LOW_COST',expectedVersion:0}});
   assert.equal(response.statusCode,200,response.body);assert.equal(response.json().goal,'LOW_COST');

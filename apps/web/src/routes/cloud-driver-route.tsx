@@ -186,7 +186,11 @@ export function Component() {
         setMessage(choice.hasUnfinished?'Signed in. There is no open shift to resume for this date. Ask Dispatch if you expect another run.':manifest.legs.length?'Signed in. All assigned trips for this date are complete.':'Signed in. No trips are assigned for this service date.');
         return;
       }
-      if (nativeDriver) await nativeDriverCommand({type:'PREPARE'});
+      if (nativeDriver) {
+        setMessage('Waiting for phone location permission. Return to Driver after allowing location at all times.');
+        await nativeDriverCommand({type:'PREPARE'});
+        setMessage('Location is ready. Opening the assigned shift…');
+      }
       else if (!(await sharing.requestSharing()))
         throw new Error("Location sharing is required for an active shift. Allow location for this site, then try again.");
       let state: DriverShiftState;
@@ -208,7 +212,9 @@ export function Component() {
       setSignedIn(true); setItinerary(manifest); setShift(state); setSelectedLeg(leg.tripLegId);
       setClosure((await api.closure(state.shiftReference)).value);
       setMessage(nativeDriver ? 'Signed in. Background location is active for this shift.' : "Signed in. Command control received the shift-start event; browser tracking state is now visible.");
-    } catch (error) { setMessage(failureText(error, "Driver sign-in failed.")); }
+    } catch (error) { setMessage(error instanceof Error && error.message === 'NATIVE_DRIVER_TIMEOUT'
+      ? 'The phone did not finish location setup in time. Return from phone settings and tap Retry opening assigned work; your driver login is still verified.'
+      : failureText(error, "Driver sign-in failed.")); }
     finally { setBusy(false); }
   };
 
@@ -387,6 +393,7 @@ export function Component() {
       {message && <p role="alert" className="driver-error">{message}</p>}
       <DriverLoginPanel api={api} driverReference={invitedDriverId} businessId={businessId} onVerified={(driverId,loginId)=>{const login={driverId,loginId};setVerifiedLogin(login);void signIn(login);}}/>
       {verifiedLogin&&busy&&<p role="status">Login verified. Loading your assigned work…</p>}
+      {verifiedLogin&&!busy&&<button className="driver-secondary" type="button" onClick={()=>void signIn(verifiedLogin)}>Retry opening assigned work</button>}
       <p className="driver-fineprint">{nativeDriver?'Background location runs during an active shift, including while Google Maps is open.':'Keep KavaRoutes open during your shift. Mobile browsers may pause location updates when the screen is locked.'}</p>
     </section>
     {nativeDriver?<NativeLocationPanel status={nativeTracking}/>:<LocationSharingPanel controller={sharing} busy={busy}/>}
