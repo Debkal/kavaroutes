@@ -47,5 +47,15 @@ export function createDriverSessions({synthetic,credentialVersion,allowSynthetic
         subjectId:session.driverId,capabilities:new Set(roleCapabilities.DRIVER),purposes:new Set(rolePurposes.DRIVER),
         branchScopes:new Set([companyBranchScope(session.organizationId)]),fleetScopes:new Set([companyFleetScope(session.organizationId)])});
     },
+    revoke(authorization,organizationId){
+      const match=typeof authorization==='string'?tokenPattern.exec(authorization):null;
+      if(!match)return false;
+      const key=digest(match[1]),session=sessions.get(key);
+      if(!session)return false;
+      if(session.organizationId!==organizationId)return false;
+      sessions.delete(key);
+      persist();
+      return true;
+    },
   });
 }

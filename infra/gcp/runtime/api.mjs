@@ -71,6 +71,7 @@ export async function createRuntimeApi(input) {
     const path = request.url.split('?')[0];
     if(path.startsWith('/driver-admin/'))return;
     if(/^\/v1\/organizations\/[^/]+\/driver-access(?:\/inspection-settings|\/codes(?:\/[^/]+\/(?:reset|disable))?|\/devices\/[^/]+\/signout)?$/.test(path))return;
+    if(/^\/v1\/organizations\/[^/]+\/driver\/session\/commands\/sign-out$/.test(path))return;
     if(/^\/v1\/organizations\/[^/]+\/facility\/(?:days\/\d{4}-\d{2}-\d{2}|trips\/[^/]+)$/.test(path))return;
     if(/^\/v1\/organizations\/[^/]+\/browser-commands(?:\/pending|\/[^/]+\/(?:execute|acknowledge))?$/.test(path))return;
     const routeProposalPath=/^\/v1\/organizations\/[^/]+\/(?:(?:driver|dispatch)\/shifts\/[^/]+\/route-proposals|dispatch\/route-proposals\/[^/]+\/commands\/decide)$/.test(path);
@@ -91,6 +92,12 @@ export async function createRuntimeApi(input) {
     if (!routeProposalPath && !/^\/(health\/ready|v1\/me|v1\/realtime|v1\/organizations\/[^/]+\/(trips(?:\/[^/]+(?:\/commands\/cancel)?)?|clients(?:\/commands\/create|\/[^/]+\/commands\/update)?|fleet\/drivers\/commands\/create|driver-logins\/(?:commands\/(?:create|verify)|[^/]+\/commands\/claim)|dispatch-board\/\d{4}-\d{2}-\d{2}|dispatch\/runs\/(?:[^/]+\/commands\/(?:assign|unassign)|commands\/plan)|driver\/(?:itineraries\/\d{4}-\d{2}-\d{2}|action-batches|shifts\/(?:commands\/start|assignments\/[^/]+|[^/]+\/(?:commands\/precheck|legs\/[^/]+\/evidence\/signatures)))|runtime-dispatch-snapshot|realtime-change-queries))$/.test(path)) {
       return reply.code(503).send({ code: 'RUNTIME_PATH_NOT_PROMOTED' });
     }
+  });
+  app.post('/v1/organizations/:organizationId/driver/session/commands/sign-out',async(request,reply)=>{
+    const organizationId=request.params.organizationId;
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(organizationId))return reply.code(400).send({code:'INVALID_BUSINESS_ID'});
+    if(!sessions.revoke(request.headers.authorization,organizationId))return reply.code(401).send({code:'AUTHENTICATION_REQUIRED'});
+    return {signedOut:true};
   });
   app.get('/health/ready', async (_request, reply) => {
     // The build id is what the served bundle can be compared against, so a stale image

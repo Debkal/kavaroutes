@@ -116,6 +116,11 @@ export default function App() {
     }
     await Linking.openSettings();
   },[]);
+  const reloadDriver=useCallback(()=>{
+    loadedPage.current=null;
+    setLoadError(false);
+    setWebviewGeneration(value=>value+1);
+  },[]);
   const onNavigation=useCallback((request:WebViewNavigation)=>{
     if (request.url==='about:blank') return true;
     if (driverPage(request.url)||safeGateUrl(request.url)) return true;
@@ -132,6 +137,7 @@ export default function App() {
       onNavigationStateChange={state=>{if(!state.loading)loadedPage.current=driverPage(state.url)?state.url:null;}}
       onLoadStart={()=>{loadedPage.current=null;}} onLoadEnd={event=>{loadedPage.current=driverPage(event.nativeEvent.url)?event.nativeEvent.url:null;}} onLoad={()=>setLoadError(false)} javaScriptEnabled domStorageEnabled sharedCookiesEnabled thirdPartyCookiesEnabled
       style={styles.webview}/>
+    {!permissionStep&&!trackingProblem?.issue?<TouchableOpacity accessibilityRole="button" accessibilityLabel="Refresh Driver app" disabled={working} style={styles.refresh} onPress={reloadDriver}><Text style={styles.refreshText}>Refresh</Text></TouchableOpacity>:null}
     {working&&permissionStep!=='background'?<View style={styles.progress}><ActivityIndicator size="small" color="#47756a"/><Text style={styles.progressText}>{permissionStep==='foreground'?'Waiting for phone location permission…':permissionStep==='opening-settings'?'Allow location all the time in phone settings…':'Preparing location…'}</Text></View>:null}
     {permissionStep==='background'?<View style={warningStyles.box} accessibilityRole="alert">
       <Text style={warningStyles.title}>Allow background location</Text>
@@ -148,9 +154,9 @@ export default function App() {
       <Text style={warningStyles.title}>Shift notification is hidden</Text><Text style={warningStyles.copy}>Your location service can keep running, but Android needs notification access to show its ongoing shift and GPS status in the notification bar.</Text>
       <View style={warningStyles.actions}><TouchableOpacity accessibilityRole="button" style={warningStyles.button} onPress={()=>void Linking.openSettings()}><Text style={warningStyles.buttonText}>Enable notifications</Text></TouchableOpacity></View>
     </View>:null}
-    {loadError?<View style={styles.error}><Text style={styles.title}>Driver page unavailable</Text><Text style={styles.copy}>Check your connection, then try again. If a shift is active, background location may still be running.</Text><TouchableOpacity accessibilityRole="button" style={styles.button} onPress={()=>{setLoadError(false);setWebviewGeneration(value=>value+1);}}><Text style={styles.buttonText}>Retry</Text></TouchableOpacity></View>:null}
+    {loadError?<View style={styles.error}><Text style={styles.title}>Driver page unavailable</Text><Text style={styles.copy}>Check your connection, then try again. If a shift is active, background location may still be running.</Text><TouchableOpacity accessibilityRole="button" style={styles.button} onPress={reloadDriver}><Text style={styles.buttonText}>Retry</Text></TouchableOpacity></View>:null}
   </SafeAreaView>;
 }
 
-const styles=StyleSheet.create({shell:{flex:1,backgroundColor:'#f5f8f5',paddingTop:Platform.OS==='android'?(StatusBar.currentHeight??24)+8:0},webview:{flex:1,backgroundColor:'#f5f8f5'},progress:{position:'absolute',top:10,alignSelf:'center',flexDirection:'row',gap:8,alignItems:'center',paddingHorizontal:14,paddingVertical:8,borderRadius:18,backgroundColor:'#fff',elevation:3},progressText:{color:'#35564e',fontSize:13},error:{position:'absolute',top:0,right:0,bottom:0,left:0,justifyContent:'center',padding:30,backgroundColor:'#f5f8f5'},title:{fontSize:25,fontWeight:'700',color:'#24473f',marginBottom:12},copy:{fontSize:16,lineHeight:23,color:'#42564f',marginBottom:24},button:{backgroundColor:'#47756a',paddingVertical:14,borderRadius:10,alignItems:'center'},buttonText:{color:'#fff',fontWeight:'700',fontSize:16}});
+const styles=StyleSheet.create({shell:{flex:1,backgroundColor:'#f5f8f5',paddingTop:Platform.OS==='android'?(StatusBar.currentHeight??24)+8:0},webview:{flex:1,backgroundColor:'#f5f8f5'},refresh:{position:'absolute',top:Platform.OS==='android'?(StatusBar.currentHeight??24)+16:16,right:12,paddingHorizontal:13,paddingVertical:8,borderRadius:99,backgroundColor:'#fff',borderWidth:1,borderColor:'#aabeb3',elevation:4},refreshText:{color:'#24473f',fontSize:13,fontWeight:'700'},progress:{position:'absolute',top:10,alignSelf:'center',flexDirection:'row',gap:8,alignItems:'center',paddingHorizontal:14,paddingVertical:8,borderRadius:18,backgroundColor:'#fff',elevation:3},progressText:{color:'#35564e',fontSize:13},error:{position:'absolute',top:0,right:0,bottom:0,left:0,justifyContent:'center',padding:30,backgroundColor:'#f5f8f5'},title:{fontSize:25,fontWeight:'700',color:'#24473f',marginBottom:12},copy:{fontSize:16,lineHeight:23,color:'#42564f',marginBottom:24},button:{backgroundColor:'#47756a',paddingVertical:14,borderRadius:10,alignItems:'center'},buttonText:{color:'#fff',fontWeight:'700',fontSize:16}});
 const warningStyles=StyleSheet.create({box:{position:'absolute',right:10,bottom:10,left:10,padding:15,borderRadius:12,backgroundColor:'#fff8e8',borderWidth:1,borderColor:'#bf8a45',elevation:5},blocking:{position:'absolute',top:0,right:0,bottom:0,left:0,justifyContent:'center',padding:25,backgroundColor:'#fff8e8'},title:{fontSize:16,fontWeight:'700',color:'#503b1d'},copy:{fontSize:14,lineHeight:19,color:'#503b1d',marginTop:5},actions:{flexDirection:'row',gap:10,marginTop:10},button:{backgroundColor:'#47756a',paddingHorizontal:12,paddingVertical:10,borderRadius:8},buttonText:{color:'#fff',fontWeight:'700'}});

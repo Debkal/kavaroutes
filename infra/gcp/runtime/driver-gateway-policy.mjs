@@ -3,7 +3,7 @@
 // session tokens remain valid for native background tracking without cookies.
 const uuid='[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}';
 const login=new RegExp(`^/v1/organizations/(${uuid})/driver-logins/(?:commands/verify|${uuid}/commands/claim)$`);
-const driver=new RegExp(`^/v1/organizations/${uuid}/driver/(?:itineraries/\\d{4}-\\d{2}-\\d{2}|legs/${uuid}/road-route|action-batches|shifts/(?:commands/start|assignments/${uuid}|${uuid}/(?:status|location-batches|commands/(?:precheck|postcheck|close)|legs/${uuid}/evidence/signatures)))$`);
+const driver=new RegExp(`^/v1/organizations/${uuid}/driver/(?:session/commands/sign-out|itineraries/\\d{4}-\\d{2}-\\d{2}|legs/${uuid}/road-route|action-batches|shifts/(?:commands/start|assignments/${uuid}|${uuid}/(?:status|location-batches|commands/(?:precheck|postcheck|close)|legs/${uuid}/evidence/signatures)))$`);
 const driverSession=/^DriverSession dvs_[A-Za-z0-9_-]{43}$/;
 const adminSession=/^DriverAdmin [A-Za-z0-9_-]{43}$/;
 export function driverGatewayDecision(method,path,authorization,businessId){

@@ -128,7 +128,7 @@ export function Component() {
   const [closure, setClosure] = useState<DriverClosureView | null>(null);
   const [selectedLeg, setSelectedLeg] = useState<string | null>(null);
   const [signatureEvent, setSignatureEvent] = useState<"PICKUP_ATTESTATION" | "DROPOFF_ATTESTATION" | null>(null);
-  const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const [signedIn, setSignedIn] = useState(false);
+  const [busy, setBusy] = useState(false); const [message, setMessage] = useState(()=>{const notice=window.sessionStorage.getItem('driver-sign-out-notice');if(notice)window.sessionStorage.removeItem('driver-sign-out-notice');return notice??'';}); const [signedIn, setSignedIn] = useState(false);
   const [verifiedLogin,setVerifiedLogin]=useState<{driverId:string;loginId:string}|null>(null);
   const [nativeTracking, setNativeTracking] = useState<NativeTrackingStatus>({state:'idle',message:'Location starts when your shift starts.'});
   const [precheckDefault,setPrecheckDefault]=useState<'NO_ISSUE'|'MANUAL'>('MANUAL');
@@ -388,6 +388,24 @@ export function Component() {
     finally { setBusy(false); }
   };
 
+  const signOutDriver = async () => {
+    setBusy(true);setMessage('');
+    try {
+      if(nativeDriver) {
+        const stopped=await nativeDriverCommand({type:'STOP'});
+        if(stopped.state!=='stopped'&&stopped.state!=='idle')throw new Error(stopped.message||'Could not stop phone location. Try again.');
+        setNativeTracking(stopped);
+      } else sharing.stopSharing('SIGNED_OUT');
+      let revoked=true;
+      try {await api.signOut();}
+      catch {revoked=false;api.clearDriverSession();}
+      // A full reload destroys the old in-memory Driver state. Native STOP has
+      // already removed the saved binding, so RESUME cannot sign in again.
+      if(!revoked)window.sessionStorage.setItem('driver-sign-out-notice','Signed out of this phone. Server session revocation could not be confirmed; ask your business admin to sign out this device if needed.');
+      window.location.reload();
+    } catch(error){setMessage(failureText(error,'Could not sign out. Try again.'));setBusy(false);}
+  };
+
   // A recorded exception already covers this shift; pressing sign-off again only adds
   // duplicate RETURN_EXCEPTION rows and makes the reviewer's override look rejected
   // (audit WEB-A-013).
@@ -403,6 +421,7 @@ export function Component() {
       {itinerary.legs.length>0&&<ul>{itinerary.legs.map(leg=><li key={leg.tripLegId}>{leg.riderLabel} · {label(leg.execution?.lifecycle??leg.runLifecycle)}</li>)}</ul>}
     </section>
     {nativeDriver?<NativeLocationPanel status={nativeTracking}/>:<LocationSharingPanel controller={sharing} busy={busy}/>}
+    <DriverSignOut busy={busy} activeShift={false} onSignOut={signOutDriver}/>
   </main>;
   if (!signedIn || !itinerary || !shift) return <main id="main-content" className="driver-shell">
     <section className="driver-welcome"><p className="driver-step">KavaRoutes Driver</p><h1>Start your driving day</h1><p>Sign in, confirm your vehicle, follow today’s itinerary, collect required signatures, and sign off.</p>
@@ -414,6 +433,7 @@ export function Component() {
       <p className="driver-fineprint">{nativeDriver?'Background location runs during an active shift, including while Google Maps is open.':'Keep KavaRoutes open during your shift. Mobile browsers may pause location updates when the screen is locked.'}</p>
     </section>
     {nativeDriver?<NativeLocationPanel status={nativeTracking}/>:<LocationSharingPanel controller={sharing} busy={busy}/>}
+    {verifiedLogin&&<DriverSignOut busy={busy} activeShift={nativeTracking.state==='active'} onSignOut={signOutDriver}/>}
   </main>;
 
   const assigned = itinerary.legs.filter(leg => leg.assignmentId === shift.effectivePolicy.assignmentId).sort((a, b) => a.ordinal - b.ordinal);
@@ -451,7 +471,19 @@ export function Component() {
     </div>}
     {closure?.lifecycle !== "SHIFT_ENDED" && <aside className="driver-safety"><div><strong>Tracking transparency</strong><span>{nativeDriver?nativeTracking.message:sharing.deliveryError?"Location upload delayed · retrying":`${label(closure?.tracking.status ?? "starting")} · ${closure?.tracking.reason?.replaceAll("_", " ") ?? "Shift started"}`}</span></div><button disabled={busy} onClick={() => void emergencyStop()}>Emergency: stop sharing</button></aside>}
     {nativeDriver?<NativeLocationPanel status={nativeTracking}/>:<LocationSharingPanel controller={sharing} busy={busy} screenAwake={shift.lifecycle==='ACTIVE'&&closure?.lifecycle!=='SHIFT_ENDED'?screenAwake:undefined}/>}
+    <DriverSignOut busy={busy} activeShift={closure?.lifecycle!=='SHIFT_ENDED'} onSignOut={signOutDriver}/>
   </main>;
+}
+
+function DriverSignOut({busy,activeShift,onSignOut}:{busy:boolean;activeShift:boolean;onSignOut:()=>Promise<void>}){
+  const [confirm,setConfirm]=useState(false);
+  return <footer className="driver-sign-out">
+    {confirm?<div className="driver-sign-out-confirm" role="group" aria-label="Confirm Driver sign-out">
+      <span>{activeShift?'Your shift stays open, but this phone stops sending location. Dispatch will see a tracking interruption.':'This will return you to Driver login.'}</span>
+      <button type="button" disabled={busy} onClick={()=>setConfirm(false)}>Cancel</button>
+      <button type="button" disabled={busy} onClick={()=>void onSignOut()}>Confirm sign out</button>
+    </div>:<button type="button" disabled={busy} onClick={()=>setConfirm(true)}>Sign out of Driver</button>}
+  </footer>;
 }
 
 function NativeLocationPanel({status}:{status:NativeTrackingStatus}) {

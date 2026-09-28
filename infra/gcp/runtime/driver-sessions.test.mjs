@@ -46,3 +46,16 @@ test('an active driver token survives an API restart until its credential change
   version=2;
   assert.equal(await reopened.verify(`DriverSession ${token}`),null);
 });
+test('sign-out revokes only the matching business session and persists across restart',async t=>{
+  const directory=mkdtempSync(join(tmpdir(),'kr-driver-sign-out-'));
+  t.after(()=>rmSync(directory,{recursive:true,force:true}));
+  const options={synthetic,sessionFile:join(directory,'sessions.json'),credentialVersion:async()=>({status:'ACTIVE',version:1})};
+  const sessions=createDriverSessions(options);
+  const token=sessions.issue(organizationId,{driverId,status:'ACTIVE',version:1});
+  const authorization=`DriverSession ${token}`;
+  assert.equal(sessions.revoke(authorization,'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'),false);
+  assert.equal((await sessions.verify(authorization)).subjectId,driverId);
+  assert.equal(sessions.revoke(authorization,organizationId),true);
+  assert.equal(sessions.revoke(authorization,organizationId),false);
+  assert.equal(await createDriverSessions(options).verify(authorization),null);
+});

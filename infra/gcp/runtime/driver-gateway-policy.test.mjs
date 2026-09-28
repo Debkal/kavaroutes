@@ -28,6 +28,8 @@ test('Driver host requires business access for pages and login APIs',()=>{
 test('existing DriverSession can upload location without business browser cookie',()=>{
   assert.equal(driverGatewayDecision('GET',`/v1/organizations/${business}/driver/itineraries/2026-09-26`,session),'proxy');
   assert.equal(driverGatewayDecision('POST',`/v1/organizations/${business}/driver/shifts/${shift}/location-batches`,session),'proxy');
+  assert.equal(driverGatewayDecision('POST',`/v1/organizations/${business}/driver/session/commands/sign-out`,session),'proxy');
+  assert.equal(driverGatewayDecision('POST',`/v1/organizations/${business}/driver/session/commands/sign-out`),'deny');
   assert.equal(driverGatewayDecision('GET',`/v1/organizations/${business}/dispatch-board/2026-09-26`,session,business),'deny');
   assert.equal(driverGatewayDecision('POST',`/v1/organizations/${business}/fleet/drivers/commands/create`,session,business),'deny');
   assert.equal(driverGatewayDecision('GET','/v1/me','Synthetic principal_dispatcher',business),'deny');

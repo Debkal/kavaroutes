@@ -41,4 +41,20 @@ describe("Driver web cloud adapter", () => {
     expect((await api.itinerary('2026-09-14')).value.driverReference).toBe(driverId);
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
+
+  it('revokes a Driver session and removes it from the web adapter',async()=>{
+    const driverId='44444444-4444-4444-8444-444444444444',token=`dvs_${'b'.repeat(43)}`;
+    const fetcher=vi.fn(async(url:string,init:Parameters<DevelopmentFetch>[1])=>{
+      expect(url).toBe(`https://driver.kavaroutes.com/v1/organizations/${driverOrganizationId}/driver/session/commands/sign-out`);
+      expect(init.method).toBe('POST');
+      expect(init.headers.authorization).toBe(`DriverSession ${token}`);
+      return response({signedOut:true});
+    }) as unknown as DevelopmentFetch;
+    const api=createCloudDriverWebApi('https://driver.kavaroutes.com',fetcher);
+    api.restoreNativeSession({token,driverId,organizationId:driverOrganizationId});
+    await api.signOut();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(()=>api.nativeTrackingSession()).toThrow('DRIVER_SESSION_REQUIRED');
+    await expect(api.authenticate()).rejects.toThrow('DRIVER_SESSION_REQUIRED');
+  });
 });

@@ -100,6 +100,16 @@ export function createCloudDriverWebApi(baseUrl: string, fetcher: DevelopmentFet
 // not under the /driver prefix this client uses for shift and itinerary calls.
 const loginPrefix = `/v1/organizations/${organizationId}`;
   return Object.freeze({
+    clearDriverSession(){activeDriverId=null;sessionToken=null;},
+    async signOut(){
+      if(!sessionToken)return;
+      await transport.request(`${prefix}/session/commands/sign-out`,value=>{
+        const body=object(value);
+        if(body.signedOut!==true)throw new Error('INVALID_DRIVER_SIGN_OUT');
+        return true;
+      },{body:{},idempotencyKey:`driver-sign-out-${crypto.randomUUID()}`});
+      activeDriverId=null;sessionToken=null;
+    },
     restoreNativeSession(binding:{token:string;driverId:string;organizationId:string}){
       if(binding.organizationId!==organizationId||!uuid.test(binding.driverId)||!/^dvs_[A-Za-z0-9_-]{43}$/.test(binding.token))throw new Error('INVALID_NATIVE_DRIVER_SESSION');
       activeDriverId=binding.driverId;sessionToken=binding.token;
