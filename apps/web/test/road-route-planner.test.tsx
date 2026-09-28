@@ -41,11 +41,12 @@ it('shows which trip leg still needs a Dispatch route choice',async()=>{
   await screen.findByText(/No route has been chosen for this leg/);
 });
 
-it('shows the assigned driver concise route instructions and a Google Maps navigation link',async()=>{
-  const api={roadRoute:vi.fn(async()=>({value:{selection:{goal:'FASTEST',version:1,selectedAt:'2026-09-23T12:00:00Z'},route:{...preview,mapImageUrl:null}}}))};
+it('shows the assigned driver the dispatch map, concise instructions and Google Maps navigation',async()=>{
+  const api={roadRoute:vi.fn(async()=>({value:{selection:{goal:'FASTEST',version:1,selectedAt:'2026-09-23T12:00:00Z'},route:preview}}))};
   const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
   render(<QueryClientProvider client={client}><DriverRoadDirections api={api as any} legId={legId} pickup="1 Main St" dropoff="2 Main St"/></QueryClientProvider>);
   await screen.findByText(/Dispatch chose/);
+  expect(screen.getByRole('img',{name:/Fastest drive road map selected by Dispatch/})).toHaveAttribute('src',preview.mapImageUrl);
   const pickupLink=new URL(screen.getByRole('link',{name:'Navigate to pickup from my location'}).getAttribute('href')!);
   expect(pickupLink.searchParams.has('origin')).toBe(false);
   expect(pickupLink.searchParams.get('destination')).toBe('1 Main St');

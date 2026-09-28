@@ -139,6 +139,7 @@ export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch
   const configured=typeof apiKey==='string'&&/^[A-Za-z0-9_-]{20,200}$/.test(apiKey);
   const geocodeCache=new Map();
   const routeCache=new Map();
+  const mapCache=new Map();
   const routeCacheLifetimeMs=30*60_000;
   const measured=(organizationId,operation,feature)=>(url,options)=>usage?
     usage.record({tenantId:organizationId,provider:'GEOAPIFY',operation,feature},()=>fetcher(url,options)):fetcher(url,options);
@@ -168,6 +169,22 @@ export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch
     routeCache.set(key,entry);
     return entry.promise;
   };
+  const mapFor=(route,organizationId)=>{
+    const key=`${organizationId}|${digest(route.encoded)}`;
+    const cached=mapCache.get(key);
+    if(cached&&cached.expiresAt>Date.now()){
+      mapCache.delete(key);mapCache.set(key,cached);
+      return cached.promise;
+    }
+    mapCache.delete(key);
+    if(mapCache.size>=40)mapCache.delete(mapCache.keys().next().value);
+    const entry={expiresAt:Date.now()+60_000,promise:null};
+    entry.promise=staticMap(measured(organizationId,'STATIC_MAP','ROAD_ROUTING'),apiKey,route)
+      .then(image=>{entry.expiresAt=Date.now()+(image?routeCacheLifetimeMs:60_000);return image;})
+      .catch(error=>{if(mapCache.get(key)===entry)mapCache.delete(key);throw error;});
+    mapCache.set(key,entry);
+    return entry.promise;
+  };
   return Object.freeze({
     configured,
     async pickupTimezone({address,organizationId}){
@@ -193,7 +210,7 @@ export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch
       const row=await withTenantTransaction(pool,organizationId,'kavaroutes_api',client=>leg(client,organizationId,legId,driverId));
       const [origin,destination]=await Promise.all([resolvePoint(row.origin,row.origin_lat,row.origin_lon,organizationId),resolvePoint(row.destination,row.destination_lat,row.destination_lon,organizationId)]);
       const route=await routeFor(origin,destination,goal,organizationId);
-      const mapImageUrl=includeMap?await staticMap(measured(organizationId,'STATIC_MAP','ROAD_ROUTING'),apiKey,route):null;
+      const mapImageUrl=includeMap?await mapFor(route,organizationId):null;
       const note=goal==='LOW_COST'?'Prefers toll-free roads and a shorter distance. Actual toll, fuel, and labor costs are not quoted.':goal==='FASTEST'
         ?'Shortest estimated time among the proposed routes. Traffic is approximate, not live.':'Prefers fewer maneuvers and avoids ferries when practical.';
       return {goal,provider:'GEOAPIFY',distanceMeters:route.distanceMeters,durationSeconds:route.durationSeconds,

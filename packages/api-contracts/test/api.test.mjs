@@ -177,6 +177,7 @@ test('dispatch chooses a road-route goal and only the assigned driver reads dire
   response=await app.inject({method:'GET',url:`${base}/driver/legs/${legId}/road-route`,headers:auth('principal_driver')});
   assert.equal(response.statusCode,200,response.body);assert.equal(response.json().route.steps[0].instruction,'Turn right on Main St');
   assert.equal(calls.at(-1)[0],'preview');assert.equal(typeof calls.at(-1)[1].driverId,'string');
+  assert.equal(calls.at(-1)[1].includeMap,true);
 });
 
 test("strict bodies, driver batch limits/order/replay, operation access, and rate limits are enforced", async (t) => {

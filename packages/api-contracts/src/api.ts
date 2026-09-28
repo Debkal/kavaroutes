@@ -591,7 +591,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       if(!driverId)throw new ProtocolError(404,'RESOURCE_NOT_FOUND','driver subject required');
       const selected=await guarded(()=>service().selection({organizationId,legId,driverId}));
       const selectedGoal=selected.goal;
-      const route=selectedGoal?await guarded(()=>service().preview({organizationId,legId,goal:selectedGoal,includeMap:false,driverId})):null;
+      const route=selectedGoal?await guarded(()=>service().preview({organizationId,legId,goal:selectedGoal,includeMap:true,driverId})):null;
       reply.header('cache-control','no-store');request.wp007Context.resultCode='DRIVER_ROAD_ROUTE_RETURNED';
       return reply.send({selection:selected,route});
     });

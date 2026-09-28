@@ -48,9 +48,9 @@ export async function resetAllDriverAccess(store,businessId,actor,{directory=def
     let disabledCodeCount=0,signedOutDeviceCount=0;
     for(const code of state.codes)if(code.businessId===tenantId&&code.enabled){code.enabled=false;code.updatedAt=now;disabledCodeCount++;}
     for(const device of state.devices)if(device.businessId===tenantId&&!device.revokedAt){device.revokedAt=now;signedOutDeviceCount++;}
-    const password=randomBytes(24).toString('base64url'),salt=randomBytes(16).toString('hex');
+    const password=randomBytes(12).toString('base64url'),salt=randomBytes(16).toString('hex');
     const hash=(await scrypt(password,salt,64,{N:16384,r:8,p:1,maxmem:32*1024*1024})).toString('hex');
-    const code=`business_${randomBytes(7).toString('base64url')}`;
+    const code=`biz_${randomBytes(8).toString('base64url')}`;
     const row={id:randomUUID(),businessId:tenantId,code,kind:'SHARED',label:'Admin reset',enabled:true,uses:0,createdAt:now,updatedAt:now,salt,hash};
     state.codes.push(row);
     state.events.push({at:now,businessId:tenantId,action:'ACCESS_CODES_RESET_ALL',actor,target:row.id});

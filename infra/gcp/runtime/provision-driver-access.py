@@ -12,7 +12,7 @@ if not re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{2,63}', code):
     raise SystemExit('INVALID_BUSINESS_CODE')
 password = sys.stdin.read().rstrip('\r\n')
-if not 12 <= len(password) <= 200:
+if not 10 <= len(password) <= 16:
     raise SystemExit('INVALID_PASSWORD_LENGTH')
 with open(path, encoding='utf8') as source:
     data = json.load(source)

@@ -36,13 +36,14 @@ export function createDriverAccessStore(directory,{now=()=>Date.now()}={}){
       return result;
     }finally{await unlink(temporary).catch(()=>{});await rmdir(lockPath).catch(()=>{});}
   };
-  const newPassword=()=>randomBytes(24).toString('base64url');
+  const newPassword=()=>randomBytes(12).toString('base64url');
   const hashPassword=async password=>{
     const salt=randomBytes(16).toString('hex');
     return {salt,hash:(await scrypt(password,salt,64,{N:16384,r:8,p:1,maxmem:32*1024*1024})).toString('hex')};
   };
   const verifyPassword=async(row,password)=>{
-    if(typeof password!=='string'||password.length<12||password.length>200)return false;
+    // Older issued passwords remain valid until their business rotates them.
+    if(typeof password!=='string'||password.length<10||password.length>200)return false;
     const salt=row?.salt??'00000000000000000000000000000000',hash=row?.hash??'0'.repeat(128);
     const computed=await scrypt(password,salt,64,{N:16384,r:8,p:1,maxmem:32*1024*1024});
     return Boolean(row&&/^[0-9a-f]{128}$/i.test(hash)&&timingSafeEqual(computed,Buffer.from(hash,'hex')));
@@ -60,7 +61,7 @@ export function createDriverAccessStore(directory,{now=()=>Date.now()}={}){
   const createCode=async(businessId,kind,label='',actor='business-command')=>{
     if(!uuid.test(businessId)||!['SHARED','ONE_DEVICE'].includes(kind)||typeof label!=='string'||label.length>80)throw new Error('INVALID_ACCESS_CODE');
     const password=newPassword(),hashed=await hashPassword(password);
-    const code=`${kind==='SHARED'?'business':'device'}_${randomBytes(7).toString('base64url')}`;
+    const code=`${kind==='SHARED'?'biz':'dev'}_${randomBytes(8).toString('base64url')}`;
     const row={id:randomUUID(),businessId,code,kind,label:label.trim(),enabled:true,uses:0,createdAt:now(),updatedAt:now(),...hashed};
     await change(state=>{if(state.codes.filter(item=>item.businessId===businessId&&item.enabled).length>=100)throw new Error('ACCESS_CODE_LIMIT');state.codes.push(row);audit(state,businessId,'ACCESS_CODE_CREATED',actor,row.id);return null;});
     return {...publicCode(row),password};

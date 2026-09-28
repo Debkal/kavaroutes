@@ -13,7 +13,7 @@ const other='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 test('business gate enrolls and revokes devices without exposing the password',async()=>{
   const dir=await mkdtemp(join(tmpdir(),'kr-driver-gate-'));
   const old=join(dir,'admin.json'),registry=join(dir,'registry');
-  const password='separate-business-access-secret';
+  const password='RouteAccess2026!';
   await writeFile(old,JSON.stringify({accounts:[]}));
   const provision=pass=>spawnSync('python3',[new URL('./provision-driver-access.py',import.meta.url).pathname,old,business,'test_pony'],{input:pass,encoding:'utf8'});
   assert.equal(provision(password).status,0);
@@ -60,6 +60,7 @@ test('business gate enrolls and revokes devices without exposing the password',a
     assert.equal((await fetch(`${url}/driver`,{headers:{cookie}})).status,404);
     assert.equal(await recreated.driverTokenAccess(driverToken),false);
     const unique=await store.createCode(business,'ONE_DEVICE','Joel phone');
+    assert.equal(unique.code.length,15);assert.equal(unique.password.length,16);
     assert.equal((await post(unique.code,unique.password)).status,303);
     assert.equal((await post(unique.code,unique.password)).status,401);
     const shared=before.codes[0];

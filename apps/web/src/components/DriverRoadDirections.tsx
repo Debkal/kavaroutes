@@ -2,6 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 import type {createCloudDriverWebApi} from '../cloud-driver-api';
 import type {RoadGoal} from '../road-route-contract';
 import {conciseRoadDirections} from '../road-route-directions';
+import {RoadRouteMapPreview} from './RoadRouteMapPreview';
 
 const names:Record<RoadGoal,string>={LOW_COST:'Shortest distance / lower toll cost',FASTEST:'Fastest drive',EASIEST:'Easiest to traverse'};
 export function DriverRoadDirections({api,legId,pickup,dropoff}:{api:ReturnType<typeof createCloudDriverWebApi>;legId:string;pickup:string;dropoff:string}){
@@ -17,6 +18,7 @@ export function DriverRoadDirections({api,legId,pickup,dropoff}:{api:ReturnType<
     {directions.isError&&<p role="alert">Selected directions are temporarily unavailable. Check the pickup and drop-off with dispatch before driving.</p>}
     {selected?.selection.goal&&selected.route?<>
       <p>Dispatch chose <strong>{names[selected.selection.goal]}</strong> · {(selected.route.distanceMeters/1609.344).toFixed(1)} mi · about {Math.max(1,Math.round(selected.route.durationSeconds/60))} min.</p>
+      <RoadRouteMapPreview imageUrl={selected.route.mapImageUrl} alt={`${names[selected.selection.goal]} road map selected by Dispatch from pickup to drop-off`}/>
       <a className="driver-secondary driver-link" target="_blank" rel="noreferrer" href={pickupLink}>Navigate to pickup from my location</a>
       <a className="driver-primary driver-link" target="_blank" rel="noreferrer" href={selectedLink??undefined}>Navigate pickup to drop-off in Google Maps</a>
       <details><summary>Route directions ({steps.length} steps)</summary><ol>{steps.map((step,index)=><li key={index}>{step}</li>)}</ol></details>

@@ -21,7 +21,8 @@ test('Command access management is tenant scoped and records code actions',async
     assert.equal((await app.inject({method:'GET',url:path(other),headers})).statusCode,404);
     const made=await app.inject({method:'POST',url:`${path(business)}/codes`,headers,payload:{kind:'ONE_DEVICE',label:'Joel phone'}});
     assert.equal(made.statusCode,200,made.body);
-    assert.match(made.json().password,/^[A-Za-z0-9_-]{32}$/);
+    assert.match(made.json().code,/^dev_[A-Za-z0-9_-]{11}$/);
+    assert.match(made.json().password,/^[A-Za-z0-9_-]{16}$/);
     const listed=await app.inject({method:'GET',url:path(business),headers});
     assert.equal(listed.statusCode,200);
     assert.equal(listed.json().codes[0].label,'Joel phone');

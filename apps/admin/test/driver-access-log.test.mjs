@@ -44,7 +44,7 @@ test('owner reset rotates only the selected business and revokes its enrolled de
   await assert.rejects(resetAllDriverAccess(store,'33333333-3333-4333-8333-333333333333','owner@example.com',{directory}),/BUSINESS_WORKSPACE_NOT_FOUND/);
   const result=await resetAllDriverAccess(store,first,'owner@example.com',{directory});
   assert.equal(result.businessId,first);assert.equal(result.disabledCodeCount,1);assert.equal(result.signedOutDeviceCount,1);
-  assert.match(result.code,/^business_[A-Za-z0-9_-]+$/);assert.ok(result.password.length>=32);
+  assert.match(result.code,/^biz_[A-Za-z0-9_-]{11}$/);assert.equal(result.password.length,16);
   assert.equal(await access.resolve(firstDevice.token),null);
   assert.equal(await access.driverTokenAccess(firstDriverToken),false);
   assert.ok(await access.resolve(secondDevice.token));

@@ -20,7 +20,7 @@ export function DriverAccessManager({api,enabled}:{api:ReturnType<typeof createC
     const result=await api.createDriverAccessCode(kind,label.trim());setIssued({code:result.value.code,password:result.value.password});setLabel('');
   });
   return <section id="business-access" className="workspace-card driver-access-manager" aria-label="Business access management">
-    <div className="section-heading"><div><p className="eyebrow">Driver devices</p><h2>Business access</h2><p>Manage the business password drivers enter before their own login. Existing trip GPS uploads keep their driver session if a device is signed out here.</p></div><button type="button" disabled={!enabled||busy} onClick={()=>void refresh().catch(()=>setMessage('Could not refresh access controls.'))}>Refresh</button></div>
+    <div className="section-heading"><div><p className="eyebrow">Driver devices</p><h2>Business access</h2><p>Issue a short code and 16-character password for drivers to enter before their own login. Existing trip GPS uploads keep their driver session if a device is signed out here.</p></div><button type="button" disabled={!enabled||busy} onClick={()=>void refresh().catch(()=>setMessage('Could not refresh access controls.'))}>Refresh</button></div>
     {!enabled?<p>Connect Command to manage this business’s access.</p>:<>
       <label>Device label (optional)<input value={label} maxLength={80} onChange={event=>setLabel(event.target.value)} placeholder="Joel’s phone"/></label>
       <div className="form-actions"><button type="button" disabled={busy} onClick={()=>create('ONE_DEVICE')}>Issue one-device code</button><button type="button" disabled={busy} onClick={()=>create('SHARED')}>Issue shared code</button></div>

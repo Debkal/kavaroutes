@@ -4,6 +4,7 @@ import type {createCloudApi} from '../cloud-api';
 import type {CloudBoard} from '../cloud-board-contract';
 import type {RoadGoal,RoadPreview,RoadSelection} from '../road-route-contract';
 import {conciseRoadDirections} from '../road-route-directions';
+import {RoadRouteMapPreview} from './RoadRouteMapPreview';
 
 type Leg=CloudBoard['legs'][number];
 const labels:Record<RoadGoal,string>={LOW_COST:'Shortest distance / lower toll cost',FASTEST:'Fastest drive',EASIEST:'Easiest to traverse'};
@@ -89,7 +90,7 @@ export function RoadRoutePlanner({api,legs,enabled}:{api:ReturnType<typeof creat
     {busy&&<p role="status">{preview?'Saving route…':'Generating route and map…'}</p>}
     {message&&<p role={message.startsWith('Route choice saved')?'status':'alert'}>{message}</p>}
     {preview&&<div className="road-route-result">
-      <div className="road-route-map">{preview.mapImageUrl?<img src={preview.mapImageUrl} alt={`${labels[preview.goal]} road map from pickup to drop-off`} />:<p>Map preview unavailable.</p>}<a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">Powered by Geoapify</a></div>
+      <RoadRouteMapPreview imageUrl={preview.mapImageUrl} alt={`${labels[preview.goal]} road map from pickup to drop-off`}/>
       <div className="road-route-summary"><strong>{labels[preview.goal]}</strong><p>{miles(preview.distanceMeters)} mi · about {minutes(preview.durationSeconds)} min · {preview.maneuverCount} weighted maneuvers</p>
         <p>{preview.tollsExpected?'Toll road indicated; price unavailable.':'No toll road indicated in the proposed route.'}</p>
         <p>{preview.note}</p>{duplicate&&<p role="status">This follows the same roads as “{labels[duplicate]}”.</p>}

@@ -205,7 +205,7 @@ test('owner reset endpoint requires a linked business and keeps plaintext out of
   const response=await c.post('driver-access-reset-all',{businessId});
   assert.equal(response.status,200);
   assert.equal(response.body.businessId,businessId);
-  assert.ok(response.body.password.length>=32);
+  assert.equal(response.body.password.length,16);
   assert.ok(!readFileSync(join(directory,'access.json'),'utf8').includes(response.body.password));
   assert.equal((await c.post('driver-access-log',{businessId})).body.events[0].action,'ACCESS_CODES_RESET_ALL');
 });
