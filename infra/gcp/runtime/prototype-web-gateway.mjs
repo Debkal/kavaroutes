@@ -134,6 +134,12 @@ const server = createServer(async(request, response) => {
       response.end();return;
     }
   }
+  // Provider usage is an admin-tunnel tool. Admin reads the loopback API
+  // directly after its own owner session check; the app/driver gateway never
+  // publishes this internal metrics route.
+  if(/^\/v1\/organizations\/[^/]+\/dispatch\/provider-usage$/.test(pathname)){
+    response.writeHead(404,{...securityHeaders,'cache-control':'no-store'}).end();return;
+  }
   if (pathname === '/health/ready' || pathname.startsWith('/v1/')) proxy(request, response);
   else void staticResponse(request, response, pathname);
 });

@@ -106,11 +106,11 @@ async function matchChunk(fetcher,apiKey,chunk){
   return matchedLines(await response.json());
 }
 
-export function createDispatchTiledMapServices(pool,{apiKey=null,fetcher=fetch}={}){
+export function createDispatchTiledMapServices(pool,{apiKey=null,fetcher=fetch,usage=null}={}){
   const tileCache=new Map(),tileInFlight=new Map(),matchCache=new Map();
   let tileCacheBytes=0;
   const trace=input=>readDispatchTrace(pool,input);
-  const tile=async({z,x,y})=>{
+  const tile=async({organizationId,z,x,y})=>{
     if(!validKey(apiKey))throw new RoadRoutingError(503,'MAPS_NOT_CONFIGURED');
     const name=`${z}/${x}/${y}`;
     const cached=tileCache.get(name);
@@ -123,7 +123,8 @@ export function createDispatchTiledMapServices(pool,{apiKey=null,fetcher=fetch}=
     const work=(async()=>{
       const url=new URL(`${TILE_ROOT}/${z}/${x}/${y}.png`);url.searchParams.set('apiKey',apiKey);
       let response;
-      try{response=await fetcher(url,{signal:AbortSignal.timeout(10000)});}catch{throw new RoadRoutingError(503,'MAP_TILE_UNAVAILABLE');}
+      try{response=await (usage?usage.record({tenantId:organizationId,provider:'GEOAPIFY',operation:'MAP_TILE',feature:'ROUTE_HISTORY'},()=>fetcher(url,{signal:AbortSignal.timeout(10000)}))
+        :fetcher(url,{signal:AbortSignal.timeout(10000)}));}catch{throw new RoadRoutingError(503,'MAP_TILE_UNAVAILABLE');}
       if(!response.ok||!String(response.headers?.get('content-type')??'').startsWith('image/png'))throw new RoadRoutingError(503,'MAP_TILE_UNAVAILABLE');
       const bytes=Buffer.from(await response.arrayBuffer());
       if(!bytes.length||bytes.length>300000)throw new RoadRoutingError(503,'MAP_TILE_UNAVAILABLE');
@@ -141,14 +142,14 @@ export function createDispatchTiledMapServices(pool,{apiKey=null,fetcher=fetch}=
   };
   /** Bound both the browser request count and simultaneous provider calls. Failed
    * tiles do not discard the others in the same viewport. */
-  const tileBatch=async({tiles})=>{
+  const tileBatch=async({organizationId,tiles})=>{
     if(!Array.isArray(tiles)||!tiles.length||tiles.length>32)throw new RoadRoutingError(400,'INVALID_MAP_TILE_BATCH');
     const results=new Array(tiles.length);
     let next=0;
     await Promise.all(Array.from({length:Math.min(6,tiles.length)},async()=>{
       while(next<tiles.length){
         const index=next++,coords=tiles[index];
-        try{results[index]={...coords,...await tile(coords)};}
+        try{results[index]={...coords,...await tile({...coords,organizationId})};}
         catch{results[index]={...coords,imageUrl:null};}
       }
     }));
@@ -173,7 +174,7 @@ export function createDispatchTiledMapServices(pool,{apiKey=null,fetcher=fetch}=
         await Promise.all(Array.from({length:Math.min(2,chunks.length)},async()=>{
           while(next<chunks.length){
             const index=next++;
-            try{results[index]=await matchChunk(fetcher,apiKey,chunks[index]);}catch{results[index]=null;}
+            try{results[index]=await matchChunk(usage?(url,options)=>usage.record({tenantId:input.organizationId,provider:'GEOAPIFY',operation:'MAP_MATCH',feature:'ROUTE_HISTORY'},()=>fetcher(url,options)):fetcher,apiKey,chunks[index]);}catch{results[index]=null;}
           }
         }));
         entry.segments=results.flatMap(lines=>lines??[]);

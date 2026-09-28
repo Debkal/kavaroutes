@@ -599,6 +599,27 @@
     },
     {
       "method": "GET",
+      "path": "/v1/organizations/{organizationId}/dispatch/provider-usage",
+      "operationId": "getDispatchProviderUsage",
+      "statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "406",
+        "429",
+        "500",
+        "503"
+      ],
+      "security": [
+        {
+          "syntheticTestPrincipal": []
+        }
+      ]
+    },
+    {
+      "method": "GET",
       "path": "/v1/organizations/{organizationId}/dispatch/route-history/{serviceDate}",
       "operationId": "getDispatchRouteHistory",
       "statuses": [

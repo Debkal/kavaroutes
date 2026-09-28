@@ -49,7 +49,13 @@ try {
         'KavaRoutes live trip test — 2026-09-24 (Pacific time)\nEvents: 1 | Legs: 0 | Driver actions: 0 | Rejected actions: 0\n\nTIMELINE\n  Run created\n',{mode:0o600});
     }
   }
+  await page.route('**/api/provider-usage',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+    businessId:linked,businessName:'North Coast Medical Transport',hours:24,total:2,averageRequestsPerHour:.08,averageMs:12,
+    groups:[{provider:'GEOAPIFY',feature:'ROUTE_HISTORY',operation:'MAP_TILE',count:2,failed:0,averageMs:12}],recent:[],
+    pendingCount:0,droppedCount:0,lastFailureAt:null})}));
   await page.locator('#business-rows').getByRole('row').filter({hasText:'North Coast Medical Transport'}).getByRole('button',{name:'Workspace'}).click();
+  await page.locator('#provider-usage-status').filter({hasText:'2 outbound requests'}).waitFor();
+  assert.match(await page.locator('#provider-usage-rows').innerText(),/GEOAPIFY/);
   await page.locator('#trip-report-day').fill('2026-09-24');
   await page.locator('#trip-report-load').click();
   await page.locator('#trip-report-text').filter({hasText:'Run created'}).waitFor();

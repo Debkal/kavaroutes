@@ -16,6 +16,7 @@ import {createDriverSessions} from './driver-sessions.mjs';
 import {createGeoapifyRoadRoutingService} from './road-routing.mjs';
 import {createGeoapifyDispatchTraceMapService} from './dispatch-trace-map.mjs';
 import {createDispatchTiledMapServices} from './dispatch-tiled-map.mjs';
+import {createProviderUsage} from './provider-usage.mjs';
 import {registerDriverAdmin} from './driver-admin.mjs';
 import {registerDriverAccessManagement} from './driver-access-management.mjs';
 
@@ -23,6 +24,7 @@ export async function createRuntimeApi(input) {
   const config = validateConfig(input);
   if (new URL(config.databaseUrl).username !== 'kr_cloud_api') throw new Error('RUNTIME_DATABASE_ROLE_INVALID');
   const pool = makePool(config);
+  const usage=createProviderUsage(pool);
   const sessions=createDriverSessions({synthetic:createSyntheticTestVerifier(),allowSyntheticDriver:process.env.KR_CLOUD_LOCAL_TEST==='1',sessionFile:process.env.KR_DRIVER_SESSIONS_FILE,credentialVersion:async(organizationId,driverId)=>
     withTenantTransaction(pool,organizationId,'kavaroutes_api',async client=>{
       const row=(await client.query(`SELECT status,credential_version FROM platform.driver_credential WHERE tenant_id=$1 AND driver_id=$2`,[organizationId,driverId])).rows[0];
@@ -31,13 +33,13 @@ export async function createRuntimeApi(input) {
   const verifier={verify:authorization=>sessions.verify(authorization)};
   const driverLogins=createPostgresDriverLoginService(pool,{allowUnauthenticatedLogin:true});
   const application = createWp007PostgresApplication(pool, { etagSecret: config.etagSecret });
-  const tiledMap=createDispatchTiledMapServices(pool,{apiKey:process.env.GEOAPIFY_API_KEY});
+  const tiledMap=createDispatchTiledMapServices(pool,{apiKey:process.env.GEOAPIFY_API_KEY,usage});
   const checkDatabase = async () => { await verifyRuntimeDatabase(pool, 'api'); await application.listTrips(tenantId, { limit: 1 }); };
   const app = await createWp007Api({ application, driverItineraryReader: createDriverItineraryReader(pool),
     browserRecoveryService:createPostgresBrowserRecoveryService(pool,{application,dispatchService:createPostgresDispatchService(pool,{etag:application.etag}),routeProposalService:createPostgresRouteProposalService(pool),driverClosureService:createPostgresDriverClosureService(pool)}),
     dispatchService: createPostgresDispatchService(pool,{etag:application.etag}),
     routeProposalService: createPostgresRouteProposalService(pool),
-    roadRoutingService: createGeoapifyRoadRoutingService(pool,{apiKey:process.env.GEOAPIFY_API_KEY}),
+    roadRoutingService: createGeoapifyRoadRoutingService(pool,{apiKey:process.env.GEOAPIFY_API_KEY,usage}),
     facilityService:createPostgresFacilityService(pool),
     clientService:createPostgresClientService(pool),
     driverLoginService:driverLogins,
@@ -53,8 +55,9 @@ export async function createRuntimeApi(input) {
     driverLocationService: createPostgresDriverLocationService(pool),
     dispatchTrackingReader: createDispatchTrackingReader(pool),
     dispatchRouteHistoryReader: createDispatchRouteHistoryReader(pool),
-    dispatchTraceMapService:createGeoapifyDispatchTraceMapService(pool,{apiKey:process.env.GEOAPIFY_API_KEY}),
+    dispatchTraceMapService:createGeoapifyDispatchTraceMapService(pool,{apiKey:process.env.GEOAPIFY_API_KEY,usage}),
     dispatchFullTraceReader:tiledMap.trace,dispatchMapMatchService:tiledMap.match,dispatchMapTileService:tiledMap.tile,dispatchMapTileBatchService:tiledMap.tileBatch,
+    providerUsageService:usage.summary,
     accountingService: createPostgresAccountingApiService(pool),
     verifier, etagSecret: config.etagSecret, cursorSecret: `synthetic-cursor-secret-${config.cursorSecret}` });
   const store = createPostgresRealtimeStore(pool, createTestOnlyCursorCodec({ secret: config.cursorSecret }));
@@ -77,7 +80,7 @@ export async function createRuntimeApi(input) {
     if(process.env.KR_CLOUD_LOCAL_TEST==='1'&&/^\/v1\/organizations\/[^/]+\/driver\/shifts\/[^/]+\/synthetic-location-batches$/.test(path))return;
     // Live driver positioning: the driver's device reports fixes and dispatch reads the
     // day's map. Coordinates stay inside these two authorized routes.
-    const locationPath=/^\/v1\/organizations\/[^/]+\/(?:driver\/shifts\/[^/]+\/location-batches|dispatch\/(?:tracking|route-history)\/\d{4}-\d{2}-\d{2}|dispatch\/(?:trace-map|full-trace|trace-match)\/\d{4}-\d{2}-\d{2}\/shifts\/[^/]+|dispatch\/map-tiles\/(?:batch|\d+\/\d+\/\d+))$/.test(path);
+    const locationPath=/^\/v1\/organizations\/[^/]+\/(?:driver\/shifts\/[^/]+\/location-batches|dispatch\/(?:tracking|route-history)\/\d{4}-\d{2}-\d{2}|dispatch\/(?:trace-map|full-trace|trace-match)\/\d{4}-\d{2}-\d{2}\/shifts\/[^/]+|dispatch\/map-tiles\/(?:batch|\d+\/\d+\/\d+)|dispatch\/provider-usage)$/.test(path);
     // The money surface: costing, estimates, payer invoices and client history.
     const accountingPath=/^\/v1\/organizations\/[^/]+\/(?:billing\/(?:cost-profile(?:\/commands\/update)?|estimates\/\d{4}-\d{2}-\d{2}|invoices(?:\/commands\/create|\/[^/]+(?:\/commands\/forward)?)?)|clients\/[^/]+\/history)$/.test(path);
     const roadRoutingPath=/^\/v1\/organizations\/[^/]+\/(?:dispatch\/legs\/[^/]+\/road-route(?:\/preview|\/commands\/select)?|dispatch\/pickup-timezones\/resolve|driver\/legs\/[^/]+\/road-route)$/.test(path);
@@ -123,7 +126,7 @@ export async function createRuntimeApi(input) {
     catch { gateway.drain(); }
     finally { if (!stopped) timer = setTimeout(() => void tick(), 1000); }
   };
-  app.addHook('onClose', async () => { stopped = true; clearTimeout(timer); gateway.drain(); await pool.end(); });
+  app.addHook('onClose', async () => { stopped = true; clearTimeout(timer); gateway.drain(); await usage.close(); await pool.end(); });
   await app.ready();
   return { app, pool, store, async start() { await checkDatabase(); await app.listen({ host: '127.0.0.1', port: config.port }); void tick(); },
     async close() { stopped = true; clearTimeout(timer); gateway.drain(); await app.close(); } };

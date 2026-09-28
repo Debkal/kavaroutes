@@ -120,7 +120,8 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
           <option value="">All legs and shift travel</option>{legs.map(leg=><option key={leg.tripLegId} value={leg.ordinal}>Leg {leg.ordinal}: {leg.riderLabel} · {leg.pickupLabel} → {leg.dropoffLabel}</option>)}
         </select></label>}
         {selectedLeg&&visibleTrace.length===0&&fullTrace.data&&<p role="status">No saved GPS fixes fall within this leg’s recorded action times.</p>}
-        <RouteStreetMap api={api} day={day} track={shownTrack} clientId={clientId||null} history selectedWindow={activeWindow} fallback={<TracePlot track={shownTrack} history/>}/>
+        <RouteStreetMap api={api} day={day} track={shownTrack} clientId={clientId||null} history selectedWindow={activeWindow}
+          legLabels={legs.map(leg=>({window:leg.ordinal,label:`Leg ${leg.ordinal}: ${leg.riderLabel}`}))} fallback={<TracePlot track={shownTrack} history/>}/>
         {trace.length>0&&<p className="form-hint">For the exact recorded path, import the {selectedLeg?'selected leg’s':'shift’s'} KML file into <a href="https://www.google.com/maps/d/" target="_blank" rel="noopener noreferrer">Google My Maps</a>. The Google Maps directions link uses sampled points and may choose different roads.</p>}
         <dl><dt>First saved fix</dt><dd>{stamp(visibleTrace[0]?.capturedAt??null,detail.serviceTimezone)}</dd>
           <dt>Last saved fix</dt><dd>{stamp(visibleTrace.at(-1)?.capturedAt??null,detail.serviceTimezone)}</dd>

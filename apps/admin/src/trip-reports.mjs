@@ -2,6 +2,7 @@ import {lstat,readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {gmailTransport} from './customer-mail.mjs';
+import {recordAdminProviderUsage} from './provider-usage.mjs';
 
 const defaultDirectory='/var/lib/kavaroutes-admin/trip-reports';
 const fail=(status,code)=>{throw Object.assign(new Error(code),{status,code});};
@@ -77,8 +78,8 @@ export async function sendTripReport(store,config,recipient,businessId,day,{dire
     store.audit(recipient,'TRIP_REPORT_EMAIL_STARTED',businessId);
   });
   try{
-    const providerId=await send({id,created:now,sender:config.email.from,recipient,
-      subject:`${linked.name} live trip test ${day} — report`,body:report.text},config.email);
+    const providerId=await send({id,businessId,created:now,sender:config.email.from,recipient,
+      subject:`${linked.name} live trip test ${day} — report`,body:report.text},config.email,fetch,row=>recordAdminProviderUsage(store,row));
     store.transaction(()=>{
       store.run("UPDATE trip_report_email SET status='ACCEPTED',updated=?,provider_id=?,last_error=NULL WHERE business_id=? AND day=? AND recipient=?",Date.now(),providerId,businessId,day,recipient);
       store.audit(recipient,'TRIP_REPORT_EMAIL_ACCEPTED',businessId);

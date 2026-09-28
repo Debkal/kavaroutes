@@ -47,7 +47,7 @@ async function renderTraceMap(fetcher,apiKey,points,viewport){
 
 /** Keep the provider key on the API host. The request is bound to a recorded shift,
  * and client filtering is derived from that run's trip legs and applied actions. */
-export function createGeoapifyDispatchTraceMapService(pool,{apiKey=null,fetcher=fetch}={}){
+export function createGeoapifyDispatchTraceMapService(pool,{apiKey=null,fetcher=fetch,usage=null}={}){
   const configured=typeof apiKey==='string'&&/^[A-Za-z0-9_-]{20,200}$/.test(apiKey);
   const cache=new Map();
   return async({organizationId,serviceDate,shiftId,clientId,viewport=null})=>{
@@ -99,7 +99,8 @@ export function createGeoapifyDispatchTraceMapService(pool,{apiKey=null,fetcher=
     const cached=cache.get(key);
     if(cached&&cached.expires>Date.now())return {shiftReference:shiftId,serviceDate,clientId,fixCount:points.length,mapImageUrl:cached.image};
     if(cache.size>=20)cache.delete(cache.keys().next().value);
-    const image=await renderTraceMap(fetcher,apiKey,points,viewport);
+    const measured=usage?(url,options)=>usage.record({tenantId:organizationId,provider:'GEOAPIFY',operation:'STATIC_MAP',feature:'ROUTE_HISTORY'},()=>fetcher(url,options)):fetcher;
+    const image=await renderTraceMap(measured,apiKey,points,viewport);
     if(image)cache.set(key,{image,expires:Date.now()+30*60_000});
     return {shiftReference:shiftId,serviceDate,clientId,fixCount:points.length,mapImageUrl:image};
   };

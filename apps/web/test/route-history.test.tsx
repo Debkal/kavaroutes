@@ -65,6 +65,8 @@ it('filters the map and GPS log to one colored trip leg',async()=>{
   fireEvent.change(screen.getByRole('combobox',{name:'Filter route map by leg'}),{target:{value:'2'}});
   expect(await screen.findByText('GPS fix log (1 fix)')).toBeInTheDocument();
   expect(screen.getByText(/1 of 3 saved GPS fixes shown/)).toBeInTheDocument();
+  expect(screen.getByLabelText('Route key and distances')).toHaveTextContent('Leg 1: Rider A');
+  expect(screen.getByLabelText('Route key and distances')).toHaveTextContent('Leg 2: Rider B');
   const eventList=screen.getByRole('list',{name:/recorded route events/i});
   expect(within(eventList).queryByText(/Rider A/)).not.toBeInTheDocument();
   client.clear();

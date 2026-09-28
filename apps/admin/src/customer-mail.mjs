@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {adminStatus} from './logging.mjs';
+import {recordAdminProviderUsage} from './provider-usage.mjs';
 const day=86400000;
 const fail=(code,status=400)=>{throw Object.assign(new Error(code),{code,status});};
 const clean=(v,max=200,optional=false,multiline=false)=>{if(typeof v!=='string'||(!optional&&!v.trim())||v.length>max||(multiline?/[\x00-\x08\x0b\x0c\x0e-\x1f]/:/[\x00-\x1f]/).test(v))fail('INVALID_EMAIL_FIELD');return v.trim();};
@@ -67,12 +68,17 @@ export function gmailMime(message){
  const body=Buffer.from(message.body).toString('base64').match(/.{1,76}/g)?.join('\r\n')??'';
  return [`From: ${message.sender}`,`To: ${message.recipient}`,`Subject: ${subject}`,`Message-ID: <${message.id}@kavaroutes.com>`,`Date: ${new Date(message.created).toUTCString()}`,'MIME-Version: 1.0','Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',''+body].join('\r\n');
 }
-export async function gmailTransport(message,settings,fetcher=fetch){
- let tokenResponse;try{tokenResponse=await fetcher('https://oauth2.googleapis.com/token',{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:settings.clientId,client_secret:settings.clientSecret,refresh_token:settings.refreshToken,grant_type:'refresh_token'})});}catch{throw Object.assign(new Error('GMAIL_TOKEN_TEMPORARY'),{retryable:true});}
+export async function gmailTransport(message,settings,fetcher=fetch,record=()=>{}){
+ const measured=async(operation,url,options)=>{const started=performance.now();let status=0;
+  try{const response=await fetcher(url,options);status=Number.isInteger(response?.status)?response.status:response?.ok?200:0;return response;}
+  finally{try{record({businessId:message.business_id??message.businessId,provider:'GOOGLE',operation,feature:'ADMIN_EMAIL',
+    status,durationMs:Math.min(60000,Math.max(0,Math.round(performance.now()-started)))});}catch{/* Email outcome must not depend on metrics storage. */}}
+ };
+ let tokenResponse;try{tokenResponse=await measured('OAUTH_TOKEN','https://oauth2.googleapis.com/token',{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:settings.clientId,client_secret:settings.clientSecret,refresh_token:settings.refreshToken,grant_type:'refresh_token'})});}catch{throw Object.assign(new Error('GMAIL_TOKEN_TEMPORARY'),{retryable:true});}
  if(!tokenResponse.ok)throw Object.assign(new Error('GMAIL_RECONNECT_REQUIRED'),{retryable:tokenResponse.status===429||tokenResponse.status>=500});
  const token=await tokenResponse.json();if(!token.access_token)throw Object.assign(new Error('GMAIL_RECONNECT_REQUIRED'),{retryable:false});
  const raw=Buffer.from(gmailMime(message)).toString('base64url');let response;
- try{response=await fetcher('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),headers:{Authorization:`Bearer ${token.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({raw})});}catch{throw Object.assign(new Error('GMAIL_SEND_UNCONFIRMED'),{unknown:true});}
+ try{response=await measured('GMAIL_SEND','https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',redirect:'error',signal:AbortSignal.timeout(15000),headers:{Authorization:`Bearer ${token.access_token}`,'Content-Type':'application/json'},body:JSON.stringify({raw})});}catch{throw Object.assign(new Error('GMAIL_SEND_UNCONFIRMED'),{unknown:true});}
  if(!response.ok)throw Object.assign(new Error('GMAIL_SEND_REJECTED'),{unknown:response.status>=500,retryable:response.status===429});
  let result;try{result=await response.json();}catch{throw Object.assign(new Error('GMAIL_SEND_UNCONFIRMED'),{unknown:true});}if(typeof result.id!=='string'||!result.id)throw Object.assign(new Error('GMAIL_SEND_UNCONFIRMED'),{unknown:true});return result.id;
 }
@@ -93,7 +99,7 @@ export async function processMail(s,config,{now=Date.now(),send=gmailTransport}=
    if(reason){s.run("UPDATE email_outbox SET status='SKIPPED',last_error=? WHERE id=?",reason,m.id);s.audit('scheduler','EMAIL_SKIPPED',m.id);return null;}
    s.run("UPDATE email_outbox SET status='PROCESSING',attempts=attempts+1,first_attempt=coalesce(first_attempt,?),locked_at=?,sender=coalesce(sender,?) WHERE id=?",now,now,settings.from,m.id);return s.get('SELECT * FROM email_outbox WHERE id=?',m.id);
   });if(!m)continue;
-  try{const id=await send(m,settings);s.transaction(()=>{s.run("UPDATE email_outbox SET status='ACCEPTED',provider_id=?,last_error=NULL WHERE id=?",id,m.id);s.audit('scheduler','EMAIL_PROVIDER_ACCEPTED',m.id);});}
+  try{const id=await send(m,settings,fetch,row=>recordAdminProviderUsage(s,row));s.transaction(()=>{s.run("UPDATE email_outbox SET status='ACCEPTED',provider_id=?,last_error=NULL WHERE id=?",id,m.id);s.audit('scheduler','EMAIL_PROVIDER_ACCEPTED',m.id);});}
   catch(error){const retry=!error.unknown&&error.retryable===true&&m.attempts<5;s.run('UPDATE email_outbox SET status=?,scheduled_at=?,last_error=? WHERE id=?',error.unknown?'UNKNOWN':retry?'QUEUED':'FAILED',now+Math.min(3600000,60000*2**m.attempts),error.unknown?'CHECK_GMAIL_SENT_BEFORE_RESENDING':retry?'PROVIDER_TEMPORARY':error.message==='GMAIL_RECONNECT_REQUIRED'?'GMAIL_RECONNECT_REQUIRED':'PROVIDER_REJECTED',m.id);s.audit('scheduler',retry?'EMAIL_RETRY_SCHEDULED':'EMAIL_FAILED',m.id);}
  }
 }

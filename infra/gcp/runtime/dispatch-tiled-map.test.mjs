@@ -61,6 +61,7 @@ test('two legs remain distinct across waiting time in both raw fixes and matched
 
 test('map tiles and matched geometry stay behind the authorized service and reuse cached work',async()=>{
   const calls=[];
+  const usageCalls=[];
   let databaseReads=0;
   const pool={connect:async()=>({query:async sql=>{databaseReads++;return {rows:sql.includes('FROM execution.shift_policy_snapshot')?[{id:shift,run_id:shift}]:
     sql.includes('FROM realtime.location_breadcrumb')?points.slice(0,5):[]};},release(){}})};
@@ -69,15 +70,17 @@ test('map tiles and matched geometry stay behind the authorized service and reus
     if(String(url).includes('/tile/'))return {ok:true,headers:{get:()=> 'image/png'},arrayBuffer:async()=>Buffer.from('png')};
     return {ok:true,json:async()=>({features:[{geometry:{coordinates:[[[...[-87.62,41.88]],[-87.621,41.881]]]}}]})};
   };
-  const services=createDispatchTiledMapServices(pool,{apiKey:'private-key-123456789012345',fetcher});
-  const first=await services.tile({z:12,x:1048,y:1522});
+  const usage={record:async(scope,request)=>{usageCalls.push(scope);return request();}};
+  const services=createDispatchTiledMapServices(pool,{apiKey:'private-key-123456789012345',fetcher,usage});
+  const first=await services.tile({organizationId:tenant,z:12,x:1048,y:1522});
   assert.equal(first.imageUrl,'data:image/png;base64,cG5n');
-  assert.deepEqual(await services.tile({z:12,x:1048,y:1522}),first);
+  assert.deepEqual(await services.tile({organizationId:tenant,z:12,x:1048,y:1522}),first);
   assert.equal(calls.length,1);
-  const batch=await services.tileBatch({tiles:[{z:12,x:1048,y:1522},{z:12,x:1049,y:1522},{z:12,x:1049,y:1522}]});
+  const batch=await services.tileBatch({organizationId:tenant,tiles:[{z:12,x:1048,y:1522},{z:12,x:1049,y:1522},{z:12,x:1049,y:1522}]});
   assert.equal(batch.tiles.length,3);
   assert.ok(batch.tiles.every(item=>item.imageUrl===first.imageUrl));
   assert.equal(calls.length,2,'the batch reuses both cached and in-flight tile work');
+  assert.equal(usageCalls.filter(call=>call.operation==='MAP_TILE').length,2,'cache hits do not count as provider requests');
   const input={organizationId:tenant,serviceDate:day,shiftId:shift,clientId:null};
   assert.equal((await services.match(input)).status,'PENDING');
   const readsAfterStart=databaseReads;
@@ -88,6 +91,7 @@ test('map tiles and matched geometry stay behind the authorized service and reus
   assert.equal(ready.windows.length,ready.segments.length);
   assert.equal(JSON.stringify(ready).includes('private-key'),false);
   assert.equal(calls.filter(call=>call.url.includes('/mapmatching')).length,1);
+  assert.equal(usageCalls.filter(call=>call.operation==='MAP_MATCH').length,1);
   assert.equal(databaseReads,readsAfterStart,'match status polling reuses geometry without rereading GPS');
 });
 

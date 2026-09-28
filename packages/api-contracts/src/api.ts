@@ -40,6 +40,7 @@ import { DispatchTrackingSchema } from "./dispatch-tracking.js";
 import {DispatchRouteHistorySchema,type DispatchRouteHistoryReader} from './dispatch-route-history.js';
 import {DispatchTraceMapSchema,type DispatchTraceMapService} from './dispatch-trace-map.js';
 import {DispatchFullTraceSchema,DispatchMapMatchSchema,DispatchMapTileSchema,DispatchMapTileBatchSchema,type DispatchFullTraceReader,type DispatchMapMatchService,type DispatchMapTileService,type DispatchMapTileBatchService} from './dispatch-tiled-map.js';
+import {ProviderUsageSchema,type ProviderUsageService} from './provider-usage.js';
 import { ClientHistorySchema, CostProfileUpdateReceiptSchema, CostProfileUpdateRequestSchema, CostProfileViewSchema, InvoiceCreateRequestSchema,
   InvoiceForwardReceiptSchema, InvoiceForwardRequestSchema, InvoiceListSchema, InvoiceReceiptSchema, InvoiceViewSchema, ServiceDayEstimatesSchema,
   type AccountingApiService } from "./accounting.js";
@@ -118,6 +119,7 @@ export interface Wp007ApiOptions {
   readonly dispatchMapMatchService?:DispatchMapMatchService;
   readonly dispatchMapTileService?:DispatchMapTileService;
   readonly dispatchMapTileBatchService?:DispatchMapTileBatchService;
+  readonly providerUsageService?:ProviderUsageService;
   /** Route costing, payer invoices and client history: the money surface. */
   readonly accountingService?: AccountingApiService;
   readonly pushRegistrationService?: ReturnType<typeof createRegistrationService>;
@@ -560,7 +562,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
       await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'resolveDispatchPickupTimezone');
       const {address}=request.body as {address:string};
       reply.header('cache-control','no-store');request.wp007Context.resultCode='PICKUP_TIMEZONE_RESOLVED';
-      return reply.send(await guarded(()=>service().pickupTimezone({address})));
+      return reply.send(await guarded(()=>service().pickupTimezone({organizationId,address})));
     });
     routes.get(base,{schema:{operationId:'getDispatchRoadRouteSelection',tags:['dispatch'],security,headers:AuthorizationHeaders,params,response:responseWithErrors({200:jsonResponse(RoadRouteSelectionSchema,'Saved road-route goal for this leg')},[400,401,403,404,406,429,500,503])}},async(request,reply)=>{
       const {organizationId,legId}=request.params as {organizationId:string;legId:string};
@@ -842,7 +844,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     if(x>=2**z||y>=2**z)throw new ProtocolError(400,'INVALID_MAP_TILE','tile coordinates outside zoom level');
     if(!options.dispatchMapTileService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','map tile unavailable');
     request.wp007Context.resultCode='DISPATCH_MAP_TILE_RETURNED';
-    try{return reply.send(await options.dispatchMapTileService({z,x,y}));}
+    try{return reply.send(await options.dispatchMapTileService({organizationId,z,x,y}));}
     catch(error){if(error instanceof RoadRoutingError)throw new ProtocolError(error.statusCode,error.code,error.code);throw error;}
   });
   routes.get('/v1/organizations/:organizationId/dispatch/map-tiles/batch',{schema:{
@@ -865,8 +867,22 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     });
     if(!options.dispatchMapTileBatchService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','map tiles unavailable');
     request.wp007Context.resultCode='DISPATCH_MAP_TILES_RETURNED';
-    try{return reply.send(await options.dispatchMapTileBatchService({tiles}));}
+    try{return reply.send(await options.dispatchMapTileBatchService({organizationId,tiles}));}
     catch(error){if(error instanceof RoadRoutingError)throw new ProtocolError(error.statusCode,error.code,error.code);throw error;}
+  });
+  routes.get('/v1/organizations/:organizationId/dispatch/provider-usage',{schema:{
+    operationId:'getDispatchProviderUsage',tags:['dispatch'],security,headers:AuthorizationHeaders,
+    params:OrganizationParams,querystring:Type.Object({hours:Type.Optional(Type.Integer({minimum:1,maximum:168}))},{additionalProperties:false}),
+    response:responseWithErrors({200:jsonResponse(ProviderUsageSchema,'External API request counts and latency without request contents')},[400,401,403,404,406,429,500,503]),
+  }},async(request,reply)=>{
+    const {organizationId}=request.params as {organizationId:string};
+    const hours=(request.query as {hours?:number}).hours??24;
+    await requireAccess(request,organizationId,{capability:'dispatch:read',purpose:'ASSIGNED_SERVICE_DELIVERY',
+      branchScope:companyBranchScope(organizationId),fleetScope:companyFleetScope(organizationId)},'getDispatchProviderUsage');
+    if(![1,24,168].includes(hours))throw new ProtocolError(400,'INVALID_USAGE_WINDOW','select 1, 24, or 168 hours');
+    if(!options.providerUsageService)throw new ProtocolError(503,'RUNTIME_PATH_NOT_PROMOTED','provider usage unavailable');
+    reply.header('cache-control','no-store');request.wp007Context.resultCode='PROVIDER_USAGE_RETURNED';
+    return reply.send(await options.providerUsageService(organizationId,hours as 1|24|168));
   });
   routes.get("/v1/organizations/:organizationId/driver/shifts/assignments/:assignmentId", { schema: {
     operationId: "getDriverShiftState", tags: ["driver"], security, headers: AuthorizationHeaders,

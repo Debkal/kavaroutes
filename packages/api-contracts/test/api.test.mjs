@@ -128,6 +128,22 @@ test('dispatch map viewport is scoped and requires a complete center and zoom',a
   assert.equal(calls.length,1);
 });
 
+test('provider usage is tenant scoped and dispatcher only',async(t)=>{
+  const calls=[];
+  const app=await createWp007Api({application:memoryApplication(),providerUsageService:async(organizationId,hours)=>{
+    calls.push({organizationId,hours});return {hours,total:2,averageRequestsPerHour:2,averageMs:12,
+      groups:[{provider:'GEOAPIFY',operation:'MAP_TILE',feature:'ROUTE_HISTORY',count:2,failed:0,averageMs:12}],
+      recent:[],pendingCount:0,droppedCount:0,lastFailureAt:null};
+  }});t.after(()=>app.close());
+  const url=`/v1/organizations/${syntheticIds.organizationA}/dispatch/provider-usage?hours=1`;
+  const allowed=await app.inject({method:'GET',url,headers:auth('principal_dispatcher')});
+  assert.equal(allowed.statusCode,200,allowed.body);
+  assert.deepEqual(calls,[{organizationId:syntheticIds.organizationA,hours:1}]);
+  const denied=await app.inject({method:'GET',url,headers:auth('principal_driver')});
+  assert.notEqual(denied.statusCode,200);
+  assert.equal(calls.length,1);
+});
+
 test('dispatch chooses a road-route goal and only the assigned driver reads directions',async(t)=>{
   const legId='40000000-0000-4000-8000-000000000002',calls=[];
   const selected={goal:'LOW_COST',version:1,selectedAt:'2026-09-23T12:00:00.000Z'};

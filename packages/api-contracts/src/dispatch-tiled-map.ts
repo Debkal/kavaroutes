@@ -23,5 +23,5 @@ export type DispatchMapTile=Static<typeof DispatchMapTileSchema>;
 export type DispatchMapTileBatch=Static<typeof DispatchMapTileBatchSchema>;
 export type DispatchFullTraceReader=(input:{organizationId:string;serviceDate:string;shiftId:string;clientId:string|null})=>Promise<DispatchFullTrace>;
 export type DispatchMapMatchService=(input:{organizationId:string;serviceDate:string;shiftId:string;clientId:string|null})=>Promise<DispatchMapMatch>;
-export type DispatchMapTileService=(input:{z:number;x:number;y:number})=>Promise<DispatchMapTile>;
-export type DispatchMapTileBatchService=(input:{tiles:{z:number;x:number;y:number}[]})=>Promise<DispatchMapTileBatch>;
+export type DispatchMapTileService=(input:{organizationId:string;z:number;x:number;y:number})=>Promise<DispatchMapTile>;
+export type DispatchMapTileBatchService=(input:{organizationId:string;tiles:{z:number;x:number;y:number}[]})=>Promise<DispatchMapTileBatch>;

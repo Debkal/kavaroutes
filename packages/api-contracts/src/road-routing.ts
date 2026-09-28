@@ -52,7 +52,7 @@ export const RoadRouteDriverViewSchema = Type.Object({
 
 export interface RoadRoutingService {
   readonly configured: boolean;
-  pickupTimezone(input: { address: string }): Promise<{ serviceTimezone: string }>;
+  pickupTimezone(input: { organizationId?: string; address: string }): Promise<{ serviceTimezone: string }>;
   selection(input: { organizationId: string; legId: string; driverId?: string }): Promise<RoadRouteSelection>;
   preview(input: { organizationId: string; legId: string; goal: RoadRouteGoal; includeMap: boolean; driverId?: string }): Promise<RoadRoutePreview>;
   select(input: { organizationId: string; legId: string; actorId: string; goal: RoadRouteGoal; expectedVersion: number; key: string }): Promise<RoadRouteSelection>;

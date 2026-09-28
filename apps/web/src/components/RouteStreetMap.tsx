@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type {createCloudApi} from '../cloud-api';
 import {googleMapsRouteUrl} from '../route-trace-export';
+import {distanceByWindow,miles} from '../route-distance';
 
 type Api=ReturnType<typeof createCloudApi>;
 type Track=Awaited<ReturnType<Api['tracking']>>['value']['shifts'][number];
@@ -33,8 +34,9 @@ function split(points:readonly Point[]):{window:number;coords:[number,number][]}
 
 /** The tiles stay in the browser cache during pan/zoom. Every tile is requested
  * through the authorized API, so its provider key never reaches a browser URL. */
-export function RouteStreetMap({api,day,track,clientId=null,history=false,selectedWindow=null,fallback}:{
-  api:Api;day:string;track:Track;clientId?:string|null;history?:boolean;selectedWindow?:number|null;fallback:ReactNode;
+export function RouteStreetMap({api,day,track,clientId=null,history=false,selectedWindow=null,legLabels=[],fallback}:{
+  api:Api;day:string;track:Track;clientId?:string|null;history?:boolean;selectedWindow?:number|null;
+  legLabels?:readonly {window:number;label:string}[];fallback:ReactNode;
 }){
   const container=useRef<HTMLDivElement>(null),map=useRef<any>(null),overlay=useRef<any>(null);
   const [raw,setRaw]=useState(false),[tileError,setTileError]=useState(false);
@@ -52,8 +54,12 @@ export function RouteStreetMap({api,day,track,clientId=null,history=false,select
     queryFn:()=>api.traceMatch(day,track.shiftReference,clientId),enabled:history&&points.length>1,
     refetchInterval:query=>query.state.data?.value.status==='PENDING'?5000:false,staleTime:5*60_000,retry:false});
   const visiblePoints=useMemo(()=>selectedWindow===null?points:points.filter(point=>point.window===selectedWindow),[points,selectedWindow]);
+  const allSegments=useMemo(()=>split(points),[points]);
   const segments=useMemo(()=>split(visiblePoints),[visiblePoints]);
   const matched=match.data?.value.status==='READY'||match.data?.value.status==='PARTIAL';
+  const distances=useMemo(()=>distanceByWindow(match.data?.value.status==='READY'?
+    match.data.value.segments.map((coords,index)=>({coords,window:match.data!.value.windows[index]??0})):allSegments),[match.data,allSegments]);
+  const distanceMethod=match.data?.value.status==='READY'?'road-aligned':'GPS estimate';
   const googleUrl=googleMapsRouteUrl(visiblePoints);
 
   useEffect(()=>{
@@ -138,6 +144,15 @@ export function RouteStreetMap({api,day,track,clientId=null,history=false,select
     </div>
     <figure className="route-street-map">
       <div ref={container} className="route-street-viewport" role="region" aria-label="Interactive street map with pan, pinch and scroll zoom" tabIndex={0}/>
+      {history&&legLabels.length>0&&<div className="route-map-legend" aria-label="Route key and distances">
+        <strong>Route key</strong><small>Distance: {distanceMethod}</small>
+        {legLabels.map(leg=><div key={leg.window} className={selectedWindow!==null&&selectedWindow!==leg.window?'muted':''}>
+          <span className="route-map-legend-line" style={{backgroundColor:legColor(leg.window)}} aria-hidden="true"/>
+          <span>{leg.label}</span><b>{distances.has(leg.window)?miles(distances.get(leg.window)!):'No fixes'}</b>
+        </div>)}
+        {distances.has(0)&&<div className={selectedWindow!==null?'muted':''}><span className="route-map-legend-line" style={{backgroundColor:legColor(0)}} aria-hidden="true"/>
+          <span>Outside leg actions</span><b>{miles(distances.get(0)!)}</b></div>}
+      </div>}
       <figcaption>{history?'Recorded':'Live'} route · {visiblePoints.length.toLocaleString()} of {points.length.toLocaleString()} saved GPS fixes shown · {gaps} reporting gap{gaps===1?'':'s'}.
         {matched&&!raw?' Colored lines follow streets matched to recorded coordinates.':' Colored lines follow raw recorded coordinates.'}
         {match.data?.value.status==='PENDING'?' Aligning the drive to streets…':''}

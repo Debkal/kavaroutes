@@ -135,31 +135,33 @@ async function leg(client,organizationId,legId,driverId){
 const selectionFrom=row=>row?{goal:row.goal,version:Number(row.version),selectedAt:new Date(row.selected_at).toISOString()}
   :{goal:null,version:0,selectedAt:null};
 
-export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch}={}){
+export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch,usage=null}={}){
   const configured=typeof apiKey==='string'&&/^[A-Za-z0-9_-]{20,200}$/.test(apiKey);
   const geocodeCache=new Map();
   const routeCache=new Map();
   const routeCacheLifetimeMs=30*60_000;
-  const resolveAddress=label=>{
+  const measured=(organizationId,operation,feature)=>(url,options)=>usage?
+    usage.record({tenantId:organizationId,provider:'GEOAPIFY',operation,feature},()=>fetcher(url,options)):fetcher(url,options);
+  const resolveAddress=(label,organizationId,feature)=>{
     if(!geocodeCache.has(label)){
       if(geocodeCache.size>=500)geocodeCache.delete(geocodeCache.keys().next().value);
-      const pending=geocode(fetcher,apiKey,label).catch(error=>{geocodeCache.delete(label);throw error;});
+      const pending=geocode(measured(organizationId,'GEOCODE',feature),apiKey,label).catch(error=>{geocodeCache.delete(label);throw error;});
       geocodeCache.set(label,pending);
     }
     return geocodeCache.get(label);
   };
-  const resolvePoint=(label,lat,lon)=>{
+  const resolvePoint=(label,lat,lon,organizationId)=>{
     if(validNumber(Number(lat))&&validNumber(Number(lon))&&lat!==null&&lon!==null)return Promise.resolve([Number(lat),Number(lon)]);
-    return resolveAddress(label).then(result=>result.point);
+    return resolveAddress(label,organizationId,'ROAD_ROUTING').then(result=>result.point);
   };
-  const routeFor=(origin,destination,goal)=>{
+  const routeFor=(origin,destination,goal,organizationId)=>{
     const key=`${coordinate(origin)}|${coordinate(destination)}|${goal}`;
     const cached=routeCache.get(key);
     if(cached&&cached.expiresAt>Date.now())return cached.promise;
     routeCache.delete(key);
     if(routeCache.size>=40)routeCache.delete(routeCache.keys().next().value);
     const entry={expiresAt:Date.now()+routeCacheLifetimeMs,promise:null};
-    entry.promise=geoapifyRoutes(fetcher,apiKey,origin,destination,goal).catch(error=>{
+    entry.promise=geoapifyRoutes(measured(organizationId,'ROUTE', 'ROAD_ROUTING'),apiKey,origin,destination,goal).catch(error=>{
       if(routeCache.get(key)===entry)routeCache.delete(key);
       throw error;
     });
@@ -168,10 +170,10 @@ export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch
   };
   return Object.freeze({
     configured,
-    async pickupTimezone({address}){
+    async pickupTimezone({address,organizationId}){
       if(!configured)throw new RoadRoutingError(503,'MAPS_NOT_CONFIGURED');
       if(typeof address!=='string'||!address.trim()||address.length>512)throw new RoadRoutingError(502,'MAPS_ADDRESS_UNRESOLVED');
-      const result=await resolveAddress(address.trim());
+      const result=await resolveAddress(address.trim(),organizationId,'TIMEZONE');
       const zone=result.timezone;
       if(typeof zone!=='string')throw new RoadRoutingError(502,'MAPS_TIMEZONE_UNAVAILABLE');
       try{new Intl.DateTimeFormat('en-US',{timeZone:zone}).format();}
@@ -189,9 +191,9 @@ export function createGeoapifyRoadRoutingService(pool,{apiKey=null,fetcher=fetch
       if(!goals.has(goal))throw new RoadRoutingError(409,'ROUTE_GOAL_INVALID');
       if(!configured)throw new RoadRoutingError(503,'MAPS_NOT_CONFIGURED');
       const row=await withTenantTransaction(pool,organizationId,'kavaroutes_api',client=>leg(client,organizationId,legId,driverId));
-      const [origin,destination]=await Promise.all([resolvePoint(row.origin,row.origin_lat,row.origin_lon),resolvePoint(row.destination,row.destination_lat,row.destination_lon)]);
-      const route=await routeFor(origin,destination,goal);
-      const mapImageUrl=includeMap?await staticMap(fetcher,apiKey,route):null;
+      const [origin,destination]=await Promise.all([resolvePoint(row.origin,row.origin_lat,row.origin_lon,organizationId),resolvePoint(row.destination,row.destination_lat,row.destination_lon,organizationId)]);
+      const route=await routeFor(origin,destination,goal,organizationId);
+      const mapImageUrl=includeMap?await staticMap(measured(organizationId,'STATIC_MAP','ROAD_ROUTING'),apiKey,route):null;
       const note=goal==='LOW_COST'?'Prefers toll-free roads and a shorter distance. Actual toll, fuel, and labor costs are not quoted.':goal==='FASTEST'
         ?'Shortest estimated time among the proposed routes. Traffic is approximate, not live.':'Prefers fewer maneuvers and avoids ferries when practical.';
       return {goal,provider:'GEOAPIFY',distanceMeters:route.distanceMeters,durationSeconds:route.durationSeconds,

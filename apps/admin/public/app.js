@@ -187,6 +187,32 @@ async function resetAllDriverAccess(){
   }catch(error){if(selectedBusiness?.id===business.id)$('driver-access-reset-status').textContent=error.message.replaceAll('_',' ');}
   finally{button.disabled=false;}
 }
+async function loadProviderUsage(){
+  if(current?.role!=='OWNER'||!selectedBusiness?.runtime_tenant_id)return;
+  const businessId=selectedBusiness.id,hours=Number($('provider-usage-hours').value),button=$('provider-usage-load');
+  button.disabled=true;$('provider-usage-status').textContent='Loading outbound request counts…';
+  try{
+    const result=await api('provider-usage',{businessId,hours});
+    if(selectedBusiness?.id!==businessId)return;
+    $('provider-usage-rows').replaceChildren();$('provider-usage-recent').replaceChildren();
+    for(const row of result.groups){
+      const tr=document.createElement('tr');
+      for(const value of [row.provider,row.feature.replaceAll('_',' ').toLowerCase(),row.operation.replaceAll('_',' ').toLowerCase(),row.count,row.failed,`${row.averageMs} ms`]){
+        const td=document.createElement('td');td.textContent=String(value);tr.append(td);
+      }
+      $('provider-usage-rows').append(tr);
+    }
+    for(const row of result.recent){const li=document.createElement('li');
+      li.textContent=`${new Date(row.at).toLocaleString()} · ${row.provider} ${row.operation.replaceAll('_',' ').toLowerCase()} · ${row.status||'network error'} · ${row.durationMs} ms`;
+      $('provider-usage-recent').append(li);
+    }
+    const history=result.groups.filter(row=>row.feature==='ROUTE_HISTORY').reduce((sum,row)=>sum+row.count,0);
+    $('provider-usage-status').textContent=`${result.total} outbound requests in ${hours===1?'the last hour':hours===24?'the last 24 hours':'the last 7 days'} · ${result.averageRequestsPerHour} per hour on average · ${result.averageMs} ms average latency · ${history} route-history requests.${result.pendingCount?` ${result.pendingCount} event(s) awaiting storage.`:''}${result.droppedCount?` ${result.droppedCount} event(s) could not be retained while storage was unavailable.`:''}`;
+  }catch(error){if(selectedBusiness?.id===businessId)$('provider-usage-status').textContent=error.message.replaceAll('_',' ');}
+  finally{button.disabled=false;}
+}
+$('provider-usage-load').addEventListener('click',loadProviderUsage);
+$('provider-usage-hours').addEventListener('change',loadProviderUsage);
 function openBusinessWorkspace(item){
   selectedBusiness=item;loadedTripDay=null;
   clearDriverAccessCredentials();
@@ -194,13 +220,14 @@ function openBusinessWorkspace(item){
   $('workspace-status').textContent=item.runtime_tenant_id?`Business ID ${item.id}. Operations tenant ${item.runtime_tenant_id}.`:`Business ID ${item.id}. No operations workspace is linked to this account yet.`;
   $('workspace-links').hidden=!item.runtime_tenant_id;
   $('workspace-trip').hidden=!item.runtime_tenant_id;
+  $('workspace-provider-usage').hidden=!item.runtime_tenant_id||current.role!=='OWNER';
   $('workspace-driver-access').hidden=!item.runtime_tenant_id||current.role!=='OWNER';
   $('workspace-logging').checked=!!item.debug_logging_enabled;
   $('trip-report-text').hidden=true;$('trip-report-send').disabled=true;
   $('trip-report-status').textContent='Choose a service date to load its report.';
   manualCharges=[];renderManualCharges();clearManualCharge();
   $('business-workspace').hidden=false;$('business-workspace').scrollIntoView({behavior:'smooth'});
-  if(item.runtime_tenant_id){void loadTripReport();if(current.role==='OWNER')void loadDriverAccessLog();}
+  if(item.runtime_tenant_id){void loadTripReport();if(current.role==='OWNER'){void loadDriverAccessLog();void loadProviderUsage();}}
   void loadManualCharges();
 }
 $('driver-access-log-load').addEventListener('click',loadDriverAccessLog);
