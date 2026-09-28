@@ -70,7 +70,7 @@ export async function createRuntimeApi(input) {
   app.addHook('onRequest', async (request, reply) => {
     const path = request.url.split('?')[0];
     if(path.startsWith('/driver-admin/'))return;
-    if(/^\/v1\/organizations\/[^/]+\/driver-access(?:\/codes(?:\/[^/]+\/(?:reset|disable))?|\/devices\/[^/]+\/signout)?$/.test(path))return;
+    if(/^\/v1\/organizations\/[^/]+\/driver-access(?:\/inspection-settings|\/codes(?:\/[^/]+\/(?:reset|disable))?|\/devices\/[^/]+\/signout)?$/.test(path))return;
     if(/^\/v1\/organizations\/[^/]+\/facility\/(?:days\/\d{4}-\d{2}-\d{2}|trips\/[^/]+)$/.test(path))return;
     if(/^\/v1\/organizations\/[^/]+\/browser-commands(?:\/pending|\/[^/]+\/(?:execute|acknowledge))?$/.test(path))return;
     const routeProposalPath=/^\/v1\/organizations\/[^/]+\/(?:(?:driver|dispatch)\/shifts\/[^/]+\/route-proposals|dispatch\/route-proposals\/[^/]+\/commands\/decide)$/.test(path);

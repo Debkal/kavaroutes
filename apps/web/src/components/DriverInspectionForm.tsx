@@ -15,7 +15,7 @@ export const DRIVER_INSPECTION_ITEMS = [
 
 type Item = typeof DRIVER_INSPECTION_ITEMS[number];
 type Draft = { defect: boolean | null; severity: "CRITICAL_OUT_OF_SERVICE" | "SERVICE_AFFECTING" | "MINOR"; note: string; photo: File | null };
-const initial = () => Object.fromEntries(DRIVER_INSPECTION_ITEMS.map(item => [item, { defect: null, severity: "MINOR", note: "", photo: null }])) as Record<Item, Draft>;
+const initial = (preselected:boolean) => Object.fromEntries(DRIVER_INSPECTION_ITEMS.map(item => [item, { defect: preselected ? false : null, severity: "MINOR", note: "", photo: null }])) as Record<Item, Draft>;
 
 async function photo(file: File) {
   if (file.type !== "image/jpeg" || file.size < 100 || file.size > 150_000) throw new Error("Photos must be JPEG and no larger than 150 KB.");
@@ -27,11 +27,11 @@ async function photo(file: File) {
   return { base64, digest: [...digestBytes].map(value => value.toString(16).padStart(2, "0")).join("") };
 }
 
-export function DriverInspectionForm({ stage, shift, vehicleId, busy, onSubmit }: {
-  stage: "pre" | "post"; shift: DriverShiftState; vehicleId: string; busy: boolean;
+export function DriverInspectionForm({ stage, shift, vehicleId, busy, precheckDefault='NO_ISSUE', onSubmit }: {
+  stage: "pre" | "post"; shift: DriverShiftState; vehicleId: string; busy: boolean; precheckDefault?:'NO_ISSUE'|'MANUAL';
   onSubmit(request: DriverPrecheckRequest): Promise<void>;
 }) {
-  const [answers, setAnswers] = useState(initial);
+  const [answers, setAnswers] = useState(()=>initial(stage==='pre'&&precheckDefault==='NO_ISSUE'));
   const [odometer, setOdometer] = useState("");
   const [fuelLevel, setFuelLevel] = useState<"EMPTY" | "QUARTER" | "HALF" | "THREE_QUARTERS" | "FULL">("FULL");
   const [skipInspection, setSkipInspection] = useState(false); const [skipOdometer, setSkipOdometer] = useState(false);
@@ -68,7 +68,7 @@ export function DriverInspectionForm({ stage, shift, vehicleId, busy, onSubmit }
   };
   return <section className="driver-card driver-inspection" aria-labelledby={`${stage}-inspection-title`}>
     <div className="driver-card-heading"><div><p className="driver-step">{stage === "pre" ? "Step 2" : "End of shift"}</p><h2 id={`${stage}-inspection-title`}>{stage === "pre" ? "Vehicle check before departure" : "Vehicle check after return"}</h2></div><span className="driver-pill">{defects} issue{defects === 1 ? "" : "s"}</span></div>
-    <p>Review every item and choose No issue or Issue found. Any reported issue requires a note and a JPEG photo. Critical defects block vehicle release.</p>
+    <p>{stage==='pre'&&precheckDefault==='NO_ISSUE'?'No issue is preselected. Review every item and mark any issue before submitting.':'Review every item and choose No issue or Issue found.'} Any reported issue requires a note and a JPEG photo. Critical defects block vehicle release.</p>
     {inspectionMode === "OPTIONAL" && <label className="driver-optional"><input type="checkbox" checked={skipInspection} disabled={defects > 0} onChange={event => setSkipInspection(event.target.checked)} /> Skip optional inspection</label>}
     {inspectionMode !== "DISABLED" && !skipInspection && <p role="status" className="driver-check-progress">{reviewed} of {DRIVER_INSPECTION_ITEMS.length} items reviewed</p>}
     {inspectionMode !== "DISABLED" && !skipInspection && <div className="driver-checklist">{DRIVER_INSPECTION_ITEMS.map((item, index) => {

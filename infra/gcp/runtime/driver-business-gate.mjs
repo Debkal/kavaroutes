@@ -40,6 +40,12 @@ export function createDriverBusinessGate({storeDirectory,now=()=>Date.now()}){
   const redirect=(response,location,extra={})=>response.writeHead(303,{...headers,location,...extra}).end();
   const handle=async(request,response,url)=>{
     const pathname=url.pathname;
+    if(pathname==='/driver-inspection-settings'&&request.method==='GET'){
+      const signed=await account(request);
+      if(!signed){response.writeHead(404,{...headers}).end();return true;}
+      const settings=await store.inspectionSettings(signed.businessId);
+      response.writeHead(200,{...headers,'content-type':'application/json; charset=utf-8'}).end(JSON.stringify(settings));return true;
+    }
     if(pathname==='/business-access'&&request.method==='GET'){
       const signed=await account(request);
       if(signed){redirect(response,destination(url.searchParams.get('next'),signed.businessId));return true;}

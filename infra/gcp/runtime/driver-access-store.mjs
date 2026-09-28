@@ -58,6 +58,20 @@ export function createDriverAccessStore(directory,{now=()=>Date.now()}={}){
   const list=async businessId=>{
     const state=await read();return {codes:state.codes.filter(row=>row.businessId===businessId).map(publicCode),devices:state.devices.filter(row=>row.businessId===businessId&&row.expiresAt>now()-7*86400_000).map(publicDevice),events:state.events.filter(row=>row.businessId===businessId).slice(-100).reverse()};
   };
+  const inspectionSettings=async businessId=>{
+    if(!uuid.test(businessId))throw new Error('INVALID_BUSINESS_ID');
+    const state=await read();
+    return {precheckDefault:state.inspectionSettings?.[businessId]??'NO_ISSUE'};
+  };
+  const setInspectionSettings=async(businessId,precheckDefault,actor='business-command')=>{
+    if(!uuid.test(businessId)||!['NO_ISSUE','MANUAL'].includes(precheckDefault))throw new Error('INVALID_INSPECTION_SETTINGS');
+    return change(state=>{
+      state.inspectionSettings??={};
+      state.inspectionSettings[businessId]=precheckDefault;
+      audit(state,businessId,'PRECHECK_DEFAULT_CHANGED',actor,precheckDefault);
+      return {precheckDefault};
+    });
+  };
   const createCode=async(businessId,kind,label='',actor='business-command')=>{
     if(!uuid.test(businessId)||!['SHARED','ONE_DEVICE'].includes(kind)||typeof label!=='string'||label.length>80)throw new Error('INVALID_ACCESS_CODE');
     const password=newPassword(),hashed=await hashPassword(password);
@@ -142,5 +156,5 @@ export function createDriverAccessStore(directory,{now=()=>Date.now()}={}){
     const device=state.devices.find(row=>row.id===binding.deviceId&&row.businessId===binding.businessId&&!row.revokedAt&&row.expiresAt>now());
     return Boolean(device&&state.codes.some(row=>row.id===device.codeId&&row.businessId===binding.businessId&&row.enabled));
   };
-  return {read,change,list,createCode,resetCode,disableCode,signOutDevice,touchDevice,enroll,resolve,bindDriverToken,driverTokenAccess};
+  return {read,change,list,inspectionSettings,setInspectionSettings,createCode,resetCode,disableCode,signOutDevice,touchDevice,enroll,resolve,bindDriverToken,driverTokenAccess};
 }

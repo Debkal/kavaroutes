@@ -47,6 +47,10 @@ test('business gate enrolls and revokes devices without exposing the password',a
     const cookie=signed.headers.get('set-cookie');assert.match(cookie,/__Host-kr_driver_business=/);
     assert.match(cookie,/HttpOnly; Secure; SameSite=Strict/);assert.match(cookie,/Max-Age=2592000/);
     assert.equal((await fetch(`${url}/driver`,{headers:{cookie}})).status,200);
+    assert.equal((await fetch(`${url}/driver-inspection-settings`)).status,404);
+    assert.deepEqual(await (await fetch(`${url}/driver-inspection-settings`,{headers:{cookie}})).json(),{precheckDefault:'NO_ISSUE'});
+    await store.setInspectionSettings(business,'MANUAL');
+    assert.deepEqual(await (await fetch(`${url}/driver-inspection-settings`,{headers:{cookie}})).json(),{precheckDefault:'MANUAL'});
     const recreated=createDriverBusinessGate({storeDirectory:registry});
     assert.equal((await recreated.account({headers:{cookie}})).businessId,business);
     const deviceId=(await recreated.account({headers:{cookie}})).deviceId;

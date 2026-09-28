@@ -31,6 +31,16 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
       if(!Array.isArray(value.codes)||!Array.isArray(value.devices)||!Array.isArray(value.events))throw new Error('INVALID_DRIVER_ACCESS_RESPONSE');
       return value as unknown as DriverAccessView;
     });},
+    driverInspectionSettings(){return transport.request(`${prefix}/driver-access/inspection-settings`,(body):{precheckDefault:'NO_ISSUE'|'MANUAL'}=>{
+      const value=object(body);if(value.precheckDefault!=='NO_ISSUE'&&value.precheckDefault!=='MANUAL')throw new Error('INVALID_INSPECTION_SETTINGS_RESPONSE');
+      return {precheckDefault:value.precheckDefault};
+    });},
+    setDriverInspectionSettings(precheckDefault:'NO_ISSUE'|'MANUAL'){
+      return transport.request(`${prefix}/driver-access/inspection-settings`,(body):{precheckDefault:'NO_ISSUE'|'MANUAL'}=>{
+        const value=object(body);if(value.precheckDefault!==precheckDefault)throw new Error('INVALID_INSPECTION_SETTINGS_RESPONSE');
+        return {precheckDefault};
+      },{body:{precheckDefault},idempotencyKey:`driver-inspection-${crypto.randomUUID()}`});
+    },
     createDriverAccessCode(kind:'SHARED'|'ONE_DEVICE',label:string){
       return transport.request(`${prefix}/driver-access/codes`,(body):DriverAccessCode&{password:string}=>{
         const value=object(body);if(typeof value.password!=='string'||typeof value.code!=='string')throw new Error('INVALID_DRIVER_ACCESS_RESPONSE');

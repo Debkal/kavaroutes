@@ -66,6 +66,7 @@ async function serverShiftIsActive(binding:Binding):Promise<boolean> {
 export async function prepareTracking(onBackgroundPermissionNeeded?:()=>Promise<void>,onForegroundPermissionNeeded?:()=>void):Promise<Status> {
   // Notification permission is optional for this service. Never block shift
   // sign-in behind it or request it ahead of the required location permission.
+  if (!(await Location.hasServicesEnabledAsync())) throw new Error('Turn on phone location services to start a Driver shift.');
   onForegroundPermissionNeeded?.();
   const foreground=await Location.requestForegroundPermissionsAsync();
   if (!foreground.granted) throw new Error('Allow location to start a Driver shift.');
@@ -82,9 +83,9 @@ export async function prepareTracking(onBackgroundPermissionNeeded?:()=>Promise<
 
 /** Read-only check: never opens a system prompt during a shift or on app resume. */
 export async function locationProblem():Promise<Status|null> {
+  if(!(await Location.hasServicesEnabledAsync()))return {state:'delayed',issue:'LOCATION_SERVICES',message:'Phone location services are off. Turn on the phone Location switch to start or restore your Driver shift.'};
   if(!(await Location.getForegroundPermissionsAsync()).granted)return {state:'delayed',issue:'FOREGROUND_PERMISSION',message:'Location permission is off. Open phone settings and allow location for KavaRoutes Driver.'};
   if(!(await Location.getBackgroundPermissionsAsync()).granted)return {state:'delayed',issue:'BACKGROUND_PERMISSION',message:'Background location is off. Allow location all the time so Dispatch can track the active shift while Maps is open.'};
-  if(!(await Location.hasServicesEnabledAsync()))return {state:'delayed',issue:'LOCATION_SERVICES',message:'Phone location services are off. Turn them on to restore Dispatch tracking.'};
   return null;
 }
 
@@ -146,7 +147,8 @@ export async function flushTracking():Promise<Status> {
 
 export async function startTracking(input:Omit<Binding,'deviceId'>):Promise<Status> {
   if (!validBinding({...input,deviceId:randomUUID()})) throw new Error('DRIVER_TRACKING_BINDING_INVALID');
-  await prepareTracking();
+  const problem=await locationProblem();
+  if(problem)throw new Error(problem.message);
   if (!(await serverShiftIsActive({...input,deviceId:randomUUID()}))) throw new Error('The assigned shift is not active. Refresh Driver and try again.');
   const db=await database();
   const previous=await readBinding();

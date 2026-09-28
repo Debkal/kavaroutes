@@ -131,6 +131,7 @@ export function Component() {
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const [signedIn, setSignedIn] = useState(false);
   const [verifiedLogin,setVerifiedLogin]=useState<{driverId:string;loginId:string}|null>(null);
   const [nativeTracking, setNativeTracking] = useState<NativeTrackingStatus>({state:'idle',message:'Location starts when your shift starts.'});
+  const [precheckDefault,setPrecheckDefault]=useState<'NO_ISSUE'|'MANUAL'>('MANUAL');
   const nativeResumeAttempted=useRef(false);
   const assignmentId = shift?.effectivePolicy.assignmentId;
   const refresh = useCallback(async (selectedAssignment = assignmentId) => {
@@ -159,6 +160,12 @@ export function Component() {
     document.addEventListener('visibilitychange',check);
     return () => {window.clearInterval(timer);document.removeEventListener('visibilitychange',check);};
   },[nativeDriver,signedIn,shift?.lifecycle]);
+  useEffect(()=>{
+    if(!nativeDriver||!signedIn||!assignmentId)return;
+    const onResume=()=>void refresh(assignmentId).catch(()=>setMessage('Could not refresh assigned work. Tap Load assignments to retry.'));
+    window.addEventListener('kavaroutes-native-resume',onResume);
+    return()=>window.removeEventListener('kavaroutes-native-resume',onResume);
+  },[nativeDriver,signedIn,assignmentId,refresh]);
 
   // Location is a condition of the shift: the browser is asked when the driver signs in,
   // a refusal fails that sign-in, and the feed is watched for the whole open shift
@@ -181,6 +188,12 @@ export function Component() {
         catch(error){if(error instanceof DevelopmentApiError&&error.status===404)return null;throw error;}
       });
       const leg=choice.leg;
+      let inspectionDefault:'NO_ISSUE'|'MANUAL'='MANUAL';
+      try{
+        const response=await fetch('/driver-inspection-settings',{credentials:'same-origin',cache:'no-store',headers:{accept:'application/json'}});
+        if(response.ok){const settings:unknown=await response.json();if(settings&&typeof settings==='object'&&(settings as {precheckDefault?:unknown}).precheckDefault==='NO_ISSUE')inspectionDefault='NO_ISSUE';}
+      }catch{ /* If the setting is unavailable, require each answer manually. */ }
+      setPrecheckDefault(inspectionDefault);
       if (!leg) {
         setSignedIn(true);setItinerary(manifest);setShift(null);setClosure(null);
         setMessage(choice.hasUnfinished?'Signed in. There is no open shift to resume for this date. Ask Dispatch if you expect another run.':manifest.legs.length?'Signed in. All assigned trips for this date are complete.':'Signed in. No trips are assigned for this service date.');
@@ -188,7 +201,8 @@ export function Component() {
       }
       if (nativeDriver) {
         setMessage('Waiting for phone location permission. Return to Driver after allowing location at all times.');
-        await nativeDriverCommand({type:'PREPARE'});
+        const prepared=await nativeDriverCommand({type:'PREPARE'});
+        if(prepared.state!=='idle')throw new Error(prepared.message||'Location setup is incomplete.');
         setMessage('Location is ready. Opening the assigned shift…');
       }
       else if (!(await sharing.requestSharing()))
@@ -207,7 +221,9 @@ export function Component() {
       if (nativeDriver) {
         setNativeTracking({state:'starting',message:'Starting background location…'});
         const session = api.nativeTrackingSession();
-        setNativeTracking(await nativeDriverCommand({type:'START',...session,shiftReference:state.shiftReference,shiftGeneration:state.shiftGeneration,loginId:login?.loginId??'driver'}));
+        const started=await nativeDriverCommand({type:'START',...session,shiftReference:state.shiftReference,shiftGeneration:state.shiftGeneration,loginId:login?.loginId??'driver'});
+        setNativeTracking(started);
+        if(started.state!=='active')throw new Error(started.message||'Background location did not start.');
       }
       setSignedIn(true); setItinerary(manifest); setShift(state); setSelectedLeg(leg.tripLegId);
       setClosure((await api.closure(state.shiftReference)).value);
@@ -413,7 +429,7 @@ export function Component() {
     <section className="driver-summary"><div><span>Vehicle</span><strong>{assigned[0]?.vehicleLabel ?? "Pending"}</strong></div><div><span>Trips</span><strong>{assigned.filter(leg => terminal.has(leg.execution?.lifecycle ?? "")).length}/{assigned.length}</strong></div><div><span>Updates</span><strong>{closure?.lifecycle==="SHIFT_ENDED"?"Stopped":nativeDriver?nativeTracking.state==='delayed'?'Delayed':'Background':sharing.deliveryError?"Delayed":closure?.tracking.status === "UPDATES_CURRENT" ? "Live" : "Foreground"}</strong></div></section>
 
     {closure?.lifecycle === "SHIFT_ENDED" ? <section className="driver-card driver-complete"><p className="driver-step">Shift complete</p><h2>You’re signed off</h2><p>Your shift end is recorded. Location sharing has stopped.</p></section>
-    : needsPrecheck ? <DriverInspectionForm stage="pre" shift={shift} vehicleId={assigned[0]?.vehicleId ?? ""} busy={busy} onSubmit={request => submitCheck(request, "pre")} />
+    : needsPrecheck ? <DriverInspectionForm key={`${shift.shiftReference}-${precheckDefault}`} stage="pre" shift={shift} vehicleId={assigned[0]?.vehicleId ?? ""} precheckDefault={precheckDefault} busy={busy} onSubmit={request => submitCheck(request, "pre")} />
     : needsPostcheck ? <DriverInspectionForm stage="post" shift={shift} vehicleId={assigned[0]?.vehicleId ?? ""} busy={busy} onSubmit={request => submitCheck(request, "post")} />
     : allComplete ? <section className="driver-card driver-return"><p className="driver-step">Final step</p><h2>Return vehicle and sign off</h2><p>Park at the assigned return location. The app cannot verify return proximity yet, so dispatch must review and end the shift. Location sharing continues until then.</p>{returnExceptionRecorded?<p role="status">Return request recorded and waiting on dispatch review. Do not press sign-off again; the reviewer ends the shift from that single request.</p>:null}<button className="driver-primary" disabled={busy||returnExceptionRecorded} onClick={() => void signOff()}>{busy ? "Requesting review…" : returnExceptionRecorded ? "Waiting for dispatch review" : "Request return review"}</button></section>
     : <div className="driver-workspace">
