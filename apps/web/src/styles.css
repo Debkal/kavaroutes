@@ -265,9 +265,9 @@ td small, td span { display: block; }.route-arrow { display: inline !important; 
 .route-map-legend { position:absolute; top:.7rem; right:.7rem; z-index:450; width:min(18rem,calc(100% - 1.4rem)); padding:.6rem .7rem; border:1px solid var(--line); border-radius:.55rem; background:rgba(255,255,255,.96); box-shadow:0 2px 12px #18324024; font-size:.76rem; }
 .route-map-legend > strong,.route-map-legend > small { display:block; }
 .route-map-legend > small { margin:.15rem 0 .45rem; color:var(--muted); }
-.route-map-legend > div { display:grid; grid-template-columns:1.3rem minmax(0,1fr) auto; gap:.3rem; align-items:center; margin:.28rem 0; }
-.route-map-legend > div.muted { opacity:.5; }
-.route-map-legend-line { width:1rem; height:.28rem; border-radius:1rem; }
+.route-map-legend > div { display:grid; grid-template-columns:1.5rem minmax(0,1fr) auto; gap:.4rem; align-items:center; margin:.35rem 0; }
+.route-map-legend > div.muted > span:not(.route-map-legend-line),.route-map-legend > div.muted > b { opacity:.55; }
+.route-map-legend-line { display:block; width:1.1rem; height:1.1rem; border:1px solid #18324066; border-radius:.3rem; box-shadow:0 0 0 2px #fff; }
 .route-map-legend b { white-space:nowrap; }
 .route-history-filters { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .8rem; }
 .route-history-filters select { display: block; width: 100%; min-height: 2.8rem; margin-top: .35rem; padding: .5rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface); color: var(--ink); font: inherit; }
