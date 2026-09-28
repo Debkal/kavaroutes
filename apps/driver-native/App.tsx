@@ -3,12 +3,12 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, AppState, Linking, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import WebView, {type WebViewMessageEvent, type WebViewNavigation} from 'react-native-webview';
 import {flushTracking, locationProblem, notificationPermissionGranted, prepareTracking, resumeTracking, startTracking, stopTracking, trackingStatus, type Status} from './src/tracking';
+import {driverMessageAllowed,driverOrigin,driverPage} from './src/bridge-origin';
 
 const DRIVER_URL='https://driver.kavaroutes.com/driver';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN=/^dvs_[A-Za-z0-9_-]{43}$/;
 type Command={requestId:string;type:'PREPARE'|'STATUS'|'STOP'|'START'|'RESUME';token?:string;organizationId?:string;driverId?:string;shiftReference?:string;shiftGeneration?:string;loginId?:string};
-function safeDriverUrl(raw:string) {try {const url=new URL(raw);return url.origin==='https://driver.kavaroutes.com'&&url.pathname==='/driver';}catch{return false;}}
 function safeGateUrl(raw:string) {try {const url=new URL(raw);return url.origin==='https://driver.kavaroutes.com'&&['/business-access','/business-access/logout'].includes(url.pathname);}catch{return false;}}
 function mapsUrl(raw:string) {try {const url=new URL(raw);return url.protocol==='https:'&&['www.google.com','maps.google.com','maps.apple.com'].includes(url.hostname)&&url.pathname.startsWith('/maps');}catch{return false;}}
 function parseCommand(raw:string):Command {
@@ -22,6 +22,7 @@ function parseCommand(raw:string):Command {
 
 export default function App() {
   const webview=useRef<WebView>(null);
+  const loadedPage=useRef<string|null>(null);
   const [loadError,setLoadError]=useState(false);
   const [working,setWorking]=useState(false);
   const [trackingProblem,setTrackingProblem]=useState<Status|null>(null);
@@ -44,7 +45,18 @@ export default function App() {
     webview.current?.injectJavaScript(`window.dispatchEvent(new CustomEvent('kavaroutes-native-reply',{detail:${detail}})); true;`);
   },[]);
   const onMessage=useCallback(async(event:WebViewMessageEvent)=>{
-    if (!safeDriverUrl(event.nativeEvent.url)) return;
+    if (!driverMessageAllowed(event.nativeEvent.url,loadedPage.current)) {
+      // A trusted page that races its load completion should receive a clear
+      // retry error, never sit behind the five-minute web timeout.
+      if(driverOrigin(event.nativeEvent.url))try{
+        const value:unknown=JSON.parse(event.nativeEvent.data);
+        if(value&&typeof value==='object'&&!Array.isArray(value)){
+          const id=(value as Record<string,unknown>).requestId;
+          if(typeof id==='string'&&UUID.test(id))reply(id,undefined,'Driver page is still loading. Wait a moment and retry.');
+        }
+      }catch{}
+      return;
+    }
     let command:Command;
     try {command=parseCommand(event.nativeEvent.data);} catch {return;}
     setWorking(true);
@@ -86,7 +98,7 @@ export default function App() {
   },[askBackground]);
   const onNavigation=useCallback((request:WebViewNavigation)=>{
     if (request.url==='about:blank') return true;
-    if (safeDriverUrl(request.url)||safeGateUrl(request.url)) return true;
+    if (driverPage(request.url)||safeGateUrl(request.url)) return true;
     if (mapsUrl(request.url)) void Linking.openURL(request.url);
     return false;
   },[]);
@@ -94,8 +106,9 @@ export default function App() {
     <StatusBar barStyle="dark-content" backgroundColor="#f5f8f5"/>
     <WebView ref={webview} source={{uri:DRIVER_URL}} originWhitelist={['https://driver.kavaroutes.com']} onShouldStartLoadWithRequest={onNavigation}
       onOpenWindow={event=>{const url=event.nativeEvent.targetUrl;if(mapsUrl(url))void Linking.openURL(url);}}
-      setSupportMultipleWindows={false} onMessage={onMessage} onError={()=>setLoadError(true)} onHttpError={event=>{if(safeDriverUrl(event.nativeEvent.url)&&event.nativeEvent.statusCode>=400)setLoadError(true);}}
-      onLoadEnd={()=>setWorking(false)} onLoad={()=>setLoadError(false)} javaScriptEnabled domStorageEnabled sharedCookiesEnabled thirdPartyCookiesEnabled
+      setSupportMultipleWindows={false} onMessage={onMessage} onError={()=>setLoadError(true)} onHttpError={event=>{if(driverPage(event.nativeEvent.url)&&event.nativeEvent.statusCode>=400)setLoadError(true);}}
+      onNavigationStateChange={state=>{if(!state.loading)loadedPage.current=driverPage(state.url)?state.url:null;}}
+      onLoadStart={()=>{loadedPage.current=null;}} onLoadEnd={event=>{loadedPage.current=driverPage(event.nativeEvent.url)?event.nativeEvent.url:null;setWorking(false);}} onLoad={()=>setLoadError(false)} javaScriptEnabled domStorageEnabled sharedCookiesEnabled thirdPartyCookiesEnabled
       style={styles.webview}/>
     {working&&permissionStep!=='background'?<View style={styles.progress}><ActivityIndicator size="small" color="#47756a"/><Text style={styles.progressText}>{permissionStep==='foreground'?'Waiting for phone location permission…':permissionStep==='opening-settings'?'Allow location all the time in phone settings…':'Preparing location…'}</Text></View>:null}
     {permissionStep==='background'?<View style={warningStyles.box} accessibilityRole="alert">
