@@ -44,6 +44,11 @@ account, grant precise/always location,
 start the shift, open Google Maps from the trip link, lock and unlock the phone,
 then check Dispatch Active Drivers for fresh fixes. Finish the shift and confirm
 the Android notification/iOS indicator ends. Also test network loss and return.
+Opening Google Maps is expected and does not itself create a tracking alert.
+During a test, turn phone location off for over a minute while the shift stays
+active, then restore it. Dispatch Active Drivers should show a tracking
+interruption and a recovery event; Route History retains the same audit events.
+The server records missing fixes, not a claim that the driver caused the gap.
 Location is queued in an encrypted device database for retry while the app is
 running; a driver session expires after 36 hours and must be renewed by signing
 in again. A short phone shutdown preserves the business access session and the

@@ -3,7 +3,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
 import {getRandomBytes, randomUUID} from 'expo-crypto';
 import {openDatabaseAsync, type SQLiteDatabase} from 'expo-sqlite';
-import {PermissionsAndroid,Platform} from 'react-native';
+import {Alert,PermissionsAndroid,Platform} from 'react-native';
 
 const TASK = 'kavaroutes.driver.location';
 const ORIGIN = 'https://driver.kavaroutes.com';
@@ -13,7 +13,7 @@ const STORE_OPTIONS = {keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_D
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN = /^dvs_[A-Za-z0-9_-]{43}$/;
 
-export type Status = {state:'idle'|'starting'|'active'|'delayed'|'stopped'; message:string};
+export type Status = {state:'idle'|'starting'|'active'|'delayed'|'stopped'; message:string;issue?:'FOREGROUND_PERMISSION'|'BACKGROUND_PERMISSION'|'LOCATION_SERVICES'|'BACKGROUND_TASK'};
 export type Binding = {token:string; organizationId:string; driverId:string; shiftReference:string; shiftGeneration:string; deviceId:string;loginId?:string};
 type Sample = {sample_id:string; sequence:number; captured_at:string; latitude:number; longitude:number; accuracy_meters:number|null; batch_ref:string|null};
 let dbPromise:Promise<SQLiteDatabase>|null=null;
@@ -71,11 +71,25 @@ export async function prepareTracking():Promise<Status> {
   }
   const foreground=await Location.requestForegroundPermissionsAsync();
   if (!foreground.granted) throw new Error('Allow location to start a Driver shift.');
-  const background=await Location.requestBackgroundPermissionsAsync();
+  let background=await Location.getBackgroundPermissionsAsync();
+  if(!background.granted){
+    await new Promise<void>((resolve,reject)=>Alert.alert('Keep Dispatch updated',
+      'Choose “Allow all the time” for location. Your active shift stays visible to Dispatch when you open Google Maps or lock the phone. Sharing stops when the shift ends.',
+      [{text:'Not now',style:'cancel',onPress:()=>reject(new Error('Allow location at all times before starting a Driver shift.'))},{text:'Continue',onPress:()=>resolve()}],{cancelable:false}));
+    background=await Location.requestBackgroundPermissionsAsync();
+  }
   if (!background.granted) throw new Error('Allow location at all times in phone settings to track while Google Maps is open.');
   if (!(await Location.hasServicesEnabledAsync())) throw new Error('Turn on phone location services to start a Driver shift.');
   await database();
   return {state:'idle',message:'Background location permission is ready.'};
+}
+
+/** Read-only check: never opens a system prompt during a shift or on app resume. */
+export async function locationProblem():Promise<Status|null> {
+  if(!(await Location.getForegroundPermissionsAsync()).granted)return {state:'delayed',issue:'FOREGROUND_PERMISSION',message:'Location permission is off. Open phone settings and allow location for KavaRoutes Driver.'};
+  if(!(await Location.getBackgroundPermissionsAsync()).granted)return {state:'delayed',issue:'BACKGROUND_PERMISSION',message:'Background location is off. Allow location all the time so Dispatch can track the active shift while Maps is open.'};
+  if(!(await Location.hasServicesEnabledAsync()))return {state:'delayed',issue:'LOCATION_SERVICES',message:'Phone location services are off. Turn them on to restore Dispatch tracking.'};
+  return null;
 }
 
 async function saveLocations(locations:Location.LocationObject[],binding:Binding) {
@@ -147,7 +161,7 @@ export async function startTracking(input:Omit<Binding,'deviceId'>):Promise<Stat
       showsBackgroundLocationIndicator:true,
       pausesUpdatesAutomatically:false,
       activityType:Location.ActivityType.AutomotiveNavigation,
-      ...(Platform.OS==='android'?{foregroundService:{notificationTitle:'KavaRoutes Driver location active',notificationBody:'Sharing location with Dispatch during your shift.',notificationColor:'#47756a'}}:{}),
+      ...(Platform.OS==='android'?{foregroundService:{notificationTitle:'KavaRoutes Driver location active',notificationBody:'Sharing location with Dispatch during your shift.',notificationColor:'#47756a',killServiceOnDestroy:false}}:{}),
     });} catch(error) {await SecureStore.deleteItemAsync(BINDING);throw error;}
   }
   return {state:'active',message:'Background location is on, including while Google Maps is open.'};
@@ -164,8 +178,10 @@ export async function stopTracking():Promise<Status> {
 export async function trackingStatus():Promise<Status> {
   const binding=await readBinding();
   if (!binding) return {state:'idle',message:'Location starts when your shift starts.'};
+  const problem=await locationProblem();
+  if(problem)return problem;
   const running=await Location.hasStartedLocationUpdatesAsync(TASK);
-  if (!running) return {state:'delayed',message:'Background tracking stopped unexpectedly. Sign in again to restart it.'};
+  if (!running) return {state:'delayed',issue:'BACKGROUND_TASK',message:'Background tracking stopped unexpectedly. Reopen Driver and restore tracking.'};
   return flushTracking();
 }
 
@@ -173,6 +189,8 @@ export async function resumeTracking():Promise<Status&{token?:string;organizatio
   const binding=await readBinding();
   if(!binding)return {state:'idle',message:'Sign in with your driver account.'};
   if(!(await serverShiftIsActive(binding))){await stopTracking();return {state:'stopped',message:'The previous shift has ended. Sign in again.'};}
+  const problem=await locationProblem();
+  if(problem)return {...problem,token:binding.token,organizationId:binding.organizationId,driverId:binding.driverId,...(binding.loginId?{loginId:binding.loginId}:{})};
   if(!(await Location.hasStartedLocationUpdatesAsync(TASK))){
     await startTracking(binding);
   }

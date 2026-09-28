@@ -11,7 +11,17 @@ const track=(overrides:Record<string,unknown>={})=>({serviceDate:'2026-09-14',sh
   trace:[{latitude:34.0500,longitude:-118.2400,accuracyMeters:15,capturedAt:'2026-09-14T23:55:00Z'},
          {latitude:34.0522,longitude:-118.2437,accuracyMeters:12,capturedAt:'2026-09-14T23:58:00Z'}],...overrides}]});
 const mount=(api:any)=>{const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
- render(<QueryClientProvider client={client}><CloudTrackingStatus api={{routeTraceMap:async()=>({value:{mapImageUrl:null}}),...api}} day="2026-09-14" enabled/></QueryClientProvider>);return client;};
+ render(<QueryClientProvider client={client}><CloudTrackingStatus api={{routeTraceMap:async()=>({value:{mapImageUrl:null}}),routeHistory:async()=>({value:{serviceDate:'2026-09-14',truncated:false,events:[],tripClients:[]}}),...api}} day="2026-09-14" enabled/></QueryClientProvider>);return client;};
+
+it('shows durable lost-signal and recovery events for the selected driver',async()=>{
+ const events=[{shiftReference:shift,runId:'33333333-3333-4333-8333-333333333333',tripLegId:null,kind:'TRACKING_ALERT',action:'UPDATES_OVERDUE',outcome:'CONTACT_DRIVER',reason:'NO_RECENT_UPDATE_UNKNOWN_CAUSE',occurredAt:'2026-09-14T23:59:00Z',recordedAt:'2026-09-14T23:59:00Z'},
+  {shiftReference:shift,runId:'33333333-3333-4333-8333-333333333333',tripLegId:null,kind:'TRACKING_ALERT',action:'UPDATES_CURRENT',outcome:'MONITOR',reason:'RECENT_SAMPLE_RECEIVED',occurredAt:'2026-09-15T00:03:00Z',recordedAt:'2026-09-15T00:03:00Z'}];
+ const client=mount({tracking:async()=>({value:track()}),routeHistory:async()=>({value:{serviceDate:'2026-09-14',truncated:false,events,tripClients:[]}})});
+ expect(await screen.findByRole('list',{name:'Recorded tracking transitions'})).toHaveTextContent('GPS updates interrupted');
+ expect(screen.getByRole('list',{name:'Recorded tracking transitions'})).toHaveTextContent('GPS updates restored');
+ expect(screen.getByRole('list',{name:'Recorded tracking transitions'})).toHaveTextContent('Contact driver');
+ client.clear();
+});
 
 it('shows one card per driver, named by part of day, with the lost-signal account',async()=>{
  const client=mount({tracking:async()=>({value:track()}),shiftStatus:async()=>({value:{tracking:{status:'UPDATES_OVERDUE',reason:'NO_RECENT_UPDATE_UNKNOWN_CAUSE',contactDriver:true,evaluatedAt:'2026-09-15T00:00:00Z',lastCapturedAt:'2026-09-14T23:58:00Z',lastReceivedAt:'2026-09-14T23:58:01Z',staleAfterSeconds:60}}})});
@@ -20,7 +30,7 @@ it('shows one card per driver, named by part of day, with the lost-signal accoun
  expect(screen.queryByText(/shift [0-9a-f]{8}/i)).not.toBeInTheDocument();
  expect(screen.getByText(/Synthetic Van 12 · started/)).toBeInTheDocument();
  const alerts=screen.getAllByRole('alert').map(node=>node.textContent??'');
- expect(alerts.some(text=>text.includes('No location update for 142 s'))).toBe(true);
+ expect(alerts.some(text=>text.includes('No fresh GPS fix for 142 s. The cause is unknown'))).toBe(true);
  expect(screen.getAllByText('Lost signal')).toHaveLength(2);
  expect(await screen.findByRole('img',{name:/trace of 2 fixes/})).toBeInTheDocument();
  expect(screen.getByRole('link',{name:'Open last position in maps'})).toHaveAttribute('target','_blank');

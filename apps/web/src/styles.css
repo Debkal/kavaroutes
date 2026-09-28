@@ -309,6 +309,10 @@ td small, td span { display: block; }.route-arrow { display: inline !important; 
 .driver-trace-marker { fill: var(--brand-dark); stroke: white; stroke-width: .6; vector-effect: non-scaling-stroke; }
 .dispatch-map dl { display: flex; flex-wrap: wrap; gap: .3rem 1.2rem; margin: 0; }
 .dispatch-map dt { color: var(--muted); font-size: .78rem; }.dispatch-map dd { margin: 0; font-weight: 700; }
+.driver-tracking-audit { margin: 1rem 0; padding: .8rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.driver-tracking-audit h4 { margin: 0 0 .4rem; }
+.driver-tracking-audit ol { list-style: none; padding: 0; margin: .6rem 0 0; display: grid; gap: .4rem; }
+.driver-tracking-audit li { padding: .5rem .65rem; border-radius: .4rem; background: var(--surface); border: 1px solid var(--line); }
 @media (prefers-color-scheme: dark) { .dispatch-map .driver-track.lost { background: #3a2c10; } .driver-trace, .driver-trace-bg { background: #1b2a24; } }
 
 .accounting-page .accounting-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(13rem,1fr)); gap: .6rem .9rem; margin: .7rem 0; }

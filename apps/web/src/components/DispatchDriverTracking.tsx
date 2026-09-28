@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import type {createCloudApi} from '../cloud-api';
 import {CloudReturnReview} from './CloudReturnReview';
 import {shiftBandLabel} from '../shift-band';
@@ -9,6 +10,7 @@ type Track=Awaited<ReturnType<Api['tracking']>>['value']['shifts'][number];
 
 const time=(value:string,zone:string)=>new Date(value).toLocaleTimeString('en-US',{timeZone:zone,hour:'numeric',minute:'2-digit',timeZoneName:'short'});
 const stamp=(value:string|null,zone:string)=>value?new Date(value).toLocaleTimeString('en-US',{timeZone:zone,hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'}):'Nothing received';
+const auditLabel=(action:string)=>action==='UPDATES_CURRENT'?'GPS updates restored':action==='UPDATES_OVERDUE'||action==='NO_UPDATES'?'GPS updates interrupted':action==='TRACKING_STOPPED'?'Location sharing stopped':action.replaceAll('_',' ').toLowerCase();
 
 const GAP_AFTER_MS=90_000;
 /** Keep the driver's fixes on this origin. A broken feed must never be rendered as a
@@ -84,11 +86,15 @@ export function DispatchDriverTracking({api,day,enabled}:{api:Api;day:string;ena
   const refresh=async()=>{const requested=++requestId.current;setBusy(true);try{const result=await api.tracking(day);if(requested===requestId.current){setTracks(result.value.shifts);setError(false);setUpdatedAt(new Date().toISOString());}}catch{if(requested===requestId.current)setError(true);}finally{setBusy(false);}};
   const active=(tracks??[]).filter(track=>track.lifecycle!=='SHIFT_ENDED');
   const ended=(tracks??[]).filter(track=>track.lifecycle==='SHIFT_ENDED');
+  const audit=useQuery({queryKey:['private-cloud','dispatch-tracking-audit',day],queryFn:()=>api.routeHistory(day),enabled:enabled&&active.length>0,retry:false,staleTime:30_000,refetchInterval:60_000});
   const detail=active.find(track=>track.shiftReference===selected)??active[0]??null;
+  const trackingTransitions=(audit.data?.value.events??[]).filter(event=>event.shiftReference===detail?.shiftReference&&event.kind==='TRACKING_ALERT');
+  const auditEvents=trackingTransitions.filter((event,index)=>['NO_UPDATES','UPDATES_OVERDUE','TRACKING_STOPPED'].includes(event.action)||
+    (event.action==='UPDATES_CURRENT'&&trackingTransitions[index-1]?.outcome==='CONTACT_DRIVER')).slice(-12).reverse();
   const state=detail?stateCopy(detail):null;
   return <section id="live-driver-tracking" aria-label="Live driver tracking" className="dispatch-map">
     <div className="section-heading"><div><p className="eyebrow">Live positioning</p><h2>Active drivers</h2>
-      <p>Positions update about every 10 seconds while drivers keep the web app open.</p></div>
+      <p>This page checks every 10 seconds. Native Driver phones send background GPS updates during an active shift, including while Maps is open.</p></div>
       <button disabled={busy||!enabled} onClick={()=>void refresh()}>{busy?'Refreshing…':'Refresh tracking'}</button></div>
     <p className="dispatch-summary" aria-label="Tracking summary"><span><strong>{active.length}</strong> active</span><span><strong>{active.filter(track=>track.status==='UPDATES_CURRENT').length}</strong> live</span><span><strong>{active.filter(track=>track.contactDriver).length}</strong> need contact</span>{updatedAt&&<span>Checked {stamp(updatedAt,'UTC')}</span>}</p>
     {error&&<p role="alert">Driver positions unavailable. The map is not current; verify with the driver before acting.</p>}
@@ -102,9 +108,19 @@ export function DispatchDriverTracking({api,day,enabled}:{api:Api;day:string;ena
       {detail&&<article key={detail.shiftReference} className={`driver-track ${detail.contactDriver?'lost':''}`}>
         <header><div><h3>{detail.driverLabel}</h3><p>{detail.vehicleLabel??'No vehicle on the assignment'} · started {time(detail.startedAt,detail.serviceTimezone)} · {detail.serviceTimezone}</p></div>
           <span className={detail.contactDriver?'status status-late':`status ${state?.tone}`}>{state?.label}</span></header>
-        {detail.contactDriver?<p role="alert">No location update for {detail.silentSeconds} s. Contact the driver and ask them to enable location sharing; the app retries every {detail.retryAfterSeconds} s.</p>
+        {detail.contactDriver?<p role="alert">No fresh GPS fix for {detail.silentSeconds} s. The cause is unknown; check the driver's status and connection. The app retries every {detail.retryAfterSeconds} s.</p>
           :<p role="status">{detail.position?`Last saved fix ${stamp(detail.position.capturedAt,detail.serviceTimezone)}.`:'Waiting for the first saved location fix.'}</p>}
         <RouteStreetMap api={api} day={day} track={detail} fallback={<TracePlot track={detail}/>}/>
+        <section className="driver-tracking-audit" aria-label="Tracking interruption audit">
+          <h4>Tracking interruption audit</h4><p className="form-hint">Opening Google Maps is normal and creates no event. The server records only missing GPS updates and recovery for this shift; a missing fix cannot by itself reveal whether permission, signal, or the phone caused it.</p>
+          {audit.isError&&<p role="alert">Tracking audit is temporarily unavailable. Retry or review Route History.</p>}
+          {!audit.isError&&audit.isPending&&<p role="status">Loading tracking events…</p>}
+          {!audit.isError&&!audit.isPending&&auditEvents.length===0&&<p role="status">No tracking interruptions recorded for this shift.</p>}
+          {auditEvents.length>0&&<ol aria-label="Recorded tracking transitions">{auditEvents.map((event,index)=><li key={`${event.recordedAt}-${event.action}-${index}`}>
+            <time dateTime={event.recordedAt}>{stamp(event.recordedAt,detail.serviceTimezone)}</time> · <strong>{auditLabel(event.action)}</strong>{event.outcome==='CONTACT_DRIVER'?' · Contact driver':''}
+          </li>)}</ol>}
+          {audit.data?.value.truncated&&<p role="alert">This service day has more events than the audit view can show. Review Route History for the available record.</p>}
+        </section>
         <dl><dt>Last fix</dt><dd>{detail.position?`${stamp(detail.position.capturedAt,detail.serviceTimezone)} · ±${detail.position.accuracyMeters===null?'unknown':Math.round(detail.position.accuracyMeters)} m`:'No fix received'}</dd>
           <dt>Received</dt><dd>{stamp(detail.lastReceivedAt,detail.serviceTimezone)}</dd><dt>Fixes</dt><dd>{detail.trace.length}</dd><dt>Silence</dt><dd>{detail.silentSeconds} s</dd></dl>
         {detail.position&&<a className="action-link" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${detail.position.latitude},${detail.position.longitude}`)}`}>Open last position in maps</a>}
