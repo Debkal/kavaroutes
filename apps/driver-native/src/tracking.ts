@@ -3,7 +3,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
 import {getRandomBytes, randomUUID} from 'expo-crypto';
 import {openDatabaseAsync, type SQLiteDatabase} from 'expo-sqlite';
-import {Alert,PermissionsAndroid,Platform} from 'react-native';
+import {PermissionsAndroid,Platform} from 'react-native';
 
 const TASK = 'kavaroutes.driver.location';
 const ORIGIN = 'https://driver.kavaroutes.com';
@@ -63,19 +63,15 @@ async function serverShiftIsActive(binding:Binding):Promise<boolean> {
   return body.lifecycle==='ACTIVE'&&body.collectionStopped===false;
 }
 
-export async function prepareTracking():Promise<Status> {
-  if (Platform.OS==='android'&&Number(Platform.Version)>=33) {
-    // The service still runs if this is declined, but Android may hide its
-    // persistent notification from the drawer.
-    await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
-  }
+export async function prepareTracking(onBackgroundPermissionNeeded?:()=>Promise<void>,onForegroundPermissionNeeded?:()=>void):Promise<Status> {
+  // Notification permission is optional for this service. Never block shift
+  // sign-in behind it or request it ahead of the required location permission.
+  onForegroundPermissionNeeded?.();
   const foreground=await Location.requestForegroundPermissionsAsync();
   if (!foreground.granted) throw new Error('Allow location to start a Driver shift.');
   let background=await Location.getBackgroundPermissionsAsync();
   if(!background.granted){
-    await new Promise<void>((resolve,reject)=>Alert.alert('Keep Dispatch updated',
-      'Choose “Allow all the time” for location. Your active shift stays visible to Dispatch when you open Google Maps or lock the phone. Sharing stops when the shift ends.',
-      [{text:'Not now',style:'cancel',onPress:()=>reject(new Error('Allow location at all times before starting a Driver shift.'))},{text:'Continue',onPress:()=>resolve()}],{cancelable:false}));
+    if(onBackgroundPermissionNeeded)await onBackgroundPermissionNeeded();
     background=await Location.requestBackgroundPermissionsAsync();
   }
   if (!background.granted) throw new Error('Allow location at all times in phone settings to track while Google Maps is open.');
@@ -90,6 +86,14 @@ export async function locationProblem():Promise<Status|null> {
   if(!(await Location.getBackgroundPermissionsAsync()).granted)return {state:'delayed',issue:'BACKGROUND_PERMISSION',message:'Background location is off. Allow location all the time so Dispatch can track the active shift while Maps is open.'};
   if(!(await Location.hasServicesEnabledAsync()))return {state:'delayed',issue:'LOCATION_SERVICES',message:'Phone location services are off. Turn them on to restore Dispatch tracking.'};
   return null;
+}
+
+/** Android 13+ can hide the ongoing service notification until this is allowed. */
+export async function notificationPermissionGranted(request=false):Promise<boolean> {
+  if(Platform.OS!=='android'||Number(Platform.Version)<33)return true;
+  const permission=PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
+  if(await PermissionsAndroid.check(permission))return true;
+  return request?(await PermissionsAndroid.request(permission))===PermissionsAndroid.RESULTS.GRANTED:false;
 }
 
 async function saveLocations(locations:Location.LocationObject[],binding:Binding) {
@@ -161,7 +165,7 @@ export async function startTracking(input:Omit<Binding,'deviceId'>):Promise<Stat
       showsBackgroundLocationIndicator:true,
       pausesUpdatesAutomatically:false,
       activityType:Location.ActivityType.AutomotiveNavigation,
-      ...(Platform.OS==='android'?{foregroundService:{notificationTitle:'KavaRoutes Driver location active',notificationBody:'Sharing location with Dispatch during your shift.',notificationColor:'#47756a',killServiceOnDestroy:false}}:{}),
+      ...(Platform.OS==='android'?{foregroundService:{notificationTitle:'Driving shift active · GPS on',notificationBody:'Location tracking for Dispatch, including while Maps is open. Tap to return to Driver.',notificationColor:'#47756a',killServiceOnDestroy:false}}:{}),
     });} catch(error) {await SecureStore.deleteItemAsync(BINDING);throw error;}
   }
   return {state:'active',message:'Background location is on, including while Google Maps is open.'};

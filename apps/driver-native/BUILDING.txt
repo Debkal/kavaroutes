@@ -14,6 +14,12 @@ background-location mode and indicator. Google Maps opens as a separate app,
 leaving the location task running. The web page itself still owns login,
 itinerary, trip actions, signatures and sign-off.
 
+The native Android login requests foreground location first, then shows an
+in-app Continue button before Android's "Allow all the time" settings screen.
+Notification permission is requested after the shift's GPS service starts so
+declining it cannot block sign-in. Grant it to see the ongoing "Driving shift
+active · GPS on" notification in the phone's notification bar.
+
 Build prerequisites:
 - Node 24.19.0 and npm 11.17.0; run npm ci at the repository root.
 - Android: Android SDK/JDK and a configured emulator or phone.

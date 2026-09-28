@@ -70,9 +70,10 @@ export async function packageDriverApk({configPath,outputDir,archiveDir,delivery
 function buildApk(){
   const javaHome=process.env.JAVA_HOME??path.join(root,'.tooling/jdk-17');
   const androidHome=process.env.ANDROID_HOME??path.join(root,'.tooling/android-sdk');
+  const gradleHome=process.env.GRADLE_USER_HOME??path.join(root,'.tooling/gradle');
   const result=spawnSync('./gradlew',[':app:assembleRelease'],{
     cwd:path.join(native,'android'),stdio:'inherit',
-    env:{...process.env,JAVA_HOME:javaHome,ANDROID_HOME:androidHome,ANDROID_SDK_ROOT:process.env.ANDROID_SDK_ROOT??androidHome},
+    env:{...process.env,JAVA_HOME:javaHome,ANDROID_HOME:androidHome,ANDROID_SDK_ROOT:process.env.ANDROID_SDK_ROOT??androidHome,GRADLE_USER_HOME:gradleHome},
   });
   if(result.error)throw result.error;
   if(result.status!==0)throw new Error(`Android build failed with exit code ${result.status}.`);
