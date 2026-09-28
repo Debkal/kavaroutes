@@ -8,6 +8,7 @@ import {googleMapsRouteUrl} from '../route-trace-export';
 type Api=ReturnType<typeof createCloudApi>;
 type Track=Awaited<ReturnType<Api['tracking']>>['value']['shifts'][number];
 type Point=Track['trace'][number]&{window?:number};
+export const legColor=(window:number)=>window===0?'#65758a':['#17637c','#a13f67','#8c631b','#614ba5','#2e7658'][(window-1)%5]!;
 const TILE_CACHE=new Map<string,string>();
 let tileCacheBytes=0;
 function rememberTile(key:string,imageUrl:string){
@@ -20,20 +21,20 @@ function rememberTile(key:string,imageUrl:string){
   if(imageUrl.length<=16*1024*1024){TILE_CACHE.set(key,imageUrl);tileCacheBytes+=imageUrl.length;}
 }
 
-function split(points:readonly Point[]):[number,number][][]{
-  const segments:[number,number][][]=[];
+function split(points:readonly Point[]):{window:number;coords:[number,number][]}[]{
+  const segments:{window:number;coords:[number,number][]}[]=[];
   for(let i=0;i<points.length;i++){
     const point=points[i]!,previous=points[i-1];
-    if(!previous||point.window!==previous.window||Date.parse(point.capturedAt)-Date.parse(previous.capturedAt)>90_000)segments.push([]);
-    segments[segments.length-1]!.push([point.latitude,point.longitude]);
+    if(!previous||point.window!==previous.window||Date.parse(point.capturedAt)-Date.parse(previous.capturedAt)>90_000)segments.push({window:point.window??0,coords:[]});
+    segments[segments.length-1]!.coords.push([point.latitude,point.longitude]);
   }
   return segments;
 }
 
 /** The tiles stay in the browser cache during pan/zoom. Every tile is requested
  * through the authorized API, so its provider key never reaches a browser URL. */
-export function RouteStreetMap({api,day,track,clientId=null,history=false,fallback}:{
-  api:Api;day:string;track:Track;clientId?:string|null;history?:boolean;fallback:ReactNode;
+export function RouteStreetMap({api,day,track,clientId=null,history=false,selectedWindow=null,fallback}:{
+  api:Api;day:string;track:Track;clientId?:string|null;history?:boolean;selectedWindow?:number|null;fallback:ReactNode;
 }){
   const container=useRef<HTMLDivElement>(null),map=useRef<any>(null),overlay=useRef<any>(null);
   const [raw,setRaw]=useState(false),[tileError,setTileError]=useState(false);
@@ -50,9 +51,10 @@ export function RouteStreetMap({api,day,track,clientId=null,history=false,fallba
   const match=useQuery({queryKey:['private-cloud','dispatch-trace-match',day,track.shiftReference,clientId],
     queryFn:()=>api.traceMatch(day,track.shiftReference,clientId),enabled:history&&points.length>1,
     refetchInterval:query=>query.state.data?.value.status==='PENDING'?5000:false,staleTime:5*60_000,retry:false});
-  const segments=useMemo(()=>split(points),[points]);
+  const visiblePoints=useMemo(()=>selectedWindow===null?points:points.filter(point=>point.window===selectedWindow),[points,selectedWindow]);
+  const segments=useMemo(()=>split(visiblePoints),[visiblePoints]);
   const matched=match.data?.value.status==='READY'||match.data?.value.status==='PARTIAL';
-  const googleUrl=googleMapsRouteUrl(points);
+  const googleUrl=googleMapsRouteUrl(visiblePoints);
 
   useEffect(()=>{
     if(!container.current||!points.length||map.current)return;
@@ -96,51 +98,53 @@ export function RouteStreetMap({api,day,track,clientId=null,history=false,fallba
   },[api,points.length>0,day,track.shiftReference,clientId]);
 
   useEffect(()=>{
-    const instance=map.current;if(!instance||!points.length)return;
+    const instance=map.current;if(!instance)return;
     if(overlay.current)instance.removeLayer(overlay.current);
+    if(!visiblePoints.length){overlay.current=null;return;}
     const group=L.layerGroup();overlay.current=group;
-    if(match.data?.value.status==='PARTIAL'&&!raw)for(const line of segments)if(line.length>1)L.polyline(line,{color:'#a45033',weight:3,opacity:.55,smoothFactor:0}).addTo(group);
-    const lines=matched&&!raw?match.data!.value.segments:segments;
-    for(const line of lines)if(line.length>1)L.polyline(line,{color:matched&&!raw?'#17637c':'#a45033',weight:5,opacity:.92,smoothFactor:0}).addTo(group);
-    const first=points[0]!,last=points.at(-1)!;
+    if(match.data?.value.status==='PARTIAL'&&!raw)for(const line of segments)if(line.coords.length>1)L.polyline(line.coords,{color:legColor(line.window),weight:3,opacity:.4,smoothFactor:0}).addTo(group);
+    const lines=matched&&!raw?match.data!.value.segments.map((coords,index)=>({coords,window:match.data!.value.windows[index]??0}))
+      .filter(line=>selectedWindow===null||line.window===selectedWindow):segments;
+    for(const line of lines)if(line.coords.length>1)L.polyline(line.coords,{color:legColor(line.window),weight:5,opacity:.92,smoothFactor:0}).addTo(group);
+    const first=visiblePoints[0]!,last=visiblePoints.at(-1)!;
     L.circleMarker([first.latitude,first.longitude],{radius:8,color:'#fff',weight:2,fillColor:'#2e7658',fillOpacity:1}).bindTooltip('First saved fix').addTo(group);
     L.circleMarker([last.latitude,last.longitude],{radius:8,color:'#fff',weight:2,fillColor:'#af6546',fillOpacity:1}).bindTooltip('Last saved fix').addTo(group);
     group.addTo(instance);
-  },[points,segments,match.data,matched,raw]);
+  },[visiblePoints,segments,match.data,matched,raw,selectedWindow]);
 
   useEffect(()=>{
-    const instance=map.current;if(!instance||!points.length)return;
-    const bounds=L.latLngBounds([points[0]!.latitude,points[0]!.longitude],[points[0]!.latitude,points[0]!.longitude]);
-    for(const point of points)bounds.extend([point.latitude,point.longitude]);
+    const instance=map.current;if(!instance||!visiblePoints.length)return;
+    const bounds=L.latLngBounds([visiblePoints[0]!.latitude,visiblePoints[0]!.longitude],[visiblePoints[0]!.latitude,visiblePoints[0]!.longitude]);
+    for(const point of visiblePoints)bounds.extend([point.latitude,point.longitude]);
     instance.fitBounds(bounds.pad(.12),{maxZoom:17});
     window.setTimeout(()=>instance.invalidateSize(),0);
-  },[day,track.shiftReference,clientId,points.length>0]);
+  },[day,track.shiftReference,clientId,selectedWindow,points.length>0]);
 
   const fit=()=>{
-    const instance=map.current;if(!instance||!points.length)return;
-    const bounds=L.latLngBounds([points[0]!.latitude,points[0]!.longitude],[points[0]!.latitude,points[0]!.longitude]);
-    for(const point of points)bounds.extend([point.latitude,point.longitude]);
+    const instance=map.current;if(!instance||!visiblePoints.length)return;
+    const bounds=L.latLngBounds([visiblePoints[0]!.latitude,visiblePoints[0]!.longitude],[visiblePoints[0]!.latitude,visiblePoints[0]!.longitude]);
+    for(const point of visiblePoints)bounds.extend([point.latitude,point.longitude]);
     instance.fitBounds(bounds.pad(.12),{maxZoom:17});
   };
   if(full.isPending)return <p role="status">Loading all saved GPS fixes for this shift…</p>;
   if(full.isError)return <><p role="alert">The full GPS trace could not load. The recent-fix plot is shown below.</p>{fallback}</>;
   if(!points.length)return <>{fallback}</>;
-  const gaps=segments.length-1;
+  const gaps=visiblePoints.reduce((count,point,index)=>count+(index>0&&Date.parse(point.capturedAt)-Date.parse(visiblePoints[index-1]!.capturedAt)>90_000?1:0),0);
   return <div className="route-map-wrap">
     <div className="route-map-controls" role="group" aria-label="Street map controls">
-      <button type="button" onClick={fit}>Fit route</button>
+      <button type="button" onClick={fit} disabled={!visiblePoints.length}>Fit route</button>
       {matched&&<button type="button" aria-pressed={raw} onClick={()=>setRaw(value=>!value)}>{raw?'Show road-aligned path':'Show raw GPS'}</button>}
       {googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer">Open approximate directions in Google Maps</a>}
     </div>
     <figure className="route-street-map">
       <div ref={container} className="route-street-viewport" role="region" aria-label="Interactive street map with pan, pinch and scroll zoom" tabIndex={0}/>
-      <figcaption>{history?'Recorded':'Live'} route · {points.length.toLocaleString()} saved GPS fixes · {gaps} unobserved gap{gaps===1?'':'s'}.
-        {matched&&!raw?' Blue follows streets matched to recorded coordinates.':' Orange follows raw recorded coordinates.'}
+      <figcaption>{history?'Recorded':'Live'} route · {visiblePoints.length.toLocaleString()} of {points.length.toLocaleString()} saved GPS fixes shown · {gaps} reporting gap{gaps===1?'':'s'}.
+        {matched&&!raw?' Colored lines follow streets matched to recorded coordinates.':' Colored lines follow raw recorded coordinates.'}
         {match.data?.value.status==='PENDING'?' Aligning the drive to streets…':''}
         {match.data?.value.status==='PARTIAL'?' Some sections could not be road-matched. Use raw GPS to inspect them.':''}
         {match.data?.value.status==='UNAVAILABLE'||match.isError?' Street matching is unavailable; raw GPS remains visible.':''}
         {full.data?.value.truncated?' This trace exceeded the 100,000-fix display limit.':''}
-        {' '}The map never joins reporting gaps; Google Maps may calculate a different suggested route.</figcaption>
+        {history?' Between-leg waiting is not drawn as travel.':''} The map never joins reporting gaps; Google Maps may calculate a different suggested route.</figcaption>
     </figure>
     {tileError&&<p role="alert">Some street tiles could not load. Pan or zoom to retry.</p>}
   </div>;

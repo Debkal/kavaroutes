@@ -2606,11 +2606,20 @@
                 "type": "string"
               }
             ]
+          },
+          "windows": {
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 1000,
+            "type": "array"
           }
         },
         "required": [
           "status",
-          "segments"
+          "segments",
+          "windows"
         ],
         "title": "DispatchMapMatch",
         "type": "object"

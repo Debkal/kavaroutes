@@ -13,7 +13,7 @@ test('full trace has no 500-fix crop, respects client actions and separates repo
     queries.push({sql,args});
     if(sql.includes('FROM execution.shift_policy_snapshot'))return {rows:[{id:shift,run_id:shift}]};
     if(sql.includes('FROM realtime.location_breadcrumb'))return {rows:points};
-    if(sql.includes('FROM dispatch.run_leg'))return {rows:[{trip_leg_id:leg}]};
+    if(sql.includes('FROM dispatch.run_leg'))return {rows:[{trip_leg_id:leg,ordinal:1}]};
     if(sql.includes('FROM execution.driver_action_receipt'))return {rows:[
       {resource_reference:leg,command_reference:'MARK_EN_ROUTE',captured_at:points[100].captured_at},
       {resource_reference:leg,command_reference:'COMPLETE_LEG',captured_at:points[1100].captured_at}]};
@@ -24,6 +24,9 @@ test('full trace has no 500-fix crop, respects client actions and separates repo
   assert.equal(full.fixCount,1205);
   assert.equal(full.points[0].capturedAt,points[0].captured_at);
   assert.equal(full.points.at(-1).capturedAt,points.at(-1).captured_at);
+  assert.equal(full.points[0].window,0);
+  assert.equal(full.points[500].window,1);
+  assert.equal(full.points.at(-1).window,0);
   assert.ok(queries.some(item=>item.sql.includes('LIMIT $3')&&item.args[2]===100001));
   const scoped=await services.trace({organizationId:tenant,serviceDate:day,shiftId:shift,clientId:client});
   assert.equal(scoped.fixCount,1001);
@@ -31,6 +34,29 @@ test('full trace has no 500-fix crop, respects client actions and separates repo
   assert.ok(scoped.points.every(point=>point.window===1));
   assert.equal(splitTrace([{...scoped.points[0],window:1},{...scoped.points[1],window:2}]).length,2);
   assert.ok(matchingChunks(full.points).length>=1);
+});
+
+test('two legs remain distinct across waiting time in both raw fixes and matched lines',async()=>{
+  const secondLeg='55555555-5555-4555-8555-555555555555';
+  const pool={connect:async()=>({query:async sql=>({rows:sql.includes('FROM execution.shift_policy_snapshot')?[{id:shift,run_id:shift}]:
+    sql.includes('FROM realtime.location_breadcrumb')?points:
+    sql.includes('FROM dispatch.run_leg')?[{trip_leg_id:leg,ordinal:1},{trip_leg_id:secondLeg,ordinal:2}]:
+    sql.includes('FROM execution.driver_action_receipt')?[
+      {resource_reference:leg,command_reference:'MARK_EN_ROUTE',captured_at:points[100].captured_at},
+      {resource_reference:leg,command_reference:'COMPLETE_LEG',captured_at:points[300].captured_at},
+      {resource_reference:secondLeg,command_reference:'MARK_EN_ROUTE',captured_at:points[800].captured_at},
+      {resource_reference:secondLeg,command_reference:'COMPLETE_LEG',captured_at:points[1100].captured_at}]:[]}),release(){}})};
+  const fetcher=async()=>({ok:true,json:async()=>({features:[{geometry:{coordinates:[[[ -87.62,41.88],[-87.621,41.881]]]}}]})});
+  const services=createDispatchTiledMapServices(pool,{apiKey:'private-key-123456789012345',fetcher});
+  const input={organizationId:tenant,serviceDate:day,shiftId:shift,clientId:null};
+  const trace=await services.trace(input);
+  assert.deepEqual([trace.points[200].window,trace.points[500].window,trace.points[900].window],[1,0,2]);
+  assert.equal((await services.match(input)).status,'PENDING');
+  await new Promise(resolve=>setImmediate(resolve));
+  const matched=await services.match(input);
+  assert.equal(matched.status,'READY');
+  assert.deepEqual([...new Set(matched.windows)],[0,1,2]);
+  assert.equal(matched.windows.length,matched.segments.length);
 });
 
 test('map tiles and matched geometry stay behind the authorized service and reuse cached work',async()=>{
@@ -59,6 +85,7 @@ test('map tiles and matched geometry stay behind the authorized service and reus
   const ready=await services.match(input);
   assert.equal(ready.status,'READY');
   assert.ok(ready.segments.length);
+  assert.equal(ready.windows.length,ready.segments.length);
   assert.equal(JSON.stringify(ready).includes('private-key'),false);
   assert.equal(calls.filter(call=>call.url.includes('/mapmatching')).length,1);
   assert.equal(databaseReads,readsAfterStart,'match status polling reuses geometry without rereading GPS');

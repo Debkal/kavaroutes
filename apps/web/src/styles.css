@@ -266,7 +266,11 @@ td small, td span { display: block; }.route-arrow { display: inline !important; 
 .route-history-filters select { display: block; width: 100%; min-height: 2.8rem; margin-top: .35rem; padding: .5rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface); color: var(--ink); font: inherit; }
 .route-history-legs, .route-event-list { display: grid; gap: .55rem; padding-left: 1.5rem; }
 .route-history-legs li { padding: .65rem; border: 1px solid var(--line); border-radius: .55rem; }
+.route-leg-swatch { display: inline-block !important; width: .8rem; height: .8rem; margin: 0 .4rem 0 0 !important; border-radius: 50%; vertical-align: middle; }
 .route-history-legs li > span { display: block; margin-top: .3rem; }
+.route-history-legs li > .route-leg-swatch { display: inline-block; }
+.route-leg-filter { display: block; margin: .6rem 0; font-size: .88rem; font-weight: 650; }
+.route-leg-filter select { display: block; width: min(100%,35rem); min-height: 2.7rem; margin-top: .3rem; padding: .5rem; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface); color: var(--ink); font: inherit; }
 .route-event-list { max-height: 20rem; overflow: auto; }
 .route-event-list li { padding: .35rem .5rem; border-bottom: 1px solid var(--line); }
 .route-event-list small { display: block; color: var(--muted); }

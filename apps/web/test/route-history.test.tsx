@@ -20,8 +20,8 @@ const clientA='88888888-8888-4888-8888-888888888888',clientB='99999999-9999-4999
 const point=(minute:number)=>({latitude:41.88+minute/1000,longitude:-87.62-minute/1000,accuracyMeters:12,capturedAt:`${day}T15:${String(minute).padStart(2,'0')}:00.000Z`});
 const trace=[point(1),point(3),point(5)];
 const track={shiftReference:shift,driverId:driver,driverLabel:'Joel',plannedStartAt:`${day}T15:00:00.000Z`,serviceTimezone:'America/Chicago',startedAt:`${day}T15:00:00.000Z`,vehicleLabel:'Van 1',lifecycle:'SHIFT_ENDED',status:'SHIFT_ENDED',reason:'ACCEPTED_SIGN_OFF',contactDriver:false,silentSeconds:0,lastReceivedAt:trace[2]!.capturedAt,lastCapturedAt:trace[2]!.capturedAt,staleAfterSeconds:60,retryAfterSeconds:30,position:trace[2],trace};
-const leg=(tripId:string,tripLegId:string,riderLabel:string)=>({runId:run,tripLegId,tripId,ordinal:1,riderLabel,pickupLabel:'Home',dropoffLabel:'Clinic',plannedStartAt:`${day}T15:00:00.000Z`,plannedEndAt:`${day}T16:00:00.000Z`,appointmentLengthMinutes:20,tripState:'completed',executionId:null,lifecycle:'completed',version:2});
-const board={serviceDate:day,runs:[{runId:run,version:2,expectedTag:'',lifecycle:'completed',plannedStartAt:`${day}T15:00:00.000Z`,plannedEndAt:`${day}T16:00:00.000Z`,serviceTimezone:'America/Chicago',assignmentId:null,driverId:driver,vehicleId:null}],legs:[leg(tripA,legA,'Rider A'),leg(tripB,legB,'Rider B')],drivers:[{id:driver,label:'Joel'}],vehicles:[]};
+const leg=(tripId:string,tripLegId:string,riderLabel:string,ordinal:number)=>({runId:run,tripLegId,tripId,ordinal,riderLabel,pickupLabel:'Home',dropoffLabel:'Clinic',plannedStartAt:`${day}T15:00:00.000Z`,plannedEndAt:`${day}T16:00:00.000Z`,appointmentLengthMinutes:20,tripState:'completed',executionId:null,lifecycle:'completed',version:2});
+const board={serviceDate:day,runs:[{runId:run,version:2,expectedTag:'',lifecycle:'completed',plannedStartAt:`${day}T15:00:00.000Z`,plannedEndAt:`${day}T16:00:00.000Z`,serviceTimezone:'America/Chicago',assignmentId:null,driverId:driver,vehicleId:null}],legs:[leg(tripA,legA,'Rider A',1),leg(tripB,legB,'Rider B',2)],drivers:[{id:driver,label:'Joel'}],vehicles:[]};
 const event=(kind:string,action:string,tripLegId:string|null,minute:number,outcome:string|null=null)=>({shiftReference:shift,runId:run,tripLegId,kind,action,outcome,reason:null,occurredAt:`${day}T15:${String(minute).padStart(2,'0')}:00.000Z`,recordedAt:`${day}T15:${String(minute).padStart(2,'0')}:00.000Z`});
 const history={serviceDate:day,truncated:false,tripClients:[{tripId:tripA,clientId:clientA,clientLabel:'Client A'},{tripId:tripB,clientId:clientB,clientLabel:'Client B'}],events:[
   event('SHIFT_STARTED','SHIFT_STARTED',null,0),event('DRIVER_ACTION','MARK_EN_ROUTE',legA,2,'APPLIED'),event('DRIVER_ACTION','ARRIVE_PICKUP',legA,3,'APPLIED'),event('DRIVER_ACTION','COMPLETE_LEG',legA,4,'APPLIED'),
@@ -29,8 +29,8 @@ const history={serviceDate:day,truncated:false,tripClients:[{tripId:tripA,client
 ]};
 const api={tracking:async()=>({value:{serviceDate:day,shifts:[track]}}),board:async()=>({value:board}),routeHistory:async()=>({value:history}),
   fullTrace:async(_day:string,_shift:string,selectedClient:string|null)=>({value:{shiftReference:shift,serviceDate:day,clientId:selectedClient,
-    truncated:false,fixCount:selectedClient?1:3,points:(selectedClient?[trace[1]!]:trace).map(point=>({...point,window:selectedClient?1:0}))}}),
-  traceMatch:async()=>({value:{status:'UNAVAILABLE',segments:[]}}),mapTile:async()=>({value:{imageUrl:'data:image/png;base64,cG5n'}})};
+    truncated:false,fixCount:selectedClient?1:3,points:(selectedClient?[trace[1]!]:trace).map((point,index)=>({...point,window:selectedClient?1:index===1?1:index===2?2:0}))}}),
+  traceMatch:async()=>({value:{status:'UNAVAILABLE',segments:[],windows:[]}}),mapTile:async()=>({value:{imageUrl:'data:image/png;base64,cG5n'}})};
 
 it('filters real client accounts and bounds the displayed GPS fixes to their leg actions',async()=>{
   const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
@@ -56,4 +56,16 @@ it('exports rectangular leg, event and GPS rows while neutralizing formula cells
   expect(rows.some(row=>row.includes('Client B'))).toBe(false);
   expect(csvBody(rows)).toContain('ARRIVE_PICKUP');
   expect(csvCell('  =HYPERLINK("bad")')).toBe('"\'  =HYPERLINK(""bad"")"');
+});
+
+it('filters the map and GPS log to one colored trip leg',async()=>{
+  const client=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});
+  render(<MemoryRouter><QueryClientProvider client={client}><DispatchRouteHistory api={api as never} day={day} enabled/></QueryClientProvider></MemoryRouter>);
+  await screen.findByText('GPS fix log (3 fixes)');
+  fireEvent.change(screen.getByRole('combobox',{name:'Filter route map by leg'}),{target:{value:'2'}});
+  expect(await screen.findByText('GPS fix log (1 fix)')).toBeInTheDocument();
+  expect(screen.getByText(/1 of 3 saved GPS fixes shown/)).toBeInTheDocument();
+  const eventList=screen.getByRole('list',{name:/recorded route events/i});
+  expect(within(eventList).queryByText(/Rider A/)).not.toBeInTheDocument();
+  client.clear();
 });

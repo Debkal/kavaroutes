@@ -9,7 +9,8 @@ export const DispatchFullTraceSchema=Type.Object({
     accuracyMeters:Type.Union([Type.Number({minimum:0}),Type.Null()]),capturedAt:Type.String({format:'date-time'}),window:Type.Integer({minimum:0})},{additionalProperties:false}),{maxItems:100000}),
 },{additionalProperties:false,$id:'DispatchFullTrace'});
 export const DispatchMapMatchSchema=Type.Object({status:Type.Union([Type.Literal('PENDING'),Type.Literal('READY'),Type.Literal('PARTIAL'),Type.Literal('UNAVAILABLE')]),
-  segments:Type.Array(Type.Array(Coordinate,{minItems:2}),{maxItems:1000})},{additionalProperties:false,$id:'DispatchMapMatch'});
+  segments:Type.Array(Type.Array(Coordinate,{minItems:2}),{maxItems:1000}),
+  windows:Type.Array(Type.Integer({minimum:0}),{maxItems:1000})},{additionalProperties:false,$id:'DispatchMapMatch'});
 export const DispatchMapTileSchema=Type.Object({imageUrl:Type.String({pattern:'^data:image/png;base64,[A-Za-z0-9+/=]+$',maxLength:400025})},
   {additionalProperties:false,$id:'DispatchMapTile'});
 export const DispatchMapTileBatchSchema=Type.Object({tiles:Type.Array(Type.Object({

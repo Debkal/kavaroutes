@@ -24,21 +24,24 @@ export async function readDispatchTrace(pool,{organizationId,serviceDate,shiftId
       [organizationId,shiftId,MAX_FIXES+1])).rows;
     const truncated=rows.length>MAX_FIXES;
     let points=rows.slice(0,MAX_FIXES).map(position);
-    if(clientId){
-      const legs=(await db.query(`SELECT rl.trip_leg_id FROM dispatch.run_leg rl
-        JOIN intake.trip_leg leg ON leg.tenant_id=rl.tenant_id AND leg.id=rl.trip_leg_id
-        JOIN intake.facility_trip_scope scope ON scope.tenant_id=leg.tenant_id AND scope.trip_id=leg.trip_request_id
-        WHERE rl.tenant_id=$1 AND rl.run_id=$2 AND scope.facility_id=$3`,
-        [organizationId,shift.run_id,clientId])).rows.map(row=>String(row.trip_leg_id));
-      if(!legs.length)throw new RoadRoutingError(404,'RESOURCE_NOT_FOUND');
+    const legs=(await db.query(`SELECT rl.trip_leg_id,rl.ordinal FROM dispatch.run_leg rl
+      WHERE rl.tenant_id=$1 AND rl.run_id=$2 AND ($3::uuid IS NULL OR EXISTS (
+        SELECT 1 FROM intake.trip_leg leg JOIN intake.facility_trip_scope scope
+          ON scope.tenant_id=leg.tenant_id AND scope.trip_id=leg.trip_request_id
+        WHERE leg.tenant_id=rl.tenant_id AND leg.id=rl.trip_leg_id AND scope.facility_id=$3))
+      ORDER BY rl.ordinal`,[organizationId,shift.run_id,clientId])).rows;
+    if(clientId&&!legs.length)throw new RoadRoutingError(404,'RESOURCE_NOT_FOUND');
+    if(legs.length){
       const actions=(await db.query(`SELECT resource_reference,command_reference,captured_at
         FROM execution.driver_action_receipt WHERE tenant_id=$1 AND shift_id=$2 AND resource_reference=ANY($3::uuid[]) AND outcome='APPLIED'
-        ORDER BY captured_at`,[organizationId,shiftId,legs])).rows;
-      const intervals=legs.flatMap((legId,index)=>{
-        const events=actions.filter(action=>String(action.resource_reference)===legId);
+        ORDER BY captured_at`,[organizationId,shiftId,legs.map(row=>String(row.trip_leg_id))])).rows;
+      const byLeg=new Map();
+      for(const action of actions){const id=String(action.resource_reference);if(!byLeg.has(id))byLeg.set(id,[]);byLeg.get(id).push(action);}
+      const intervals=legs.flatMap(leg=>{
+        const events=byLeg.get(String(leg.trip_leg_id))??[];
         const start=events.find(action=>['MARK_EN_ROUTE','ARRIVE_PICKUP','BOARD_RIDER'].includes(action.command_reference));
         const end=events.find(action=>['COMPLETE_LEG','MARK_RIDER_NO_SHOW'].includes(action.command_reference));
-        return start?[{from:new Date(start.captured_at).getTime(),to:new Date(end?.captured_at??points.at(-1)?.capturedAt??start.captured_at).getTime(),window:index+1}]:[];
+        return start?[{from:new Date(start.captured_at).getTime(),to:new Date(end?.captured_at??points.at(-1)?.capturedAt??start.captured_at).getTime(),window:Number(leg.ordinal)}]:[];
       });
       intervals.sort((a,b)=>a.from-b.from);
       let windowIndex=0;
@@ -46,7 +49,8 @@ export async function readDispatchTrace(pool,{organizationId,serviceDate,shiftId
         const instant=Date.parse(point.capturedAt);
         while(windowIndex<intervals.length&&instant>intervals[windowIndex].to)windowIndex++;
         const interval=intervals[windowIndex];
-        return interval&&instant>=interval.from&&instant<=interval.to?[{...point,window:interval.window}]:[];
+        if(interval&&instant>=interval.from&&instant<=interval.to)return [{...point,window:interval.window}];
+        return clientId?[]:[point];
       });
     }
     return {shiftReference:shiftId,serviceDate,clientId,truncated,fixCount:points.length,points};
@@ -151,18 +155,18 @@ export function createDispatchTiledMapServices(pool,{apiKey=null,fetcher=fetch}=
     return {tiles:results};
   };
   const match=async input=>{
-    if(!validKey(apiKey))return {status:'UNAVAILABLE',segments:[]};
+    if(!validKey(apiKey))return {status:'UNAVAILABLE',segments:[],windows:[]};
     const key=`${input.organizationId}|${input.serviceDate}|${input.shiftId}|${input.clientId??''}`;
     const cached=matchCache.get(key);
-    if(cached&&cached.expires>Date.now())return {status:cached.status,segments:cached.segments};
+    if(cached&&cached.expires>Date.now())return {status:cached.status,segments:cached.segments,windows:cached.windows};
     const selected=await trace(input);
-    if(selected.points.length<2)return {status:'READY',segments:[]};
+    if(selected.points.length<2)return {status:'READY',segments:[],windows:[]};
     {
       if(matchCache.size>=24)matchCache.delete(matchCache.keys().next().value);
-      const entry={status:'PENDING',segments:[],expires:Date.now()+30*60_000};
+      const entry={status:'PENDING',segments:[],windows:[],expires:Date.now()+30*60_000};
       matchCache.set(key,entry);
       const chunks=matchingChunks(selected.points);
-      if(!chunks.length){entry.status='UNAVAILABLE';return {status:'UNAVAILABLE',segments:[]};}
+      if(!chunks.length){entry.status='UNAVAILABLE';return {status:'UNAVAILABLE',segments:[],windows:[]};}
       void (async()=>{
         const results=new Array(chunks.length);
         let next=0;
@@ -173,10 +177,11 @@ export function createDispatchTiledMapServices(pool,{apiKey=null,fetcher=fetch}=
           }
         }));
         entry.segments=results.flatMap(lines=>lines??[]);
+        entry.windows=results.flatMap((lines,index)=>Array.from({length:lines?.length??0},()=>chunks[index][0].window));
         entry.status=results.every(Boolean)?'READY':entry.segments.length?'PARTIAL':'UNAVAILABLE';
       })();
     }
-    return {status:'PENDING',segments:[]};
+    return {status:'PENDING',segments:[],windows:[]};
   };
   return {trace,tile,tileBatch,match};
 }

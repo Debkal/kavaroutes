@@ -16,11 +16,11 @@ it('shows the full shift on an interactive street map and can inspect raw GPS wi
   const points=[{latitude:41.88,longitude:-87.62,accuracyMeters:3,capturedAt:`${day}T15:02:30Z`,window:1},
     {latitude:41.881,longitude:-87.621,accuracyMeters:3,capturedAt:`${day}T15:03:00Z`,window:1}];
   const api={fullTrace:vi.fn(async()=>({value:{shiftReference:shift,serviceDate:day,clientId,fixCount:2,truncated:false,points}})),
-    traceMatch:vi.fn(async()=>({value:{status:'READY',segments:[[[41.88,-87.62],[41.881,-87.621]]]}})),mapTile:vi.fn()};
+    traceMatch:vi.fn(async()=>({value:{status:'READY',segments:[[[41.88,-87.62],[41.881,-87.621]]],windows:[1]}})),mapTile:vi.fn()};
   const track={shiftReference:shift,driverLabel:'Joel',startedAt:`${day}T15:00:00Z`,trace:points};
   render(<QueryClientProvider client={client}><RouteStreetMap api={api as never} day={day} clientId={clientId} track={track as never} history fallback={<p>Old plot</p>}/></QueryClientProvider>);
   expect(await screen.findByRole('region',{name:/Interactive street map/})).toBeInTheDocument();
-  expect(await screen.findByText(/2 saved GPS fixes/)).toBeInTheDocument();
+  expect(await screen.findByText(/2 of 2 saved GPS fixes shown/)).toBeInTheDocument();
   expect(api.fullTrace).toHaveBeenCalledWith(day,shift,clientId);
   expect(screen.getByRole('link',{name:/Open approximate directions in Google Maps/})).toHaveAttribute('href',expect.stringContaining('https://www.google.com/maps/dir/?api=1'));
   fireEvent.click(screen.getByRole('button',{name:'Show raw GPS'}));

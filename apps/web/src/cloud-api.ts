@@ -169,7 +169,8 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
       const query=clientId?`?clientId=${clientId}`:'';
       return transport.request(`${prefix}/dispatch/trace-match/${serviceDate}/shifts/${shiftId}${query}`,body=>{
         const v=object(body);
-        if(!['PENDING','READY','PARTIAL','UNAVAILABLE'].includes(String(v.status))||!Array.isArray(v.segments)||v.segments.length>1000)throw new Error('INVALID_TRACE_MATCH');
+        if(!['PENDING','READY','PARTIAL','UNAVAILABLE'].includes(String(v.status))||!Array.isArray(v.segments)||v.segments.length>1000||
+          !Array.isArray(v.windows)||v.windows.length!==v.segments.length||v.windows.some(window=>!Number.isSafeInteger(window)||window<0))throw new Error('INVALID_TRACE_MATCH');
         const segments=v.segments.map(raw=>{
           if(!Array.isArray(raw)||raw.length<2||raw.length>100000)throw new Error('INVALID_TRACE_MATCH');
           return raw.map(coordinate=>{
@@ -177,7 +178,7 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
             return [coordinate[0],coordinate[1]] as [number,number];
           });
         });
-        return {status:v.status as 'PENDING'|'READY'|'PARTIAL'|'UNAVAILABLE',segments};
+        return {status:v.status as 'PENDING'|'READY'|'PARTIAL'|'UNAVAILABLE',segments,windows:v.windows as number[]};
       });
     },
     mapTile(z:number,x:number,y:number){
