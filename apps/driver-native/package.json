@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "bundle:android": "expo export --platform android --output-dir dist/android",
     "bundle:ios": "expo export --platform ios --output-dir dist/ios",
+    "build:apk": "node ../../scripts/build-driver-native-apk.mjs",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },

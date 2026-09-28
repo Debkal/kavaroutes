@@ -32,10 +32,16 @@ not produce signed installable packages. The final two prebuild and install a
 native development app on a device or emulator. Production APK/AAB/IPA signing
 and store distribution require their platform credentials.
 
-For a standalone Android test APK, prebuild Android, then run
-`./gradlew :app:assembleRelease` from apps/driver-native/android with a local
-JDK and Android SDK configured. The output is
-apps/driver-native/android/app/build/outputs/apk/release/app-release.apk.
+For each new standalone Android test APK version, update expo.version and
+android.versionCode in app.json, prebuild Android if needed, then run
+`npm run build:apk --workspace=@kavaroutes/driver-native`. This builds the
+release APK, checks Gradle's version metadata, and copies it to both
+artifacts/mobile-builds/kararoutes_driverv<version digits>.apk and
+~/lanftp-received/ with the same filename. Version 0.1.1 becomes
+kararoutes_driverv011.apk. Use `node scripts/build-driver-native-apk.mjs
+--package-only` from the repository root only when the matching release APK
+has already been built. A different APK cannot overwrite an existing file
+with the same version name; bump the version first.
 This project currently signs that release-mode APK with the generated Android
 debug key. It is installable for private testing and is not store-ready.
 
