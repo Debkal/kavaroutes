@@ -3,7 +3,7 @@ import type {PoolClient} from "pg";
 import {PersistenceConflict} from "./repositories.js";
 
 /**
- * Driver logins for the synthetic prototype. Dispatch issues the login and the driver
+ * Business-scoped Driver logins. Dispatch issues the login and the driver
  * sets their own password the first time they claim it on their designated phone, so
  * each driver keeps a separate credential. Only a scrypt digest and a SHA-256 hash of
  * the one-time invite code are stored; the invite code is cleared on claim.
@@ -120,7 +120,14 @@ export async function verifyDriverLogin(client: PoolClient, tenantId: string, in
     FROM platform.driver_credential WHERE tenant_id=$1 AND login_id=$2 FOR UPDATE`, [tenantId, input.loginId])).rows[0];
   if (!row) return {accepted: false, reason: "NO_LOGIN", state: null};
   if (row.locked_until && new Date(row.locked_until).getTime() > Date.now()) return {accepted: false, reason: "LOCKED", state: null};
-  if (row.status !== "ACTIVE" || !row.password_hash) return {accepted: false, reason: "NOT_CLAIMED", state: null};
+  // A temporary failed-password lock expires; an administrative lock without
+  // an expiry continues to require business intervention.
+  const expiredLock = row.status === "LOCKED" && row.locked_until && new Date(row.locked_until).getTime() <= Date.now();
+  if ((row.status !== "ACTIVE" && !expiredLock) || !row.password_hash) return {accepted: false, reason: "NOT_CLAIMED", state: null};
+  if (expiredLock) {
+    await client.query(`UPDATE platform.driver_credential SET status='ACTIVE',failed_attempts=0,locked_until=NULL
+      WHERE tenant_id=$1 AND driver_id=$2`, [tenantId,row.driver_id]);
+  }
   if (!verifyDriverPassword(input.password, String(row.password_hash))) {
     // Count the attempt and lock in SQL only: no CASE over a driver-supplied value and
     // no interval built from a parameter, so the statement cannot fail its own CHECK.

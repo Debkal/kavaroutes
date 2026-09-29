@@ -7,6 +7,16 @@ const response = (status = 200, body = { version: 1 }) => ({ status,
 const decode = body => { assert.equal(typeof body.version, 'number'); return body; };
 const make = (fetch, extra = {}) => createPrivateDevelopmentTransport({ baseUrl: 'http://127.0.0.1:58080', persona: 'driver', fetch, ...extra });
 
+test('missing Driver session allocates neither a timer nor an abort listener', async t => {
+  const timer=t.mock.method(globalThis,'setTimeout',()=>assert.fail('unauthenticated request must not start a deadline'));
+  const signal=new AbortController().signal;
+  const listener=t.mock.method(signal,'addEventListener',()=>assert.fail('unauthenticated request must not attach a listener'));
+  const client=make(async()=>assert.fail('unauthenticated request must not fetch'),{driverSession:()=>null});
+  await assert.rejects(client.request('/v1/me',decode,undefined,signal),/DRIVER_SESSION_REQUIRED/);
+  assert.equal(timer.mock.callCount(),0);
+  assert.equal(listener.mock.callCount(),0);
+});
+
 test('Pony transport selects four exact company-scoped identities and no arbitrary principal', async () => {
   for (const company of ['ponytransport', 'ponybigbusiness']) for (const persona of ['driver', 'dispatcher']) {
     const client = make(async (_url, init) => {

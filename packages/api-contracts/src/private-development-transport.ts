@@ -70,13 +70,13 @@ export function createPrivateDevelopmentTransport(options: {
           path.includes("#") || path.includes("\\") || new URL(path, base).origin !== base.origin) {
         throw new Error("INVALID_API_PATH");
       }
+      const session = options.driverSession?.();
+      if (options.driverSession && (!session || !/^dvs_[A-Za-z0-9_-]{43}$/.test(session))) throw new Error("DRIVER_SESSION_REQUIRED");
       const controller = new AbortController();
       const abort = () => controller.abort();
       signal?.addEventListener("abort", abort, { once: true });
       if (signal?.aborted) controller.abort();
       const timer = setTimeout(abort, timeoutMs);
-      const session = options.driverSession?.();
-      if (options.driverSession && (!session || !/^dvs_[A-Za-z0-9_-]{43}$/.test(session))) throw new Error("DRIVER_SESSION_REQUIRED");
       const headers: Record<string, string> = { ...(options.anonymous?{}:{authorization: session ? `DriverSession ${session}` : `Synthetic ${token}`}), accept: "application/json" };
       try {
         if (command) {
