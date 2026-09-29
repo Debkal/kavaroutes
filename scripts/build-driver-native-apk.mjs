@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {createReadStream} from 'node:fs';
-import {copyFile,link,readFile,stat,unlink} from 'node:fs/promises';
+import {copyFile,link,readFile,stat,unlink,writeFile} from 'node:fs/promises';
 import {homedir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -67,6 +67,17 @@ export async function packageDriverApk({configPath,outputDir,archiveDir,delivery
   return {name,hash,archived,delivered};
 }
 
+async function synchronizeAndroidVersion(){
+  const config=JSON.parse(await readFile(path.join(native,'app.json'),'utf8'));
+  const version=config?.expo?.version,code=config?.expo?.android?.versionCode;
+  if(typeof version!=='string'||!/^\d+\.\d+\.\d+$/.test(version)||!Number.isSafeInteger(code)||code<1)throw new Error('Invalid Driver app version.');
+  const gradlePath=path.join(native,'android/app/build.gradle');
+  const source=await readFile(gradlePath,'utf8');
+  if((source.match(/^\s*versionCode \d+$/gm)??[]).length!==1||(source.match(/^\s*versionName "[^"]+"$/gm)??[]).length!==1)throw new Error('Expected one Android versionCode and versionName.');
+  const next=source.replace(/^(\s*versionCode )\d+$/m,(_match,prefix)=>`${prefix}${code}`).replace(/^(\s*versionName ")[^"]+("$)/m,(_match,prefix,suffix)=>`${prefix}${version}${suffix}`);
+  if(next!==source)await writeFile(gradlePath,next);
+}
+
 function buildApk(){
   const javaHome=process.env.JAVA_HOME??path.join(root,'.tooling/jdk-17');
   const androidHome=process.env.ANDROID_HOME??path.join(root,'.tooling/android-sdk');
@@ -82,7 +93,7 @@ function buildApk(){
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   try{
     if(process.argv.length>3||(process.argv[2]&&process.argv[2]!=='--package-only'))throw new Error('Usage: node scripts/build-driver-native-apk.mjs [--package-only]');
-    if(process.argv[2]!=='--package-only')buildApk();
+    if(process.argv[2]!=='--package-only'){await synchronizeAndroidVersion();buildApk();}
     const result=await packageDriverApk({
       configPath:path.join(native,'app.json'),outputDir:output,
       archiveDir:path.join(root,'artifacts/mobile-builds'),deliveryDir:path.join(homedir(),'lanftp-received'),

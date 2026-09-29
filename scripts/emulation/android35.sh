@@ -5,7 +5,7 @@ base=/home/chewy/emulation
 sdk="$base/sdk"
 adb="$sdk/platform-tools/adb"
 emulator="$sdk/emulator/emulator"
-apk=${2:-/home/chewy/kavaroutes/artifacts/mobile-builds/kararoutes_driverv020.apk}
+apk=${2:-/home/chewy/kavaroutes/artifacts/mobile-builds/kararoutes_driverv021.apk}
 mode=${1:-smoke}
 export ANDROID_HOME="$sdk" ANDROID_SDK_ROOT="$sdk" ANDROID_AVD_HOME="$base/avd"
 export ANDROID_USER_HOME="$base/android-user" ANDROID_EMULATOR_HOME="$base/android-user"

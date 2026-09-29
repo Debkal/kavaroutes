@@ -55,6 +55,7 @@ test('business gate enrolls and revokes devices without exposing the password',a
     assert.equal((await recreated.account({headers:{cookie}})).businessId,business);
     const deviceId=(await recreated.account({headers:{cookie}})).deviceId;
     const driverToken=`dvs_${'a'.repeat(43)}`;
+    assert.equal(await recreated.driverTokenAccess(driverToken),false);
     await recreated.bindDriverToken(business,deviceId,driverToken);
     assert.equal(await recreated.driverTokenAccess(driverToken),true);
     const before=await store.list(business);

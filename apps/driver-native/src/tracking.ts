@@ -55,7 +55,7 @@ async function responseJson(response:Response):Promise<Record<string,unknown>> {
   return value as Record<string,unknown>;
 }
 async function serverShiftIsActive(binding:Binding):Promise<boolean> {
-  const response=await fetch(url(binding,'status'),{headers:await headers(binding),credentials:'omit',cache:'no-store'});
+  const response=await fetch(url(binding,'status'),{headers:await headers(binding),credentials:'omit',cache:'no-store',redirect:'error'});
   if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('DRIVER_API_ACCESS_BLOCKED');
   if (!response.ok) throw new Error(response.status===401?'DRIVER_SESSION_EXPIRED':`SHIFT_STATUS_HTTP_${response.status}`);
   const body=await responseJson(response);
@@ -97,18 +97,30 @@ export async function notificationPermissionGranted(request=false):Promise<boole
   return request?(await PermissionsAndroid.request(permission))===PermissionsAndroid.RESULTS.GRANTED:false;
 }
 
-async function saveLocations(locations:Location.LocationObject[],binding:Binding) {
+async function saveLocations(locations:Location.LocationObject[]) {
   const db=await database();
-  await db.withExclusiveTransactionAsync(async tx=>{
-    for (const point of locations) {
-      const {latitude,longitude,accuracy}=point.coords;
-      if (!Number.isFinite(latitude)||!Number.isFinite(longitude)||latitude < -90||latitude > 90||longitude < -180||longitude > 180) continue;
-      await tx.runAsync('INSERT INTO samples (sample_id,captured_at,latitude,longitude,accuracy_meters,batch_ref) VALUES (?,?,?,?,?,NULL)',randomUUID(),new Date(point.timestamp||Date.now()).toISOString(),latitude,longitude,Number.isFinite(accuracy)&&accuracy!==null?Math.max(0,Math.round(accuracy)):null);
-    }
-    // Keep no more than four hours at roughly one fix per minute during outages.
-    await tx.runAsync('DELETE FROM samples WHERE batch_ref IS NULL AND sequence NOT IN (SELECT sequence FROM samples ORDER BY sequence DESC LIMIT 240)');
-  });
-  void binding;
+  // Every statement uses the already-keyed SQLCipher connection. Expo's
+  // withExclusiveTransactionAsync opens a second connection without our key.
+  for (const point of locations) {
+    const {latitude,longitude,accuracy}=point.coords;
+    if (!Number.isFinite(latitude)||!Number.isFinite(longitude)||latitude < -90||latitude > 90||longitude < -180||longitude > 180) continue;
+    await db.runAsync('INSERT INTO samples (sample_id,captured_at,latitude,longitude,accuracy_meters,batch_ref) VALUES (?,?,?,?,?,NULL)',randomUUID(),new Date(point.timestamp||Date.now()).toISOString(),latitude,longitude,Number.isFinite(accuracy)&&accuracy!==null?Math.max(0,Math.round(accuracy)):null);
+  }
+  // At a 15-second fix interval, 5,760 unclaimed points cover 24 hours offline.
+  // Never prune a claimed batch while an upload or retry may still be pending.
+  await db.runAsync('DELETE FROM samples WHERE batch_ref IS NULL AND sequence NOT IN (SELECT sequence FROM samples WHERE batch_ref IS NULL ORDER BY sequence DESC LIMIT 5760)');
+}
+
+async function claimSamples(db:SQLiteDatabase):Promise<{rows:Sample[];batchReference:string}>{
+  const first=await db.getFirstAsync<{batch_ref:string|null}>('SELECT batch_ref FROM samples ORDER BY sequence LIMIT 1');
+  if(!first)return {rows:[],batchReference:''};
+  const batchReference=first.batch_ref??randomUUID();
+  // A concurrent foreground/background uploader may claim the same rows.
+  // Only unclaimed rows can change; the server deduplicates a shared batch
+  // reference if both readers reach the network.
+  if(!first.batch_ref)await db.runAsync('UPDATE samples SET batch_ref=? WHERE sequence IN (SELECT sequence FROM samples WHERE batch_ref IS NULL ORDER BY sequence LIMIT 60)',batchReference);
+  const rows=await db.getAllAsync<Sample>('SELECT * FROM samples WHERE batch_ref=? ORDER BY sequence LIMIT 60',batchReference);
+  return {rows,batchReference};
 }
 
 async function upload():Promise<Status> {
@@ -123,31 +135,23 @@ async function upload():Promise<Status> {
     if (state && Date.now()-state.last_upload_at<60_000) return {state:'active',message:'Background location is running. Dispatch receives updates about once a minute.'};
     stage='shift-check';
     if (!(await serverShiftIsActive(binding))) {await stopTracking();return {state:'stopped',message:'Shift ended; location sharing stopped.'};}
-    let rows:Sample[]=[];
-    let batchReference='';
     stage='queue';
-    await db.withExclusiveTransactionAsync(async tx=>{
-      const first=await tx.getFirstAsync<{batch_ref:string|null}>('SELECT batch_ref FROM samples ORDER BY sequence LIMIT 1');
-      if (!first) return;
-      batchReference=first.batch_ref??randomUUID();
-      if (!first.batch_ref) await tx.runAsync('UPDATE samples SET batch_ref=? WHERE sequence IN (SELECT sequence FROM samples WHERE batch_ref IS NULL ORDER BY sequence LIMIT 60)',batchReference);
-      rows=await tx.getAllAsync<Sample>('SELECT * FROM samples WHERE batch_ref=? ORDER BY sequence LIMIT 60',batchReference);
-    });
+    const {rows,batchReference}=await claimSamples(db);
     if (!rows.length) return state?.last_upload_at
       ? {state:'active',message:'Background location is running. Waiting for the next GPS fix.'}
       : {state:'delayed',message:'Waiting for the first GPS fix. Turn on precise location and keep Driver open.'};
     const samples=rows.map(row=>({sampleId:row.sample_id,sequence:row.sequence,capturedAt:row.captured_at,latitude:row.latitude,longitude:row.longitude,accuracyMeters:row.accuracy_meters}));
     stage='send';
-    const response=await fetch(url(binding,'location-batches'),{method:'POST',headers:{...await headers(binding),'content-type':'application/json','idempotency-key':`driver-location-${batchReference}`},credentials:'omit',body:JSON.stringify({shiftGeneration:binding.shiftGeneration,batchReference,deviceId:binding.deviceId,samples})});
+    const response=await fetch(url(binding,'location-batches'),{method:'POST',headers:{...await headers(binding),'content-type':'application/json','idempotency-key':`driver-location-${batchReference}`},credentials:'omit',redirect:'error',body:JSON.stringify({shiftGeneration:binding.shiftGeneration,batchReference,deviceId:binding.deviceId,samples})});
     if (!response.ok) throw new Error(response.status===401?'DRIVER_SESSION_EXPIRED':`LOCATION_UPLOAD_HTTP_${response.status}`);
     stage='receipt';
     const receipt=await responseJson(response);
     if (receipt.shiftReference!==binding.shiftReference||receipt.batchReference!==batchReference||!Array.isArray(receipt.items)||receipt.items.length!==rows.length||receipt.items.some((item,index)=>!item||typeof item!=='object'||item.sampleId!==rows[index]?.sample_id||!['APPLIED','REPLAYED','REJECTED'].includes(item.outcome))) throw new Error('LOCATION_RECEIPT_INVALID');
     stage='commit';
-    await db.withExclusiveTransactionAsync(async tx=>{
-      await tx.runAsync('DELETE FROM samples WHERE batch_ref=?',batchReference);
-      await tx.runAsync('UPDATE state SET last_upload_at=? WHERE id=1',Date.now());
-    });
+    const rejected=receipt.items.filter(item=>item.outcome==='REJECTED').length;
+    await db.runAsync('DELETE FROM samples WHERE batch_ref=?',batchReference);
+    await db.runAsync('UPDATE state SET last_upload_at=? WHERE id=1',Date.now());
+    if(rejected)return {state:'delayed',message:`${rejected} GPS ${rejected===1?'fix was':'fixes were'} rejected by the server. Keep Driver open and contact Dispatch if this continues.`};
     return {state:'active',message:'Background location is running. Dispatch receives updates about once a minute.'};
   } catch(error) {
     const known=error instanceof Error&&/^(?:DRIVER_SESSION_EXPIRED|DRIVER_API_ACCESS_BLOCKED|SHIFT_STATUS_HTTP_\d{3}|LOCATION_UPLOAD_HTTP_\d{3}|LOCATION_RECEIPT_INVALID|LOCATION_STORAGE_UNAVAILABLE)$/.test(error.message);
@@ -179,7 +183,7 @@ async function primeLocation(binding:Binding) {
     const point=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High});
     const current=await readBinding();
     if(!current||current.shiftReference!==binding.shiftReference||current.shiftGeneration!==binding.shiftGeneration)return;
-    await saveLocations([point],current);
+    await saveLocations([point]);
     await flushTracking();
   } catch { /* The foreground service retries with the next GPS fix. */ }
 }
@@ -252,6 +256,6 @@ TaskManager.defineTask<{locations?:Location.LocationObject[]}>(TASK,async({data,
   if (error||!data?.locations?.length) return;
   const binding=await readBinding();
   if (!binding) return;
-  try {await saveLocations(data.locations,binding);await flushTracking();}
+  try {await saveLocations(data.locations);await flushTracking();}
   catch { /* No coordinates or credentials in logs. The next fix retries the persisted batch. */ }
 });

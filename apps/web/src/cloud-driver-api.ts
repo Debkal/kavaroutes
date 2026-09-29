@@ -18,7 +18,6 @@ import { createPrivateDevelopmentTransport, type DevelopmentFetch } from "@kavar
 import {decodeDriverRoadRoute} from './road-route-contract';
 import type { DriverLocationBatchRequest, DriverLocationReceipt } from "@kavaroutes/api-contracts";
 
-export const driverOrganizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 type DriverLocationBatchReceipt = DriverLocationReceipt;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const object = (value: unknown): Record<string, unknown> => {
@@ -82,7 +81,7 @@ function decodeLoginState(value:unknown,expectedDriver?:string){
     ...(source.sessionToken?{sessionToken:source.sessionToken as string}:{})};
 }
 
-export function createCloudDriverWebApi(baseUrl: string, fetcher: DevelopmentFetch, organizationId=driverOrganizationId) {
+export function createCloudDriverWebApi(baseUrl: string, fetcher: DevelopmentFetch, organizationId:string) {
   if(!uuid.test(organizationId))throw new Error('INVALID_BUSINESS_ID');
   const browserSameOrigin = new URL(baseUrl).protocol === "https:";
   let activeDriverId:string|null=null,sessionToken:string|null=null;

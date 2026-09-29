@@ -152,7 +152,7 @@ export function createDriverAccessStore(directory,{now=()=>Date.now()}={}){
     if(!/^dvs_[A-Za-z0-9_-]{43}$/.test(token))return false;
     const state=await read(),hash=createHash('sha256').update(token).digest('hex');
     const binding=state.driverTokens.find(row=>row.hash===hash);
-    if(!binding)return null; // Existing pre-enrollment tokens expire in the API.
+    if(!binding)return false;
     const device=state.devices.find(row=>row.id===binding.deviceId&&row.businessId===binding.businessId&&!row.revokedAt&&row.expiresAt>now());
     return Boolean(device&&state.codes.some(row=>row.id===device.codeId&&row.businessId===binding.businessId&&row.enabled));
   };

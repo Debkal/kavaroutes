@@ -43,3 +43,19 @@ test('an entirely rejected batch still has an auditable receipt',async()=>{
   assert.equal(result[0].outcome,'REJECTED');
   assert.equal(receiptCount,1);
 });
+
+test('a long offline Driver shift retains delayed fixes within 24 hours',async()=>{
+  const generation=randomUUID(),now=Date.now();
+  const recent={sampleId:randomUUID(),sequence:1,capturedAt:new Date(now-2*60*60_000).toISOString(),latitude:41.8,longitude:-87.6};
+  const tooOld={sampleId:randomUUID(),sequence:2,capturedAt:new Date(now-25*60*60_000).toISOString(),latitude:41.9,longitude:-87.7};
+  let saved=0;
+  const db={query:async sql=>{
+    if(sql.includes('FROM execution.shift_policy_snapshot')&&sql.includes('FOR UPDATE'))return {rows:[{driver_id:randomUUID(),lifecycle:'ACTIVE',shift_generation:generation,collection_stopped:false,pinned_at:new Date(now-26*60*60_000)}]};
+    if(sql.includes('SELECT id,sample_count FROM realtime.location_batch_receipt'))return {rows:[]};
+    if(sql.startsWith('INSERT INTO realtime.location_breadcrumb'))saved++;
+    return {rows:[]};
+  }};
+  const result=await recordDeviceLocations(db,randomUUID(),{shiftId:randomUUID(),generation,deviceId:randomUUID(),batchReference:randomUUID(),samples:[recent,tooOld]});
+  assert.deepEqual(result.map(item=>item.outcome),['APPLIED','REJECTED']);
+  assert.equal(saved,1);
+});

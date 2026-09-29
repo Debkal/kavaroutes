@@ -56,7 +56,9 @@ export async function recordDeviceLocations(db: PoolClient, tenantId: string, in
   const accepted: DeviceLocationSample[] = [];
   for (const sample of input.samples) {
     const captured = Date.parse(sample.capturedAt);
-    const withinClock = Number.isFinite(captured) && captured >= new Date(shift.pinned_at).getTime() - 5 * 60_000 && captured <= now + 30_000 && now - captured < 30 * 60_000;
+    // A driver can be offline through a long trip. Preserve buffered fixes for
+    // 24 hours while still rejecting pre-shift and future-dated coordinates.
+    const withinClock = Number.isFinite(captured) && captured >= new Date(shift.pinned_at).getTime() - 5 * 60_000 && captured <= now + 30_000 && now - captured < 24 * 60 * 60_000;
     if (!withinClock || sample.latitude < -90 || sample.latitude > 90 || sample.longitude < -180 || sample.longitude > 180) {
       items.push({ sampleId: sample.sampleId, outcome: 'REJECTED', code: 'SAMPLE_OUTSIDE_RETENTION' });
       continue;

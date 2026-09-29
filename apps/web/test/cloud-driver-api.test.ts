@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { createCloudDriverWebApi, decodeDriverItinerary, driverOrganizationId } from "../src/cloud-driver-api";
+import { createCloudDriverWebApi, decodeDriverItinerary } from "../src/cloud-driver-api";
 import type { DevelopmentFetch } from "@kavaroutes/api-contracts/private-development-transport";
 
 const headers = { get: () => null };
+const driverOrganizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const response = (body: unknown, status = 200) => ({ status, headers, json: async () => body });
 const leg = {
   assignmentId: "42000000-0000-4000-8000-000000000001", assignmentVersion: 1,
@@ -33,7 +34,7 @@ describe("Driver web cloud adapter", () => {
       if(url.endsWith('/v1/me'))return response({principalKind:'SYNTHETIC_DEVICE',organizations:[{organizationId:driverOrganizationId,capabilities:['driver:manifest:read','driver:execute']}]});
       return response({driverReference:driverId,serviceDate:'2026-09-14',legs:[leg]});
     }) as unknown as DevelopmentFetch;
-    const api=createCloudDriverWebApi("https://app.kavaroutes.com", fetcher);
+    const api=createCloudDriverWebApi("https://app.kavaroutes.com", fetcher,driverOrganizationId);
     await expect(api.authenticate()).rejects.toThrow('DRIVER_SESSION_REQUIRED');
     await api.verifyLogin({loginId:'joel',password:'test-password'},'test-key');
     const session=await api.authenticate();
@@ -50,7 +51,7 @@ describe("Driver web cloud adapter", () => {
       expect(init.headers.authorization).toBe(`DriverSession ${token}`);
       return response({signedOut:true});
     }) as unknown as DevelopmentFetch;
-    const api=createCloudDriverWebApi('https://driver.kavaroutes.com',fetcher);
+    const api=createCloudDriverWebApi('https://driver.kavaroutes.com',fetcher,driverOrganizationId);
     api.restoreNativeSession({token,driverId,organizationId:driverOrganizationId});
     await api.signOut();
     expect(fetcher).toHaveBeenCalledTimes(1);

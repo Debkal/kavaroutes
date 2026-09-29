@@ -2,19 +2,19 @@
   "expo": {
     "name": "KavaRoutes Driver",
     "slug": "kavaroutes-driver",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "orientation": "default",
     "scheme": "kavaroutes-driver",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.kavaroutes.driver",
-      "buildNumber": "11",
+      "buildNumber": "12",
       "infoPlist": {"UIFileSharingEnabled": false, "LSSupportsOpeningDocumentsInPlace": false}
     },
     "android": {
       "package": "com.kavaroutes.driver",
-      "versionCode": 11,
+      "versionCode": 12,
       "allowBackup": false,
       "permissions": ["android.permission.POST_NOTIFICATIONS", "android.permission.RECEIVE_BOOT_COMPLETED"],
       "blockedPermissions": [

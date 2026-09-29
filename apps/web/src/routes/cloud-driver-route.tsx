@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DriverActionItem, DriverClosureView, DriverItinerary, DriverShiftState, DriverSignatureRequest } from "@kavaroutes/api-contracts/client-web";
 import { DevelopmentApiError } from "@kavaroutes/api-contracts/private-development-transport";
-import { createCloudDriverWebApi, driverOrganizationId, type DriverCommand, type DriverLeg } from "../cloud-driver-api";
+import { createCloudDriverWebApi, type DriverCommand, type DriverLeg } from "../cloud-driver-api";
 import { DriverInspectionForm } from "../components/DriverInspectionForm";
 import { DriverLoginPanel } from "../components/DriverLoginPanel";
 import { DriverSignaturePad } from "../components/DriverSignaturePad";
@@ -115,7 +115,8 @@ export function Component() {
   const nativeDriver = useMemo(nativeDriverAvailable, []);
   const businessId=useMemo(()=>{
     const value=new URLSearchParams(window.location.search).get('businessId');
-    return value&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)?value:driverOrganizationId;
+    if(!value||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))throw new Error('BUSINESS_CONTEXT_MISSING');
+    return value;
   },[]);
   const api = useMemo(() => createCloudDriverWebApi(window.location.origin, window.fetch.bind(window),businessId), [businessId]);
   const invitedDriverId=useMemo(()=>{
