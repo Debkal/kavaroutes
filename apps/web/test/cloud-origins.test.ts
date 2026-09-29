@@ -16,9 +16,11 @@ const fetcher = vi.fn(async () => ({status: 200, headers: {get: () => null}, jso
 
 describe('web transports at the deployed origin', () => {
   it('constructs every web API at the HTTPS edge origin', () => {
-    const factories = {cloudApi: createCloudApi, clientApi: createCloudClientApi, driverApi: createCloudDriverWebApi,
+    const factories = {cloudApi: createCloudApi, clientApi: createCloudClientApi,
       accountingApi: createCloudAccountingApi} as const;
     for (const [name, factory] of Object.entries(factories)) expect(() => factory(deployedOrigin, fetcher), name).not.toThrow();
+    expect(()=>createCloudDriverWebApi('https://driver.kavaroutes.com',fetcher,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')).not.toThrow();
+    expect(()=>createCloudDriverWebApi('https://driver.kavaroutes.com',fetcher,'')).toThrow('INVALID_BUSINESS_ID');
   });
 
   it('issues the accounting read against the same deployed origin', async () => {
