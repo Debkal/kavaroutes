@@ -1,5 +1,5 @@
 import { createKavaRoutesClient, GeneratedApiProblem, type FetchLike } from "@kavaroutes/api-contracts/client-web";
-import type { AssignmentReceipt, AssignmentRequest } from "./contracts";
+import type { AssignmentReceipt, AssignmentRequest } from "../contracts";
 import type { SyntheticPrincipal } from "./identity";
 import { SyntheticApiProblem, type FailureMode } from "./synthetic-api";
 

@@ -1,3 +1,4 @@
+import {execFileSync} from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -18,11 +19,10 @@ const inventory = [];
 for (const [lockPath, entry] of Object.entries(lock.packages ?? {})) {
   if (!lockPath.includes("node_modules/") || entry.link || typeof entry.version !== "string") continue;
   const manifest = manifestFor(lockPath);
-  const name = typeof entry.name === "string" ? entry.name : manifest?.name;
-  if (typeof name !== "string") continue;
-  const license = typeof manifest?.license === "string" ? manifest.license
-    : Array.isArray(manifest?.licenses) ? manifest.licenses.map((item) => item?.type).filter((item) => typeof item === "string").join(" OR ") || "UNKNOWN"
-    : "UNKNOWN";
+  // Names and licenses come from the lockfile even if this machine has only a
+  // partial server install. Installed manifests must not silently omit clients.
+  const name = typeof entry.name === "string" ? entry.name : lockPath.slice(lockPath.lastIndexOf('node_modules/')+'node_modules/'.length);
+  const license = typeof entry.license === "string" ? entry.license : "UNKNOWN";
   inventory.push({
     name,
     version: entry.version,
@@ -31,8 +31,6 @@ for (const [lockPath, entry] of Object.entries(lock.packages ?? {})) {
     nativeAddon: existsSync(join(root, lockPath, "binding.gyp")) || manifest?.gypfile === true || String(manifest?.main ?? "").endsWith(".node"),
   });
 }
-const localDecoder = JSON.parse(readFileSync(join(root, "vendor", "decode-uri-component-safe", "package.json"), "utf8"));
-inventory.push({ name: localDecoder.name, version: localDecoder.version, license: localDecoder.license, installScript: false, nativeAddon: false });
 
 const unique = [...new Map(inventory.map((component) => [`${component.name}@${component.version}`, component])).values()]
   .sort((left, right) => left.name.localeCompare(right.name) || left.version.localeCompare(right.version));
@@ -46,8 +44,14 @@ const components = unique.map(({ name, version, license }) => ({
   properties: [{ name: "kavaroutes:license-review", value: license }],
 }));
 
-if (!process.argv.includes("--verified-zero-online")) throw new Error("RUN_THROUGH_NPM_GENERATE_AUDIT_ASSURANCE");
-const vulnerabilities = { info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0 };
+// Generate evidence only from this invocation's registry response. A caller
+// flag must never manufacture a clean advisory scan or reuse a stale date.
+const auditCommand=['audit','--json','--audit-level=low'];
+let audit;
+try{audit=JSON.parse(execFileSync('npm',auditCommand,{cwd:root,encoding:'utf8',maxBuffer:10_000_000}));}
+catch{throw new Error('DEPENDENCY_AUDIT_FAILED: evidence was not updated');}
+const vulnerabilities=audit.metadata?.vulnerabilities;
+if(!vulnerabilities||vulnerabilities.total!==0)throw new Error('DEPENDENCY_AUDIT_NOT_CLEAN: evidence was not updated');
 
 const outputDirectory = join(root, "artifacts", "dependencies");
 mkdirSync(outputDirectory, { recursive: true });
@@ -65,7 +69,7 @@ const report = {
   lockSha256,
   componentCount: components.length,
   advisoryCheck: {
-    command: "npm audit --json --audit-level=moderate",
+    command: "npm audit --json --audit-level=low",
     online: true,
     exitCode: 0,
     vulnerabilities,
@@ -73,15 +77,10 @@ const report = {
   installScriptReview: unique.filter((component) => component.installScript).map(({ name, version }) => ({ name, version, disposition: name === "protobufjs"
     ? "reviewed: reads adjacent package metadata and may emit a compatibility warning; no network, child process, or file write"
     : "platform-optional dependency" })),
+  nativeAddonReviewLimitation: "Installed-tree indicators only; review native build artifacts separately on supported platforms.",
   nativeAddonReview: unique.filter((component) => component.nativeAddon).map(({ name, version }) => ({ name, version, disposition: "retain pinned version; exercise on supported build platforms" })),
   unknownLicenseReview: unique.filter((component) => component.license === "UNKNOWN").map(({ name, version }) => ({ name, version, disposition: "manual review required before distribution" })),
-  exceptions: [{
-    id: "DEP-EXC-001",
-    package: "decode-uri-component",
-    owner: "Audit Worker",
-    reviewCadence: "monthly and whenever expo-router/query-string changes",
-    disposition: "temporary local CommonJS linear-time fork; remove when the caller supports a fixed upstream release",
-  }],
+  exceptions: [],
 };
 writeFileSync(join(outputDirectory, "audit-assurance.json"), `${JSON.stringify(report, null, 2)}\n`);
 console.log(`Dependency assurance generated: ${components.length} components, ${vulnerabilities.total} advisories.`);

@@ -47,7 +47,7 @@ for(const entry of fs.readdirSync('packages',{withFileTypes:true})){if(!entry.is
 // an unverified copy of the composed browser/guarded API surface.
 names.push('apps/api-host/package.json');if(fs.existsSync('apps/api-host/dist'))walk('apps/api-host/dist');
 const hashes=Object.fromEntries(names.map(name=>[name,createHash('sha256').update(fs.readFileSync(name)).digest('hex')]));
-console.log(JSON.stringify({hashes,node:process.version,forbidden:['apps/driver','apps/web','apps/worker-host','infra/gcp/runtime/integration.test.mjs'].filter(name=>fs.existsSync(name))}));`;
+console.log(JSON.stringify({hashes,node:process.version,forbidden:['apps/driver','apps/driver-native','apps/web','apps/worker-host','archive','packages/driver-core','vendor/decode-uri-component-safe','infra/gcp/runtime/integration.test.mjs'].filter(name=>fs.existsSync(name))}));`;
 const payload = JSON.parse(run([...sandbox,'--entrypoint','node',image,'--input-type=module','-e',script]));
 const osPackages = run([...sandbox,'--entrypoint','dpkg-query',image,'-W','-f=${Package}\t${Version}\n']);
 if (payload.forbidden.length) throw new Error('UNEXPECTED_IMAGE_PAYLOAD');

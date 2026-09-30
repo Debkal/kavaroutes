@@ -1,4 +1,4 @@
-import type { BoardProjection, BoardStatus, BoardTrip, VehiclePosition } from "./contracts";
+import type { BoardProjection, BoardStatus, BoardTrip, VehiclePosition } from "../contracts";
 
 const STATUSES: readonly BoardStatus[] = ["SCHEDULED", "READY", "IN_PROGRESS", "LATE", "COMPLETED"];
 

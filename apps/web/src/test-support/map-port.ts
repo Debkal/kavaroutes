@@ -1,4 +1,4 @@
-import type { VehiclePosition } from "./contracts";
+import type { VehiclePosition } from "../contracts";
 
 export type MapState = "READY" | "SLOW" | "UNAVAILABLE" | "ERROR" | "QUOTA_DEGRADED";
 export interface ViewportIntent { readonly kind: "FIT_ALL" | "FOCUS_VEHICLE"; readonly reference?: string; }

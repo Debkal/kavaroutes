@@ -3,6 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type {createCloudApi} from '../cloud-api';
+import {dispatchQueries} from '../dispatch-queries';
 import {googleMapsRouteUrl} from '../route-trace-export';
 import {distanceByWindow,miles} from '../route-distance';
 import {addAuthorizedStreetTiles} from './authorized-street-tiles';
@@ -29,8 +30,7 @@ export function RouteStreetMap({api,day,track,clientId=null,history=false,select
 }){
   const container=useRef<HTMLDivElement>(null),map=useRef<any>(null),overlay=useRef<any>(null);
   const [raw,setRaw]=useState(false),[tileError,setTileError]=useState(false);
-  const full=useQuery({queryKey:['private-cloud','dispatch-full-trace',day,track.shiftReference,clientId],
-    queryFn:()=>api.fullTrace(day,track.shiftReference,clientId),staleTime:60_000,retry:false});
+  const full=useQuery(dispatchQueries.trace(api,day,track.shiftReference,clientId));
   const saved=full.data?.value.points;
   const points=useMemo(()=>{
     if(!saved)return [];
@@ -49,7 +49,7 @@ export function RouteStreetMap({api,day,track,clientId=null,history=false,select
   const distances=useMemo(()=>distanceByWindow(match.data?.value.status==='READY'?
     match.data.value.segments.map((coords,index)=>({coords,window:match.data!.value.windows[index]??0})):allSegments),[match.data,allSegments]);
   const distanceMethod=match.data?.value.status==='READY'?'road-aligned':'GPS estimate';
-  const googleUrl=googleMapsRouteUrl(visiblePoints);
+  const googleUrl=useMemo(()=>googleMapsRouteUrl(visiblePoints),[visiblePoints]);
 
   useEffect(()=>{
     if(!container.current||!points.length||map.current)return;

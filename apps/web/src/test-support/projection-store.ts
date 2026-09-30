@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { BoardProjection, BoardTrip, ConnectionState, VehiclePosition } from "./contracts";
+import type { BoardProjection, BoardTrip, ConnectionState, VehiclePosition } from "../contracts";
 
 export interface ProjectionStore {
   getSnapshot(): BoardProjection;

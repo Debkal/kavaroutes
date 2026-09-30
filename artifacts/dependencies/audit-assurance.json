@@ -1,10 +1,10 @@
 {
   "schemaVersion": "kavaroutes.dependency-assurance.v1",
-  "evidenceDate": "2026-09-27",
-  "lockSha256": "2b6102db863229325b776ffca68bfe5d2ab69decbb354ddf8e05e8c8adc60139",
-  "componentCount": 1119,
+  "evidenceDate": "2026-09-30",
+  "lockSha256": "51a2283bfc470419712d9e9dc416cbe49b46785db7f132bf89f3bdaedc0e7e66",
+  "componentCount": 895,
   "advisoryCheck": {
-    "command": "npm audit --json --audit-level=moderate",
+    "command": "npm audit --json --audit-level=low",
     "online": true,
     "exitCode": 0,
     "vulnerabilities": {
@@ -23,11 +23,22 @@
       "disposition": "platform-optional dependency"
     },
     {
+      "name": "fsevents",
+      "version": "2.3.2",
+      "disposition": "platform-optional dependency"
+    },
+    {
+      "name": "fsevents",
+      "version": "2.3.3",
+      "disposition": "platform-optional dependency"
+    },
+    {
       "name": "protobufjs",
       "version": "7.6.5",
       "disposition": "reviewed: reads adjacent package metadata and may emit a compatibility warning; no network, child process, or file write"
     }
   ],
+  "nativeAddonReviewLimitation": "Installed-tree indicators only; review native build artifacts separately on supported platforms.",
   "nativeAddonReview": [
     {
       "name": "@rolldown/binding-linux-x64-gnu",
@@ -40,14 +51,12 @@
       "disposition": "retain pinned version; exercise on supported build platforms"
     }
   ],
-  "unknownLicenseReview": [],
-  "exceptions": [
+  "unknownLicenseReview": [
     {
-      "id": "DEP-EXC-001",
-      "package": "decode-uri-component",
-      "owner": "Audit Worker",
-      "reviewCadence": "monthly and whenever expo-router/query-string changes",
-      "disposition": "temporary local CommonJS linear-time fork; remove when the caller supports a fixed upstream release"
+      "name": "limiter",
+      "version": "1.1.5",
+      "disposition": "manual review required before distribution"
     }
-  ]
+  ],
+  "exceptions": []
 }

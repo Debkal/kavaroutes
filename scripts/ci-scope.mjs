@@ -5,9 +5,9 @@ import { pathToFileURL } from 'node:url';
 export function selectScope(paths, full = false) {
   const scope = { server: full, web: full, driver: full, site: full, admin: full };
   for (const path of paths) {
-    if (/\.(md|mdx)$/.test(path)) continue;
+    if (path.startsWith('archive/') || /\.(md|mdx)$/.test(path)) continue;
     if (path.startsWith('apps/web/')) scope.web = true;
-    else if (path.startsWith('apps/driver/') || path.startsWith('apps/driver-native/')) scope.driver = true;
+    else if (path.startsWith('apps/driver-native/')) scope.driver = true;
     else if (path.startsWith('apps/site/')) scope.site = true;
     else if (path.startsWith('apps/admin/')) scope.admin = true;
     // Shared contracts and unknown paths conservatively invalidate every consumer.

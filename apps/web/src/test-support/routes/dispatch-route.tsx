@@ -1,8 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useSearchParams, type LoaderFunctionArgs } from "react-router";
-import { Button, ConfirmDialog } from "../design-system";
-import type { BoardStatus, CommandState } from "../contracts";
+import { Button, ConfirmDialog } from "../../design-system";
+import type { BoardStatus, CommandState } from "../../contracts";
 import { SYNTHETIC_PRINCIPALS } from "../identity";
 import { createGeneratedAssignmentClient } from "../generated-command-client";
 import { createSyntheticMapPort, type MapState } from "../map-port";

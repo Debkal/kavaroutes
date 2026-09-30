@@ -14,8 +14,8 @@ test("local container definitions are pinned, non-root, bounded, health-checked,
   assert.ok(files[0].includes("node:24.19.0-bookworm-slim@sha256:"));
   assert.ok(files[1].includes("node:24.19.0-bookworm-slim@sha256:"));
   assert.ok(files[0].includes("USER node") && files[1].includes("USER node"));
-  assert.equal((files[0].match(/COPY (?:--from=build --chown=node:node \/app\/)?vendor/g) ?? []).length, 2);
-  assert.equal((files[1].match(/COPY (?:--from=build --chown=node:node \/app\/)?vendor/g) ?? []).length, 2);
+  assert.equal((files[0].match(/COPY (?:--from=build --chown=node:node \/app\/)?vendor/g) ?? []).length, 0);
+  assert.equal((files[1].match(/COPY (?:--from=build --chown=node:node \/app\/)?vendor/g) ?? []).length, 0);
   assert.ok(all.includes("postgis/postgis:17-3.5@sha256:"));
   assert.ok(all.includes("HEALTHCHECK") && all.includes("healthcheck:"));
   assert.ok(all.includes("read_only: true") && all.includes("stop_grace_period:"));
@@ -35,7 +35,7 @@ test("local container definitions are pinned, non-root, bounded, health-checked,
   for (const ignored of ["**/node_modules", "**/dist", "**/build", "**/.gradle", "**/.cxx", "**/.expo", "**/coverage", ".deployment-evidence", "**/*.tfplan", "**/*.tfstate", "**/*.tfstate.*", "**/*.apk", "**/*.aab", "**/*.so", "**/*.o"]) {
     assert.ok(files[4].split("\n").includes(ignored), `missing Docker context exclusion ${ignored}`);
   }
-  assert.equal(files[4].split("\n").includes("vendor"), false, "local audited dependencies must remain in the Docker context");
+  assert.ok(files[4].split("\n").includes("archive"), "historical code must stay out of application Docker contexts");
 });
 
 

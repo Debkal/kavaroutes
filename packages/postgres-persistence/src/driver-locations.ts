@@ -123,16 +123,29 @@ export function createDispatchTrackingReader(pool: Pool) {
       LEFT JOIN fleet.vehicle v ON v.tenant_id=a.tenant_id AND v.id=a.vehicle_id
       LEFT JOIN execution.driver_tracking_alert alert ON alert.tenant_id=s.tenant_id AND alert.shift_id=s.id
       WHERE s.tenant_id=$1 AND r.service_date=$2::date ORDER BY r.planned_start_at,s.id LIMIT 200`, [tenantId, serviceDate])).rows;
+    // Bound each shift in SQL, but load all traces in one round trip instead of
+    // one query per shift. LATERAL preserves the per-shift 500-fix limit.
+    const traces = rows.length ? (await db.query(`SELECT shifts.shift_id,points.*
+      FROM unnest($2::uuid[]) AS shifts(shift_id)
+      CROSS JOIN LATERAL (
+        SELECT ST_Y(b.position::geometry) AS latitude,ST_X(b.position::geometry) AS longitude,
+          b.accuracy_meters,b.captured_at,b.id
+        FROM realtime.location_breadcrumb b
+        JOIN realtime.location_batch_receipt r ON r.tenant_id=b.tenant_id AND r.id=b.batch_id
+        WHERE b.tenant_id=$1 AND r.shift_id=shifts.shift_id
+        ORDER BY b.captured_at DESC,b.id DESC LIMIT 500
+      ) points ORDER BY shifts.shift_id,points.captured_at,points.id`, [tenantId, rows.map(row => row.id)])).rows : [];
+    const traceByShift = new Map<string, typeof traces>();
+    for (const sample of traces) {
+      const id = String(sample.shift_id), trace = traceByShift.get(id);
+      if (trace) trace.push(sample); else traceByShift.set(id, [sample]);
+    }
     const tracks: ShiftTrack[] = [];
+    const now = Date.now();
     for (const row of rows) {
-      // The shift's own breadcrumbs are both the trace and the current position, so the
-      // map and the retrace cannot disagree. The newest 500 are kept (oldest first), and
-      // the newest of those is what the marker shows.
-      const trace = (await db.query(`SELECT ST_Y(b.position::geometry) AS latitude,ST_X(b.position::geometry) AS longitude,b.accuracy_meters,b.captured_at
-        FROM realtime.location_breadcrumb b JOIN realtime.location_batch_receipt r ON r.tenant_id=b.tenant_id AND r.id=b.batch_id
-        WHERE b.tenant_id=$1 AND r.shift_id=$2 ORDER BY b.captured_at DESC LIMIT 500`, [tenantId, row.id])).rows.reverse();
+      const trace = traceByShift.get(String(row.id)) ?? [];
       const position = trace[trace.length - 1];
-      const evaluation = assessTrackingFreshness({ now: Date.now(), startedAt: new Date(row.pinned_at).getTime(), lifecycle: String(row.lifecycle),
+      const evaluation = assessTrackingFreshness({ now, startedAt: new Date(row.pinned_at).getTime(), lifecycle: String(row.lifecycle),
         collectionStopped: Boolean(row.collection_stopped), lastCapturedAt: row.last_location_captured_at ? new Date(row.last_location_captured_at).getTime() : null,
         lastReceivedAt: row.last_location_received_at ? new Date(row.last_location_received_at).getTime() : null,
         stopReason: row.stop_reason ?? null });
@@ -146,7 +159,7 @@ export function createDispatchTrackingReader(pool: Pool) {
         vehicleLabel: row.vehicle_label === null || row.vehicle_label === undefined ? null : String(row.vehicle_label),
         lifecycle: String(row.lifecycle), status: String(row.alert_status ?? evaluation.status),
         reason: String(row.alert_reason ?? evaluation.reason), contactDriver: Boolean(row.alert_contact ?? evaluation.contactDriver),
-        silentSeconds: evaluation.status === 'UPDATES_CURRENT' || evaluation.status === 'SHIFT_ENDED' ? 0 : Math.max(0, Math.round((Date.now() - silentFrom) / 1000)),
+        silentSeconds: evaluation.status === 'UPDATES_CURRENT' || evaluation.status === 'SHIFT_ENDED' ? 0 : Math.max(0, Math.round((now - silentFrom) / 1000)),
         lastReceivedAt: evaluation.lastReceivedAt, lastCapturedAt: evaluation.lastCapturedAt, staleAfterSeconds: evaluation.staleAfterSeconds, retryAfterSeconds: 30,
         position: position ? point(position) : null, trace: trace.map(point) });
     }

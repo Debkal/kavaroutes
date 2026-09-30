@@ -7,12 +7,8 @@ import { queryClient } from "./runtime";
 declare const __KR_WEB_BUILD__: string;
 const webBuild = typeof __KR_WEB_BUILD__ === "string" ? __KR_WEB_BUILD__ : "unknown";
 
-// One backend per build, and the default is the persisted one. The
-// fixture-backed `local-synthetic` surface is opt-in for the browser test
-// harness only, so no synthetic route ships unless a build asks for it.
-const backendMode = import.meta.env.VITE_KAVAROUTES_BACKEND ?? "private-cloud";
-if (!["local-synthetic", "private-cloud"].includes(backendMode)) throw new Error("INVALID_BACKEND_MODE");
-const privateCloud = backendMode === "private-cloud";
+// The build flag is false for every shipped bundle; only acceptance builds include doubles.
+declare const __KR_TEST_HARNESS__: boolean;
 
 function AppShell() {
   return <QueryClientProvider client={queryClient}>
@@ -53,10 +49,10 @@ function HydrateFallback() {
 export const router = createBrowserRouter([{
   path: "/", element: <AppShell />, errorElement: <RootError />, HydrateFallback, children: [
     { index: true, loader: () => redirect("/dispatch") },
-    { path: "dispatch", lazy: () => privateCloud ? import("./routes/cloud-dispatch-route") : import("./routes/dispatch-route") },
+    { path: "dispatch", lazy: () => __KR_TEST_HARNESS__ ? import("./test-support/routes/dispatch-route") : import("./routes/cloud-dispatch-route") },
     { path: "tracking", lazy: () => import("./routes/cloud-tracking-route") },
     { path: "route-history", lazy: () => import("./routes/cloud-route-history-route") },
-    { path: "clients", lazy: () => privateCloud ? import("./routes/cloud-clients-route") : import("./routes/facility-route") },
+    { path: "clients", lazy: () => __KR_TEST_HARNESS__ ? import("./test-support/routes/facility-route") : import("./routes/cloud-clients-route") },
     { path: "accounting", lazy: () => import("./routes/cloud-accounting-route") },
     { path: "command", lazy: () => import("./routes/cloud-command-route") },
     { path: "forbidden", lazy: () => import("./routes/forbidden-route") },

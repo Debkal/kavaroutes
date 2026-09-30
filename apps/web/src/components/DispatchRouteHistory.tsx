@@ -1,7 +1,9 @@
-import {useState} from 'react';
+import {useMemo,useState} from 'react';
 import {Link} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 import type {createCloudApi} from '../cloud-api';
+import {dispatchQueries} from '../dispatch-queries';
+import {indexRouteHistory} from '../route-history-index';
 import {TracePlot} from './DispatchDriverTracking';
 import {RouteStreetMap,legColor} from './RouteStreetMap';
 import {shiftBandLabel} from '../shift-band';
@@ -11,68 +13,64 @@ import {downloadTraceKml,traceKml} from '../route-trace-export';
 
 type Api=ReturnType<typeof createCloudApi>;
 type Track=Awaited<ReturnType<Api['tracking']>>['value']['shifts'][number];
-type Event=Awaited<ReturnType<Api['routeHistory']>>['value']['events'][number];
 const stamp=(value:string|null,zone:string)=>value?new Date(value).toLocaleString('en-US',{timeZone:zone,month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'}):'Not recorded';
 const label=(value:string)=>value.replaceAll('_',' ').toLowerCase().replace(/\b\w/g,letter=>letter.toUpperCase());
-const applied=(events:readonly Event[],legId:string,action:string)=>events.find(event=>event.tripLegId===legId&&event.kind==='DRIVER_ACTION'&&event.action===action&&event.outcome==='APPLIED')??null;
 const gapSeconds=(current:Track['trace'][number],previous:Track['trace'][number]|undefined)=>previous?Math.max(0,Math.round((Date.parse(current.capturedAt)-Date.parse(previous.capturedAt))/1000)):0;
 
 export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabled:boolean}){
   const [selected,setSelected]=useState<string|null>(null),[driverId,setDriverId]=useState(''),[clientId,setClientId]=useState('');
   const [legWindow,setLegWindow]=useState<number|null>(null);
-  const tracks=useQuery({queryKey:['private-cloud','dispatch-route-tracks',day],queryFn:()=>api.tracking(day),enabled,retry:false});
-  const board=useQuery({queryKey:['private-cloud','dispatch-route-board',day],queryFn:()=>api.board(day),enabled,retry:false});
-  const history=useQuery({queryKey:['private-cloud','dispatch-route-events',day],queryFn:()=>api.routeHistory(day),enabled,retry:false});
-  const allCompleted=(tracks.data?.value.shifts??[]).filter(track=>track.lifecycle==='SHIFT_ENDED');
-  const events=history.data?.value.events??[];
-  const runOf=(shift:string)=>events.find(event=>event.shiftReference===shift&&event.kind==='SHIFT_STARTED')?.runId??null;
-  const clientForTrip=new Map((history.data?.value.tripClients??[]).map(item=>[item.tripId,item]));
+  const tracks=useQuery({...dispatchQueries.tracking(api,day),enabled});
+  const board=useQuery({...dispatchQueries.board(api,day),enabled});
+  const history=useQuery({...dispatchQueries.history(api,day),enabled});
+  const allCompleted=useMemo(()=>(tracks.data?.value.shifts??[]).filter(track=>track.lifecycle==='SHIFT_ENDED'),[tracks.data]);
+  const historyIndex=useMemo(()=>indexRouteHistory(history.data?.value.events??[],board.data?.value.legs??[]),[history.data,board.data]);
+  const runOf=(shift:string)=>historyIndex.runByShift.get(shift)??null;
+  const clientForTrip=useMemo(()=>new Map((history.data?.value.tripClients??[]).map(item=>[item.tripId,item])),[history.data]);
   const clients=new Map<string,string>();
   for(const track of allCompleted){const runId=runOf(track.shiftReference);
-    for(const leg of board.data?.value.legs.filter(item=>item.runId===runId)??[]){const client=clientForTrip.get(leg.tripId);if(client)clients.set(client.clientId,client.clientLabel);}}
+    for(const leg of historyIndex.legsByRun.get(runId??'')??[]){const client=clientForTrip.get(leg.tripId);if(client)clients.set(client.clientId,client.clientLabel);}}
   const completed=allCompleted.filter(track=>{
     if(driverId&&track.driverId!==driverId)return false;
     if(!clientId)return true;
     const runId=runOf(track.shiftReference);
-    return board.data?.value.legs.some(leg=>leg.runId===runId&&clientForTrip.get(leg.tripId)?.clientId===clientId)??false;
+    return (historyIndex.legsByRun.get(runId??'')??[]).some(leg=>clientForTrip.get(leg.tripId)?.clientId===clientId);
   });
   const detail=completed.find(track=>track.shiftReference===selected)??completed[0]??null;
-  const fullTrace=useQuery({queryKey:['private-cloud','dispatch-full-trace',day,detail?.shiftReference,clientId],
-    queryFn:()=>api.fullTrace(day,detail!.shiftReference,clientId||null),enabled:enabled&&!!detail,retry:false,staleTime:60_000});
+  const fullTrace=useQuery({...dispatchQueries.trace(api,day,detail?.shiftReference??null,clientId||null),enabled:enabled&&!!detail});
   const runId=detail?runOf(detail.shiftReference):null;
-  const legs=(board.data?.value.legs??[]).filter(leg=>leg.runId===runId&&(!clientId||clientForTrip.get(leg.tripId)?.clientId===clientId));
+  const legs=(historyIndex.legsByRun.get(runId??'')??[]).filter(leg=>!clientId||clientForTrip.get(leg.tripId)?.clientId===clientId);
   const selectedLeg=legs.find(leg=>leg.ordinal===legWindow)??null;
   const activeWindow=selectedLeg?legWindow:null;
   const legIds=new Set(legs.map(leg=>leg.tripLegId));
-  const detailEvents=events.filter(event=>event.shiftReference===detail?.shiftReference&&(!clientId||event.tripLegId===null||legIds.has(event.tripLegId)));
+  const detailEvents=(historyIndex.eventsByShift.get(detail?.shiftReference??'')??[]).filter(event=>!clientId||event.tripLegId===null||legIds.has(event.tripLegId));
   const shownEvents=selectedLeg?detailEvents.filter(event=>event.tripLegId===selectedLeg.tripLegId):detailEvents;
   const orderedLegs=[...legs].sort((a,b)=>a.ordinal-b.ordinal);
   const betweenLegs=orderedLegs.slice(1).flatMap((next,index)=>{
     const previous=orderedLegs[index]!;
-    const completed=applied(detailEvents,previous.tripLegId,'COMPLETE_LEG');
-    const departed=applied(detailEvents,next.tripLegId,'MARK_EN_ROUTE');
+    const completed=historyIndex.applied(detail?.shiftReference??'',previous.tripLegId,'COMPLETE_LEG');
+    const departed=historyIndex.applied(detail?.shiftReference??'',next.tripLegId,'MARK_EN_ROUTE');
     if(!completed||!departed)return [];
     const minutes=Math.round((Date.parse(departed.occurredAt)-Date.parse(completed.occurredAt))/60_000);
     return minutes>0?[{from:previous.ordinal,to:next.ordinal,minutes}]:[];
   });
   const intervals=clientId?legs.flatMap(leg=>{
-    const start=['MARK_EN_ROUTE','ARRIVE_PICKUP','BOARD_RIDER'].map(action=>applied(detailEvents,leg.tripLegId,action)).find(Boolean);
-    const end=applied(detailEvents,leg.tripLegId,'COMPLETE_LEG')??applied(detailEvents,leg.tripLegId,'MARK_RIDER_NO_SHOW');
+    const start=['MARK_EN_ROUTE','ARRIVE_PICKUP','BOARD_RIDER'].map(action=>historyIndex.applied(detail?.shiftReference??'',leg.tripLegId,action)).find(Boolean);
+    const end=historyIndex.applied(detail?.shiftReference??'',leg.tripLegId,'COMPLETE_LEG')??historyIndex.applied(detail?.shiftReference??'',leg.tripLegId,'MARK_RIDER_NO_SHOW');
     return start?[[Date.parse(start.occurredAt),Date.parse(end?.occurredAt??detail?.lastCapturedAt??start.occurredAt)] as const]:[];
   }):[];
   const trace=fullTrace.data?.value.points??[];
-  const visibleTrace=activeWindow===null?trace:trace.filter(point=>point.window===activeWindow);
+  const visibleTrace=useMemo(()=>activeWindow===null?trace:trace.filter(point=>point.window===activeWindow),[trace,activeWindow]);
   const recentTrace=detail?(clientId?detail.trace.filter(point=>intervals.some(([start,end])=>Date.parse(point.capturedAt)>=start&&Date.parse(point.capturedAt)<=end)):detail.trace):[];
   const shownTrace=fullTrace.data?visibleTrace:recentTrace;
   const shownTrack=detail?{...detail,trace:shownTrace,position:shownTrace.at(-1)??null}:null;
   const loading=tracks.isPending||board.isPending||history.isPending;
   const failed=tracks.isError||board.isError||history.isError;
-  const refresh=()=>{void Promise.all([tracks.refetch(),board.refetch(),history.refetch(),fullTrace.refetch()]);};
+  const refresh=()=>{void Promise.all([tracks.refetch(),board.refetch(),history.refetch(),...(detail?[fullTrace.refetch()]:[])]);};
   const exportSelected=()=>{if(!detail||!board.data||!history.data)return;
     downloadCsv(`kavaroutes-route-history-${day}-${detail.shiftReference.slice(0,8)}${selectedLeg?`-leg-${selectedLeg.ordinal}`:''}.csv`,routeHistoryRows({day,track:detail,board:board.data.value,history:history.data.value,trace:visibleTrace,legIds:selectedLeg?[selectedLeg.tripLegId]:legs.map(leg=>leg.tripLegId)}));};
   const exportMap=()=>{if(!detail||!visibleTrace.length)return;
-    const mapped=visibleTrace.map(point=>({...point,window:point.window}));
-    downloadTraceKml(`kavaroutes-gps-${day}-${detail.shiftReference.slice(0,8)}${selectedLeg?`-leg-${selectedLeg.ordinal}`:''}.kml`,traceKml(day,mapped));};
+    downloadTraceKml(`kavaroutes-gps-${day}-${detail.shiftReference.slice(0,8)}${selectedLeg?`-leg-${selectedLeg.ordinal}`:''}.kml`,traceKml(day,visibleTrace));};
   return <section id="route-history" className="workspace-card route-history" aria-label="Completed route history">
     <div className="section-heading"><div><p className="eyebrow">Dispatch records</p><h2>Route history</h2>
       <p>Review completed shifts, each trip leg, recorded pickup and drop-off actions, and the GPS trace. Times use the route’s service timezone.</p></div>
@@ -106,12 +104,12 @@ export function DispatchRouteHistory({api,day,enabled}:{api:Api;day:string;enabl
           <span className="route-leg-swatch" style={{backgroundColor:legColor(leg.ordinal)}} aria-hidden="true"/>
           <strong>{leg.riderLabel}</strong><span>{clientForTrip.get(leg.tripId)?.clientLabel??'No client account linked'} · {leg.pickupLabel} → {leg.dropoffLabel}</span>
           <span>Planned {stamp(leg.plannedStartAt,detail.serviceTimezone)} to {stamp(leg.plannedEndAt,detail.serviceTimezone)} · {label(leg.lifecycle)}</span>
-          <span>Pickup arrival: {stamp(applied(detailEvents,leg.tripLegId,'ARRIVE_PICKUP')?.recordedAt??null,detail.serviceTimezone)} · Boarded: {stamp(applied(detailEvents,leg.tripLegId,'BOARD_RIDER')?.recordedAt??null,detail.serviceTimezone)}</span>
-          <span>Drop-off arrival: {stamp(applied(detailEvents,leg.tripLegId,'ARRIVE_DROPOFF')?.recordedAt??null,detail.serviceTimezone)} · Completed: {stamp(applied(detailEvents,leg.tripLegId,'COMPLETE_LEG')?.recordedAt??null,detail.serviceTimezone)}</span>
+          <span>Pickup arrival: {stamp(historyIndex.applied(detail?.shiftReference??'',leg.tripLegId,'ARRIVE_PICKUP')?.recordedAt??null,detail.serviceTimezone)} · Boarded: {stamp(historyIndex.applied(detail?.shiftReference??'',leg.tripLegId,'BOARD_RIDER')?.recordedAt??null,detail.serviceTimezone)}</span>
+          <span>Drop-off arrival: {stamp(historyIndex.applied(detail?.shiftReference??'',leg.tripLegId,'ARRIVE_DROPOFF')?.recordedAt??null,detail.serviceTimezone)} · Completed: {stamp(historyIndex.applied(detail?.shiftReference??'',leg.tripLegId,'COMPLETE_LEG')?.recordedAt??null,detail.serviceTimezone)}</span>
         </li>)}</ol>}
         {betweenLegs.length>0&&<p className="form-hint">{betweenLegs.map(item=>`Between leg ${item.from} and ${item.to}: ${item.minutes} min from completion to next departure`).join(' · ')}. This interval includes waiting time; GPS reporting gaps within it are left open.</p>}
         <h4>Recorded route events</h4>{shownEvents.length===0?<p>No driver actions are recorded for this selection.</p>:<ol className="route-event-list" aria-label="Recorded route events">{shownEvents.map((event,index)=><li key={`${event.shiftReference}-${index}`}>
-          <time dateTime={event.recordedAt}>{stamp(event.recordedAt,detail.serviceTimezone)}</time> · <strong>{label(event.action)}</strong>{event.tripLegId&&<span> · {legs.find(leg=>leg.tripLegId===event.tripLegId)?.riderLabel??'Trip leg'}</span>}
+          <time dateTime={event.recordedAt}>{stamp(event.recordedAt,detail.serviceTimezone)}</time> · <strong>{label(event.action)}</strong>{event.tripLegId&&<span> · {historyIndex.legById.get(event.tripLegId)?.riderLabel??'Trip leg'}</span>}
           {event.outcome&&<span> · {label(event.outcome)}</span>}{event.reason&&<span> · {label(event.reason)}</span>}
           {event.occurredAt!==event.recordedAt&&<small>Device time {stamp(event.occurredAt,detail.serviceTimezone)}</small>}
         </li>)}</ol>}

@@ -1,20 +1,44 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/shared-kernel" },
-    { "path": "packages/platform-engine" },
-    { "path": "packages/transport-schemas" },
-    { "path": "packages/platform-test-support" },
-    { "path": "packages/postgres-persistence" },
-    { "path": "packages/api-contracts" },
-    { "path": "packages/google-identity" },
-    { "path": "packages/durable-execution" },
-    { "path": "packages/realtime" },
-    { "path": "packages/push-notifications" },
-    { "path": "packages/driver-core" },
-    { "path": "apps/api-host" },
-    { "path": "apps/worker-host" },
-    { "path": "apps/driver" },
-    { "path": "apps/web" }
+    {
+      "path": "packages/shared-kernel"
+    },
+    {
+      "path": "packages/platform-engine"
+    },
+    {
+      "path": "packages/transport-schemas"
+    },
+    {
+      "path": "packages/platform-test-support"
+    },
+    {
+      "path": "packages/postgres-persistence"
+    },
+    {
+      "path": "packages/api-contracts"
+    },
+    {
+      "path": "packages/google-identity"
+    },
+    {
+      "path": "packages/durable-execution"
+    },
+    {
+      "path": "packages/realtime"
+    },
+    {
+      "path": "packages/push-notifications"
+    },
+    {
+      "path": "apps/api-host"
+    },
+    {
+      "path": "apps/worker-host"
+    },
+    {
+      "path": "apps/web"
+    }
   ]
 }

@@ -28,7 +28,7 @@ function Review({api,shift,label}:{api:Api;shift:string;label?:string}){
  const [pending,setPending]=useState<Command|null>(null);
  const [message,setMessage]=useState(''),[busy,setBusy]=useState(false),flight=useRef(false);
  const [acknowledgeUnresolved,setAcknowledgeUnresolved]=useState(false);
- const view=useQuery({queryKey:['private-cloud','policy_override','return-review',shift],queryFn:()=>api.returnReview(shift),retry:false,refetchInterval:5000});
+ const view=useQuery({queryKey:['private-cloud','policy_override','return-review',shift],queryFn:()=>api.returnReview(shift),retry:false,refetchInterval:query=>query.state.data?.value.lifecycle==='SHIFT_ENDED'?false:15_000});
  const submit=async()=>{
   if(flight.current)return;let command=pending;
   if(!command){

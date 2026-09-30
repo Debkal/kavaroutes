@@ -3,13 +3,14 @@ import {useQuery} from '@tanstack/react-query';
 import type {createCloudApi} from '../cloud-api';
 import type {RouteView} from '@kavaroutes/api-contracts/client-route-proposals';
 import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development-transport';
+import {dispatchQueries} from '../dispatch-queries';
 import {shiftBandLabel} from '../shift-band';
 type Api=ReturnType<typeof createCloudApi>;
 export function CloudRouteReview({api,day,enabled}:{api:Api;day:string;enabled:boolean}){
- const snapshot=useQuery({queryKey:['private-cloud','dispatch-route-shifts',day],queryFn:()=>api.dispatchSnapshot(day),enabled,retry:false,refetchInterval:5000});
+ const snapshot=useQuery({...dispatchQueries.snapshot(api,day),enabled,refetchInterval:30_000});
  // A recorded shift is named the same way the tracking panel names it (driver and part
  // of day), so an operator picks "Driver 042 · Morning shift" rather than "Shift 2".
- const tracking=useQuery({queryKey:['private-cloud','dispatch-route-shift-labels',day],queryFn:()=>api.tracking(day),enabled,retry:false,refetchInterval:5000});
+ const tracking=useQuery({...dispatchQueries.tracking(api,day),enabled,refetchInterval:30_000});
  const [selected,setSelected]=useState('');
  const shifts=snapshot.data?.value.resources.filter(r=>r.kind==='driver-shift')??[];
  const label=(reference:string)=>{const row=tracking.data?.value.shifts.find(item=>`driver-shift:${item.shiftReference}`===reference);
@@ -22,7 +23,7 @@ export function CloudRouteReview({api,day,enabled}:{api:Api;day:string;enabled:b
  </section>;
 }
 function Review({api,shift,enabled}:{api:Api;shift:string;enabled:boolean}){
- const view=useQuery({queryKey:['private-cloud','dispatch-route-review',shift],queryFn:()=>api.routeProposals(shift),enabled,retry:false,refetchInterval:5000});
+ const view=useQuery({queryKey:['private-cloud','dispatch-route-review',shift],queryFn:()=>api.routeProposals(shift),enabled,retry:false,refetchInterval:15_000});
  const pending=useRef<Parameters<Api['decideRoute']>[0]|null>(null),flight=useRef(false);
  const [message,setMessage]=useState(''),[busy,setBusy]=useState(false);
  const decide=async(proposalId:string,decision:'APPROVED'|'REJECTED')=>{

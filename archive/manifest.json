@@ -1,0 +1,625 @@
+{
+  "archivedOn": "2026-09-29",
+  "entries": [
+    {
+      "original": "apps/driver",
+      "archived": "archive/apps/driver",
+      "reason": "Superseded Driver prototype and its tools",
+      "sourceFiles": [
+        {
+          "original": "apps/driver/app/_layout.tsx",
+          "sha256": "1b4bf46fd24f8de598aa1953c8bda5aabcb84036c0b1c961e81b94859051fcd0"
+        },
+        {
+          "original": "apps/driver/app/diagnostics.tsx",
+          "sha256": "a02fdb73b80d379ecd451840c7efedd312d68560d6582155697f3b47657352ca"
+        },
+        {
+          "original": "apps/driver/app/index.tsx",
+          "sha256": "5ebaaebb6d984d998c51eb2996e4564e2011c27ce5fd018d38097c42b666d9cf"
+        },
+        {
+          "original": "apps/driver/app/inspection.tsx",
+          "sha256": "8929d6e2ee7d6da91e6a9595186cc4d390a0bbda707bf1285b1b39c034e2b815"
+        },
+        {
+          "original": "apps/driver/app/manifest.tsx",
+          "sha256": "360888cc80de08cfa39632d2f9ec3b47a5f7bf11381ef23b022b978cf7d07d3f"
+        },
+        {
+          "original": "apps/driver/app/proposal.tsx",
+          "sha256": "b8506f9bb227be2a81b3516966c87eac248fdad1bc3f3332ec1c9e8bc4dcb5f6"
+        },
+        {
+          "original": "apps/driver/app/return.tsx",
+          "sha256": "ff7fa738d7b21a9f8662970746a45cf3a7eb23d017fb2ced061bf2461f605445"
+        },
+        {
+          "original": "apps/driver/app/signature.tsx",
+          "sha256": "fa3fd2b30b1bd49a7bfbdf6a23770afd17d642fe339c105325ee446c0335bebd"
+        },
+        {
+          "original": "apps/driver/app/stop/[reference].tsx",
+          "sha256": "28f53df880905a6bdb739199ab810bf60ca890e5e18d5a80083b757b7a287bd7"
+        },
+        {
+          "original": "apps/driver/app/sync.tsx",
+          "sha256": "aabcc941007d01c58a4d837bd3fd49fc3f0ca0d523d7df29797e3a82c006dcd8"
+        },
+        {
+          "original": "apps/driver/app/updates.tsx",
+          "sha256": "a15864dd0987edc2da7ab0cfcbc70dee0153b45dad012e5c50543321f4e6a6ac"
+        },
+        {
+          "original": "apps/driver/app.json",
+          "sha256": "720e2d8e2561379c444911f39f6eecee8f85e261c407cac9556070c7637d69f3"
+        },
+        {
+          "original": "apps/driver/expo-env.d.ts",
+          "sha256": "57d45be957186273b21383b09f6a6aa3ca599b28d1fb742fb3edfac464504b90"
+        },
+        {
+          "original": "apps/driver/jest.config.cjs",
+          "sha256": "e598ef1fb60b06a03e409ea6a885ca8149e2f3d46ac57d363aef8785f14e1e09"
+        },
+        {
+          "original": "apps/driver/package.json",
+          "sha256": "fe276e4fab6322068444ba809a5f302c6c1df769d1060e2f38e4f6177d6d0c7f"
+        },
+        {
+          "original": "apps/driver/src/background-location.ts",
+          "sha256": "f5ce1d8648e192941f732383aa5d1fa6699eae05bf182a78e295239f72bd9366"
+        },
+        {
+          "original": "apps/driver/src/cloud-command-store.ts",
+          "sha256": "33c82d11387cf0ceca08dd111dbd32bfd7c06cfb6cfa7022efbce747e41d661d"
+        },
+        {
+          "original": "apps/driver/src/cloud-diagnostics.ts",
+          "sha256": "7c071f271bbf71926041bfe2ba21f313993d7807acc5fc2aa5226367280c4816"
+        },
+        {
+          "original": "apps/driver/src/cloud-finish-store.ts",
+          "sha256": "7d2c6c5f042c063221c4ae04bd44eb8597ce297d949f10c1caa702faed6ba5d6"
+        },
+        {
+          "original": "apps/driver/src/cloud-finish.ts",
+          "sha256": "a062b16c8f7c460c7f091590a7e0d00e142ace067a596509bbf94aa137caebf9"
+        },
+        {
+          "original": "apps/driver/src/cloud-precheck-store.ts",
+          "sha256": "149ac9f7fd15a55ca8c63b13d49ddd4296bad446fee41b653468be60621e80e4"
+        },
+        {
+          "original": "apps/driver/src/cloud-precheck.ts",
+          "sha256": "75bff18dc35f1b606afa9886c04a80a4bbe97ad9ca4d9c96560218893f846d30"
+        },
+        {
+          "original": "apps/driver/src/cloud-route-store.ts",
+          "sha256": "401bfe2c7782f2c07d44577f3574e4f7f53d541693f4ccb6b02a5842739a91ae"
+        },
+        {
+          "original": "apps/driver/src/cloud-server.ts",
+          "sha256": "accc0083fa07c645e1519214c21b38874d6157f26438a66879123c69a285dd1a"
+        },
+        {
+          "original": "apps/driver/src/cloud-signature-store.ts",
+          "sha256": "47e34cc502537c463664abbe091f435d1f449c5af4511f5ee8091008a63e7581"
+        },
+        {
+          "original": "apps/driver/src/cloud-signature.ts",
+          "sha256": "0ad022102683dab2f1c5c2a6cf5e4d4f9facc78e9ed7ae4e4a315b80aa5a69b0"
+        },
+        {
+          "original": "apps/driver/src/components/CloudRouteProposalScreen.tsx",
+          "sha256": "ac848488c9ff5b1c3c4794ab7d672d27234e6ae24fc109f2b528e77b76eefa83"
+        },
+        {
+          "original": "apps/driver/src/components/CloudSignatureScreen.tsx",
+          "sha256": "3f82e0fbae792d58bce30de74f84f8fb5a5904ef23a4556e698ed6f51f8e31ec"
+        },
+        {
+          "original": "apps/driver/src/components/CloudStopDetails.tsx",
+          "sha256": "23326e90d9b011da2516205195ad25af24255b6730fcd30d09f27bfaff8b822b"
+        },
+        {
+          "original": "apps/driver/src/components/FeasibilityScreen.tsx",
+          "sha256": "39a2be028127cc25ccdc6e525133d167723abb3fbaac45f0ad2b3753d09bef6c"
+        },
+        {
+          "original": "apps/driver/src/components/PrimaryButton.tsx",
+          "sha256": "6668a2bc3a5bec075d95caae609942b298df80c2ac60eeefe96558ff98e64b04"
+        },
+        {
+          "original": "apps/driver/src/components/StatusCard.tsx",
+          "sha256": "c19648c7a46b58ae84669b886dad2f21c9cf91f9d6bf272793a7f0d470022892"
+        },
+        {
+          "original": "apps/driver/src/crypto.ts",
+          "sha256": "5afbf25c0a39632622a8b733b873a9b8e5dd1ac37b882d7235cdcd427e0ae410"
+        },
+        {
+          "original": "apps/driver/src/inspection-form-store.ts",
+          "sha256": "a00415a2eabea70c7853b0f5399e81e68d3243b31d3c44d7593726d9ebf83d5e"
+        },
+        {
+          "original": "apps/driver/src/nativeActions.ts",
+          "sha256": "e8a568b1883f31834feebbf6bcf56021d56e8753174a66783edf4d37ce85144b"
+        },
+        {
+          "original": "apps/driver/src/notification-actions.ts",
+          "sha256": "707ee45e2104aad2e76e1d0db35ab2d7c7f9e95e39299b79715d3dec120bbd0a"
+        },
+        {
+          "original": "apps/driver/src/routes.ts",
+          "sha256": "785000a973101ae1f928c01bab4d53e1f6660f027ab66c39399157e120038e63"
+        },
+        {
+          "original": "apps/driver/src/runtime-config.ts",
+          "sha256": "c189109fd178a162a20345f7eb45f6b1d88d542cfa9075f27fe2f087a5d84268"
+        },
+        {
+          "original": "apps/driver/src/storage/nativeStore.ts",
+          "sha256": "4b1861d5784575a423b6c5cbf7fa53b012cc2fae5553043d3bfc726889b7fd40"
+        },
+        {
+          "original": "apps/driver/src/synthetic-server.ts",
+          "sha256": "c148325c5734301fdc484f32dcec59e8b12ed554a6c44085e6eefd00d1e991e9"
+        },
+        {
+          "original": "apps/driver/src/use-inspection-draft.ts",
+          "sha256": "f02a5acda83903ee7ef98a761feb9fb963623cb276bb1c1fcd7723217dab1bb5"
+        },
+        {
+          "original": "apps/driver/src/workflow-context.tsx",
+          "sha256": "9a746d4c1d1cd3891181d09d57bcdc75366bb976051461e02012409a5a5aa798"
+        },
+        {
+          "original": "apps/driver/test/cloud-command-store.test.tsx",
+          "sha256": "9aed08437486a4b5e11d9a1ebcb6ea305328ec312b1edf551330685eab0e857b"
+        },
+        {
+          "original": "apps/driver/test/cloud-diagnostics.test.tsx",
+          "sha256": "c05962ab509fa8aaa901959523a874c3b0f4db527370f5202b5d08fe390442e3"
+        },
+        {
+          "original": "apps/driver/test/cloud-finish-store.test.tsx",
+          "sha256": "c74333cc7e7f73bb57f4ef4ab56b67f44f3dfccf17ec4beba9ffc086ba82bdba"
+        },
+        {
+          "original": "apps/driver/test/cloud-finish.test.tsx",
+          "sha256": "f3fb9049178dc2946e69c50403d216ab0727288ac8dad351505955a1470b4b4c"
+        },
+        {
+          "original": "apps/driver/test/cloud-manifest.test.tsx",
+          "sha256": "c804abfa125ce6f33bbef0ed65d5c4209dd921e6d65f07f8437a95bbe4dc8860"
+        },
+        {
+          "original": "apps/driver/test/cloud-precheck-store.test.tsx",
+          "sha256": "69cebc0814fcd2c628bf554fea44f4624d50cae3aa9e7bcc25c6e4e8d00478f2"
+        },
+        {
+          "original": "apps/driver/test/cloud-precheck.test.tsx",
+          "sha256": "1653a1e84bab8496ed1e5a96e8d29e1cd484a802b7d88d607405ef2471e9dcce"
+        },
+        {
+          "original": "apps/driver/test/cloud-route-screen.test.tsx",
+          "sha256": "9f8429668574a3caca16e11c0038d7ff986c919b647cb7ec67b8f7db5e43036c"
+        },
+        {
+          "original": "apps/driver/test/cloud-route-store.test.tsx",
+          "sha256": "7e19e618d56f37ac832a4c7157270c5c1d04cfd32549a08a8d0eb10322cc5ae5"
+        },
+        {
+          "original": "apps/driver/test/cloud-server.test.tsx",
+          "sha256": "4226a0527d81af2dc9568e8b2fd717ad4986db05e3672e29aad31577db040ddf"
+        },
+        {
+          "original": "apps/driver/test/cloud-signature-screen.test.tsx",
+          "sha256": "ca56910cefaa7a89af88b29ceeea2b7d595d86109227be3acc9334e946831f2d"
+        },
+        {
+          "original": "apps/driver/test/cloud-signature-store.test.tsx",
+          "sha256": "3384f37602287e7d855e032c92e55ffcfea618c24fa3bc062a6dce9d91a875b8"
+        },
+        {
+          "original": "apps/driver/test/cloud-stop.test.tsx",
+          "sha256": "48d7ff13bdf6bb8c7e8b6e4fe3ba08e64c09f34844b6206e271d4ee0d4e6db22"
+        },
+        {
+          "original": "apps/driver/test/cloud-sync.test.tsx",
+          "sha256": "59320798fdcefdd592e9877719c1999c23cdc4bcfc75d84badcd7b9e453ed152"
+        },
+        {
+          "original": "apps/driver/test/cloud-updates-return.test.tsx",
+          "sha256": "72efaf284d0d8316cfb3a1a9de16bdb98daa06db2a720cea6e9f00c6872edada"
+        },
+        {
+          "original": "apps/driver/test/cloud-workflow-recovery.test.tsx",
+          "sha256": "256512db73a8b4f54fe832a5aed2bea8f4696e7558a8100c1606841eaa115e41"
+        },
+        {
+          "original": "apps/driver/test/inspection.test.tsx",
+          "sha256": "39b5e3cb0f6fc28c661e4682c1807bfe198042b328139e2ad7f9c8aa8fef55cc"
+        },
+        {
+          "original": "apps/driver/test/native-store.test.tsx",
+          "sha256": "6f97246f33750799b12c4da09e9f6b7b145a8e38ff2a7e530512d782ca019c3e"
+        },
+        {
+          "original": "apps/driver/test/setup.ts",
+          "sha256": "48a92499aaa316de864b10fb31df87b89cc06d4285fb5e7f0433e50328f3e6d3"
+        },
+        {
+          "original": "apps/driver/test/surfaces.test.tsx",
+          "sha256": "6a88327bcdf3a24f393a1c513544afe2b9df7679cc321e242a981c32a8fcf762"
+        },
+        {
+          "original": "apps/driver/tsconfig.json",
+          "sha256": "870c5017237c86646d3504b6f23484ce188ac729c4531d7e18f892fd529cc217"
+        }
+      ]
+    },
+    {
+      "original": "packages/driver-core",
+      "archived": "archive/packages/driver-core",
+      "reason": "Superseded Driver prototype and its tools",
+      "sourceFiles": [
+        {
+          "original": "packages/driver-core/artifacts/android-apk-report.json",
+          "sha256": "fa9547d121629e26adabe934840e1b1c4db28d9cad49b9f94a12179ca507d714"
+        },
+        {
+          "original": "packages/driver-core/artifacts/dependency-report.json",
+          "sha256": "ae2721c40ef4248f9a0b210073993f781dc9d46cf75e34c331325737c12a37b1"
+        },
+        {
+          "original": "packages/driver-core/artifacts/feasibility-report.json",
+          "sha256": "4db6608b7111507f486f23e5c0ff6d0779744d158fb52ebe864225d4525d483c"
+        },
+        {
+          "original": "packages/driver-core/artifacts/ios-bundle-report.json",
+          "sha256": "3f656c1174858639f8f1575215f18c6f069c2cf7c844116152881e8947d868f2"
+        },
+        {
+          "original": "packages/driver-core/artifacts/local-benchmark.json",
+          "sha256": "3f30b838f87fc49abd86d56eaca169c2ccc6655b625226c20efdc31e407e3c52"
+        },
+        {
+          "original": "packages/driver-core/artifacts/local-lint-report.json",
+          "sha256": "6d539f834673a555320590927f10aa832284e2f406484fa2ab57161eefb05ee8"
+        },
+        {
+          "original": "packages/driver-core/artifacts/native-config-report.json",
+          "sha256": "c0c4c304b0eb427f6703513a27ceaebc60cf7cd4f0f4c72c62465a76c84ad946"
+        },
+        {
+          "original": "packages/driver-core/package.json",
+          "sha256": "e5915044cc0a4b4029b868cf06441b8cc1973da571f2dee983b46db13e745734"
+        },
+        {
+          "original": "packages/driver-core/scripts/benchmark.mjs",
+          "sha256": "c994f4c73d42ce7cbab4463245a6856928629819ad3ae55c1980e840107b2103"
+        },
+        {
+          "original": "packages/driver-core/scripts/build-android-apk.mjs",
+          "sha256": "c7e934cec5cf5f31f8167ebd7da8601552fcdb3ab5fde9a071c8aee5d869d7b4"
+        },
+        {
+          "original": "packages/driver-core/scripts/dependency-report.mjs",
+          "sha256": "634a85ab6edfb55926898d3c3c9fc9f74178a4da20f8b9a874b1410e73834d7d"
+        },
+        {
+          "original": "packages/driver-core/scripts/generate-report.mjs",
+          "sha256": "e58558e3921a8f64497319f842f0e6bbc5e69c811c59a80a3b9651a9560eb466"
+        },
+        {
+          "original": "packages/driver-core/scripts/lint.mjs",
+          "sha256": "663328951cb63a0eaa9c33dba5394097f4f5a15833d825310c3e8df7a5af1a59"
+        },
+        {
+          "original": "packages/driver-core/scripts/prebuild-check.mjs",
+          "sha256": "af2fbb6569c02c578002c73c07386b58078110ac094e199fb0a4d6594357f5a4"
+        },
+        {
+          "original": "packages/driver-core/scripts/prepare-ios-bundle.mjs",
+          "sha256": "813d8fc0bfde93beaffbb1b64efdf36d30125c0ccd80b47f8e8916feab820c81"
+        },
+        {
+          "original": "packages/driver-core/src/contracts.ts",
+          "sha256": "88a2256e1e00a3adef81c5d813fb22fcf6842e15c905c6483096acca506ba97b"
+        },
+        {
+          "original": "packages/driver-core/src/index.ts",
+          "sha256": "a490d18bbc63da2e0f07e1bce1c80d625d23254459f37c532708f8f7d6fc6097"
+        },
+        {
+          "original": "packages/driver-core/src/migrations.ts",
+          "sha256": "0cbec6a8131690b004c51b3f7788bc3991585390d627245406e54da72375e6cf"
+        },
+        {
+          "original": "packages/driver-core/src/navigation.ts",
+          "sha256": "5196089a334edd4d85236368582ff664424e28acae974372c125c05d01d0535a"
+        },
+        {
+          "original": "packages/driver-core/src/notifications.ts",
+          "sha256": "fc9e63e4cf3717fa819cba98b5b0f520e7160e1972d5ec7db23402ced7005995"
+        },
+        {
+          "original": "packages/driver-core/src/ports.ts",
+          "sha256": "e7c585322318eed6c535f9f67919f7c4fcdd5fb0129acc787d4155d273e60e62"
+        },
+        {
+          "original": "packages/driver-core/src/recovery.ts",
+          "sha256": "a47f12693060f75304216d7f3a66b63ca4ca3f2f69cd50904ff669354b41d8a9"
+        },
+        {
+          "original": "packages/driver-core/src/store.ts",
+          "sha256": "93b5a35302a88cc315af67f3c9bdd24e70dc1dda18e2759fc8beaa66f50f6ad6"
+        },
+        {
+          "original": "packages/driver-core/src/sync.ts",
+          "sha256": "7fc5dc88376c7a149e8cbfd4348cd9f6ced90f0eb287e449fbbe970cdbbf6407"
+        },
+        {
+          "original": "packages/driver-core/src/telemetry.ts",
+          "sha256": "019ad9c348900f6835879bc24a88e8b3ffd6d1499e609a4b87c9f92326470bf3"
+        },
+        {
+          "original": "packages/driver-core/src/tracking.ts",
+          "sha256": "0cafd3c9cc1a4d58e547efbef1e69c4184440ebe01ba47eb5056eeeee7571e71"
+        },
+        {
+          "original": "packages/driver-core/src/upstream.ts",
+          "sha256": "e277bc1206caf874f4a1d6aba9c0f9e0beab3c6f32ae42fa7bfb921ed6cb13bc"
+        },
+        {
+          "original": "packages/driver-core/src/workflow.ts",
+          "sha256": "3811e5d2b2bd273c59374d0d0685a061e87db75550d3065f2150568875315f99"
+        },
+        {
+          "original": "packages/driver-core/test/contracts.test.mjs",
+          "sha256": "2bbcaa0a0ea9ba4ce12d3e8cf419b98952b8aca79009e62f091fdd46a71f3a7b"
+        },
+        {
+          "original": "packages/driver-core/test/workflow.test.mjs",
+          "sha256": "49a6a3e78ee6fecef4a83cb873e0d11f513bc186ae1efd0823e8e30b8b64225a"
+        },
+        {
+          "original": "packages/driver-core/tsconfig.json",
+          "sha256": "8f0fccaf70b0f92cfa74e208f5b57d4c4eb6dc6324a38e248e302ab7ce0353c9"
+        }
+      ]
+    },
+    {
+      "original": "stale/historical-notes",
+      "archived": "archive/stale/historical-notes",
+      "reason": "Historical planning/checks superseded by current build and deployment evidence",
+      "sourceFiles": []
+    },
+    {
+      "original": "infra/gcp/runtime/cloud-sol004-smoke.mjs",
+      "archived": "archive/infra/gcp/runtime/cloud-sol004-smoke.mjs",
+      "reason": "Superseded Driver prototype and its tools",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/cloud-sol004-smoke.mjs",
+          "sha256": "c7d210b0e19cd72af44ec2e7e065dfd624f8b541029d9f1b53feaa9d837d969e"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/cloud-sol007-smoke.mjs",
+      "archived": "archive/infra/gcp/runtime/cloud-sol007-smoke.mjs",
+      "reason": "Superseded Driver prototype and its tools",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/cloud-sol007-smoke.mjs",
+          "sha256": "fd1a8fa5c6e4297454320ce1c0e460ef82bc6945d293ef8988ba937da00d6221"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/cloud-sol009-driver.mjs",
+      "archived": "archive/infra/gcp/runtime/cloud-sol009-driver.mjs",
+      "reason": "Superseded Driver prototype and its tools",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/cloud-sol009-driver.mjs",
+          "sha256": "1e7f764ff6bc4c2dbc42183826591127cb241c7fb06fb53ec7c257eb7156e441"
+        }
+      ]
+    },
+    {
+      "original": "scripts/check-orchestration-status.mjs",
+      "archived": "archive/scripts/check-orchestration-status.mjs",
+      "reason": "Historical planning/checks superseded by current build and deployment evidence",
+      "sourceFiles": [
+        {
+          "original": "scripts/check-orchestration-status.mjs",
+          "sha256": "1618b33f9ee9d9ac2bb35f03808c008ae8ed2be52e1110deb86476254b38d5b1"
+        }
+      ]
+    },
+    {
+      "original": "test/orchestration-status.test.mjs",
+      "archived": "archive/test/orchestration-status.test.mjs",
+      "reason": "Historical planning/checks superseded by current build and deployment evidence",
+      "sourceFiles": [
+        {
+          "original": "test/orchestration-status.test.mjs",
+          "sha256": "84a4e84712b6006edb478653228df1f1ecce0f815df72ce4860fbf3dabd5615d"
+        }
+      ]
+    },
+    {
+      "original": "clean_up.md",
+      "archived": "archive/clean_up.md",
+      "reason": "Historical planning/checks superseded by current build and deployment evidence",
+      "sourceFiles": [
+        {
+          "original": "clean_up.md",
+          "sha256": "49a914fda743c97390d74fa91c5f8eb069f196e44f86739dcef42a6d601753ec"
+        }
+      ]
+    },
+    {
+      "original": "docker_stale.md",
+      "archived": "archive/docker_stale.md",
+      "reason": "Historical planning/checks superseded by current build and deployment evidence",
+      "sourceFiles": [
+        {
+          "original": "docker_stale.md",
+          "sha256": "7c72daed2f5cbfe6be12f8dd9ac28c4da544a797a9bdd35bf7059c18c55d6238"
+        }
+      ]
+    },
+    {
+      "original": "docs/wp010-local.md",
+      "archived": "archive/docs/wp010-local.md",
+      "reason": "Historical planning/checks superseded by current build and deployment evidence",
+      "sourceFiles": [
+        {
+          "original": "docs/wp010-local.md",
+          "sha256": "e80c308bb4e8b05d570161da2cee199a68cdeb23fa578e288c51aa4ed6d20935"
+        }
+      ]
+    },
+    {
+      "original": "vendor/decode-uri-component-safe",
+      "archived": "archive/vendor/decode-uri-component-safe",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "vendor/decode-uri-component-safe/index.cjs",
+          "sha256": "512f6867ace533af66d8fba0831aaf52fbe05a651b20de3d478de372384fa618"
+        },
+        {
+          "original": "vendor/decode-uri-component-safe/package.json",
+          "sha256": "684a2be156f271267b8d28dcac5756866af0a2be73fd754a5cc4ee9bfe0a1fd0"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/deploy-driver-host-vm.sh",
+      "archived": "archive/infra/gcp/runtime/deploy-driver-host-vm.sh",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/deploy-driver-host-vm.sh",
+          "sha256": "ea1cde5567b5240f2c3897ac0398d7ddbae7cf248b3347fb228f7069ac441a09"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/deploy-driver-inspection-runtime-vm.py",
+      "archived": "archive/infra/gcp/runtime/deploy-driver-inspection-runtime-vm.py",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/deploy-driver-inspection-runtime-vm.py",
+          "sha256": "5266e8260a2b77e8f35ac06673982f27feec0cf23860642f3a9e72bf9f489671"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/deploy-driver-signout-runtime-vm.py",
+      "archived": "archive/infra/gcp/runtime/deploy-driver-signout-runtime-vm.py",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/deploy-driver-signout-runtime-vm.py",
+          "sha256": "bfd6f96b39661c56c10e56a4714a4210f3ef0d5e224a5672cc16dff0b74e535a"
+        }
+      ]
+    },
+    {
+      "original": "infra/admin/deploy-manual-route-charges-vm.sh",
+      "archived": "archive/infra/admin/deploy-manual-route-charges-vm.sh",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "infra/admin/deploy-manual-route-charges-vm.sh",
+          "sha256": "b6a9cab55c7d4eb7af509676ecdef7750fdaf18a0e4bc3fe3ed64b153202c5a2"
+        }
+      ]
+    },
+    {
+      "original": "apps/admin/bin/seed-test-pony-2026-09-25.mjs",
+      "archived": "archive/apps/admin/bin/seed-test-pony-2026-09-25.mjs",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "apps/admin/bin/seed-test-pony-2026-09-25.mjs",
+          "sha256": "3007d080bc4195e94141e7f1e1f5df596a4a27e5c1ae2d3e198611cac4a5d3f4"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/seed-driver-prototype.sql",
+      "archived": "archive/infra/gcp/runtime/seed-driver-prototype.sql",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/seed-driver-prototype.sql",
+          "sha256": "e42c6bcfff18e1dd131cf375335124e7730a7fbc01184a6b251e69f9b00edb7c"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/seed-sol005-prototype.sql",
+      "archived": "archive/infra/gcp/runtime/seed-sol005-prototype.sql",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/seed-sol005-prototype.sql",
+          "sha256": "f4a08ecee247d462942606163f4831e7dc573b2af0bc93990199cd622ce5a1eb"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/seed-sol008-prototype.sql",
+      "archived": "archive/infra/gcp/runtime/seed-sol008-prototype.sql",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/seed-sol008-prototype.sql",
+          "sha256": "394325794bcfddc9517cbfa1dfbe3b74fbbf1ca27566a60c0e5c0aff57964b13"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/seed-sol009-prototype.sql",
+      "archived": "archive/infra/gcp/runtime/seed-sol009-prototype.sql",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/seed-sol009-prototype.sql",
+          "sha256": "c783fc42c528fd0ab0c2eb4bd7a41e0ec8a137688c5c925876d3b1c15c36e07d"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/repair-driver-web-fixture.sql",
+      "archived": "archive/infra/gcp/runtime/repair-driver-web-fixture.sql",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/repair-driver-web-fixture.sql",
+          "sha256": "6bcc6489b4117c2928b24e9819c629a520f0728d18513373c6196c1f5d9595a5"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/reconcile-sol004-legacy.sql",
+      "archived": "archive/infra/gcp/runtime/reconcile-sol004-legacy.sql",
+      "reason": "Completed one-off deployment/seed or compatibility dependency used only by retired Expo prototype",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/reconcile-sol004-legacy.sql",
+          "sha256": "2b50c963a4572eb7596a105c209633410613183a86d24e56d5d5f3c08d63d024"
+        }
+      ]
+    }
+  ]
+}

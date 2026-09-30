@@ -2,12 +2,14 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { privateSocketHeaders } from "./private-socket-policy";
 
+const backend = process.env.VITE_KAVAROUTES_BACKEND ?? "private-cloud";
+if (!["private-cloud", "local-synthetic"].includes(backend)) throw new Error("INVALID_BACKEND_MODE");
 const buildId = process.env.KR_BUILD_ID ?? `${new Date().toISOString().replaceAll(/[:.]/g, "-")}`;
 export default defineConfig({
   plugins: [react()],
   // The served bundle states which build it is, so a stale image cannot be mistaken
   // for broken data (audit WEB-A-004/WEB-A-009).
-  define: { __KR_WEB_BUILD__: JSON.stringify(buildId) },
+  define: { __KR_WEB_BUILD__: JSON.stringify(buildId), __KR_TEST_HARNESS__: backend === "local-synthetic" },
   // Fixed loopback-only IAP forward; never a public backend or credential proxy.
   server: { host: "127.0.0.1", port: 4311, strictPort: true,
     proxy: { "/v1": { target: "http://127.0.0.1:58080", changeOrigin: false, ws: true,

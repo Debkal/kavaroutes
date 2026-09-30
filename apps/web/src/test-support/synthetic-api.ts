@@ -1,4 +1,4 @@
-import type { AssignmentReceipt, AssignmentRequest, BoardProjection } from "./contracts";
+import type { AssignmentReceipt, AssignmentRequest, BoardProjection } from "../contracts";
 import { assertCapability, assertFacilityScope, type SyntheticPrincipal } from "./identity";
 
 export type FailureMode = "NONE" | "LOST_RESPONSE" | "LATE_RESPONSE" | "CONFLICT" | "CONFLICT_409" | "FORBIDDEN" | "UNAUTHORIZED" | "INVALID" | "RATE_LIMITED" | "SERVER_ERROR";

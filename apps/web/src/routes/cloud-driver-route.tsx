@@ -1,3 +1,4 @@
+import {rememberUnconfirmedSignout,takeSignoutNotice} from '../driver-signout-notice';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DriverActionItem, DriverClosureView, DriverItinerary, DriverShiftState, DriverSignatureRequest } from "@kavaroutes/api-contracts/client-web";
 import { DevelopmentApiError } from "@kavaroutes/api-contracts/private-development-transport";
@@ -52,7 +53,7 @@ function failureText(error: unknown, fallback: string): string {
 }
 
 const terminal = new Set(["COMPLETED", "RIDER_NO_SHOW", "CANCELLED"]);
-// Prototype retry identity is memory-only. Browser persistence remains prohibited.
+// Retry identity is memory-only. Browser persistence remains prohibited.
 const requestKeys = new Map<string, string>();
 const savedKey = (name: string) => {
   const prior = requestKeys.get(name); if (prior) return prior;
@@ -129,7 +130,7 @@ export function Component() {
   const [closure, setClosure] = useState<DriverClosureView | null>(null);
   const [selectedLeg, setSelectedLeg] = useState<string | null>(null);
   const [signatureEvent, setSignatureEvent] = useState<"PICKUP_ATTESTATION" | "DROPOFF_ATTESTATION" | null>(null);
-  const [busy, setBusy] = useState(false); const [message, setMessage] = useState(()=>{const notice=window.sessionStorage.getItem('driver-sign-out-notice');if(notice)window.sessionStorage.removeItem('driver-sign-out-notice');return notice??'';}); const [signedIn, setSignedIn] = useState(false);
+  const [busy, setBusy] = useState(false); const [message, setMessage] = useState(takeSignoutNotice); const [signedIn, setSignedIn] = useState(false);
   const [verifiedLogin,setVerifiedLogin]=useState<{driverId:string;loginId:string}|null>(null);
   const [nativeTracking, setNativeTracking] = useState<NativeTrackingStatus>({state:'idle',message:'Location starts when your shift starts.'});
   const [precheckDefault,setPrecheckDefault]=useState<'NO_ISSUE'|'MANUAL'>('MANUAL');
@@ -427,7 +428,7 @@ export function Component() {
       catch {revoked=false;api.clearDriverSession();}
       // A full reload destroys the old in-memory Driver state. Native STOP has
       // already removed the saved binding, so RESUME cannot sign in again.
-      if(!revoked)window.sessionStorage.setItem('driver-sign-out-notice','Signed out of this phone. Server session revocation could not be confirmed; ask your business admin to sign out this device if needed.');
+      if(!revoked)rememberUnconfirmedSignout();
       window.location.reload();
     } catch(error){setMessage(failureText(error,'Could not sign out. Try again.'));setBusy(false);}
   };

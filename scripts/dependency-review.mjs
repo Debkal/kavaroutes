@@ -19,28 +19,15 @@ const direct = Object.entries({ ...(lock.packages[""].dependencies ?? {}), ...(l
   .sort((left, right) => left.name.localeCompare(right.name));
 
 const report = {
-  generatedOn: "2026-08-24",
+  generatedOn: new Date().toISOString().slice(0,10),
   updateOwner: "KavaRoutes platform maintainer",
   policy: "Exact versions and lockfile integrity are mandatory; review monthly and on security advisories.",
   advisoryScan: {
-    command: "npm audit --json",
-    executedOn: "2026-08-24",
-    findings: { info: 0, low: 0, moderate: 0, high: 0, critical: 0 },
-    limitation: "A clean registry advisory result is evidence, not a security guarantee."
+    executed: false,
+    evidenceCommand: "npm run generate:audit-assurance",
+    limitation: "This command inventories the lockfile only; it does not scan advisories or assert native compatibility.",
   },
-  nativeBinaryReview: {
-    requiredNativeAddons: [],
-    optionalWebSocketAddonsInstalled: [],
-    finding: "The resolved graph contains no required native addon; optional bufferutil and utf-8-validate are absent."
-  },
-  supportEvidence: [
-    { component: "Node.js", status: "24.19.0 LTS", source: "https://nodejs.org/en/about/previous-releases" },
-    { component: "Fastify", status: "supported v5 line", source: "https://fastify.dev/docs/latest/Reference/LTS/" },
-    { component: "Fastify TypeBox provider", status: "6.1.0 supports Fastify ^5 and TypeBox 1", source: "https://www.npmjs.com/package/@fastify/type-provider-typebox" },
-    { component: "TypeBox", status: "1.3.7 supports TypeScript 6", source: "https://www.npmjs.com/package/typebox" },
-    { component: "TypeScript", status: "6.0.3 stable compatibility compiler", source: "https://www.npmjs.com/package/typescript" }
-  ],
-  node: { version: "24.19.0", npm: "11.17.0", support: "LTS" },
+  node: { version: process.version, npm: process.env.npm_config_user_agent ?? null },
   counts: {
     direct: direct.length,
     transitivePackageEntries: packages.length - direct.length,

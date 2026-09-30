@@ -1,9 +1,10 @@
 import {useRef,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {recoveryPollingInterval} from '../dispatch-queries';
 import type {createCloudCommandRecovery} from '../cloud-command-recovery';
 export function CloudCommandRecovery({recovery,enabled,reviewer=false}:{recovery:ReturnType<typeof createCloudCommandRecovery>;enabled:boolean;reviewer?:boolean}){
  const cache=useQueryClient(),flight=useRef(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
- const command=useQuery({queryKey:['private-cloud','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',reviewer?'policy_override':'dispatcher','command-recovery'],queryFn:({signal})=>recovery.pending(signal),enabled,retry:false,refetchInterval:2000});
+ const command=useQuery({queryKey:['private-cloud','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',reviewer?'policy_override':'dispatcher','command-recovery'],queryFn:({signal})=>recovery.pending(signal),enabled,retry:false,refetchInterval:query=>recoveryPollingInterval(query.state.data?.value?.outcome)});
  const current=!enabled||command.isError?null:command.data?.value;
  const act=async(acknowledge:boolean)=>{
   if(flight.current||!current||!enabled)return;

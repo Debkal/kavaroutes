@@ -505,6 +505,12 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
       const result=await verifyRecoveryCommand(api.app,tenantId,decision.key.slice('browser-command-'.length),{kind:'DECIDE_ROUTE',resourceId:decision.proposalId,expectedTag:proposal.expectedTag,body:decision.request});assert.equal(result.state,'APPROVED');
     });
     const routeShift=(await control.query("SELECT id FROM execution.shift_policy_snapshot WHERE tenant_id=$1 AND assignment_id=$2 AND lifecycle='ACTIVE'",[tenantId,assigned.json().assignmentId])).rows[0].id;
+    // Exercise the bulk/lateral trace SQL against real PostgreSQL with a shift
+    // that has no location fixes. Empty traces must still retain the driver.
+    const trackingRead=await api.app.inject({url:`/v1/organizations/${tenantId}/dispatch/tracking/2026-09-14`,headers:auth});
+    assert.equal(trackingRead.statusCode,200,trackingRead.body);
+    const emptyTrack=trackingRead.json().shifts.find(row=>row.shiftReference===routeShift);
+    assert.ok(emptyTrack);assert.deepEqual(emptyTrack.trace,[]);assert.equal(emptyTrack.position,null);
     const routeUrl=`/v1/organizations/${tenantId}/driver/shifts/${routeShift}/route-proposals`;
     const routeRead=await api.app.inject({url:routeUrl,headers:{authorization:'Synthetic principal_driver'}});
     assert.equal(routeRead.statusCode,200,routeRead.body);

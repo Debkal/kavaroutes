@@ -4,8 +4,6 @@
 !tsconfig.base.json
 !packages
 !packages/**
-!vendor
-!vendor/**
 !apps
 !apps/web
 !apps/web/**

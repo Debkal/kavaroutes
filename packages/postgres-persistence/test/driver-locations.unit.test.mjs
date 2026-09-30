@@ -59,3 +59,31 @@ test('a long offline Driver shift retains delayed fixes within 24 hours',async()
   assert.deepEqual(result.map(item=>item.outcome),['APPLIED','REJECTED']);
   assert.equal(saved,1);
 });
+
+test('tracking batches traces in two data queries, keeps empty shifts and binds the tenant',async()=>{
+  const {createDispatchTrackingReader}=await import('../dist/driver-locations.js');
+  const tenant=randomUUID(),first=randomUUID(),second=randomUUID(),queries=[];
+  const row=id=>({id,driver_id:randomUUID(),driver_label:'Driver',lifecycle:'SHIFT_ENDED',collection_stopped:true,
+    pinned_at:new Date('2026-09-25T15:00:00Z'),planned_start_at:new Date('2026-09-25T15:00:00Z'),service_timezone:'America/Chicago',vehicle_label:null});
+  let released=false;
+  const db={query:async(sql,params)=>{
+    queries.push({sql,params});
+    if(sql.includes('FROM execution.shift_policy_snapshot'))return {rows:[row(first),row(second)]};
+    if(sql.includes('FROM unnest'))return {rows:[
+      {shift_id:first,latitude:41.8,longitude:-87.6,accuracy_meters:10,captured_at:new Date('2026-09-25T15:01:00Z')},
+      {shift_id:first,latitude:41.9,longitude:-87.7,accuracy_meters:null,captured_at:new Date('2026-09-25T15:02:00Z')}]};
+    return {rows:[]};
+  },release:()=>{released=true;}};
+  const result=await createDispatchTrackingReader({connect:async()=>db})(tenant,'2026-09-25');
+  const dataQueries=queries.filter(item=>item.sql.includes('FROM execution.shift_policy_snapshot')||item.sql.includes('FROM unnest'));
+  assert.equal(dataQueries.length,2);
+  assert.deepEqual(dataQueries[1].params,[tenant,[first,second]]);
+  assert.match(dataQueries[1].sql,/b\.tenant_id=\$1/);
+  assert.match(dataQueries[1].sql,/LIMIT 500/);
+  assert.equal(result.shifts.length,2);
+  assert.equal(result.shifts[0].trace.length,2);
+  assert.equal(result.shifts[0].position.capturedAt,'2026-09-25T15:02:00.000Z');
+  assert.deepEqual(result.shifts[1].trace,[]);
+  assert.equal(result.shifts[1].position,null);
+  assert.equal(released,true);
+});

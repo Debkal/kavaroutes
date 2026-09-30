@@ -24,3 +24,5 @@ test
 *.md
 *.log
 .env*
+
+archive

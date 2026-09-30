@@ -1,6 +1,7 @@
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import type {createCloudApi} from '../cloud-api';
+import {dispatchQueries} from '../dispatch-queries';
 import {CloudReturnReview} from './CloudReturnReview';
 import {shiftBandLabel} from '../shift-band';
 import {RouteStreetMap} from './RouteStreetMap';
@@ -59,34 +60,16 @@ const stateCopy=(track:Track)=>{
 
 /** Active-driver list and selected shift detail in the tracking workspace. */
 export function DispatchDriverTracking({api,day,enabled}:{api:Api;day:string;enabled:boolean}){
-  const [tracks,setTracks]=useState<readonly Track[]|null>(null);
   const [selected,setSelected]=useState<string|null>(null);
-  const [error,setError]=useState(false);
-  const [busy,setBusy]=useState(false);
-  const [updatedAt,setUpdatedAt]=useState<string|null>(null);
-  const requestId=useRef(0);
-  // Poll the selected service day; a late response from yesterday must never
-  // replace today's list. Manual refresh remains available between polls.
-  useEffect(()=>{
-    if(!enabled){requestId.current++;setTracks(null);setUpdatedAt(null);return;}
-    let current=true;
-    let polling=false;
-    const poll=async()=>{
-      if(polling)return;
-      polling=true;
-      const requested=++requestId.current;
-      try{const result=await api.tracking(day);if(current&&requested===requestId.current){setTracks(result.value.shifts);setError(false);setUpdatedAt(new Date().toISOString());}}
-      catch{if(current&&requested===requestId.current)setError(true);}
-      finally{polling=false;}
-    };
-    setTracks(null);setSelected(null);void poll();
-    const timer=window.setInterval(()=>void poll(),10_000);
-    return()=>{current=false;requestId.current++;window.clearInterval(timer);};
-  },[api,day,enabled]);
-  const refresh=async()=>{const requested=++requestId.current;setBusy(true);try{const result=await api.tracking(day);if(requested===requestId.current){setTracks(result.value.shifts);setError(false);setUpdatedAt(new Date().toISOString());}}catch{if(requested===requestId.current)setError(true);}finally{setBusy(false);}};
+  const tracking=useQuery({...dispatchQueries.tracking(api,day),enabled,refetchInterval:10_000});
+  const tracks=enabled?tracking.data?.value.shifts??null:null;
+  const error=tracking.isError,busy=tracking.isFetching;
+  const updatedAt=tracking.dataUpdatedAt?new Date(tracking.dataUpdatedAt).toISOString():null;
+  const refresh=()=>tracking.refetch();
+  useEffect(()=>setSelected(null),[day]);
   const active=(tracks??[]).filter(track=>track.lifecycle!=='SHIFT_ENDED');
   const ended=(tracks??[]).filter(track=>track.lifecycle==='SHIFT_ENDED');
-  const audit=useQuery({queryKey:['private-cloud','dispatch-tracking-audit',day],queryFn:()=>api.routeHistory(day),enabled:enabled&&active.length>0,retry:false,staleTime:30_000,refetchInterval:60_000});
+  const audit=useQuery({...dispatchQueries.history(api,day),enabled:enabled&&active.length>0,refetchInterval:60_000});
   const detail=active.find(track=>track.shiftReference===selected)??active[0]??null;
   const trackingTransitions=(audit.data?.value.events??[]).filter(event=>event.shiftReference===detail?.shiftReference&&event.kind==='TRACKING_ALERT');
   const auditEvents=trackingTransitions.filter((event,index)=>['NO_UPDATES','UPDATES_OVERDUE','TRACKING_STOPPED'].includes(event.action)||

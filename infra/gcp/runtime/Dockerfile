@@ -3,7 +3,6 @@ WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages ./packages
 COPY apps/api-host ./apps/api-host
-COPY vendor ./vendor
 COPY infra/gcp/runtime ./infra/gcp/runtime
 # `npm prune --omit=dev` only removes the development tree when it is run without
 # workspace filters. With `--workspace=... --include-workspace-root` (npm 11.17.0)
@@ -20,7 +19,6 @@ WORKDIR /app
 ENV NODE_ENV=development
 COPY --from=build --chown=node:node /stage/ ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
-COPY --from=build --chown=node:node /app/vendor ./vendor
 USER node
 HEALTHCHECK --interval=10s --timeout=5s --retries=3 CMD ["node", "infra/gcp/runtime/health.mjs", "58080"]
 ENTRYPOINT ["node", "infra/gcp/runtime/main.mjs"]

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { makeBoardProjection } from "../src/fixtures";
-import { createGeneratedAssignmentClient } from "../src/generated-command-client";
-import { SYNTHETIC_PRINCIPALS, assertFacilityScope } from "../src/identity";
-import { createSyntheticMapPort } from "../src/map-port";
-import { createProjectionStore } from "../src/projection-store";
-import { queryKeys } from "../src/query-keys";
+import { makeBoardProjection } from "../src/test-support/fixtures";
+import { createGeneratedAssignmentClient } from "../src/test-support/generated-command-client";
+import { SYNTHETIC_PRINCIPALS, assertFacilityScope } from "../src/test-support/identity";
+import { createSyntheticMapPort } from "../src/test-support/map-port";
+import { createProjectionStore } from "../src/test-support/projection-store";
+import { queryKeys } from "../src/test-support/query-keys";
 import { createWebRealtimeRecovery } from "../src/realtime-recovery";
-import { createSyntheticApi, SyntheticApiProblem } from "../src/synthetic-api";
+import { createSyntheticApi, SyntheticApiProblem } from "../src/test-support/synthetic-api";
 
 describe("WP011 contracts", () => {
   it("separates query caches by organization, principal, purpose, and projection", () => {

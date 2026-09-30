@@ -1,9 +1,10 @@
 import {useEffect,useRef,useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development-transport';
 import type {createCloudApi} from '../cloud-api';
 import type {CloudAssignmentCommand} from '../cloud-board-contract';
 import {recoveryIdentity,type PendingAssignment} from '../cloud-command-recovery';
+import {dispatchQueries,dispatchKeys,boardPollingInterval} from '../dispatch-queries';
 import {connectCloudDispatch} from '../cloud-live';
 import {CloudRouteReview} from './CloudRouteReview';
 import {RoadRoutePlanner} from './RoadRoutePlanner';
@@ -13,7 +14,7 @@ import {ServiceDatePicker} from './ServiceDatePicker';
 import {dispatchCommandMessage} from '../command-refusal';
 import {dispatchDayRows,downloadCsv} from '../csv';
 
-export function CloudBoard({api,enabled,serviceDate,onServiceDateChange,focusRunId=null,onFocusRunHandled}:{api:ReturnType<typeof createCloudApi>;enabled:boolean;serviceDate?:string;onServiceDateChange?:(value:string)=>void;focusRunId?:string|null;onFocusRunHandled?:()=>void}){
+export function CloudBoard({api,enabled,serviceDate,onServiceDateChange,focusRunId=null,onFocusRunHandled,onLiveStatusChange}:{api:ReturnType<typeof createCloudApi>;enabled:boolean;serviceDate?:string;onServiceDateChange?:(value:string)=>void;focusRunId?:string|null;onFocusRunHandled?:()=>void;onLiveStatusChange?:(status:string)=>void}){
  const [localDay,setLocalDay]=useState(()=>businessToday()),[filter,setFilter]=useState('all'),[selected,setSelected]=useState('');
  const day=serviceDate??localDay;
  const changeDay=(value:string)=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return;(onServiceDateChange??setLocalDay)(value);setSelected('');setDriver('');setVehicle('');setMessage('');};
@@ -23,12 +24,14 @@ export function CloudBoard({api,enabled,serviceDate,onServiceDateChange,focusRun
  const [releasePending,setReleasePending]=useState<{runId:string;expectedVersion:number;expectedTag:string;key:string}|null>(null);
  const detailRef=useRef<HTMLElement|null>(null);
  const refreshedFocus=useRef<string|null>(null);
- const board=useQuery({queryKey:['private-cloud','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','dispatch','ASSIGNED_SERVICE_DELIVERY',day],queryFn:({signal})=>api.board(day,signal),enabled,retry:false,refetchInterval:5000});
- const refresh=useRef(async()=>{});refresh.current=async()=>{const result=await board.refetch();if(result.isError)throw new Error('BOARD_REFRESH_FAILED');};
+ const cache=useQueryClient();
+ const board=useQuery({...dispatchQueries.board(api,day),enabled,refetchInterval:boardPollingInterval(live)});
+ useEffect(()=>{onLiveStatusChange?.(live);},[live,onLiveStatusChange]);
+ const refresh=useRef(async()=>{});refresh.current=async()=>{const result=await board.refetch();if(result.isError)throw new Error('BOARD_REFRESH_FAILED');await cache.invalidateQueries({queryKey:dispatchKeys.snapshot(day)});};
  useEffect(()=>{
   if(!enabled)return;
-  return connectCloudDispatch({origin:window.location.origin,serviceDate:day,snapshot:async()=>(await api.dispatchSnapshot(day)).value.cursor,refresh:()=>refresh.current(),status:setLive});
- },[api,enabled,day]);
+  return connectCloudDispatch({origin:window.location.origin,serviceDate:day,snapshot:async()=>(await cache.fetchQuery(dispatchQueries.snapshot(api,day))).value.cursor,refresh:()=>refresh.current(),status:setLive});
+ },[api,enabled,day,cache]);
  useEffect(()=>{
   const warn=(event:BeforeUnloadEvent)=>{if(pending.current){event.preventDefault();event.returnValue='';}};
   window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);
