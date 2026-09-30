@@ -370,10 +370,20 @@
             "type": "array"
           },
           "policyVersion": {
-            "enum": [
-              "privacy-synthetic-v1"
-            ],
-            "type": "string"
+            "anyOf": [
+              {
+                "enum": [
+                  "privacy-synthetic-v1"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "privacy-v1"
+                ],
+                "type": "string"
+              }
+            ]
           },
           "principalId": {
             "$ref": "#/components/schemas/def-1"
@@ -395,6 +405,12 @@
               {
                 "enum": [
                   "BROWSER_USER"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "DRIVER_DEVICE"
                 ],
                 "type": "string"
               }

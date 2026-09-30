@@ -8,8 +8,8 @@ export function registerDriverAccessManagement(app,{directory,verify}){
   const authorize=async(request,reply,command=false)=>{
     const organizationId=request.params.organizationId;
     if(!driverAccessUuid.test(organizationId)){deny(reply);return null;}
-    const principal=await verify(request.headers.authorization);
-    if(!principal||principal.kind!=='SYNTHETIC_USER'||principal.organizationId!==organizationId||!principal.capabilities?.has('dispatch:command')||!principal.purposes?.has('ASSIGNED_SERVICE_DELIVERY')){deny(reply);return null;}
+    const principal=await verify(request);
+    if(!principal||!['BROWSER_USER','SYNTHETIC_USER'].includes(principal.kind)||principal.organizationId!==organizationId||!principal.capabilities?.has('dispatch:command')||!principal.purposes?.has('ASSIGNED_SERVICE_DELIVERY')){deny(reply);return null;}
     if(command&&(request.headers.origin!=='https://app.kavaroutes.com'||!/^application\/json(?:;|$)/i.test(request.headers['content-type']??''))){deny(reply,403);return null;}
     return {organizationId,actor:String(principal.id).slice(0,80)};
   };

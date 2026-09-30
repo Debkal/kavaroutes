@@ -34,7 +34,7 @@ export type Purpose = typeof purposes[number];
 
 export interface ApiPrincipal {
   readonly id: string;
-  readonly kind: "SYNTHETIC_USER" | "SYNTHETIC_DEVICE" | "BROWSER_USER";
+  readonly kind: "SYNTHETIC_USER" | "SYNTHETIC_DEVICE" | "BROWSER_USER" | "DRIVER_DEVICE";
   readonly organizationId: string;
   readonly capabilities: ReadonlySet<Capability>;
   readonly purposes: ReadonlySet<Purpose>;
@@ -66,7 +66,30 @@ export const grantableCapabilities: readonly Capability[] = Object.freeze([
   "integrations:read", "integrations:write", "audit:read",
 ]);
 
-/** Prototype companies have exactly one branch and one fleet, both identified by
+const grantPurposes:Readonly<Partial<Record<Capability,Purpose>>>=Object.freeze({
+  'billing:read':'BILLING_PROOF','billing:command':'BILLING_PROOF',
+  'audit:read':'SUPPORT_DIAGNOSTICS','integrations:read':'PARTNER_EXPORT','integrations:write':'PARTNER_EXPORT',
+});
+/** Build authority from a server-validated membership and its explicit grants.
+ * Unknown database grants never add authority. Identity admission remains the
+ * caller's responsibility; this helper does not authenticate anyone. */
+export function createMembershipPrincipal(row:{principalId:string;organizationId:string;role:'DRIVER'|'DISPATCHER';
+  driverId:string|null;capabilityGrants:unknown;scopeKinds:unknown}):ApiPrincipal{
+ const held=new Set<Capability>(roleCapabilities[row.role]),allowedPurposes=new Set<Purpose>(rolePurposes[row.role]);
+ for(const grant of Array.isArray(row.capabilityGrants)?row.capabilityGrants:[]){
+  if(!grantableCapabilities.includes(grant))continue;
+  held.add(grant);const purpose=grantPurposes[grant as Capability];if(purpose)allowedPurposes.add(purpose);
+ }
+ const kinds=Array.isArray(row.scopeKinds)?row.scopeKinds:[];
+ return Object.freeze({id:row.principalId,kind:'BROWSER_USER',organizationId:row.organizationId,
+  capabilities:held,purposes:allowedPurposes,
+  branchScopes:new Set(kinds.includes('BRANCH')?[companyBranchScope(row.organizationId)]:[]),
+  fleetScopes:new Set(kinds.includes('FLEET')?[companyFleetScope(row.organizationId)]:[]),
+  ...(row.driverId?{subjectId:row.driverId}:{}),
+ });
+}
+
+/** Company-wide branch and fleet references are identified by
  * the company id, and a membership holds an explicit persisted grant for each.
  * Multi-branch expansion would add per-branch references without changing the
  * rule that a principal only ever holds scopes somebody provisioned. */
@@ -93,7 +116,7 @@ const principals = new Map<string, SyntheticPrincipal>([
 export interface PrincipalVerifier {
   verify(authorization: unknown): Promise<SyntheticPrincipal | null>;
   /** Explicit browser composition only; never falls back to synthetic headers. */
-  verifyRequest?(request:{method:string;headers:Readonly<Record<string,unknown>>}):Promise<SyntheticPrincipal|null>;
+  verifyRequest?(request:{method:string;headers:Readonly<Record<string,unknown>>;url?:string}):Promise<SyntheticPrincipal|null>;
 }
 
 export function createSyntheticTestVerifier(options: { readonly enablePonyFixtures?: boolean } = {}): PrincipalVerifier {

@@ -1,3 +1,4 @@
+import {businessQueryScope} from '../business-context';
 import {useEffect,useMemo,useState} from "react";
 import {useQuery} from "@tanstack/react-query";
 import {Link,useNavigate,type LoaderFunctionArgs} from "react-router";
@@ -9,7 +10,7 @@ import {queryClient} from "../runtime";
 import {businessTimezone} from "../business-time";
 import {clientDirectoryRows,downloadCsv} from "../csv";
 
-const context=["private-cloud","clients"] as const;
+
 
 export function loader({request}:LoaderFunctionArgs){
   if(new URL(request.url).search)throw new Response("Invalid client context",{status:400});
@@ -17,6 +18,7 @@ export function loader({request}:LoaderFunctionArgs){
 }
 
 export function Component(){
+  const context=useMemo(()=>[...businessQueryScope(),"clients"] as const,[]);
   const navigate=useNavigate();
   const schedule=(clientId:string)=>{prepareClientScheduling(clientId);navigate("/dispatch");};
   const api=useMemo(()=>createCloudClientApi(window.location.origin,window.fetch.bind(window)),[]);

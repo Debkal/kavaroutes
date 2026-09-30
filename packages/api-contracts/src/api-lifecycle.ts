@@ -126,7 +126,7 @@ export function createApiLifecyclePlugin(options: {
       }
       if (options.unauthenticatedOperationIds?.has(String(request.routeOptions.schema?.operationId ?? ""))) return;
       request.wp007Context.principal = options.verifier.verifyRequest
-        ? await options.verifier.verifyRequest({method:request.method,headers:request.headers})
+        ? await options.verifier.verifyRequest({method:request.method,headers:request.headers,url:request.url})
         : await options.verifier.verify(request.headers.authorization);
       if (!request.wp007Context.principal) throw new ProtocolError(401, "AUTHENTICATION_REQUIRED", "authentication required");
     });

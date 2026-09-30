@@ -12,7 +12,7 @@ it('decodes an accepted assignment for safe board reconciliation',async()=>{
   envelope:{kind:'ASSIGN_RUN',resourceId:runId,expectedTag:'"kr1.'+'A'.repeat(43)+'"',body:{expectedVersion:1,driverId:'22222222-2222-4222-8222-222222222222',vehicleId:'33333333-3333-4333-8333-333333333333'}},
   result:{outcome:'ACCEPTED',statusCode:200,etag:null,body:{assignmentId,runId,version:2,serviceDate:'2026-09-25'}}};
  const transport={request:vi.fn(async(_path:string,decode:(value:unknown)=>unknown)=>({value:decode({command:stored})}))};
- const recovery=createCloudCommandRecovery(transport as any);
+ const recovery=createCloudCommandRecovery(transport as any,"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
  expect(await recovery.pendingAssignment()).toMatchObject({id:stored.id,outcome:'ACCEPTED',receipt:{assignmentId,runId,version:2,serviceDate:'2026-09-25'}});
  expect(transport.request).toHaveBeenCalledOnce();
 });
@@ -28,7 +28,7 @@ it('reopens an accepted unknown-outcome command without replacing or automatical
   else{const request=JSON.parse(init.body);stored??={...request,result:null,expired:false,acknowledged:false};body=stored;}
   return {status:200,headers:{get:()=>null},json:async()=>structuredClone(body)};
  });
- const api=()=>createCloudCommandRecovery(createPrivateDevelopmentTransport({baseUrl:'http://127.0.0.1:4311',persona:'dispatcher',fetch:fetcher}));
+ const api=()=>createCloudCommandRecovery(createPrivateDevelopmentTransport({baseUrl:'http://127.0.0.1:4311',persona:'dispatcher',fetch:fetcher}),"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
  await expect(api().run(envelope,'original-key',v=>v)).rejects.toMatchObject({code:'OUTCOME_UNKNOWN'});
  const original=stored.id,reopened=api();expect((await reopened.pending()).value).toMatchObject({id:original,outcome:'ACCEPTED'});expect(effects).toBe(1);expect(requests.filter(url=>url.endsWith('/acknowledge'))).toHaveLength(0);
  const cache=new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}});const mounted=render(<QueryClientProvider client={cache}><CloudCommandRecovery recovery={reopened} enabled/></QueryClientProvider>);

@@ -1,3 +1,4 @@
+import {businessQueryScope} from '../business-context';
 import {useMemo,useState} from "react";
 import {useQuery} from "@tanstack/react-query";
 import {createCloudApi} from "../cloud-api";
@@ -11,7 +12,7 @@ import {ServiceDatePicker} from "../components/ServiceDatePicker";
 export function Component(){
   const api=useMemo(()=>createCloudApi(window.location.origin,window.fetch.bind(window)),[]);
   const [serviceDate,setServiceDate]=useState(()=>businessToday());
-  const session=useQuery({queryKey:["private-cloud","command-session"],queryFn:({signal})=>api.authenticate(signal),retry:false});
+  const session=useQuery({queryKey:[...businessQueryScope(),"command-session"],queryFn:({signal})=>api.authenticate(signal),retry:false});
   return <main id="main-content" className="dispatch-page command-page">
     <section className="page-title"><div><p className="eyebrow">KavaRoutes Command</p><h1>Command control</h1><p>Manage driver access and review requests interrupted by a connection problem.</p></div>
       <span className={`dispatch-connection ${session.isSuccess?"ready":session.isError?"error":"connecting"}`}>{session.isSuccess?"Command connected":session.isError?"Command unavailable":"Connecting…"}</span></section>

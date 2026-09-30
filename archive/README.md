@@ -9,3 +9,5 @@ The current Driver app is `apps/driver-native`; the dedicated web client remains
 Completed deployment patches and seed fixtures are retained for reference. Use the active parameterized runtime promotion and web-bundle deployment tools for current releases. Do not rerun historical seed scripts against a live business.
 
 Generated Android/iOS trees and build caches moved with the old local app remain ignored and are never added to a release. Maintained browser acceptance fixtures remain under `apps/web/src/test-support`, separate from this archive, and are stripped from production builds by an explicit build flag.
+
+The retired shared-identity gateway, Driver session fallback, and web transport are also preserved at their original paths under this archive. The corresponding live paths have been migrated to real identity/session handling; the archived snapshots never participate in live authentication.

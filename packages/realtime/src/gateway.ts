@@ -8,7 +8,7 @@ import type { RealtimeTelemetryEvent } from "./telemetry.js";
 export type RealtimeClientClass = "synthetic-web" | "synthetic-native" | "browser-web";
 
 export function realtimeClientClassFor(principal: SyntheticPrincipal): RealtimeClientClass {
-  return principal.kind === 'BROWSER_USER' ? 'browser-web' : principal.kind === "SYNTHETIC_DEVICE" ? "synthetic-native" : "synthetic-web";
+  return principal.kind === 'BROWSER_USER' ? 'browser-web' : ["SYNTHETIC_DEVICE","DRIVER_DEVICE"].includes(principal.kind) ? "synthetic-native" : "synthetic-web";
 }
 
 export function realtimeOriginAllowedFor(

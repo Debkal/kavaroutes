@@ -17,7 +17,7 @@ it("decodes a client trip pattern and refuses a response that carries extra fiel
  expect(()=>decodeClientRoster({clients:[record]})).toThrow("INVALID_CLIENT_RESPONSE");
 });
 
-it("posts the trip pattern with the dispatcher persona, one key and no empty optionals",async()=>{
+it("posts the trip pattern with the authenticated business session, one key and no empty optionals",async()=>{
  const fetcher=vi.fn(async()=>({status:201,headers:{get:()=>null},json:async()=>({clientId,version:1,displayName:"Synthetic Sunrise Residence",dropoffCount:2})}));
  const api=createCloudClientApi("http://127.0.0.1:4311",fetcher);
  const receipt=await api.create({displayName:"Synthetic Sunrise Residence",phone:"555-0100",pickupAddress:"100 Synthetic Sunrise Way",
@@ -25,7 +25,7 @@ it("posts the trip pattern with the dispatcher persona, one key and no empty opt
  expect(receipt.value).toEqual({clientId,version:1,displayName:"Synthetic Sunrise Residence",dropoffCount:2});
  const call=fetcher.mock.calls[0] as unknown as [string,{headers:Record<string,string>;body:string}];
  expect(call[0]).toContain("/clients/commands/create");
- expect(call[1].headers.authorization).toBe("Synthetic principal_dispatcher");
+ expect(call[1].headers.authorization).toBeUndefined();
  expect(call[1].headers["idempotency-key"]).toBe("web-client-00000000-0000-4000-8000-000000000000");
  expect(JSON.parse(call[1].body)).toEqual({displayName:"Synthetic Sunrise Residence",phone:"555-0100",pickupAddress:"100 Synthetic Sunrise Way",
    dropoffAddresses:["Synthetic Public Library","Synthetic Day Program"],tripType:"ROUND_TRIP"});
@@ -46,7 +46,7 @@ it("still reads a legacy home-only roster and receipt instead of failing",async(
  expect(receipt.value.dropoffCount).toBe(0);
  expect((await api.roster()).value.clients[0]).toMatchObject({pickupAddress:"100 Synthetic Home Street",dropoffAddresses:[],tripType:null});
 });
-it("corrects a client with the dispatcher persona and appends drop-offs",async()=>{
+it("corrects a client with the authenticated business session and appends drop-offs",async()=>{
  const fetcher=vi.fn(async()=>({status:200,headers:{get:()=>null},json:async()=>({clientId,version:2,displayName:"Synthetic Sunrise Residence",dropoffCount:1})}));
  const api=createCloudClientApi("http://127.0.0.1:4311",fetcher);
  const receipt=await api.update(clientId,{displayName:"Synthetic Sunrise Residence",entityName:"Sunrise Care Group",
@@ -55,7 +55,7 @@ it("corrects a client with the dispatcher persona and appends drop-offs",async()
  expect(receipt.value).toEqual({clientId,version:2,displayName:"Synthetic Sunrise Residence",dropoffCount:1});
  const call=fetcher.mock.calls[0] as unknown as [string,{headers:Record<string,string>;body:string}];
  expect(call[0]).toContain(`/clients/${clientId}/commands/update`);
- expect(call[1].headers.authorization).toBe("Synthetic principal_dispatcher");
+ expect(call[1].headers.authorization).toBeUndefined();
  expect(JSON.parse(call[1].body)).toEqual({displayName:"Synthetic Sunrise Residence",entityName:"Sunrise Care Group",
    pickupAddress:"100 Synthetic Sunrise Way",notes:"corrected",tripType:"ROUND_TRIP",addDropoffAddresses:["Synthetic Clinic North"]});
 });

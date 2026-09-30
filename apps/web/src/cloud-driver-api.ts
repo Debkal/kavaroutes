@@ -14,7 +14,7 @@ import {
   type DriverSignatureRequest,
   type StartDriverShiftReceipt,
 } from "@kavaroutes/api-contracts/client-web";
-import { createPrivateDevelopmentTransport, type DevelopmentFetch } from "@kavaroutes/api-contracts/private-development-transport";
+import { createApiTransport, type DevelopmentFetch } from "@kavaroutes/api-contracts/http-transport";
 import {decodeDriverRoadRoute} from './road-route-contract';
 import type { DriverLocationBatchRequest, DriverLocationReceipt } from "@kavaroutes/api-contracts";
 
@@ -85,8 +85,11 @@ export function createCloudDriverWebApi(baseUrl: string, fetcher: DevelopmentFet
   if(!uuid.test(organizationId))throw new Error('INVALID_BUSINESS_ID');
   const browserSameOrigin = new URL(baseUrl).protocol === "https:";
   let activeDriverId:string|null=null,sessionToken:string|null=null;
-  const bootstrap=createPrivateDevelopmentTransport({ baseUrl, persona: "driver", fetch: fetcher, browserSameOrigin, anonymous:true });
-  const transport = createPrivateDevelopmentTransport({ baseUrl, persona: "driver", fetch: fetcher, browserSameOrigin,driverSession:()=>sessionToken });
+  const bootstrap=createApiTransport({baseUrl,fetch:fetcher,credentials:browserSameOrigin?"same-origin":"omit",headers:()=>({})});
+  const transport=createApiTransport({baseUrl,fetch:fetcher,credentials:browserSameOrigin?'same-origin':'omit',headers:()=>{
+    if(!sessionToken||!/^dvs_[A-Za-z0-9_-]{43}$/.test(sessionToken))throw new Error('DRIVER_SESSION_REQUIRED');
+    return {authorization:`DriverSession ${sessionToken}`};
+  }});
   const authenticatedDriver=()=>{if(!activeDriverId)throw new Error('DRIVER_SESSION_REQUIRED');return activeDriverId;};
   const acceptLogin=(value:unknown,expectedDriver?:string)=>{
     const state=decodeLoginState(value,expectedDriver);
@@ -121,7 +124,7 @@ const loginPrefix = `/v1/organizations/${organizationId}`;
     async authenticate(signal?: AbortSignal) {
       return transport.request("/v1/me", value => {
         const body = object(value);
-        if (body.principalKind !== "SYNTHETIC_DEVICE" || !Array.isArray(body.organizations)) throw new Error("INVALID_DRIVER_SESSION");
+        if (body.principalKind !== "DRIVER_DEVICE" || !Array.isArray(body.organizations)) throw new Error("INVALID_DRIVER_SESSION");
         const membership = body.organizations.map(object).find(item => item.organizationId === organizationId);
         if (!membership || !Array.isArray(membership.capabilities) || !membership.capabilities.includes("driver:manifest:read") || !membership.capabilities.includes("driver:execute")) throw new Error("INVALID_DRIVER_SESSION");
         return { driverId:authenticatedDriver(), organizationId };

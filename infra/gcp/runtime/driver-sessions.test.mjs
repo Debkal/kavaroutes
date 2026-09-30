@@ -18,7 +18,7 @@ test('driver sessions bind API authority to the claimed driver and expire on cre
   assert.match(token,/^dvs_[A-Za-z0-9_-]{43}$/);
   const principal=await sessions.verify(`DriverSession ${token}`);
   assert.equal(principal.subjectId,driverId);
-  assert.equal(principal.kind,'SYNTHETIC_DEVICE');
+  assert.equal(principal.kind,'DRIVER_DEVICE');
   assert.equal(principal.capabilities.has('driver:execute'),true);
   assert.equal(principal.capabilities.has('dispatch:command'),false);
   assert.equal(await sessions.verify(`DriverSession ${token}x`),null);

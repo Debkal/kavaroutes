@@ -13,13 +13,14 @@ export const fleetScopeReference = `fleet:${tenantId}`;
 /** Hard bound on how many enrolled tenants one worker cycle will process. */
 export const enrollmentBound = 25;
 
-// Deliberately not a production profile. No provider selection or arbitrary DB host.
+// Live business identity and explicitly opted-in isolated tests share the same
+// constrained database/network boundary. Provider settings are protected separately.
 export function validateConfig(input) {
   validateManifest();
-  if (process.env.NODE_ENV === 'production') throw new Error('PRODUCTION_COMPOSITION_UNAVAILABLE');
   const keys = ['profile', 'databaseUrl', 'etagSecret', 'cursorSecret', 'port'];
   if (!input || typeof input !== 'object' || Array.isArray(input) || keys.some(k => !(k in input)) || Object.keys(input).some(k => !keys.includes(k))) throw new Error('RUNTIME_CONFIG_INVALID');
-  if (input.profile !== 'private-synthetic' || !Number.isInteger(input.port) || input.port < 1024 || input.port > 65535) throw new Error('RUNTIME_PROFILE_INVALID');
+  if (!['private-synthetic','business-authenticated'].includes(input.profile) || !Number.isInteger(input.port) || input.port < 1024 || input.port > 65535) throw new Error('RUNTIME_PROFILE_INVALID');
+  if(input.profile==='private-synthetic'&&process.env.KR_CLOUD_LOCAL_TEST!=='1')throw new Error('SYNTHETIC_RUNTIME_TEST_ONLY');
   let url;
   try { url = new URL(input.databaseUrl); } catch { throw new Error('RUNTIME_DATABASE_INVALID'); }
   if (url.protocol !== 'postgresql:' || url.hostname !== '127.0.0.1' || url.pathname !== '/kavaroutes_cloud' || url.search || url.hash || !url.password ||
@@ -43,7 +44,6 @@ export async function readSecretJson(path) {
 }
 
 export async function readConfig(path, role) {
-  if (process.env.NODE_ENV === 'production') throw new Error('PRODUCTION_COMPOSITION_UNAVAILABLE');
   const input = await readSecretJson(path);
   const config = validateConfig(input);
   if (new URL(config.databaseUrl).username !== `kr_cloud_${role}`) throw new Error('RUNTIME_DATABASE_ROLE_INVALID');

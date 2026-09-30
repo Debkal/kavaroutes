@@ -2,30 +2,29 @@ import { decodeDispatcherTrip, type DispatcherTrip, type TripCreateRequest } fro
 import {createCloudCommandRecovery} from './cloud-command-recovery';
 import {decodeCloudBoard,decodeCloudAssignment,decodeCloudPlanReceipt,decodeCloudDriverAccount,decodeCloudDriverLogin,decodeCloudRelease,type CloudAssignmentCommand,type CloudPlanRequest} from './cloud-board-contract';
 import {decodeRouteView,decodeRouteReceipt} from '@kavaroutes/api-contracts/client-route-proposals';
-import { createPrivateDevelopmentTransport, type DevelopmentFetch } from "@kavaroutes/api-contracts/private-development-transport";
+import { type DevelopmentFetch } from "@kavaroutes/api-contracts/http-transport";
 import {decodeRoadSelection,decodeRoadPreview,type RoadGoal} from './road-route-contract';
 
-const organizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const prefix = `/v1/organizations/${organizationId}`;
+import {businessContext,createBusinessTransport} from "./business-context";
 export type DriverAccessCode={id:string;businessId:string;code:string;kind:'SHARED'|'ONE_DEVICE';label:string;enabled:boolean;uses:number;createdAt:number;updatedAt:number};
 export type DriverAccessDevice={id:string;businessId:string;codeId:string;label:string;createdAt:number;lastSeenAt:number;expiresAt:number;revokedAt:number|null};
 export type DriverAccessEvent={at:number;businessId:string;action:string;actor:string;target:string};
 export type DriverAccessView={codes:DriverAccessCode[];devices:DriverAccessDevice[];events:DriverAccessEvent[]};
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
-function tripPath(id: string) { if (!uuid.test(id)) throw new Error("INVALID_TRIP_REFERENCE"); return `${prefix}/trips/${id}`; }
+
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("INVALID_API_RESPONSE");
   return value as Record<string, unknown>;
 }
 
-export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
-  const browserSameOrigin = new URL(baseUrl).protocol === "https:";
-  const transport = createPrivateDevelopmentTransport({ baseUrl, persona: "dispatcher", fetch: fetcher, browserSameOrigin });
-  // Explicitly selected synthetic reviewer, never a privilege added to the dispatcher.
-  const reviewer=createPrivateDevelopmentTransport({baseUrl,persona:'policy_override',fetch:fetcher,browserSameOrigin});
-  const recovery=createCloudCommandRecovery(transport),reviewerRecovery=createCloudCommandRecovery(reviewer);
+export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch, organizationId=businessContext().organizationId) {
+  const prefix=`/v1/organizations/${organizationId}`;
+  const tripPath=(id:string)=>{if(!uuid.test(id))throw new Error('INVALID_TRIP_REFERENCE');return `${prefix}/trips/${id}`;};
+  const transport=createBusinessTransport(baseUrl,fetcher,organizationId);
+  const reviewer=transport;
+  const recovery=createCloudCommandRecovery(transport,organizationId),reviewerRecovery=recovery;
   return Object.freeze({
-    recovery,reviewerRecovery,
+    organizationId,recovery,reviewerRecovery,
     driverAccess(){return transport.request(`${prefix}/driver-access`,(body):DriverAccessView=>{
       const value=object(body);
       if(!Array.isArray(value.codes)||!Array.isArray(value.devices)||!Array.isArray(value.events))throw new Error('INVALID_DRIVER_ACCESS_RESPONSE');
@@ -306,7 +305,7 @@ export function createCloudApi(baseUrl: string, fetcher: DevelopmentFetch) {
     async authenticate(signal?: AbortSignal) {
       return transport.request("/v1/me", (body) => {
         const value = object(body);
-        if (value.principalKind !== "SYNTHETIC_USER" || !Array.isArray(value.organizations)) throw new Error("INVALID_SESSION");
+        if (value.principalKind !== "BROWSER_USER" || !Array.isArray(value.organizations)) throw new Error("INVALID_SESSION");
         const membership = value.organizations.map(object).find((item) => item.organizationId === organizationId);
         if (!membership || !Array.isArray(membership.capabilities) || !membership.capabilities.includes("trips:read")) throw new Error("INVALID_SESSION");
         return { principalId: String(value.principalId), organizationId };

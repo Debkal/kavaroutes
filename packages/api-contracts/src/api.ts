@@ -175,7 +175,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
   const application = options.application ?? createDocumentationApplication(etagSecret);
   const verifier = options.verifier ?? createSyntheticTestVerifier();
   const AuthorizationHeaders = verifier.verifyRequest
-    ? Type.Object({cookie:Type.String({minLength:1,maxLength:4096})})
+    ? Type.Object({cookie:Type.Optional(Type.String({minLength:1,maxLength:4096})),authorization:Type.Optional(Type.String({maxLength:128}))})
     : Type.Object({ authorization: Type.String({ pattern: options.issueDriverSession
       ? "^(?:Synthetic principal_[a-z_]+|DriverSession dvs_[A-Za-z0-9_-]{43})$"
       : "^Synthetic principal_[a-z_]+$", maxLength: 64 }) });
@@ -261,7 +261,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     const principal = contextPrincipal(request);
     request.wp007Context.resultCode = "PROFILE_RETURNED";
     return reply.send({ principalId: principal.id, principalKind: principal.kind,
-      organizations: [{ organizationId: principal.organizationId, capabilities: [...principal.capabilities].sort() }], policyVersion: "privacy-synthetic-v1" });
+      organizations: [{ organizationId: principal.organizationId, capabilities: [...principal.capabilities].sort() }], policyVersion: principal.kind.startsWith("SYNTHETIC_")?"privacy-synthetic-v1":"privacy-v1" });
   });
   };
   await api.register(profileRoutes);
@@ -274,7 +274,7 @@ export async function createWp007Api(options: Wp007ApiOptions = {}): Promise<Fas
     const principal = await requireAccess(request, organizationId, { capability: "trips:read", purpose: "RIDER_INTAKE" }, "listTrips");
     const query = request.query as { cursor?: string; limit?: string };
     const limit = query.limit === undefined ? 50 : Number(query.limit);
-    const expected = { organizationId, principalId: principal.id, purpose: "RIDER_INTAKE", filters: {}, sort: "tripId:asc", schemaVersion: "wp007.contract.v1" as const, policyVersion: "privacy-synthetic-v1" as const };
+    const expected = { organizationId, principalId: principal.id, purpose: "RIDER_INTAKE", filters: {}, sort: "tripId:asc", schemaVersion: "wp007.contract.v1" as const, policyVersion: principal.kind.startsWith("SYNTHETIC_")?"privacy-synthetic-v1" as const:"privacy-v1" as const };
     const claims = query.cursor ? cursorCodec.decode(query.cursor, expected, now()) : null;
     const values = await application.listTrips(organizationId, { ...(claims ? { afterId: claims.tieBreaker } : {}), limit });
     const hasMore = values.length > limit;

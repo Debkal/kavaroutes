@@ -1,12 +1,12 @@
 import type {BrowserCommandEnvelope} from '@kavaroutes/api-contracts/client-web';
-import {DevelopmentApiError,type createPrivateDevelopmentTransport} from '@kavaroutes/api-contracts/private-development-transport';
+import {DevelopmentApiError,type createApiTransport} from '@kavaroutes/api-contracts/http-transport';
 import {decodeCloudAssignment,type CloudAssignmentCommand} from './cloud-board-contract';
-type Transport=ReturnType<typeof createPrivateDevelopmentTransport>;
+type Transport=ReturnType<typeof createApiTransport>;
 export type RecoverySummary={id:string;kind:BrowserCommandEnvelope['kind'];expired:boolean;acknowledged:boolean;outcome:'PENDING'|'ACCEPTED'|'REJECTED';code:string|null};
 export type PendingAssignment=RecoverySummary&{command:CloudAssignmentCommand;receipt:ReturnType<typeof decodeCloudAssignment>|null};
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const kinds=['CREATE_TRIP','CANCEL_TRIP','ASSIGN_RUN','DECIDE_ROUTE','OVERRIDE_RETURN'];
-const prefix='/v1/organizations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/browser-commands';
+
 const obj=(v:unknown):Record<string,unknown>=>{if(!v||typeof v!=='object'||Array.isArray(v))throw new Error('INVALID_RECOVERY_RESPONSE');return v as Record<string,unknown>;};
 const keys=(v:Record<string,unknown>,expected:string[])=>{if(Object.keys(v).sort().join()!==expected.sort().join())throw new Error('INVALID_RECOVERY_RESPONSE');};
 function record(value:unknown){
@@ -28,7 +28,9 @@ export async function recoveryIdentity(kind:string,key:string){
  const bytes=new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('kavaroutes-browser-command-v1:'+kind+':'+key)));bytes[6]=(bytes[6]!&15)|64;bytes[8]=(bytes[8]!&63)|128;
  const hex=Array.from(bytes.slice(0,16),b=>b.toString(16).padStart(2,'0')).join('');return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
-export function createCloudCommandRecovery(transport:Transport){
+export function createCloudCommandRecovery(transport:Transport,organizationId:string){
+ if(!uuid.test(organizationId))throw new Error('INVALID_BUSINESS_ID');
+ const prefix=`/v1/organizations/${organizationId}/browser-commands`;
  const command=async(action:'execute'|'acknowledge',id:string)=>{if(!uuid.test(id))throw new Error('INVALID_RECOVERY_ID');return transport.request(`${prefix}/${id}/${action}`,value=>{const r=record(value);if(r.summary.id!==id)throw new Error('INVALID_RECOVERY_ID');return r;},{body:{},idempotencyKey:`browser-${action}-${id}`});};
  const pendingRecord=(signal?:AbortSignal)=>transport.request(prefix+'/pending',value=>{const v=obj(value);keys(v,['command']);return v.command===null?null:record(v.command);},undefined,signal);
  return {

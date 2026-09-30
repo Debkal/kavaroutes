@@ -1,5 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, Link, NavLink, Outlet, redirect, useRouteError } from "react-router";
+import {loadBusinessContext,businessContext} from "./business-context";
+import {signOutBusiness} from "./business-auth";
 import { queryClient } from "./runtime";
 
 /** Baked at build time (vite define). The line lets an operator compare the served
@@ -14,11 +16,11 @@ function AppShell() {
   return <QueryClientProvider client={queryClient}>
     <a className="skip-link" href="#main-content">Skip to main content</a>
     <header className="app-header">
-      <div><span className="brand-mark" aria-hidden="true">KR</span><strong>KavaRoutes</strong><span className="environment">Product testing</span></div>
+      <div><span className="brand-mark" aria-hidden="true">KR</span><strong>KavaRoutes</strong><span className="environment">Business workspace</span></div>
       <nav aria-label="Primary"><NavLink to="/dispatch">Dispatch</NavLink><NavLink to="/tracking">Active drivers</NavLink><NavLink to="/route-history">Route history</NavLink><NavLink to="/clients">Clients</NavLink><NavLink to="/accounting">Accounting</NavLink><NavLink to="/command">Command</NavLink></nav>
     </header>
     <Outlet />
-    <footer className="app-footer"><span>Web build {webBuild}</span></footer>
+    <footer className="app-footer"><span>Web build {webBuild}</span><button onClick={()=>{if(window.confirm("Sign out of your business workspace?"))void signOutBusiness();}}>Sign out</button></footer>
   </QueryClientProvider>;
 }
 
@@ -46,8 +48,17 @@ function HydrateFallback() {
 
 // A lazy route hydrates before its module is ready; without this the router warns on
 // every page and the operator sees an empty root.
-export const router = createBrowserRouter([{
-  path: "/", element: <AppShell />, errorElement: <RootError />, HydrateFallback, children: [
+async function businessLoader(){
+  let previous:string|null=null;try{previous=businessContext().organizationId+":"+businessContext().principalId;}catch{}
+  const current=await loadBusinessContext();
+  if(!current){queryClient.clear();return redirect('/sign-in');}
+  if(current.organizationId+":"+current.principalId!==previous)queryClient.clear();
+  return null;
+}
+export const router = createBrowserRouter([
+ {path:'/sign-in',lazy:()=>import('./routes/business-sign-in-route'),errorElement:<RootError/>},
+ {
+  path: "/", ...(__KR_TEST_HARNESS__?{}:{loader:businessLoader}), element: <AppShell />, errorElement: <RootError />, HydrateFallback, children: [
     { index: true, loader: () => redirect("/dispatch") },
     { path: "dispatch", lazy: () => __KR_TEST_HARNESS__ ? import("./test-support/routes/dispatch-route") : import("./routes/cloud-dispatch-route") },
     { path: "tracking", lazy: () => import("./routes/cloud-tracking-route") },

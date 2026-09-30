@@ -1,16 +1,17 @@
+import {businessQueryScope} from '../business-context';
 import {useRef,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {recoveryPollingInterval} from '../dispatch-queries';
 import type {createCloudCommandRecovery} from '../cloud-command-recovery';
 export function CloudCommandRecovery({recovery,enabled,reviewer=false}:{recovery:ReturnType<typeof createCloudCommandRecovery>;enabled:boolean;reviewer?:boolean}){
  const cache=useQueryClient(),flight=useRef(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
- const command=useQuery({queryKey:['private-cloud','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',reviewer?'policy_override':'dispatcher','command-recovery'],queryFn:({signal})=>recovery.pending(signal),enabled,retry:false,refetchInterval:query=>recoveryPollingInterval(query.state.data?.value?.outcome)});
+ const command=useQuery({queryKey:[...businessQueryScope(),'command-recovery'],queryFn:({signal})=>recovery.pending(signal),enabled,retry:false,refetchInterval:query=>recoveryPollingInterval(query.state.data?.value?.outcome)});
  const current=!enabled||command.isError?null:command.data?.value;
  const act=async(acknowledge:boolean)=>{
   if(flight.current||!current||!enabled)return;
   if(!acknowledge&&!window.confirm(`Recover the original ${current.kind.replaceAll('_',' ').toLowerCase()} request? Its original version and authorization will be checked.`))return;
   flight.current=true;setBusy(true);setMessage('Checking the original server command…');
-  try{const result=await (acknowledge?recovery.acknowledge(current.id):recovery.execute(current.id));setMessage(acknowledge?'Result acknowledged. You may continue.':result.outcome==='ACCEPTED'?'Server accepted the original command. Review refreshed records, then acknowledge.':result.outcome==='REJECTED'?`Server rejected the original command: ${result.code}. Review before continuing.`:'Command remains unresolved.');await cache.invalidateQueries({queryKey:['private-cloud']});}
+  try{const result=await (acknowledge?recovery.acknowledge(current.id):recovery.execute(current.id));setMessage(acknowledge?'Result acknowledged. You may continue.':result.outcome==='ACCEPTED'?'Server accepted the original command. Review refreshed records, then acknowledge.':result.outcome==='REJECTED'?`Server rejected the original command: ${result.code}. Review before continuing.`:'Command remains unresolved.');await cache.invalidateQueries({queryKey:businessQueryScope()});}
   catch{setMessage('Recovery unavailable or outcome unknown. The original command remains on the server; refresh to recover it.');await command.refetch();}
   finally{flight.current=false;setBusy(false);}
  };

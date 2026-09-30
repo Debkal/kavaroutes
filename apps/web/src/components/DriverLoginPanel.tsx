@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {DevelopmentApiError} from "@kavaroutes/api-contracts/private-development-transport";
+import {DevelopmentApiError} from "@kavaroutes/api-contracts/http-transport";
 import type {createCloudDriverWebApi} from "../cloud-driver-api";
 
 const LOGIN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/;

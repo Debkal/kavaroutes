@@ -12,7 +12,7 @@ const listenPort = Number(process.env.KR_WEB_PORT ?? 58080);
 const apiPort = Number(process.env.KR_API_PORT ?? 58082);
 const businessGate=createDriverBusinessGate({storeDirectory:process.env.KR_DRIVER_ACCESS_DIRECTORY});
 if (![listenPort, apiPort].every(port => Number.isInteger(port) && port >= 1024 && port <= 65535) || listenPort === apiPort) {
-  throw new Error('PROTOTYPE_GATEWAY_PORT_INVALID');
+  throw new Error('GATEWAY_PORT_INVALID');
 }
 
 const contentTypes = Object.freeze({
@@ -22,7 +22,7 @@ const contentTypes = Object.freeze({
   '.svg': 'image/svg+xml', '.webp': 'image/webp', '.woff2': 'font/woff2',
 });
 const securityHeaders = Object.freeze({
-  'content-security-policy': "default-src 'self'; base-uri 'none'; connect-src 'self' wss:; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'",
+  'content-security-policy': "default-src 'self'; base-uri 'none'; connect-src 'self' wss: https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseapp.com; font-src 'self'; form-action 'self'; frame-ancestors 'none'; frame-src https://*.firebaseapp.com; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self'",
   'cross-origin-opener-policy': 'same-origin',
   // Location sharing is the driver's live map feed; the prompt is the browser's, and a
   // refusal fails the driver sign-in by design. Camera and microphone stay disabled.
@@ -34,7 +34,8 @@ const securityHeaders = Object.freeze({
 
 function cleanProxyHeaders(headers) {
   const clean = { ...headers, host: `127.0.0.1:${apiPort}` };
-  for (const name of ['cf-access-jwt-assertion', 'cf-authorization', 'connection', 'cookie', 'proxy-authorization', 'proxy-connection', 'upgrade','x-kr-driver-business-id']) delete clean[name];
+  for (const name of ['cf-authorization', 'connection', 'proxy-authorization', 'proxy-connection', 'upgrade','x-kr-driver-business-id']) delete clean[name];
+  if(headers.host!=='app.kavaroutes.com'){delete clean['cf-access-jwt-assertion'];delete clean.cookie;}
   return clean;
 }
 
@@ -96,7 +97,7 @@ async function staticResponse(request, response, pathname, root=webRoot, entry='
     if (request.method === 'HEAD') response.end(); else createReadStream(candidate).pipe(response);
   } catch {
     response.writeHead(503, { ...securityHeaders, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' });
-    response.end('KavaRoutes prototype unavailable');
+    response.end('KavaRoutes unavailable');
   }
 }
 
@@ -140,7 +141,7 @@ const server = createServer(async(request, response) => {
   if(/^\/v1\/organizations\/[^/]+\/dispatch\/provider-usage$/.test(pathname)){
     response.writeHead(404,{...securityHeaders,'cache-control':'no-store'}).end();return;
   }
-  if (pathname === '/health/ready' || pathname.startsWith('/v1/')) proxy(request, response);
+  if (pathname === '/health/ready' || pathname.startsWith('/v1/') || pathname.startsWith('/auth/')) proxy(request, response);
   else void staticResponse(request, response, pathname);
 });
 server.requestTimeout = 30_000;
@@ -150,24 +151,14 @@ server.on('clientError', (_error, socket) => socket.end('HTTP/1.1 400 Bad Reques
 server.on('upgrade', (request, socket, head) => {
   let pathname;
   try { pathname = new URL(request.url ?? '/', 'http://gateway.invalid').pathname; } catch { socket.destroy(); return; }
-  if (pathname !== '/v1/realtime') { socket.destroy(); return; }
+  if (pathname !== '/v1/realtime' || request.headers.host!=='app.kavaroutes.com'||request.headers.origin!=='https://app.kavaroutes.com'||request.headers['sec-websocket-protocol']!=='kavaroutes.realtime.v1'||request.headers.authorization!==undefined) { socket.destroy(); return; }
   const upstream = connect(apiPort, '127.0.0.1');
   upstream.setTimeout(30_000, () => upstream.destroy());
   upstream.on('connect', () => {
     const headers = cleanProxyHeaders(request.headers);
     headers.connection = 'Upgrade'; headers.upgrade = 'websocket';
-    // Browsers cannot set Authorization on a WebSocket handshake. The public
-    // prototype already uses the dispatcher synthetic principal for same-origin
-    // REST behind Cloudflare Access; apply that same principal to its socket.
-    // Keep the exception limited to this exact public origin and protocol.
-    if (request.headers.host === 'app.kavaroutes.com' &&
-        request.headers.origin === 'https://app.kavaroutes.com' &&
-        request.headers['sec-websocket-protocol'] === 'kavaroutes.realtime.v1' &&
-        request.headers.authorization === undefined) {
-      headers.authorization = 'Synthetic principal_dispatcher';
-    }
-    // The retained synthetic runtime has one closed, non-public origin contract.
-    headers.origin = 'http://kavaroutes.test';
+    // Forward the authenticated browser cookie or test Access assertion.
+    // Business identity is resolved on the API; this proxy never creates one.
     let opening = `${request.method} ${request.url} HTTP/${request.httpVersion}\r\n`;
     for (const [name, value] of Object.entries(headers)) if (value !== undefined) opening += `${name}: ${Array.isArray(value) ? value.join(', ') : value}\r\n`;
     upstream.write(`${opening}\r\n`); if (head.length) upstream.write(head);
@@ -182,5 +173,5 @@ await new Promise((resolveListen, reject) => {
   server.once('error', reject);
   server.listen(listenPort, '127.0.0.1', resolveListen);
 });
-process.stdout.write('PROTOTYPE_WEB_GATEWAY_STARTED\n');
+process.stdout.write('WEB_GATEWAY_STARTED\n');
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => server.close(() => process.exit(0)));

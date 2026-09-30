@@ -1,4 +1,4 @@
-import { DevelopmentApiError } from "@kavaroutes/api-contracts/private-development-transport";
+import { DevelopmentApiError } from "@kavaroutes/api-contracts/http-transport";
 
 /**
  * The backend names the constraint that refused a dispatch command. Show the

@@ -141,3 +141,10 @@ export function createTestOnlyCursorCodec(options: {
 }
 
 export type TestOnlyCursorCodec = ReturnType<typeof createTestOnlyCursorCodec>;
+
+/** Live cursor construction requires caller-owned random material; default fixture
+ * keys and deterministic nonce factories are unavailable through this adapter. */
+export function createRealtimeCursorCodec(options:{secret:string;now?:()=>Date}){
+ if(!/^[A-Za-z0-9_-]{43,}$/.test(options.secret))throw new Error('REALTIME_CURSOR_SECRET_REQUIRED');
+ return createTestOnlyCursorCodec({...options,keyReference:'runtime-cursor-v1'});
+}

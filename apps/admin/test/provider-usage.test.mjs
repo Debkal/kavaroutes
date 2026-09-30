@@ -10,10 +10,10 @@ test('admin request log combines tenant Geoapify calls with business Gmail calls
   store.run('INSERT INTO business_workspaces(business_id,tenant_id) VALUES(?,?)',business,tenant);
   recordAdminProviderUsage(store,{businessId:business,provider:'GOOGLE',operation:'GMAIL_SEND',feature:'ADMIN_EMAIL',status:200,durationMs:20});
   let requested='';
-  const fetcher=async url=>{requested=url;return {ok:true,json:async()=>({hours:24,total:2,averageRequestsPerHour:.08,averageMs:10,
+  const fetcher=async(url,options)=>{assert.equal(options.headers.authorization,undefined);assert.equal(options.headers['cf-access-jwt-assertion'],'verified-admin-assertion');requested=url;return {ok:true,json:async()=>({hours:24,total:2,averageRequestsPerHour:.08,averageMs:10,
     groups:[{provider:'GEOAPIFY',operation:'MAP_TILE',feature:'ROUTE_HISTORY',count:2,failed:0,averageMs:10}],recent:[],
     pendingCount:0,droppedCount:0,lastFailureAt:null})};};
-  const result=await providerUsageView(store,business,24,{fetcher});
+  const result=await providerUsageView(store,business,24,{fetcher,assertion:'verified-admin-assertion'});
   assert.match(requested,new RegExp(tenant));
   assert.equal(result.total,3);
   assert.equal(result.groups.find(group=>group.provider==='GOOGLE').count,1);

@@ -1,6 +1,7 @@
 services:
   api:
     environment:
+      KR_BUSINESS_IDENTITY_FILE: /run/secrets/business-identity.json
       KR_DRIVER_ADMINS_FILE: /run/secrets/driver-admins.json
       KR_DRIVER_ACCESS_DIRECTORY: /run/driver-access
       KR_DRIVER_SESSIONS_FILE: /run/driver-access/sessions.json
@@ -10,6 +11,7 @@ services:
       - /opt/kavaroutes/web/driver-sessions.mjs:/app/infra/gcp/runtime/driver-sessions.mjs:ro
       - /opt/kavaroutes/web/driver-access-management.mjs:/app/infra/gcp/runtime/driver-access-management.mjs:ro
       - /opt/kavaroutes/web/driver-access-store.mjs:/app/infra/gcp/runtime/driver-access-store.mjs:ro
+      - ${KR_SECRETS_DIRECTORY}/business-identity.json:/run/secrets/business-identity.json:ro
       - ${KR_SECRETS_DIRECTORY}/driver-admins.json:/run/secrets/driver-admins.json:ro
       - /opt/kavaroutes/driver-access:/run/driver-access:rw
     healthcheck:

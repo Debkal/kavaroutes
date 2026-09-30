@@ -89,9 +89,9 @@ export const OrganizationMembershipSchema = Type.Object({
 
 export const MeResponseSchema = Type.Object({
   principalId: Type.Ref(OpaqueIdSchema),
-  principalKind: Type.Union([Type.Literal("SYNTHETIC_USER"), Type.Literal("SYNTHETIC_DEVICE"),Type.Literal("BROWSER_USER")]),
+  principalKind: Type.Union([Type.Literal("SYNTHETIC_USER"), Type.Literal("SYNTHETIC_DEVICE"),Type.Literal("BROWSER_USER"),Type.Literal("DRIVER_DEVICE")]),
   organizations: Type.Array(Type.Ref(OrganizationMembershipSchema), { maxItems: 8 }),
-  policyVersion: Type.Literal("privacy-synthetic-v1"),
+  policyVersion: Type.Union([Type.Literal("privacy-synthetic-v1"),Type.Literal("privacy-v1")]),
 }, { ...closed, $id: "MeResponse" });
 
 export const TripCreateRequestSchema = Type.Object({

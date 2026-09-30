@@ -1,7 +1,7 @@
 import {rememberUnconfirmedSignout,takeSignoutNotice} from '../driver-signout-notice';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DriverActionItem, DriverClosureView, DriverItinerary, DriverShiftState, DriverSignatureRequest } from "@kavaroutes/api-contracts/client-web";
-import { DevelopmentApiError } from "@kavaroutes/api-contracts/private-development-transport";
+import { DevelopmentApiError } from "@kavaroutes/api-contracts/http-transport";
 import { createCloudDriverWebApi, type DriverCommand, type DriverLeg } from "../cloud-driver-api";
 import { DriverInspectionForm } from "../components/DriverInspectionForm";
 import { DriverLoginPanel } from "../components/DriverLoginPanel";

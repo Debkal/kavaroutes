@@ -1,5 +1,5 @@
-import type {Capability,PrincipalVerifier,SyntheticPrincipal} from '@kavaroutes/api-contracts/security';
-import {companyBranchScope,companyFleetScope,grantableCapabilities,roleCapabilities,rolePurposes} from '@kavaroutes/api-contracts/security';
+import type {PrincipalVerifier,SyntheticPrincipal} from '@kavaroutes/api-contracts/security';
+import {createMembershipPrincipal} from '@kavaroutes/api-contracts/security';
 import {ProtocolError} from '@kavaroutes/api-contracts/protocol';
 import {createBrowserCredentials} from './browser-credentials.js';
 
@@ -9,7 +9,6 @@ interface SessionIdentity {
   scopeKinds:readonly string[];capabilityGrants:readonly string[];
 }
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
-const grantable=new Set<string>(grantableCapabilities);
 
 export function createBrowserRealtimeRevalidator(verifier:PrincipalVerifier) {
   return async(request:{method:string;headers:Readonly<Record<string,unknown>>},original:SyntheticPrincipal)=>{
@@ -62,21 +61,7 @@ export function createBrowserPrincipalVerifier(options:{origin:string;signingKey
         !['DRIVER','DISPATCHER'].includes(row.role))return null;
       if(row.role==='DRIVER'&&(typeof row.driverId!=='string'||!uuid.test(row.driverId)))return null;
       if(row.role==='DISPATCHER'&&row.driverId!==null)return null;
-      // Role defaults are server-owned; elevated capabilities exist only when an
-      // administrator persisted an active grant. Unknown or malformed grants
-      // contribute nothing, so a bad row can only reduce authority.
-      const capabilities=new Set<Capability>(roleCapabilities[row.role]);
-      const grants=Array.isArray(row.capabilityGrants)?row.capabilityGrants:[];
-      for(const capability of grants)if(grantable.has(capability))capabilities.add(capability as Capability);
-      const branchScopes=new Set<string>(),fleetScopes=new Set<string>();
-      const kinds=Array.isArray(row.scopeKinds)?row.scopeKinds:[];
-      for(const kind of kinds){
-        if(kind==='BRANCH')branchScopes.add(companyBranchScope(row.organizationId));
-        else if(kind==='FLEET')fleetScopes.add(companyFleetScope(row.organizationId));
-      }
-      const principal:SyntheticPrincipal={id:row.principalId,kind:'BROWSER_USER',organizationId:row.organizationId,
-        capabilities,purposes:new Set(rolePurposes[row.role]),
-        branchScopes,fleetScopes,...(row.driverId?{subjectId:row.driverId}:{})};
+      const principal=createMembershipPrincipal({...row,capabilityGrants:row.capabilityGrants,scopeKinds:row.scopeKinds});
       return Object.freeze(principal);
     },
   });

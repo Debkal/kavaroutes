@@ -91,7 +91,7 @@ export interface CursorClaims {
   readonly sort: string;
   readonly tieBreaker: string;
   readonly schemaVersion: "wp007.contract.v1";
-  readonly policyVersion: "privacy-synthetic-v1";
+  readonly policyVersion: "privacy-synthetic-v1" | "privacy-v1";
   readonly asOf: string;
   readonly expiresAt: string;
 }
@@ -103,9 +103,12 @@ export interface CursorClaims {
  * a production-shaped secret; the full strength and alphabet rule stays with the
  * reviewed configuration that issued the secret, so this module only owns the
  * "never a test-marked key in a guarded composition" intent. */
-export type IntegrationSecretProfile = "synthetic-test" | "reviewed-guarded";
+export type IntegrationSecretProfile = "synthetic-test" | "reviewed-guarded" | "migrated-live";
 
 export function integrationSecretAccepted(secretProfile: IntegrationSecretProfile, secret: unknown, syntheticTestMarker: RegExp): boolean {
+  // Retain existing random signing material during identity migration so pending
+  // receipts remain recoverable. The historical prefix grants no authority.
+  if(secretProfile === "migrated-live")return typeof secret === "string" && secret.length>=43;
   if (secretProfile === "reviewed-guarded") return typeof secret === "string" && secret.length >= 32 && !secret.startsWith("synthetic-");
   // Fail closed on the profile declaration itself: the lenient marker rule is
   // available only to the literal `synthetic-test` profile. An unrecognised

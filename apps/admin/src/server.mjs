@@ -195,7 +195,7 @@ export function createAdminServer({ config, store, verifyIdentity = identityVeri
         integration:'TEST_REGISTRY',
       });
       owner(admin);
-      if(path==='/api/provider-usage')return send(await providerUsageView(store,data.businessId,data.hours));
+      if(path==='/api/provider-usage')return send(await providerUsageView(store,data.businessId,data.hours,{assertion:request.headers['cf-access-jwt-assertion']}));
       if(path==='/api/manual-route-charge-save')return send(saveManualChargeEvent(store,admin.email,data));
       if(path==='/api/driver-access-log')return send(await driverAccessLog(store,data.businessId,{directory:driverAccessDirectory}));
       if(path==='/api/driver-access-reset-all')return send(await resetAllDriverAccess(store,data.businessId,admin.email,{directory:driverAccessDirectory}));

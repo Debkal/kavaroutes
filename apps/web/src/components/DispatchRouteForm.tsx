@@ -1,6 +1,7 @@
+import {businessQueryScope} from '../business-context';
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { DevelopmentApiError } from "@kavaroutes/api-contracts/private-development-transport";
+import { DevelopmentApiError } from "@kavaroutes/api-contracts/http-transport";
 import type { createCloudApi } from "../cloud-api";
 import type { CloudPlanRequest } from "../cloud-board-contract";
 import { createCloudClientApi, type ClientDropoff } from "../cloud-client-api";
@@ -47,7 +48,7 @@ export function DispatchRouteForm({ api, serviceDate, onServiceDateChange, onPla
   const clientApi = useRef(createCloudClientApi(window.location.origin, window.fetch.bind(window)));
   const [clientId, setClientId] = useState("");
   const [dropoffSort,setDropoffSort]=useState<DropoffSort>("RECENT");
-  const clients = useQuery({ queryKey: ["private-cloud", "clients", "plan-picker"], queryFn: ({ signal }) => clientApi.current.roster(undefined, signal), retry: false });
+  const clients = useQuery({ queryKey: [...businessQueryScope(), "clients", "roster"], queryFn: ({ signal }) => clientApi.current.roster(undefined, signal), retry: false });
   const [timezoneMode,setTimezoneMode]=useState<"AUTO"|"MANUAL">("AUTO");
   const [manualTimezone,setManualTimezone]=useState(businessTimezone);
   const [detectedTimezone,setDetectedTimezone]=useState<string|null>(null);

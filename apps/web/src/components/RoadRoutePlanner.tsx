@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development-transport';
+import {DevelopmentApiError} from '@kavaroutes/api-contracts/http-transport';
 import type {createCloudApi} from '../cloud-api';
 import type {CloudBoard} from '../cloud-board-contract';
 import type {RoadGoal,RoadPreview,RoadSelection} from '../road-route-contract';

@@ -31,9 +31,11 @@ def ready(service):
     if service not in SERVICES:
         raise ValueError('SERVICE_DENIED')
     try:
-        status, body = exchange(f'http://127.0.0.1:{SERVICES[service]}/health/ready', limit=128)
-        expected = {'status': 'ready', 'profile': 'private-synthetic'} if service == 'api' else {'status': 'ready'}
-        return status == 200 and json.loads(body) == expected
+        status, body = exchange(f'http://127.0.0.1:{SERVICES[service]}/health/ready', limit=512)
+        expected = {'status': 'ready', 'profile': 'business-authenticated'} if service == 'api' else {'status': 'ready'}
+        value=json.loads(body)
+        if not isinstance(value,dict) or set(value)-set(expected)-{'build','terminalFailures','lastCycleFailure','unresolvedWork'}:return False
+        return status == 200 and all(value.get(key)==wanted for key,wanted in expected.items())
     except Exception:
         return False
 

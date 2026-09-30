@@ -15,8 +15,8 @@ RUN npm ci --workspace=packages --workspace=apps/api-host --include-workspace-ro
 
 FROM node:24.19.0-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03
 WORKDIR /app
-# This is deliberately a synthetic development image, not a production profile.
-ENV NODE_ENV=development
+# Test fixtures require explicit KR_CLOUD_LOCAL_TEST=1; deployed API uses business identity.
+ENV NODE_ENV=production
 COPY --from=build --chown=node:node /stage/ ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 USER node

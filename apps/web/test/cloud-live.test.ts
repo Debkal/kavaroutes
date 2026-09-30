@@ -8,7 +8,7 @@ const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve()
 function harness(refresh = vi.fn(async () => {})) {
   const sockets: { onmessage: ((event: { data: string }) => void) | null; onclose: (() => void) | null; send: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> }[] = [];
   const snapshot = vi.fn(async () => first);
-  const stop = connectCloudDispatch({ origin: "http://127.0.0.1:4311", serviceDate: "2026-09-13", snapshot,
+  const stop = connectCloudDispatch({organizationId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", origin: "http://127.0.0.1:4311", serviceDate: "2026-09-13", snapshot,
     refresh, status: vi.fn(), socket: () => {
       const socket = { onmessage: null, onclose: null, send: vi.fn(), close: vi.fn() };
       sockets.push(socket); return socket as unknown as WebSocket;
@@ -21,18 +21,18 @@ const change = { type: "change.batch", subscriptionId: "subscription:web:dispatc
 
 it('uses the current private loopback port for Compose, never the cloud tunnel port', async()=>{
   const socket=vi.fn(()=>({close:vi.fn()}) as unknown as WebSocket);
-  const stop=connectCloudDispatch({origin:'http://127.0.0.1:8080',serviceDate:'2026-09-15',snapshot:async()=>first,refresh:async()=>{},status:()=>{},socket});
+  const stop=connectCloudDispatch({organizationId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",origin:'http://127.0.0.1:8080',serviceDate:'2026-09-15',snapshot:async()=>first,refresh:async()=>{},status:()=>{},socket});
   await flush();expect(socket).toHaveBeenCalledWith('ws://127.0.0.1:8080/v1/realtime','kavaroutes.realtime.v1');stop();
 });
 
 it('uses secure WebSockets for the explicit HTTPS edge prototype', async()=>{
   const socket=vi.fn(()=>({close:vi.fn()}) as unknown as WebSocket);
-  const stop=connectCloudDispatch({origin:'https://app.kavaroutes.com',serviceDate:'2026-09-15',snapshot:async()=>first,refresh:async()=>{},status:()=>{},socket});
+  const stop=connectCloudDispatch({organizationId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",origin:'https://app.kavaroutes.com',serviceDate:'2026-09-15',snapshot:async()=>first,refresh:async()=>{},status:()=>{},socket});
   await flush();expect(socket).toHaveBeenCalledWith('wss://app.kavaroutes.com/v1/realtime','kavaroutes.realtime.v1');stop();
 });
 
 it.each(['http://example.com:8080','http://localhost:8080','http://127.0.0.1','https://127.0.0.1:8080','http://127.0.0.1:8080/path','http://user@127.0.0.1:8080'])('rejects non-private socket origin %s',origin=>{
-  expect(()=>connectCloudDispatch({origin,serviceDate:'2026-09-15',snapshot:async()=>first,refresh:async()=>{},status:()=>{}})).toThrow('PRIVATE_SOCKET_ORIGIN_REQUIRED');
+  expect(()=>connectCloudDispatch({organizationId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",origin,serviceDate:'2026-09-15',snapshot:async()=>first,refresh:async()=>{},status:()=>{}})).toThrow('PRIVATE_SOCKET_ORIGIN_REQUIRED');
 });
 
 it("acknowledges only after refresh and reconnects with the applied cursor", async () => {

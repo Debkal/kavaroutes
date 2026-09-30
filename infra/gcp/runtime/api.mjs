@@ -6,18 +6,20 @@ import {createPostgresClientService} from '@kavaroutes/api-contracts';
 import {createPostgresDriverLoginService} from '@kavaroutes/api-contracts';
 import {createPostgresDriverLocationService} from '@kavaroutes/api-contracts';
 import {createPostgresAccountingApiService} from '@kavaroutes/api-contracts';
-import { createTestOnlyCursorCodec, createAuthorizationGenerationSource, authorizeRealtimeSubscription } from '@kavaroutes/realtime';
+import { createRealtimeCursorCodec, createAuthorizationGenerationSource, authorizeRealtimeSubscription } from '@kavaroutes/realtime';
 import { createPostgresRealtimeStore } from '@kavaroutes/realtime/postgres';
 import { registerWp009Realtime } from '@kavaroutes/realtime/fastify';
 import {withTenantTransaction} from '@kavaroutes/postgres-persistence';
 import { makePool, verifyRuntimeDatabase } from './database.mjs';
-import { validateConfig, tenantId, branchScopeReference } from './config.mjs';
+import { validateConfig } from './config.mjs';
 import {createDriverSessions} from './driver-sessions.mjs';
 import {createGeoapifyRoadRoutingService} from './road-routing.mjs';
 import {createGeoapifyDispatchTraceMapService} from './dispatch-trace-map.mjs';
 import {createDispatchTiledMapServices} from './dispatch-tiled-map.mjs';
 import {createProviderUsage} from './provider-usage.mjs';
 import {registerDriverAdmin} from './driver-admin.mjs';
+import {createBusinessIdentity} from './business-identity.mjs';
+import {companyBranchScope} from '@kavaroutes/api-contracts/security';
 import {registerDriverAccessManagement} from './driver-access-management.mjs';
 
 export async function createRuntimeApi(input) {
@@ -25,16 +27,17 @@ export async function createRuntimeApi(input) {
   if (new URL(config.databaseUrl).username !== 'kr_cloud_api') throw new Error('RUNTIME_DATABASE_ROLE_INVALID');
   const pool = makePool(config);
   const usage=createProviderUsage(pool);
-  const sessions=createDriverSessions({synthetic:createSyntheticTestVerifier(),allowSyntheticDriver:process.env.KR_CLOUD_LOCAL_TEST==='1',sessionFile:process.env.KR_DRIVER_SESSIONS_FILE,credentialVersion:async(organizationId,driverId)=>
+  const sessions=createDriverSessions({synthetic:config.profile==='private-synthetic'?createSyntheticTestVerifier():undefined,allowSyntheticDriver:process.env.KR_CLOUD_LOCAL_TEST==='1',sessionFile:process.env.KR_DRIVER_SESSIONS_FILE,credentialVersion:async(organizationId,driverId)=>
     withTenantTransaction(pool,organizationId,'kavaroutes_api',async client=>{
       const row=(await client.query(`SELECT status,credential_version FROM platform.driver_credential WHERE tenant_id=$1 AND driver_id=$2`,[organizationId,driverId])).rows[0];
       return row?{status:String(row.status),version:Number(row.credential_version)}:null;
     })});
-  const verifier={verify:authorization=>sessions.verify(authorization)};
+  const identity=config.profile==='business-authenticated'?await createBusinessIdentity({pool,driverSessions:sessions,configFile:process.env.KR_BUSINESS_IDENTITY_FILE}):null;
+  const verifier=identity?.verifier??{verify:authorization=>sessions.verify(authorization)};
   const driverLogins=createPostgresDriverLoginService(pool,{allowUnauthenticatedLogin:true});
-  const application = createWp007PostgresApplication(pool, { etagSecret: config.etagSecret });
+  const application = createWp007PostgresApplication(pool, { etagSecret: config.etagSecret,secretProfile:identity?'migrated-live':'synthetic-test' });
   const tiledMap=createDispatchTiledMapServices(pool,{apiKey:process.env.GEOAPIFY_API_KEY,usage});
-  const checkDatabase = async () => { await verifyRuntimeDatabase(pool, 'api'); await application.listTrips(tenantId, { limit: 1 }); };
+  const checkDatabase = async () => { await verifyRuntimeDatabase(pool, 'api'); };
   const app = await createWp007Api({ application, driverItineraryReader: createDriverItineraryReader(pool),
     browserRecoveryService:createPostgresBrowserRecoveryService(pool,{application,dispatchService:createPostgresDispatchService(pool,{etag:application.etag}),routeProposalService:createPostgresRouteProposalService(pool),driverClosureService:createPostgresDriverClosureService(pool)}),
     dispatchService: createPostgresDispatchService(pool,{etag:application.etag}),
@@ -59,17 +62,18 @@ export async function createRuntimeApi(input) {
     dispatchFullTraceReader:tiledMap.trace,dispatchMapMatchService:tiledMap.match,dispatchMapTileService:tiledMap.tile,dispatchMapTileBatchService:tiledMap.tileBatch,
     providerUsageService:usage.summary,
     accountingService: createPostgresAccountingApiService(pool),
-    verifier, etagSecret: config.etagSecret, cursorSecret: `synthetic-cursor-secret-${config.cursorSecret}` });
-  const store = createPostgresRealtimeStore(pool, createTestOnlyCursorCodec({ secret: config.cursorSecret }));
+    verifier, secretProfile:identity?'migrated-live':'synthetic-test',etagSecret: config.etagSecret, cursorSecret: `synthetic-cursor-secret-${config.cursorSecret}` });
+  const store = createPostgresRealtimeStore(pool, createRealtimeCursorCodec({ secret: config.cursorSecret }));
   registerDriverAdmin(app,{accountsFile:process.env.KR_DRIVER_ADMINS_FILE,driverLogins});
-  registerDriverAccessManagement(app,{directory:process.env.KR_DRIVER_ACCESS_DIRECTORY,verify:authorization=>verifier.verify(authorization)});
+  registerDriverAccessManagement(app,{directory:process.env.KR_DRIVER_ACCESS_DIRECTORY,verify:request=>verifier.verifyRequest?verifier.verifyRequest(request):verifier.verify(request.headers.authorization)});
+  await identity?.register(app);
   let gateway;
   let stopped = false;
   let timer;
   // Refuse scaffold-only domain endpoints rather than silently presenting fake persistence.
   app.addHook('onRequest', async (request, reply) => {
     const path = request.url.split('?')[0];
-    if(path.startsWith('/driver-admin/'))return;
+    if(path.startsWith('/driver-admin/')||path.startsWith('/auth/'))return;
     if(/^\/v1\/organizations\/[^/]+\/driver-access(?:\/inspection-settings|\/codes(?:\/[^/]+\/(?:reset|disable))?|\/devices\/[^/]+\/signout)?$/.test(path))return;
     if(/^\/v1\/organizations\/[^/]+\/driver\/session\/commands\/sign-out$/.test(path))return;
     if(/^\/v1\/organizations\/[^/]+\/facility\/(?:days\/\d{4}-\d{2}-\d{2}|trips\/[^/]+)$/.test(path))return;
@@ -103,25 +107,26 @@ export async function createRuntimeApi(input) {
     // The build id is what the served bundle can be compared against, so a stale image
     // is visible instead of presenting as broken data (audit WEB-A-004/WEB-A-009).
     const build = process.env.KR_BUILD_ID ?? 'unknown';
-    try { await checkDatabase(); return { status: 'ready', profile: 'private-synthetic', build }; }
+    try { await checkDatabase(); return { status: 'ready', profile: config.profile, build }; }
     catch { return reply.code(503).send({ status: 'unavailable', build }); }
   });
   await app.register(async scope => {
     scope.decorateRequest('wp007Context');
     scope.addHook('onRequest', async (request, reply) => {
-      const principal = await verifier.verify(request.headers.authorization);
+      const principal = verifier.verifyRequest?await verifier.verifyRequest(request):await verifier.verify(request.headers.authorization);
       if (!principal) return reply.code(401).send({ code: 'AUTHENTICATION_REQUIRED' });
       request.wp007Context = { principal };
     });
     gateway = await registerWp009Realtime(scope, { store, generationSource: createAuthorizationGenerationSource(),
-      allowedOrigins: new Set(['http://kavaroutes.test']), maximumConnections: 50 });
+      allowedOrigins: new Set([identity?identity.config.origin:'http://kavaroutes.test']), maximumConnections: 50,
+      ...(identity?{revalidateBrowserSession:identity.revalidate}:{}) });
     scope.get('/v1/organizations/:organizationId/runtime-dispatch-snapshot', async (request, reply) => {
       const serviceDate = request.query.serviceDate;
       if (!/^\d{4}-\d{2}-\d{2}$/.test(serviceDate ?? '')) return reply.code(400).send({ code: 'INVALID_SERVICE_DATE' });
       try {
         const authorization = authorizeRealtimeSubscription({ principal: request.wp007Context.principal,
           organizationId: request.params.organizationId, authorizationGeneration: 1, purpose: 'DISPATCH_CONTROL',
-          scope: { streamKind: 'DISPATCH_DAY', scopeReference: branchScopeReference, serviceDate } });
+          scope: { streamKind: 'DISPATCH_DAY', scopeReference: companyBranchScope(request.params.organizationId), serviceDate } });
         reply.header('cache-control', 'no-store');
         return await store.snapshot(authorization);
       } catch { return reply.code(404).send({ code: 'RESOURCE_NOT_FOUND' }); }

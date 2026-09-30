@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-30T00:21:18.101Z",
-  "sourceFiles": 596,
-  "verifiedArchivedFiles": 115,
+  "generatedAt": "2026-09-30T01:20:01.249Z",
+  "sourceFiles": 608,
+  "verifiedArchivedFiles": 118,
   "scope": "Whole repository first-party source, SQL, configuration and tools; generated output, secrets, dependencies and archive excluded from active-code analysis.",
   "limitations": "Decision counts are a review aid, not a proof of cyclomatic complexity or correctness. Markers alone do not prove obsolescence. High-branch safety and command validation remain explicit.",
   "files": [
@@ -455,6 +455,14 @@
       "category": "tooling"
     },
     {
+      "file": "apps/web/src/business-auth.ts",
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-context.ts",
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/business-time.ts",
       "category": "application-or-runtime"
     },
@@ -683,6 +691,10 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
       "category": "application-or-runtime"
     },
@@ -796,6 +808,10 @@
     },
     {
       "file": "apps/web/test/browser/operations.spec.ts",
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
       "category": "test-support"
     },
     {
@@ -1099,6 +1115,18 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/business-identity-check.mjs",
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "category": "test-support"
+    },
+    {
       "file": "infra/gcp/runtime/cloud-driver-smoke.mjs",
       "category": "application-or-runtime"
     },
@@ -1283,6 +1311,10 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/prepare-business-identity.py",
+      "category": "application-or-runtime"
+    },
+    {
       "file": "infra/gcp/runtime/process-check.mjs",
       "category": "application-or-runtime"
     },
@@ -1292,6 +1324,14 @@
     },
     {
       "file": "infra/gcp/runtime/promote-runtime.test.py",
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/promotion-files.py",
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/promotion-files.test.py",
       "category": "test-support"
     },
     {
@@ -1309,6 +1349,10 @@
     {
       "file": "infra/gcp/runtime/provider-usage.test.mjs",
       "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/provision-business-identity.mjs",
+      "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/provision-driver-access.py",
@@ -1536,6 +1580,10 @@
     },
     {
       "file": "packages/api-contracts/src/google-identity-verifier.ts",
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "packages/api-contracts/src/http-transport.ts",
       "category": "application-or-runtime"
     },
     {
@@ -2491,13 +2539,6 @@
       "category": "application-or-runtime"
     },
     {
-      "file": "packages/api-contracts/src/private-development-transport.ts",
-      "line": 62,
-      "name": "request",
-      "decisions": 36,
-      "category": "application-or-runtime"
-    },
-    {
       "file": "packages/postgres-persistence/src/shift-closure.ts",
       "line": 24,
       "name": "closeDriverShift",
@@ -2513,21 +2554,14 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 44,
+      "line": 45,
       "name": "Component",
       "decisions": 34,
       "category": "application-or-runtime"
     },
     {
-      "file": "apps/api-host/src/browser-principal.ts",
-      "line": 37,
-      "name": "verifyRequest",
-      "decisions": 33,
-      "category": "application-or-runtime"
-    },
-    {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 103,
+      "line": 102,
       "name": "callback",
       "decisions": 33,
       "category": "application-or-runtime"
@@ -2543,6 +2577,13 @@
       "file": "benchmarks/workloads/lib/contracts.mjs",
       "line": 259,
       "name": "validateScenario",
+      "decisions": 31,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "packages/api-contracts/src/http-transport.ts",
+      "line": 41,
+      "name": "request",
       "decisions": 31,
       "category": "application-or-runtime"
     },
@@ -2568,6 +2609,13 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
+      "line": 104,
+      "name": "callback",
+      "decisions": 28,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "packages/api-contracts/src/client-route-proposals.ts",
       "line": 15,
       "name": "decodeRouteView",
@@ -2583,7 +2631,7 @@
     },
     {
       "file": "apps/web/src/components/CloudReturnReview.tsx",
-      "line": 27,
+      "line": 28,
       "name": "Review",
       "decisions": 27,
       "category": "application-or-runtime"
@@ -2592,13 +2640,6 @@
       "file": "apps/web/src/components/LocationSharingPanel.tsx",
       "line": 9,
       "name": "LocationSharingPanel",
-      "decisions": 27,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 103,
-      "name": "callback",
       "decisions": 27,
       "category": "application-or-runtime"
     },
@@ -2624,6 +2665,20 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 10,
+      "name": "validateBusinessIdentityConfig",
+      "decisions": 26,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/api-host/src/browser-principal.ts",
+      "line": 36,
+      "name": "verifyRequest",
+      "decisions": 25,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/cloud-command-recovery.ts",
       "line": 12,
       "name": "record",
@@ -2646,7 +2701,7 @@
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 27,
+      "line": 28,
       "name": "RouteStreetMap",
       "decisions": 24,
       "category": "application-or-runtime"
@@ -2701,10 +2756,31 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/integration.test.mjs",
+      "line": 34,
+      "name": "callback",
+      "decisions": 22,
+      "category": "test-support"
+    },
+    {
       "file": "packages/api-contracts/src/google-identity-verifier.ts",
       "line": 13,
       "name": "callback",
       "decisions": 22,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/config.mjs",
+      "line": 18,
+      "name": "validateConfig",
+      "decisions": 21,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/admin/src/provider-usage.mjs",
+      "line": 18,
+      "name": "providerUsageView",
+      "decisions": 20,
       "category": "application-or-runtime"
     },
     {
@@ -2730,36 +2806,15 @@
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 17,
+      "line": 18,
       "name": "DriverLoginForm",
       "decisions": 20,
       "category": "application-or-runtime"
     },
     {
-      "file": "infra/gcp/runtime/config.mjs",
-      "line": 17,
-      "name": "validateConfig",
-      "decisions": 20,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 33,
-      "name": "callback",
-      "decisions": 20,
-      "category": "test-support"
-    },
-    {
       "file": "packages/api-contracts/src/api.ts",
       "line": 156,
       "name": "policyActionRejection",
-      "decisions": 20,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "packages/api-contracts/src/private-development-transport.ts",
-      "line": 34,
-      "name": "createPrivateDevelopmentTransport",
       "decisions": 20,
       "category": "application-or-runtime"
     },
@@ -2771,22 +2826,15 @@
       "category": "tooling"
     },
     {
-      "file": "apps/admin/src/provider-usage.mjs",
-      "line": 18,
-      "name": "providerUsageView",
-      "decisions": 19,
-      "category": "application-or-runtime"
-    },
-    {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 62,
+      "line": 64,
       "name": "callback",
       "decisions": 19,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 19,
+      "line": 20,
       "name": "Component",
       "decisions": 19,
       "category": "application-or-runtime"
@@ -2835,7 +2883,7 @@
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 127,
+      "line": 126,
       "name": "callback",
       "decisions": 18,
       "category": "application-or-runtime"
@@ -2884,14 +2932,14 @@
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 67,
+      "line": 66,
       "name": "callback",
       "decisions": 17,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudReturnReview.tsx",
-      "line": 32,
+      "line": 33,
       "name": "submit",
       "decisions": 17,
       "category": "application-or-runtime"
@@ -2921,6 +2969,13 @@
       "file": "packages/api-contracts/src/driver-closure.ts",
       "line": 92,
       "name": "callback",
+      "decisions": 17,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "packages/api-contracts/src/private-development-transport.ts",
+      "line": 7,
+      "name": "createPrivateDevelopmentTransport",
       "decisions": 17,
       "category": "application-or-runtime"
     },
@@ -3038,7 +3093,7 @@
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 147,
+      "line": 146,
       "name": "routeTraceMap",
       "decisions": 15,
       "category": "application-or-runtime"
@@ -3051,15 +3106,8 @@
       "category": "application-or-runtime"
     },
     {
-      "file": "apps/web/src/components/CloudCommandRecovery.tsx",
-      "line": 5,
-      "name": "CloudCommandRecovery",
-      "decisions": 15,
-      "category": "application-or-runtime"
-    },
-    {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 41,
+      "line": 42,
       "name": "DispatchRouteForm",
       "decisions": 15,
       "category": "application-or-runtime"
@@ -3128,8 +3176,15 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/components/CloudCommandRecovery.tsx",
+      "line": 6,
+      "name": "CloudCommandRecovery",
+      "decisions": 14,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 33,
+      "line": 34,
       "name": "submit",
       "decisions": 14,
       "category": "application-or-runtime"
@@ -3156,6 +3211,27 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/api.mjs",
+      "line": 74,
+      "name": "callback",
+      "decisions": 14,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 126,
+      "name": "testPrincipal",
+      "decisions": 14,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/database.mjs",
+      "line": 53,
+      "name": "initializeDatabase",
+      "decisions": 14,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "infra/local/server.mjs",
       "line": 14,
       "name": "callback",
@@ -3166,6 +3242,13 @@
       "file": "packages/api-contracts/src/api-lifecycle.ts",
       "line": 106,
       "name": "callback",
+      "decisions": 14,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "packages/api-contracts/src/http-transport.ts",
+      "line": 29,
+      "name": "createApiTransport",
       "decisions": 14,
       "category": "application-or-runtime"
     },
@@ -3205,36 +3288,36 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/cloud-live.ts",
+      "line": 6,
+      "name": "connectCloudDispatch",
+      "decisions": 13,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 141,
+      "line": 142,
       "name": "plan",
       "decisions": 13,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 208,
+      "line": 209,
       "name": "callback",
       "decisions": 13,
       "category": "application-or-runtime"
     },
     {
-      "file": "infra/gcp/runtime/api.mjs",
-      "line": 70,
-      "name": "callback",
-      "decisions": 13,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/database.mjs",
-      "line": 53,
-      "name": "initializeDatabase",
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 141,
+      "name": "verifyRequest",
       "decisions": 13,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 73,
+      "line": 74,
       "name": "staticResponse",
       "decisions": 13,
       "category": "application-or-runtime"
@@ -3353,15 +3436,8 @@
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 97,
+      "line": 96,
       "name": "point",
-      "decisions": 12,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/cloud-live.ts",
-      "line": 6,
-      "name": "connectCloudDispatch",
       "decisions": 12,
       "category": "application-or-runtime"
     },
@@ -3430,14 +3506,14 @@
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 127,
+      "line": 130,
       "name": "decode",
       "decisions": 12,
       "category": "application-or-runtime"
     },
     {
       "file": "packages/api-contracts/src/security.ts",
-      "line": 132,
+      "line": 155,
       "name": "authorize",
       "decisions": 12,
       "category": "application-or-runtime"
@@ -3500,21 +3576,21 @@
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 82,
+      "line": 81,
       "name": "callback",
       "decisions": 11,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 153,
+      "line": 152,
       "name": "callback",
       "decisions": 11,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 168,
+      "line": 167,
       "name": "callback",
       "decisions": 11,
       "category": "application-or-runtime"
@@ -3542,14 +3618,14 @@
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 29,
+      "line": 30,
       "name": "decide",
       "decisions": 11,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 62,
+      "line": 63,
       "name": "callback",
       "decisions": 11,
       "category": "application-or-runtime"
@@ -3654,7 +3730,7 @@
     },
     {
       "file": "apps/api-host/src/browser-principal.ts",
-      "line": 15,
+      "line": 14,
       "name": "callback",
       "decisions": 10,
       "category": "application-or-runtime"
@@ -3689,7 +3765,7 @@
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 31,
+      "line": 27,
       "name": "decodeProfile",
       "decisions": 10,
       "category": "application-or-runtime"
@@ -3703,7 +3779,7 @@
     },
     {
       "file": "apps/web/src/components/CloudCommandRecovery.tsx",
-      "line": 9,
+      "line": 10,
       "name": "act",
       "decisions": 10,
       "category": "application-or-runtime"
@@ -3717,7 +3793,7 @@
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 54,
+      "line": 55,
       "name": "addDriver",
       "decisions": 10,
       "category": "application-or-runtime"
@@ -3863,22 +3939,29 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/business-context.ts",
+      "line": 6,
+      "name": "setBusinessContext",
+      "decisions": 9,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 164,
+      "line": 163,
       "name": "callback",
       "decisions": 9,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 194,
+      "line": 193,
       "name": "mapTile",
       "decisions": 9,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 51,
+      "line": 50,
       "name": "decodeClientRecord",
       "decisions": 9,
       "category": "application-or-runtime"
@@ -3969,7 +4052,14 @@
     },
     {
       "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 45,
+      "line": 46,
+      "name": "callback",
+      "decisions": 9,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/provision-business-identity.mjs",
+      "line": 16,
       "name": "callback",
       "decisions": 9,
       "category": "application-or-runtime"
@@ -4123,21 +4213,21 @@
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 76,
+      "line": 75,
       "name": "callback",
       "decisions": 8,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 294,
+      "line": 293,
       "name": "callback",
       "decisions": 8,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 57,
+      "line": 56,
       "name": "callback",
       "decisions": 8,
       "category": "application-or-runtime"
@@ -4151,14 +4241,14 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 190,
+      "line": 193,
       "name": "callback",
       "decisions": 8,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 35,
+      "line": 37,
       "name": "open",
       "decisions": 8,
       "category": "application-or-runtime"
@@ -4186,7 +4276,7 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 32,
+      "line": 33,
       "name": "callback",
       "decisions": 8,
       "category": "application-or-runtime"
@@ -4221,14 +4311,14 @@
     },
     {
       "file": "apps/web/src/routes/cloud-dispatch-route.tsx",
-      "line": 9,
+      "line": 10,
       "name": "Component",
       "decisions": 8,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-route-history-route.tsx",
-      "line": 9,
+      "line": 10,
       "name": "Component",
       "decisions": 8,
       "category": "application-or-runtime"
@@ -4297,13 +4387,6 @@
       "category": "application-or-runtime"
     },
     {
-      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 156,
-      "name": "callback",
-      "decisions": 8,
-      "category": "application-or-runtime"
-    },
-    {
       "file": "infra/gcp/runtime/recovery.mjs",
       "line": 107,
       "name": "callback",
@@ -4323,6 +4406,13 @@
       "name": "collectPropertyNames",
       "decisions": 8,
       "category": "tooling"
+    },
+    {
+      "file": "packages/api-contracts/src/api.ts",
+      "line": 272,
+      "name": "callback",
+      "decisions": 8,
+      "category": "application-or-runtime"
     },
     {
       "file": "packages/api-contracts/src/api.ts",
@@ -4349,6 +4439,13 @@
       "file": "packages/api-contracts/src/protocol.ts",
       "line": 54,
       "name": "safeDetail",
+      "decisions": 8,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "packages/api-contracts/src/security.ts",
+      "line": 76,
+      "name": "createMembershipPrincipal",
       "decisions": 8,
       "category": "application-or-runtime"
     },
@@ -4571,21 +4668,21 @@
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 124,
+      "line": 123,
       "name": "callback",
       "decisions": 7,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 203,
+      "line": 202,
       "name": "callback",
       "decisions": 7,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 208,
+      "line": 207,
       "name": "callback",
       "decisions": 7,
       "category": "application-or-runtime"
@@ -4599,14 +4696,14 @@
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 92,
+      "line": 91,
       "name": "decodeReceipt",
       "decisions": 7,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 36,
+      "line": 38,
       "name": "pendingAssignment",
       "decisions": 7,
       "category": "application-or-runtime"
@@ -4627,14 +4724,14 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 239,
+      "line": 240,
       "name": "callback",
       "decisions": 7,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-command-route.tsx",
-      "line": 11,
+      "line": 12,
       "name": "Component",
       "decisions": 7,
       "category": "application-or-runtime"
@@ -4703,6 +4800,41 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 50,
+      "name": "callback",
+      "decisions": 7,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 65,
+      "name": "callback",
+      "decisions": 7,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 90,
+      "name": "verify",
+      "decisions": 7,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 119,
+      "name": "selectedOrganization",
+      "decisions": 7,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 188,
+      "name": "callback",
+      "decisions": 7,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "infra/gcp/runtime/database.mjs",
       "line": 36,
       "name": "verifyRuntimeDatabase",
@@ -4752,6 +4884,13 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
+      "line": 151,
+      "name": "callback",
+      "decisions": 7,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "infra/gcp/runtime/recovery.mjs",
       "line": 54,
       "name": "callback",
@@ -4790,13 +4929,6 @@
       "file": "packages/api-contracts/src/api-lifecycle.ts",
       "line": 76,
       "name": "mappedError",
-      "decisions": 7,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "packages/api-contracts/src/api.ts",
-      "line": 272,
-      "name": "callback",
       "decisions": 7,
       "category": "application-or-runtime"
     },
@@ -4851,7 +4983,14 @@
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 170,
+      "line": 108,
+      "name": "integrationSecretAccepted",
+      "decisions": 7,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "packages/api-contracts/src/protocol.ts",
+      "line": 173,
       "name": "parseScalar",
       "decisions": 7,
       "category": "application-or-runtime"
@@ -5095,22 +5234,29 @@
       "category": "tooling"
     },
     {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 8,
+      "name": "api",
+      "decisions": 6,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 141,
+      "line": 140,
       "name": "callback",
       "decisions": 6,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 180,
+      "line": 179,
       "name": "callback",
       "decisions": 6,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 186,
+      "line": 185,
       "name": "callback",
       "decisions": 6,
       "category": "application-or-runtime"
@@ -5124,7 +5270,7 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 122,
+      "line": 125,
       "name": "callback",
       "decisions": 6,
       "category": "application-or-runtime"
@@ -5138,14 +5284,14 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 60,
+      "line": 61,
       "name": "callback",
       "decisions": 6,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 77,
+      "line": 78,
       "name": "callback",
       "decisions": 6,
       "category": "application-or-runtime"
@@ -5194,7 +5340,7 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 105,
+      "line": 106,
       "name": "createInvoice",
       "decisions": 6,
       "category": "application-or-runtime"
@@ -5215,7 +5361,7 @@
     },
     {
       "file": "apps/web/src/routes/cloud-tracking-route.tsx",
-      "line": 8,
+      "line": 9,
       "name": "Component",
       "decisions": 6,
       "category": "application-or-runtime"
@@ -5273,6 +5419,20 @@
       "file": "governance/privacy/lib/contracts.mjs",
       "line": 346,
       "name": "roleDecision",
+      "decisions": 6,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/api.mjs",
+      "line": 25,
+      "name": "createRuntimeApi",
+      "decisions": 6,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 28,
+      "name": "callback",
       "decisions": 6,
       "category": "application-or-runtime"
     },
@@ -5481,14 +5641,14 @@
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 180,
+      "line": 183,
       "name": "parseObject",
       "decisions": 6,
       "category": "application-or-runtime"
     },
     {
       "file": "packages/api-contracts/src/security.ts",
-      "line": 99,
+      "line": 122,
       "name": "createSyntheticTestVerifier",
       "decisions": 6,
       "category": "application-or-runtime"
@@ -5796,28 +5956,28 @@
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 161,
+      "line": 160,
       "name": "fullTrace",
       "decisions": 5,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 177,
+      "line": 176,
       "name": "traceMatch",
       "decisions": 5,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 307,
+      "line": 306,
       "name": "callback",
       "decisions": 5,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 81,
+      "line": 80,
       "name": "decodeClientRoster",
       "decisions": 5,
       "category": "application-or-runtime"
@@ -5838,7 +5998,7 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 176,
+      "line": 179,
       "name": "callback",
       "decisions": 5,
       "category": "application-or-runtime"
@@ -5873,14 +6033,14 @@
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 9,
+      "line": 10,
       "name": "CloudRouteReview",
       "decisions": 5,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 44,
+      "line": 45,
       "name": "callback",
       "decisions": 5,
       "category": "application-or-runtime"
@@ -5950,14 +6110,14 @@
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 15,
+      "line": 16,
       "name": "split",
       "decisions": 5,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 35,
+      "line": 36,
       "name": "callback",
       "decisions": 5,
       "category": "application-or-runtime"
@@ -5998,8 +6158,22 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 9,
+      "name": "Component",
+      "decisions": 5,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 13,
+      "name": "signIn",
+      "decisions": 5,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 278,
+      "line": 279,
       "name": "callback",
       "decisions": 5,
       "category": "application-or-runtime"
@@ -6124,6 +6298,13 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 197,
+      "name": "callback",
+      "decisions": 5,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "infra/gcp/runtime/cloud-driver-smoke.mjs",
       "line": 63,
       "name": "callback",
@@ -6139,7 +6320,7 @@
     },
     {
       "file": "infra/gcp/runtime/config.mjs",
-      "line": 31,
+      "line": 32,
       "name": "readSecretJson",
       "decisions": 5,
       "category": "application-or-runtime"
@@ -6334,6 +6515,13 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "packages/api-contracts/src/private-development-transport.ts",
+      "line": 16,
+      "name": "callback",
+      "decisions": 5,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "packages/api-contracts/src/protocol.ts",
       "line": 40,
       "name": "problemFor",
@@ -6342,14 +6530,7 @@
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 108,
-      "name": "integrationSecretAccepted",
-      "decisions": 5,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "packages/api-contracts/src/protocol.ts",
-      "line": 155,
+      "line": 158,
       "name": "readString",
       "decisions": 5,
       "category": "application-or-runtime"
@@ -6775,36 +6956,43 @@
       "category": "tooling"
     },
     {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 24,
+      "name": "signInBusiness",
+      "decisions": 4,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 227,
+      "line": 226,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 281,
+      "line": 280,
       "name": "createDriverAccount",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 289,
+      "line": 288,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 316,
+      "line": 315,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 328,
+      "line": 327,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
@@ -6846,28 +7034,28 @@
     },
     {
       "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 51,
+      "line": 53,
       "name": "run",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 152,
+      "line": 155,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 203,
+      "line": 206,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 59,
+      "line": 61,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
@@ -6881,7 +7069,7 @@
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 25,
+      "line": 26,
       "name": "Review",
       "decisions": 4,
       "category": "application-or-runtime"
@@ -6895,14 +7083,14 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 129,
+      "line": 130,
       "name": "returnClock",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 88,
+      "line": 89,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
@@ -6930,14 +7118,14 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 118,
+      "line": 119,
       "name": "forward",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 202,
+      "line": 203,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
@@ -7111,6 +7299,34 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 105,
+      "name": "createBusinessIdentity",
+      "decisions": 4,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 159,
+      "name": "revalidate",
+      "decisions": 4,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 179,
+      "name": "admit",
+      "decisions": 4,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 20,
+      "name": "token",
+      "decisions": 4,
+      "category": "test-support"
+    },
+    {
       "file": "infra/gcp/runtime/config.mjs",
       "line": 53,
       "name": "classifyFailure",
@@ -7184,6 +7400,13 @@
       "file": "infra/gcp/runtime/driver-sessions.mjs",
       "line": 50,
       "name": "revoke",
+      "decisions": 4,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
+      "line": 157,
+      "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
     },
@@ -7448,7 +7671,7 @@
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 196,
+      "line": 199,
       "name": "parseArray",
       "decisions": 4,
       "category": "application-or-runtime"
@@ -8057,98 +8280,98 @@
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 12,
+      "line": 8,
       "name": "object",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 16,
+      "line": 12,
       "name": "integer",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 52,
+      "line": 48,
       "name": "decodeProfileView",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 92,
+      "line": 85,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 16,
+      "line": 15,
       "name": "object",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 29,
+      "line": 28,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 94,
+      "line": 93,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 184,
+      "line": 183,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 196,
+      "line": 195,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 202,
+      "line": 201,
       "name": "mapTiles",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 245,
+      "line": 244,
       "name": "selectRoadRoute",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 253,
+      "line": 252,
       "name": "assign",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 260,
+      "line": 259,
       "name": "unassignRun",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 268,
+      "line": 267,
       "name": "planRun",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -8169,14 +8392,14 @@
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 9,
+      "line": 8,
       "name": "object",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 16,
+      "line": 15,
       "name": "text",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -8211,21 +8434,28 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 112,
+      "line": 84,
+      "name": "createCloudDriverWebApi",
+      "decisions": 3,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/cloud-driver-api.ts",
+      "line": 115,
       "name": "restoreNativeSession",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 132,
+      "line": 135,
       "name": "claimLogin",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 168,
+      "line": 171,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -8295,7 +8525,7 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 194,
+      "line": 195,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -8337,28 +8567,28 @@
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 54,
+      "line": 55,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 77,
+      "line": 78,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 85,
+      "line": 86,
       "name": "fit",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 105,
+      "line": 106,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -8441,15 +8671,22 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/router.tsx",
+      "line": 51,
+      "name": "businessLoader",
+      "decisions": 3,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 35,
+      "line": 37,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 54,
+      "line": 56,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -8687,15 +8924,43 @@
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 118,
+      "line": 123,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 130,
+      "line": 135,
       "name": "tick",
+      "decisions": 3,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity-check.mjs",
+      "line": 22,
+      "name": "callback",
+      "decisions": 3,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 96,
+      "name": "authorize",
+      "decisions": 3,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 112,
+      "name": "resolve",
+      "decisions": 3,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 164,
+      "name": "workspaces",
       "decisions": 3,
       "category": "application-or-runtime"
     },
@@ -8794,13 +9059,6 @@
       "file": "infra/gcp/runtime/main.mjs",
       "line": 9,
       "name": "stop",
-      "decisions": 3,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 150,
-      "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
@@ -9044,14 +9302,14 @@
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 207,
+      "line": 210,
       "name": "parseValue",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 228,
+      "line": 231,
       "name": "safeTelemetryEvent",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -9065,7 +9323,7 @@
     },
     {
       "file": "packages/api-contracts/src/security.ts",
-      "line": 114,
+      "line": 137,
       "name": "verify",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -9932,78 +10190,106 @@
       "category": "tooling"
     },
     {
-      "file": "apps/web/src/cloud-accounting-api.ts",
+      "file": "apps/web/src/business-auth.ts",
+      "line": 18,
+      "name": "callback",
+      "decisions": 2,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 44,
+      "name": "signOutBusiness",
+      "decisions": 2,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-context.ts",
+      "line": 13,
+      "name": "loadBusinessContext",
+      "decisions": 2,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-context.ts",
       "line": 21,
+      "name": "callback",
+      "decisions": 2,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/cloud-accounting-api.ts",
+      "line": 17,
       "name": "text",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 26,
+      "line": 22,
       "name": "list",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 58,
+      "line": 54,
       "name": "decodeTrip",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 141,
+      "line": 134,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 34,
+      "line": 33,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 45,
+      "line": 44,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 52,
+      "line": 51,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 205,
+      "line": 204,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 225,
+      "line": 224,
       "name": "pickupTimezone",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 247,
+      "line": 246,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 276,
+      "line": 275,
       "name": "createDriverLogin",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -10031,21 +10317,21 @@
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 21,
+      "line": 20,
       "name": "serviceDate",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 25,
+      "line": 24,
       "name": "tripType",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 66,
+      "line": 65,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -10066,42 +10352,49 @@
     },
     {
       "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 53,
+      "line": 55,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 91,
+      "line": 89,
+      "name": "callback",
+      "decisions": 2,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/cloud-driver-api.ts",
+      "line": 94,
       "name": "acceptLogin",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 117,
+      "line": 120,
       "name": "nativeTrackingSession",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 139,
+      "line": 142,
       "name": "verifyLogin",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 162,
+      "line": 165,
       "name": "precheck",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 29,
+      "line": 31,
       "name": "retry",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -10129,14 +10422,14 @@
     },
     {
       "file": "apps/web/src/components/CloudReturnReview.tsx",
-      "line": 18,
+      "line": 19,
       "name": "CloudReturnReview",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 38,
+      "line": 39,
       "name": "nodeLabel",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -10150,14 +10443,14 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 35,
+      "line": 36,
       "name": "trimmed",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 87,
+      "line": 88,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -10192,7 +10485,7 @@
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 27,
+      "line": 28,
       "name": "choose",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -10262,7 +10555,7 @@
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 94,
+      "line": 95,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -10283,7 +10576,7 @@
     },
     {
       "file": "apps/web/src/dispatch-queries.ts",
-      "line": 21,
+      "line": 20,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -10346,42 +10639,42 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 70,
+      "line": 71,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 80,
+      "line": 81,
       "name": "saveProfile",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 89,
+      "line": 90,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 135,
+      "line": 136,
       "name": "exportHistory",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 265,
+      "line": 266,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 30,
+      "line": 32,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -10661,22 +10954,43 @@
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 96,
+      "line": 100,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 102,
+      "line": 106,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
-      "file": "infra/gcp/runtime/config.mjs",
-      "line": 45,
-      "name": "readConfig",
+      "file": "infra/gcp/runtime/api.mjs",
+      "line": 113,
+      "name": "callback",
+      "decisions": 2,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/api.mjs",
+      "line": 115,
+      "name": "callback",
+      "decisions": 2,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity-check.mjs",
+      "line": 12,
+      "name": "checkBusinessIdentity",
+      "decisions": 2,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 83,
+      "name": "openBusinessProvider",
       "decisions": 2,
       "category": "application-or-runtime"
     },
@@ -10822,10 +11136,17 @@
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 37,
+      "line": 38,
       "name": "docker",
       "decisions": 2,
       "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
+      "line": 35,
+      "name": "cleanProxyHeaders",
+      "decisions": 2,
+      "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/provider-usage.mjs",
@@ -10892,7 +11213,14 @@
     },
     {
       "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 35,
+      "line": 25,
+      "name": "callback",
+      "decisions": 2,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/runtime.test.mjs",
+      "line": 38,
       "name": "callback",
       "decisions": 2,
       "category": "test-support"
@@ -11179,21 +11507,21 @@
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 117,
+      "line": 120,
       "name": "createCursorCodec",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 151,
+      "line": 154,
       "name": "parseStrictJson",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 154,
+      "line": 157,
       "name": "whitespace",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -11207,7 +11535,7 @@
     },
     {
       "file": "packages/api-contracts/src/security.ts",
-      "line": 75,
+      "line": 98,
       "name": "fixture",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -12781,183 +13109,211 @@
       "category": "tooling"
     },
     {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 16,
+      "name": "prepareBusinessSignIn",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 37,
+      "name": "select",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-context.ts",
+      "line": 12,
+      "name": "businessContext",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-context.ts",
+      "line": 19,
+      "name": "createBusinessTransport",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 25,
+      "line": 21,
       "name": "nullableText",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 90,
+      "line": 83,
       "name": "estimates",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 100,
+      "line": 93,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 106,
+      "line": 99,
       "name": "invoice",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 108,
+      "line": 101,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 127,
+      "line": 120,
       "name": "forwardInvoice",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 134,
+      "line": 127,
       "name": "clientHistory",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 136,
+      "line": 129,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 15,
+      "line": 22,
       "name": "tripPath",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 39,
+      "line": 38,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 50,
+      "line": 49,
       "name": "resetDriverAccessCode",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 57,
+      "line": 56,
       "name": "disableDriverAccessCode",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 61,
+      "line": 60,
       "name": "signOutDriverDevice",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 65,
+      "line": 64,
       "name": "returnReview",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 73,
+      "line": 72,
       "name": "overrideReturn",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 80,
+      "line": 79,
       "name": "shiftStatus",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 85,
+      "line": 84,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 92,
+      "line": 91,
       "name": "tracking",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 122,
+      "line": 121,
       "name": "routeHistory",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 216,
+      "line": 215,
       "name": "routeProposals",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 217,
+      "line": 216,
       "name": "decideRoute",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 221,
+      "line": 220,
       "name": "board",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 236,
+      "line": 235,
       "name": "roadRouteSelection",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 240,
+      "line": 239,
       "name": "previewRoadRoute",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 287,
+      "line": 286,
       "name": "dispatchSnapshot",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 315,
+      "line": 314,
       "name": "list",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -12992,7 +13348,7 @@
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 13,
+      "line": 12,
       "name": "keysAre",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -13006,21 +13362,21 @@
     },
     {
       "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 32,
+      "line": 31,
+      "name": "createCloudCommandRecovery",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/cloud-command-recovery.ts",
+      "line": 34,
       "name": "command",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 32,
-      "name": "callback",
-      "decisions": 1,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 33,
+      "line": 34,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -13028,90 +13384,90 @@
     {
       "file": "apps/web/src/cloud-command-recovery.ts",
       "line": 35,
+      "name": "callback",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/cloud-command-recovery.ts",
+      "line": 37,
       "name": "pending",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 84,
-      "name": "createCloudDriverWebApi",
-      "decisions": 1,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 90,
+      "line": 93,
       "name": "authenticatedDriver",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 103,
+      "line": 106,
       "name": "signOut",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 105,
+      "line": 108,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 143,
+      "line": 146,
       "name": "itinerary",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 147,
+      "line": 150,
       "name": "roadRoute",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 151,
+      "line": 154,
       "name": "startShift",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 158,
+      "line": 161,
       "name": "shift",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 174,
+      "line": 177,
       "name": "signature",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 182,
+      "line": 185,
       "name": "closure",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 188,
+      "line": 191,
       "name": "locationBatch",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 52,
+      "line": 54,
       "name": "fail",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -13216,7 +13572,7 @@
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 16,
+      "line": 17,
       "name": "label",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -13237,28 +13593,28 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 71,
+      "line": 72,
       "name": "patch",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 76,
+      "line": 77,
       "name": "build",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 214,
+      "line": 215,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 216,
+      "line": 217,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -13363,14 +13719,14 @@
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 10,
+      "line": 11,
       "name": "suggestLoginId",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 80,
+      "line": 81,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -13412,13 +13768,6 @@
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 49,
-      "name": "callback",
-      "decisions": 1,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/components/RouteStreetMap.tsx",
       "line": 50,
       "name": "callback",
       "decisions": 1,
@@ -13426,7 +13775,14 @@
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 68,
+      "line": 51,
+      "name": "callback",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/RouteStreetMap.tsx",
+      "line": 69,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -13447,7 +13803,7 @@
     },
     {
       "file": "apps/web/src/dispatch-queries.ts",
-      "line": 13,
+      "line": 12,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -13531,49 +13887,56 @@
     },
     {
       "file": "apps/web/src/router.tsx",
-      "line": 36,
+      "line": 23,
+      "name": "callback",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/router.tsx",
+      "line": 38,
       "name": "RootError",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 66,
+      "line": 67,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 126,
+      "line": 127,
       "name": "exportInvoice",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 188,
+      "line": 189,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 247,
+      "line": 248,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 14,
+      "line": 15,
       "name": "loader",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 74,
+      "line": 76,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -14091,21 +14454,7 @@
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 23,
-      "name": "createRuntimeApi",
-      "decisions": 1,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/api.mjs",
-      "line": 29,
-      "name": "callback",
-      "decisions": 1,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/api.mjs",
-      "line": 111,
+      "line": 31,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -14118,9 +14467,65 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "infra/gcp/runtime/business-identity-check.mjs",
+      "line": 34,
+      "name": "callback",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 48,
+      "name": "createAccessIdentityVerifier",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 186,
+      "name": "callback",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 11,
+      "name": "callback",
+      "decisions": 1,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 17,
+      "name": "callback",
+      "decisions": 1,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 29,
+      "name": "callback",
+      "decisions": 1,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 41,
+      "name": "callback",
+      "decisions": 1,
+      "category": "test-support"
+    },
+    {
       "file": "infra/gcp/runtime/cloud-driver-smoke.mjs",
       "line": 17,
       "name": "json",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/config.mjs",
+      "line": 46,
+      "name": "readConfig",
       "decisions": 1,
       "category": "application-or-runtime"
     },
@@ -14427,14 +14832,14 @@
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 139,
+      "line": 145,
       "name": "callback",
       "decisions": 1,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 497,
+      "line": 503,
       "name": "callback",
       "decisions": 1,
       "category": "test-support"
@@ -14462,21 +14867,14 @@
     },
     {
       "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 35,
-      "name": "cleanProxyHeaders",
-      "decisions": 1,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 41,
+      "line": 42,
       "name": "proxy",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 66,
+      "line": 67,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -14554,13 +14952,6 @@
     {
       "file": "infra/gcp/runtime/runtime.test.mjs",
       "line": 10,
-      "name": "callback",
-      "decisions": 1,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 25,
       "name": "callback",
       "decisions": 1,
       "category": "test-support"
@@ -14771,6 +15162,13 @@
     {
       "file": "packages/api-contracts/src/api.ts",
       "line": 256,
+      "name": "callback",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "packages/api-contracts/src/api.ts",
+      "line": 260,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -15126,6 +15524,13 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "packages/api-contracts/src/http-transport.ts",
+      "line": 24,
+      "name": "callback",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "packages/api-contracts/src/inspection-jpeg.ts",
       "line": 14,
       "name": "callback",
@@ -15147,15 +15552,8 @@
       "category": "application-or-runtime"
     },
     {
-      "file": "packages/api-contracts/src/private-development-transport.ts",
-      "line": 27,
-      "name": "callback",
-      "decisions": 1,
-      "category": "application-or-runtime"
-    },
-    {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 147,
+      "line": 150,
       "name": "isValidTraceparent",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -15934,6 +16332,13 @@
       "file": "packages/realtime/src/cursor.ts",
       "line": 84,
       "name": "decrypt",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "packages/realtime/src/cursor.ts",
+      "line": 147,
+      "name": "createRealtimeCursorCodec",
       "decisions": 1,
       "category": "application-or-runtime"
     },
@@ -18480,21 +18885,21 @@
     },
     {
       "file": "apps/api-host/src/browser-principal.ts",
-      "line": 14,
+      "line": 13,
       "name": "createBrowserRealtimeRevalidator",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/api-host/src/browser-principal.ts",
-      "line": 31,
+      "line": 30,
       "name": "createBrowserPrincipalVerifier",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/api-host/src/browser-principal.ts",
-      "line": 36,
+      "line": 35,
       "name": "verify",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -21440,6 +21845,62 @@
       "category": "tooling"
     },
     {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 15,
+      "name": "getBusinessAuthConfig",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 15,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 17,
+      "name": "getIdentity",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 22,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 38,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-auth.ts",
+      "line": 43,
+      "name": "resetBusinessPassword",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-context.ts",
+      "line": 8,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/business-context.ts",
+      "line": 27,
+      "name": "businessQueryScope",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/business-time.ts",
       "line": 7,
       "name": "businessToday",
@@ -21483,252 +21944,252 @@
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 20,
+      "line": 16,
       "name": "money",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 34,
+      "line": 30,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 67,
+      "line": 63,
       "name": "decodeInvoice",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 78,
+      "line": 74,
       "name": "createCloudAccountingApi",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 85,
+      "line": 78,
       "name": "costProfile",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 86,
+      "line": 79,
       "name": "updateCostProfile",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 87,
+      "line": 80,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 99,
+      "line": 92,
       "name": "invoices",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 111,
+      "line": 104,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 120,
+      "line": 113,
       "name": "createInvoice",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 121,
+      "line": 114,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 129,
+      "line": 122,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 21,
+      "line": 20,
       "name": "createCloudApi",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 29,
+      "line": 28,
       "name": "driverAccess",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 34,
+      "line": 33,
       "name": "driverInspectionSettings",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 38,
+      "line": 37,
       "name": "setDriverInspectionSettings",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 44,
+      "line": 43,
       "name": "createDriverAccessCode",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 59,
+      "line": 58,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 63,
+      "line": 62,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 74,
+      "line": 73,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 183,
+      "line": 182,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 204,
+      "line": 203,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 216,
+      "line": 215,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 219,
+      "line": 218,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 223,
+      "line": 222,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 242,
+      "line": 241,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 255,
+      "line": 254,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 262,
+      "line": 261,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 271,
+      "line": 270,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 279,
+      "line": 278,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 285,
+      "line": 284,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 306,
+      "line": 305,
       "name": "authenticate",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 310,
+      "line": 309,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 322,
+      "line": 321,
       "name": "read",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 323,
+      "line": 322,
       "name": "create",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-api.ts",
-      "line": 326,
+      "line": 325,
       "name": "cancel",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -21777,14 +22238,14 @@
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 20,
+      "line": 19,
       "name": "nullableText",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-client-api.ts",
-      "line": 100,
+      "line": 99,
       "name": "createCloudClientApi",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -21840,35 +22301,28 @@
     },
     {
       "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 31,
-      "name": "createCloudCommandRecovery",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 33,
+      "line": 35,
       "name": "pendingRecord",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 43,
+      "line": 45,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 49,
+      "line": 51,
       "name": "execute",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-command-recovery.ts",
-      "line": 50,
+      "line": 52,
       "name": "acknowledge",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -21889,126 +22343,126 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 89,
+      "line": 88,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 102,
+      "line": 105,
       "name": "clearDriverSession",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 121,
+      "line": 124,
       "name": "authenticate",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 125,
+      "line": 128,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 135,
+      "line": 138,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 141,
+      "line": 144,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 145,
+      "line": 148,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 160,
+      "line": 163,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 165,
+      "line": 168,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 167,
+      "line": 170,
       "name": "action",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 184,
+      "line": 187,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 202,
+      "line": 205,
       "name": "close",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 19,
+      "line": 21,
       "name": "validCursor",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 33,
+      "line": 35,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 38,
+      "line": 40,
       "name": "active",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 47,
+      "line": 49,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 85,
+      "line": 87,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-live.ts",
-      "line": 90,
+      "line": 92,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -22470,77 +22924,70 @@
     },
     {
       "file": "apps/web/src/components/CloudCommandRecovery.tsx",
-      "line": 7,
+      "line": 8,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudCommandRecovery.tsx",
-      "line": 7,
+      "line": 8,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudCommandRecovery.tsx",
-      "line": 21,
+      "line": 22,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudCommandRecovery.tsx",
-      "line": 21,
+      "line": 22,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudCommandRecovery.tsx",
-      "line": 23,
+      "line": 24,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudReturnReview.tsx",
-      "line": 10,
+      "line": 11,
       "name": "returnReviewIdentity",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudReturnReview.tsx",
-      "line": 13,
+      "line": 14,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudReturnReview.tsx",
-      "line": 23,
+      "line": 24,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudReturnReview.tsx",
-      "line": 31,
+      "line": 32,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudReturnReview.tsx",
-      "line": 31,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/components/CloudReturnReview.tsx",
-      "line": 76,
+      "line": 32,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -22553,8 +23000,8 @@
       "category": "application-or-runtime"
     },
     {
-      "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 15,
+      "file": "apps/web/src/components/CloudReturnReview.tsx",
+      "line": 78,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -22568,14 +23015,7 @@
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 21,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 21,
+      "line": 17,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -22589,42 +23029,49 @@
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 26,
+      "line": 22,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 31,
+      "line": 23,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 38,
+      "line": 27,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 40,
+      "line": 32,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 42,
+      "line": 39,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 44,
+      "line": 41,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/CloudRouteReview.tsx",
+      "line": 43,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -22638,14 +23085,21 @@
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 45,
+      "line": 46,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/CloudRouteReview.tsx",
-      "line": 48,
+      "line": 46,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/CloudRouteReview.tsx",
+      "line": 49,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -22799,49 +23253,42 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 25,
+      "line": 26,
       "name": "emptyLeg",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 32,
+      "line": 33,
       "name": "sortDropoffs",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 50,
+      "line": 51,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 63,
+      "line": 64,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 73,
+      "line": 74,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 73,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 104,
+      "line": 74,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -22855,15 +23302,15 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 118,
-      "name": "syncReturns",
+      "line": 106,
+      "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
       "line": 119,
-      "name": "callback",
+      "name": "syncReturns",
       "decisions": 0,
       "category": "application-or-runtime"
     },
@@ -22876,49 +23323,49 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 120,
+      "line": 121,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 134,
+      "line": 121,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DispatchRouteForm.tsx",
+      "line": 135,
       "name": "setTripType",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 135,
+      "line": 136,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 135,
+      "line": 136,
       "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 139,
-      "name": "addTripFromThisPickup",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
       "line": 140,
-      "name": "callback",
+      "name": "addTripFromThisPickup",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 149,
+      "line": 141,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -22939,49 +23386,49 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 182,
+      "line": 152,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 189,
+      "line": 183,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 192,
+      "line": 190,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 197,
+      "line": 193,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 202,
+      "line": 198,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 204,
+      "line": 203,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 211,
+      "line": 205,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -23002,21 +23449,21 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 213,
+      "line": 214,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 217,
+      "line": 214,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 221,
+      "line": 218,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -23037,7 +23484,7 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 225,
+      "line": 224,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -23058,49 +23505,56 @@
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 229,
+      "line": 228,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 231,
+      "line": 230,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 231,
+      "line": 232,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 231,
+      "line": 232,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 233,
+      "line": 232,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 233,
+      "line": 234,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DispatchRouteForm.tsx",
-      "line": 235,
+      "line": 234,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DispatchRouteForm.tsx",
+      "line": 236,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -23597,28 +24051,14 @@
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 25,
+      "line": 31,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 30,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 75,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 81,
+      "line": 76,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -23639,35 +24079,35 @@
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 88,
+      "line": 84,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 88,
+      "line": 89,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 93,
+      "line": 89,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 95,
+      "line": 94,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
-      "line": 98,
+      "line": 96,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -23682,6 +24122,13 @@
     {
       "file": "apps/web/src/components/DriverLoginForm.tsx",
       "line": 100,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverLoginForm.tsx",
+      "line": 101,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -24087,28 +24534,21 @@
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 14,
+      "line": 15,
       "name": "legColor",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 39,
+      "line": 40,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 39,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 43,
+      "line": 40,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -24129,7 +24569,7 @@
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 45,
+      "line": 46,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -24150,14 +24590,14 @@
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 52,
+      "line": 48,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 58,
+      "line": 53,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -24171,28 +24611,35 @@
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 69,
+      "line": 60,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 82,
+      "line": 70,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 98,
+      "line": 83,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/RouteStreetMap.tsx",
-      "line": 98,
+      "line": 99,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/RouteStreetMap.tsx",
+      "line": 99,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -24416,6 +24863,20 @@
     },
     {
       "file": "apps/web/src/dispatch-queries.ts",
+      "line": 6,
+      "name": "scope",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/dispatch-queries.ts",
+      "line": 8,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/dispatch-queries.ts",
       "line": 9,
       "name": "callback",
       "decisions": 0,
@@ -24437,7 +24898,14 @@
     },
     {
       "file": "apps/web/src/dispatch-queries.ts",
-      "line": 12,
+      "line": 15,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/dispatch-queries.ts",
+      "line": 15,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -24493,28 +24961,14 @@
     },
     {
       "file": "apps/web/src/dispatch-queries.ts",
-      "line": 19,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/dispatch-queries.ts",
-      "line": 20,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/dispatch-queries.ts",
-      "line": 23,
+      "line": 22,
       "name": "boardPollingInterval",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/dispatch-queries.ts",
-      "line": 24,
+      "line": 23,
       "name": "recoveryPollingInterval",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -24780,91 +25234,49 @@
     },
     {
       "file": "apps/web/src/router.tsx",
-      "line": 13,
+      "line": 15,
       "name": "AppShell",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/router.tsx",
-      "line": 25,
+      "line": 27,
       "name": "DriverShell",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/router.tsx",
-      "line": 41,
+      "line": 43,
       "name": "NotFound",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/router.tsx",
-      "line": 43,
+      "line": 45,
       "name": "HydrateFallback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/router.tsx",
-      "line": 51,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/router.tsx",
-      "line": 52,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/router.tsx",
-      "line": 53,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/router.tsx",
-      "line": 54,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/router.tsx",
-      "line": 55,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/router.tsx",
-      "line": 56,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/router.tsx",
-      "line": 57,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/router.tsx",
-      "line": 58,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/router.tsx",
       "line": 59,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/router.tsx",
+      "line": 62,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/router.tsx",
+      "line": 63,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -24877,29 +25289,183 @@
       "category": "application-or-runtime"
     },
     {
-      "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 17,
-      "name": "money",
+      "file": "apps/web/src/router.tsx",
+      "line": 65,
+      "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
-      "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 38,
-      "name": "moneyField",
+      "file": "apps/web/src/router.tsx",
+      "line": 66,
+      "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
-      "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 45,
+      "file": "apps/web/src/router.tsx",
+      "line": 67,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/router.tsx",
+      "line": 68,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/router.tsx",
+      "line": 69,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/router.tsx",
+      "line": 70,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/router.tsx",
+      "line": 75,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 12,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 12,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 12,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 24,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 24,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 24,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 24,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 25,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 25,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 26,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 28,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 28,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 29,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 29,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 29,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/business-sign-in-route.tsx",
+      "line": 29,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 53,
+      "line": 18,
+      "name": "money",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-accounting-route.tsx",
+      "line": 39,
+      "name": "moneyField",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-accounting-route.tsx",
+      "line": 46,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -24913,7 +25479,7 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 56,
+      "line": 55,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -24941,29 +25507,29 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 62,
+      "line": 60,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 76,
+      "line": 63,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 87,
+      "line": 77,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-accounting-route.tsx",
+      "line": 88,
       "name": "exportEstimates",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 97,
-      "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
@@ -24976,14 +25542,14 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 137,
+      "line": 99,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 158,
+      "line": 138,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -25095,35 +25661,35 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 189,
+      "line": 174,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 194,
+      "line": 190,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 206,
+      "line": 195,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 218,
+      "line": 207,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 220,
+      "line": 219,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -25207,28 +25773,28 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 233,
+      "line": 232,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 245,
+      "line": 234,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 249,
+      "line": 246,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 251,
+      "line": 250,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -25242,7 +25808,7 @@
     },
     {
       "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 262,
+      "line": 253,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -25262,29 +25828,29 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/routes/cloud-accounting-route.tsx",
+      "line": 265,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
       "line": 21,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-clients-route.tsx",
+      "line": 23,
       "name": "schedule",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 22,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 26,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 27,
+      "line": 24,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -25298,84 +25864,91 @@
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 28,
+      "line": 29,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 31,
+      "line": 30,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 34,
+      "line": 30,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-clients-route.tsx",
+      "line": 33,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-clients-route.tsx",
+      "line": 36,
       "name": "exportDirectory",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 42,
+      "line": 44,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 46,
+      "line": 48,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 47,
+      "line": 49,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 57,
+      "line": 59,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 57,
+      "line": 59,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 69,
+      "line": 71,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 76,
+      "line": 78,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-clients-route.tsx",
-      "line": 79,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-command-route.tsx",
-      "line": 12,
+      "line": 81,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -25395,15 +25968,15 @@
       "category": "application-or-runtime"
     },
     {
-      "file": "apps/web/src/routes/cloud-dispatch-route.tsx",
-      "line": 10,
+      "file": "apps/web/src/routes/cloud-command-route.tsx",
+      "line": 15,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-dispatch-route.tsx",
-      "line": 12,
+      "line": 11,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -25424,14 +25997,21 @@
     },
     {
       "file": "apps/web/src/routes/cloud-dispatch-route.tsx",
-      "line": 16,
+      "line": 15,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-dispatch-route.tsx",
-      "line": 27,
+      "line": 17,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-dispatch-route.tsx",
+      "line": 28,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -25718,28 +26298,21 @@
     },
     {
       "file": "apps/web/src/routes/cloud-route-history-route.tsx",
-      "line": 10,
+      "line": 11,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-route-history-route.tsx",
-      "line": 14,
+      "line": 15,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-route-history-route.tsx",
-      "line": 18,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-tracking-route.tsx",
-      "line": 9,
+      "line": 19,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -25754,6 +26327,13 @@
     {
       "file": "apps/web/src/routes/cloud-tracking-route.tsx",
       "line": 11,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-tracking-route.tsx",
+      "line": 12,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -26776,6 +27356,76 @@
     {
       "file": "apps/web/test/browser/operations.spec.ts",
       "line": 59,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
+      "line": 6,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
+      "line": 8,
+      "name": "fetcher",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
+      "line": 11,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
+      "line": 11,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
+      "line": 18,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
+      "line": 20,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
+      "line": 22,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
+      "line": 23,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
+      "line": 23,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/business-context.test.ts",
+      "line": 24,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -29666,20 +30316,6 @@
     },
     {
       "file": "apps/web/test/setup.ts",
-      "line": 5,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "apps/web/test/setup.ts",
-      "line": 6,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "apps/web/test/setup.ts",
       "line": 6,
       "name": "callback",
       "decisions": 0,
@@ -29688,6 +30324,27 @@
     {
       "file": "apps/web/test/setup.ts",
       "line": 7,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/setup.ts",
+      "line": 7,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/setup.ts",
+      "line": 8,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/setup.ts",
+      "line": 10,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -32452,70 +33109,63 @@
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 28,
+      "line": 30,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 33,
+      "line": 36,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 37,
+      "line": 40,
       "name": "checkDatabase",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 47,
+      "line": 50,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 65,
+      "line": 68,
       "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/api.mjs",
-      "line": 109,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/api.mjs",
-      "line": 134,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/api.mjs",
-      "line": 136,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/api.mjs",
-      "line": 138,
-      "name": "start",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
       "line": 139,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/api.mjs",
+      "line": 141,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/api.mjs",
+      "line": 143,
+      "name": "start",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/api.mjs",
+      "line": 144,
       "name": "close",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -32540,6 +33190,237 @@
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity-check.mjs",
+      "line": 19,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity-check.mjs",
+      "line": 30,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity-check.mjs",
+      "line": 34,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity-check.mjs",
+      "line": 49,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 12,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 27,
+      "name": "createBusinessMembershipReader",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 28,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 63,
+      "name": "createPooledAccountLookup",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 63,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 70,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 76,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 76,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 77,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 78,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 78,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 78,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 88,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 101,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 140,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 145,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 162,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 171,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 177,
+      "name": "register",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.mjs",
+      "line": 208,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 15,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 31,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 31,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 34,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 34,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 38,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 41,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 48,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 48,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/cloud-driver-smoke.mjs",
@@ -34335,99 +35216,85 @@
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 53,
+      "line": 54,
       "name": "cfg",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 56,
+      "line": 57,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 64,
+      "line": 66,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 106,
+      "line": 112,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 107,
+      "line": 113,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 109,
+      "line": 115,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 109,
+      "line": 115,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 135,
+      "line": 141,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 137,
+      "line": 143,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 157,
+      "line": 163,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 158,
+      "line": 164,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 207,
+      "line": 213,
       "name": "enrolledTenants",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 207,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 210,
-      "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
@@ -34440,42 +35307,49 @@
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 217,
+      "line": 216,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 229,
+      "line": 219,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 230,
+      "line": 223,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 232,
+      "line": 235,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/integration.test.mjs",
+      "line": 236,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/integration.test.mjs",
+      "line": 238,
       "name": "authorized",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 233,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 234,
+      "line": 239,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -34489,14 +35363,7 @@
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 242,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 247,
+      "line": 246,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -34510,70 +35377,63 @@
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 275,
+      "line": 253,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 276,
+      "line": 254,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 277,
+      "line": 281,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 278,
+      "line": 282,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 293,
+      "line": 283,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 294,
+      "line": 284,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 304,
+      "line": 299,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 316,
-      "name": "bSources",
+      "line": 300,
+      "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 321,
-      "name": "bSource",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 321,
+      "line": 310,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -34581,91 +35441,91 @@
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
       "line": 322,
+      "name": "bSources",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/integration.test.mjs",
+      "line": 327,
+      "name": "bSource",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/integration.test.mjs",
+      "line": 327,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/integration.test.mjs",
+      "line": 328,
       "name": "bThinJob",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 326,
+      "line": 332,
       "name": "bEnvelope",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 335,
+      "line": 341,
       "name": "bValidated",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 350,
+      "line": 356,
       "name": "publishProjectionFixture",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 381,
+      "line": 387,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 392,
+      "line": 398,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 399,
+      "line": 405,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 429,
+      "line": 435,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 430,
+      "line": 436,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 438,
+      "line": 444,
       "name": "bJournalCount",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 441,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 443,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 445,
-      "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
@@ -34678,28 +35538,42 @@
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 486,
+      "line": 449,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 502,
+      "line": 451,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 504,
+      "line": 453,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 512,
+      "line": 492,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/integration.test.mjs",
+      "line": 508,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/integration.test.mjs",
+      "line": 510,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -34713,21 +35587,28 @@
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 522,
+      "line": 524,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 531,
+      "line": 528,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 545,
+      "line": 537,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/integration.test.mjs",
+      "line": 551,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -35084,28 +35965,42 @@
     },
     {
       "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 65,
+      "line": 66,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 149,
+      "line": 150,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 155,
+      "line": 156,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 176,
+      "line": 167,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
+      "line": 168,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
+      "line": 172,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -35119,21 +36014,7 @@
     },
     {
       "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 181,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 186,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 186,
+      "line": 177,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -35763,14 +36644,7 @@
     },
     {
       "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 32,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 40,
+      "line": 35,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -35784,28 +36658,28 @@
     },
     {
       "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 45,
+      "line": 46,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 47,
+      "line": 48,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 51,
+      "line": 50,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 53,
+      "line": 54,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -35813,6 +36687,13 @@
     {
       "file": "infra/gcp/runtime/runtime.test.mjs",
       "line": 56,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/runtime.test.mjs",
+      "line": 59,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -35876,6 +36757,13 @@
     {
       "file": "infra/gcp/runtime/worker.mjs",
       "line": 24,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/worker.mjs",
+      "line": 146,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -36731,13 +37619,6 @@
       "file": "packages/api-contracts/src/api.ts",
       "line": 258,
       "name": "profileRoutes",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "packages/api-contracts/src/api.ts",
-      "line": 260,
-      "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
@@ -37729,6 +38610,13 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "packages/api-contracts/src/http-transport.ts",
+      "line": 54,
+      "name": "abort",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "packages/api-contracts/src/identity-admission.ts",
       "line": 30,
       "name": "callback",
@@ -37760,13 +38648,6 @@
       "file": "packages/api-contracts/src/pony-fixtures.ts",
       "line": 26,
       "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "packages/api-contracts/src/private-development-transport.ts",
-      "line": 76,
-      "name": "abort",
       "decisions": 0,
       "category": "application-or-runtime"
     },
@@ -37807,14 +38688,14 @@
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 122,
+      "line": 125,
       "name": "encode",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 153,
+      "line": 156,
       "name": "malformed",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -37905,14 +38786,14 @@
     },
     {
       "file": "packages/api-contracts/src/security.ts",
-      "line": 73,
+      "line": 96,
       "name": "companyBranchScope",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "packages/api-contracts/src/security.ts",
-      "line": 74,
+      "line": 97,
       "name": "companyFleetScope",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -46531,18 +47412,13 @@
       "category": "application-or-runtime"
     },
     {
-      "file": "apps/admin/src/provider-usage.mjs",
-      "line": 25,
-      "category": "application-or-runtime"
-    },
-    {
       "file": "apps/api-host/src/browser-auth.ts",
       "line": 26,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/api-host/src/browser-principal.ts",
-      "line": 36,
+      "line": 35,
       "category": "application-or-runtime"
     },
     {
@@ -46921,18 +47797,8 @@
       "category": "application-or-runtime"
     },
     {
-      "file": "apps/web/src/cloud-accounting-api.ts",
-      "line": 79,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/cloud-api.ts",
-      "line": 24,
-      "category": "application-or-runtime"
-    },
-    {
       "file": "apps/web/src/components/CloudReturnReview.tsx",
-      "line": 11,
+      "line": 12,
       "category": "application-or-runtime"
     },
     {
@@ -46943,11 +47809,6 @@
     {
       "file": "apps/web/src/components/DriverSignaturePad.tsx",
       "line": 42,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-accounting-route.tsx",
-      "line": 100,
       "category": "application-or-runtime"
     },
     {
@@ -47096,11 +47957,6 @@
       "category": "test-support"
     },
     {
-      "file": "apps/web/test/cloud-api.test.ts",
-      "line": 24,
-      "category": "test-support"
-    },
-    {
       "file": "apps/web/test/cloud-board.test.tsx",
       "line": 11,
       "category": "test-support"
@@ -47143,11 +47999,6 @@
     {
       "file": "apps/web/test/cloud-client-api.test.ts",
       "line": 25,
-      "category": "test-support"
-    },
-    {
-      "file": "apps/web/test/cloud-client-api.test.ts",
-      "line": 28,
       "category": "test-support"
     },
     {
@@ -47208,11 +48059,6 @@
     {
       "file": "apps/web/test/cloud-client-api.test.ts",
       "line": 55,
-      "category": "test-support"
-    },
-    {
-      "file": "apps/web/test/cloud-client-api.test.ts",
-      "line": 58,
       "category": "test-support"
     },
     {
@@ -47532,23 +48378,58 @@
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 28,
+      "line": 30,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 62,
+      "line": 38,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 81,
+      "line": 65,
       "category": "application-or-runtime"
     },
     {
       "file": "infra/gcp/runtime/api.mjs",
-      "line": 106,
+      "line": 85,
       "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity-check.mjs",
+      "line": 35,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity-check.mjs",
+      "line": 39,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 15,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 31,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 32,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 34,
+      "category": "test-support"
+    },
+    {
+      "file": "infra/gcp/runtime/business-identity.test.mjs",
+      "line": 35,
+      "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/cloud-driver-smoke.mjs",
@@ -47559,16 +48440,6 @@
       "file": "infra/gcp/runtime/cloud-driver-smoke.mjs",
       "line": 13,
       "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/cloud-health.py",
-      "line": 35,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/cloud-health.test.py",
-      "line": 22,
-      "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/cloud-realtime.mjs",
@@ -47612,7 +48483,12 @@
     },
     {
       "file": "infra/gcp/runtime/config.mjs",
-      "line": 27,
+      "line": 23,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/config.mjs",
+      "line": 28,
       "category": "application-or-runtime"
     },
     {
@@ -47627,7 +48503,7 @@
     },
     {
       "file": "infra/gcp/runtime/database.mjs",
-      "line": 29,
+      "line": 103,
       "category": "application-or-runtime"
     },
     {
@@ -47757,137 +48633,137 @@
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 51,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/integration.test.mjs",
       "line": 52,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 68,
+      "line": 53,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 91,
+      "line": 70,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 96,
+      "line": 93,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 123,
+      "line": 98,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 228,
+      "line": 129,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 232,
+      "line": 234,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 239,
+      "line": 238,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 267,
+      "line": 245,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 274,
+      "line": 273,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 293,
+      "line": 280,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 294,
+      "line": 299,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 306,
+      "line": 300,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 310,
+      "line": 312,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 311,
+      "line": 316,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 351,
+      "line": 317,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 356,
+      "line": 357,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 460,
+      "line": 362,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 478,
+      "line": 466,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 479,
+      "line": 484,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 498,
+      "line": 485,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 515,
+      "line": 504,
       "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/integration.test.mjs",
-      "line": 518,
+      "line": 521,
       "category": "test-support"
     },
     {
-      "file": "infra/gcp/runtime/manifest.mjs",
-      "line": 7,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/manifest.mjs",
-      "line": 17,
-      "category": "application-or-runtime"
+      "file": "infra/gcp/runtime/integration.test.mjs",
+      "line": 524,
+      "category": "test-support"
     },
     {
       "file": "infra/gcp/runtime/network-check.mjs",
       "line": 29,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/prepare-business-identity.py",
+      "line": 43,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/prepare-business-identity.py",
+      "line": 44,
       "category": "application-or-runtime"
     },
     {
@@ -47897,7 +48773,7 @@
     },
     {
       "file": "infra/gcp/runtime/promote-runtime.py",
-      "line": 59,
+      "line": 64,
       "category": "application-or-runtime"
     },
     {
@@ -47921,28 +48797,18 @@
       "category": "test-support"
     },
     {
+      "file": "infra/gcp/runtime/promotion-files.py",
+      "line": 16,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "infra/gcp/runtime/promotion-files.py",
+      "line": 17,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "infra/gcp/runtime/prototype-compose.override.yaml",
-      "line": 29,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 99,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 160,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 167,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "infra/gcp/runtime/prototype-web-gateway.mjs",
-      "line": 169,
+      "line": 31,
       "category": "application-or-runtime"
     },
     {
@@ -47962,11 +48828,6 @@
     },
     {
       "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 11,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/runtime.test.mjs",
       "line": 22,
       "category": "test-support"
     },
@@ -47977,17 +48838,7 @@
     },
     {
       "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 25,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 27,
-      "category": "test-support"
-    },
-    {
-      "file": "infra/gcp/runtime/runtime.test.mjs",
-      "line": 42,
+      "line": 29,
       "category": "test-support"
     },
     {
@@ -48312,17 +49163,7 @@
     },
     {
       "file": "packages/api-contracts/src/private-development-transport.ts",
-      "line": 3,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "packages/api-contracts/src/private-development-transport.ts",
-      "line": 40,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "packages/api-contracts/src/private-development-transport.ts",
-      "line": 80,
+      "line": 19,
       "category": "application-or-runtime"
     },
     {
@@ -48347,12 +49188,7 @@
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 109,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "packages/api-contracts/src/protocol.ts",
-      "line": 111,
+      "line": 112,
       "category": "application-or-runtime"
     },
     {
@@ -48367,7 +49203,12 @@
     },
     {
       "file": "packages/api-contracts/src/protocol.ts",
-      "line": 118,
+      "line": 120,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "packages/api-contracts/src/protocol.ts",
+      "line": 121,
       "category": "application-or-runtime"
     },
     {
@@ -48397,17 +49238,12 @@
     },
     {
       "file": "packages/api-contracts/src/security.ts",
-      "line": 69,
+      "line": 118,
       "category": "application-or-runtime"
     },
     {
       "file": "packages/api-contracts/src/security.ts",
-      "line": 95,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "packages/api-contracts/src/security.ts",
-      "line": 116,
+      "line": 139,
       "category": "application-or-runtime"
     },
     {

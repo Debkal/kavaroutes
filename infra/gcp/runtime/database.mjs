@@ -26,7 +26,7 @@ export async function verifyMigrationManifest(pool) {
   if (drifted.length) throw new Error(`RUNTIME_MIGRATION_DRIFT:${drifted.slice(0, 5).join(',')}`);
 }
 
-export function makePool(config, applicationName = 'kavaroutes-private-synthetic') {
+export function makePool(config, applicationName = 'kavaroutes-runtime') {
   const pool = new Pool({ connectionString: config.databaseUrl, max: 4, connectionTimeoutMillis: 3000,
     statement_timeout: 10000, idle_in_transaction_session_timeout: 10000, application_name: applicationName });
   pool.on('error', () => {}); // Never log raw DB errors or credentials. Readiness actively queries the DB.
@@ -100,7 +100,7 @@ export async function initializeDatabase(adminConfig, passwords) {
     await pool.query(`GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA ${schema} TO kr_cloud_worker, kavaroutes_outbox_publisher`);
     await pool.query(`GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ${schema} TO kr_cloud_worker, kavaroutes_outbox_publisher`);
     await pool.query(`GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA ${schema} TO kr_cloud_worker, kavaroutes_outbox_publisher`);
-    await withTenantTransaction(pool, tenantId, 'kavaroutes_api', async client => {
+    if(adminConfig.profile==='private-synthetic')await withTenantTransaction(pool, tenantId, 'kavaroutes_api', async client => {
       await client.query("INSERT INTO platform.organization(tenant_id,id,synthetic_name) VALUES ($1,$1,'Synthetic cloud conformance') ON CONFLICT DO NOTHING", [tenantId]);
       await client.query("INSERT INTO intake.rider(tenant_id,id,synthetic_reference) VALUES ($1,$2,'synthetic-cloud-rider') ON CONFLICT DO NOTHING", [tenantId, riderId]);
     });

@@ -40,7 +40,7 @@ try {
   }
   process.once('SIGTERM', () => void stop());
   process.once('SIGINT', () => void stop());
-  process.stdout.write('RUNTIME_STARTED_PRIVATE_SYNTHETIC\n');
+  process.stdout.write('RUNTIME_STARTED\n');
 } catch {
   process.stderr.write('RUNTIME_START_FAILED\n');
   await stop();

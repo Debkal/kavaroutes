@@ -1,3 +1,4 @@
+import {businessQueryScope} from '../business-context';
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createCloudApi } from "../cloud-api";
@@ -13,7 +14,7 @@ export function Component() {
   const api = useMemo(() => createCloudApi(window.location.origin, window.fetch.bind(window)), []);
   const [serviceDate, setServiceDate] = useState(()=>businessToday());
   const [liveStatus, setLiveStatus] = useState("connecting");
-  const session = useQuery({ queryKey: ["private-cloud", "session"], queryFn: ({ signal }) => api.authenticate(signal), retry: false });
+  const session = useQuery({ queryKey: [...businessQueryScope(), "session"], queryFn: ({ signal }) => api.authenticate(signal), retry: false });
   return <main id="main-content" className="dispatch-page">
     <section className="page-title"><div><p className="eyebrow">KavaRoutes Dispatch</p><h1>Your transportation day</h1>
       <p>Schedule client requests, assign drivers, and follow each trip from pickup to drop-off.</p></div>

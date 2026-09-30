@@ -1,6 +1,7 @@
+import {businessQueryScope} from '../business-context';
 import {useRef,useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development-transport';
+import {DevelopmentApiError} from '@kavaroutes/api-contracts/http-transport';
 import type {createCloudApi} from '../cloud-api';
 import {CloudCommandRecovery} from './CloudCommandRecovery';
 
@@ -28,7 +29,7 @@ function Review({api,shift,label}:{api:Api;shift:string;label?:string}){
  const [pending,setPending]=useState<Command|null>(null);
  const [message,setMessage]=useState(''),[busy,setBusy]=useState(false),flight=useRef(false);
  const [acknowledgeUnresolved,setAcknowledgeUnresolved]=useState(false);
- const view=useQuery({queryKey:['private-cloud','policy_override','return-review',shift],queryFn:()=>api.returnReview(shift),retry:false,refetchInterval:query=>query.state.data?.value.lifecycle==='SHIFT_ENDED'?false:15_000});
+ const view=useQuery({queryKey:[...businessQueryScope(),'policy_override','return-review',shift],queryFn:()=>api.returnReview(shift),retry:false,refetchInterval:query=>query.state.data?.value.lifecycle==='SHIFT_ENDED'?false:15_000});
  const submit=async()=>{
   if(flight.current)return;let command=pending;
   if(!command){

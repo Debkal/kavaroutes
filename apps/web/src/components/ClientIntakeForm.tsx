@@ -1,5 +1,5 @@
 import {useRef,useState} from "react";
-import {DevelopmentApiError} from "@kavaroutes/api-contracts/private-development-transport";
+import {DevelopmentApiError} from "@kavaroutes/api-contracts/http-transport";
 import type {ClientCreateReceipt,ClientCreateRequest,createCloudClientApi} from "../cloud-client-api";
 
 const limits = {displayName: 200, entityName: 200, phone: 40, address: 512, notes: 2000} as const;

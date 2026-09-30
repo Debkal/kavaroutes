@@ -15,14 +15,14 @@ export function recordAdminProviderUsage(store,{businessId,provider,operation,fe
 
 /** This localhost-only bridge is called after the platform owner's admin
  * session is verified. The tenant always comes from the linked workspace. */
-export async function providerUsageView(store,businessId,hours,{fetcher=fetch}={}){
+export async function providerUsageView(store,businessId,hours,{fetcher=fetch,assertion}={}){
   if(!validId(businessId)||![1,24,168].includes(hours))fail(400,'INVALID_PROVIDER_USAGE_QUERY');
   const linked=store.get(`SELECT b.id,b.name,w.tenant_id FROM businesses b JOIN business_workspaces w
     ON w.business_id=b.id WHERE b.id=?`,businessId);
   if(!linked||!validId(linked.tenant_id))fail(404,'BUSINESS_WORKSPACE_NOT_FOUND');
   let response;
   try{response=await fetcher(`http://127.0.0.1:58082/v1/organizations/${linked.tenant_id}/dispatch/provider-usage?hours=${hours}`,
-    {headers:{authorization:'Synthetic principal_dispatcher',accept:'application/json'},signal:AbortSignal.timeout(10000),redirect:'error'});}
+    {headers:{...(typeof assertion==='string'?{'cf-access-jwt-assertion':assertion}:{}),accept:'application/json'},signal:AbortSignal.timeout(10000),redirect:'error'});}
   catch{fail(503,'PROVIDER_USAGE_UNAVAILABLE');}
   if(!response.ok)fail(503,'PROVIDER_USAGE_UNAVAILABLE');
   let value;try{value=await response.json();}catch{fail(503,'PROVIDER_USAGE_UNAVAILABLE');}

@@ -53,7 +53,7 @@ Dependency evidence now runs its own fresh registry scan instead of accepting a 
 
 ## Remaining boundaries
 
-The currently deployed Dispatch composition still relies on the legacy private-synthetic/test_pony principal and fixed tenant contracts. The independent Driver authentication path uses real business/device/driver credentials. Removing those active Dispatch identity contracts requires a coordinated authenticated multi-business migration; deleting or cosmetically renaming them would break current data and authorization. Accordingly, `prototype-web-gateway.mjs` and the existing VM overlay retain their compatibility names because they remain live deployment dependencies.
+The legacy shared Dispatch identity has subsequently been migrated. The application uses authenticated business context and explicit memberships/grants; Cloudflare remains the configured TestPony test-environment exception. Ordinary business email/password and SSO wiring is prepared but its provider settings remain unconfigured. See [the identity migration record](business-identity-migration-2026-09-29.md) for the actual boundaries and remaining setup. The live gateway and VM overlay retain compatibility filenames; their pre-migration implementations are hash-preserved in the root archive.
 
 The worker's single-job fetch remains intentional: its leased jobs must not expire while earlier jobs execute. Existing pool bounds, one in-flight cycle, bounded outbox claims and enrollment checks remain. High-branching safety, tenant, role, policy and command-version validation stays explicit. Decision counts flag areas for review; reducing that number alone is not a correctness improvement.
 

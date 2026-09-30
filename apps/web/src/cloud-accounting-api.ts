@@ -1,13 +1,9 @@
-import { createPrivateDevelopmentTransport, type DevelopmentFetch } from "@kavaroutes/api-contracts/private-development-transport";
+import {  type DevelopmentFetch } from "@kavaroutes/api-contracts/http-transport";
 import type { RouteCostProfile } from "@kavaroutes/api-contracts/route-costing";
 
-/**
- * The accounting surface's own scoped transport. It runs as the billing principal
- * (`billing:read` / `billing:command`, BILLING_PROOF), so money data is never read or
- * changed through the dispatch board's authority.
- */
-const organizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const prefix = `/v1/organizations/${organizationId}`;
+import {businessContext,createBusinessTransport} from './business-context';
+// Accounting uses the signed-in user's persisted billing grants, never an
+// independent principal selected by the browser.
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const object = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("INVALID_ACCOUNTING_RESPONSE");
@@ -75,12 +71,9 @@ const decodeInvoice = (value: unknown) => {
     createdAt: text(row.createdAt, 35) };
 };
 
-export function createCloudAccountingApi(baseUrl: string, fetcher: DevelopmentFetch) {
-  // Every other web surface allows the same-origin HTTPS edge prototype; the accounting
-  // transport must too, or the deployed tab throws PRIVATE_DEVELOPMENT_LOOPBACK_REQUIRED
-  // while the shell still answers 200.
-  const browserSameOrigin = new URL(baseUrl).protocol === "https:";
-  const transport = createPrivateDevelopmentTransport({ baseUrl, persona: "billing", fetch: fetcher, browserSameOrigin });
+export function createCloudAccountingApi(baseUrl: string, fetcher: DevelopmentFetch, organizationId=businessContext().organizationId) {
+  const prefix=`/v1/organizations/${organizationId}`;
+  const transport=createBusinessTransport(baseUrl,fetcher,organizationId);
   return Object.freeze({
     costProfile(signal?: AbortSignal) { return transport.request(`${prefix}/billing/cost-profile`, decodeProfileView, undefined, signal); },
     updateCostProfile(profile: RouteCostProfile, expectedVersion: number, key: string) {

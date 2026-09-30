@@ -1,3 +1,4 @@
+import {businessQueryScope} from '../business-context';
 import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {useSearchParams} from 'react-router';
@@ -11,7 +12,7 @@ export function Component(){
   const [search,setSearch]=useSearchParams();
   const requested=search.get('date');
   const day=requested&&/^\d{4}-\d{2}-\d{2}$/.test(requested)&&Number.isFinite(Date.parse(`${requested}T12:00:00Z`))?requested:businessToday();
-  const session=useQuery({queryKey:['private-cloud','session'],queryFn:({signal})=>api.authenticate(signal),retry:false});
+  const session=useQuery({queryKey:[...businessQueryScope(),'session'],queryFn:({signal})=>api.authenticate(signal),retry:false});
   return <main id="main-content" className="dispatch-page route-history-page">
     <section className="page-title"><div><p className="eyebrow">KavaRoutes Dispatch</p><h1>Route history</h1><p>Review completed driver shifts, their recorded GPS traces, and gaps in location reporting.</p></div>
       <span className={`dispatch-connection ${session.isSuccess?'ready':session.isError?'error':'connecting'}`}>{session.isSuccess?'History connected':session.isError?'History unavailable':'Connecting…'}</span></section>

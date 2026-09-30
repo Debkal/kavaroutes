@@ -1,8 +1,9 @@
+import {businessQueryScope} from '../business-context';
 import {useRef,useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import type {createCloudApi} from '../cloud-api';
 import type {RouteView} from '@kavaroutes/api-contracts/client-route-proposals';
-import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development-transport';
+import {DevelopmentApiError} from '@kavaroutes/api-contracts/http-transport';
 import {dispatchQueries} from '../dispatch-queries';
 import {shiftBandLabel} from '../shift-band';
 type Api=ReturnType<typeof createCloudApi>;
@@ -23,7 +24,7 @@ export function CloudRouteReview({api,day,enabled}:{api:Api;day:string;enabled:b
  </section>;
 }
 function Review({api,shift,enabled}:{api:Api;shift:string;enabled:boolean}){
- const view=useQuery({queryKey:['private-cloud','dispatch-route-review',shift],queryFn:()=>api.routeProposals(shift),enabled,retry:false,refetchInterval:15_000});
+ const view=useQuery({queryKey:[...businessQueryScope(),'dispatch-route-review',shift],queryFn:()=>api.routeProposals(shift),enabled,retry:false,refetchInterval:15_000});
  const pending=useRef<Parameters<Api['decideRoute']>[0]|null>(null),flight=useRef(false);
  const [message,setMessage]=useState(''),[busy,setBusy]=useState(false);
  const decide=async(proposalId:string,decision:'APPROVED'|'REJECTED')=>{

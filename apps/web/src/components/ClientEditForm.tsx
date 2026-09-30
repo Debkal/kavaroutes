@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {DevelopmentApiError} from "@kavaroutes/api-contracts/private-development-transport";
+import {DevelopmentApiError} from "@kavaroutes/api-contracts/http-transport";
 import type {ClientRecord,ClientTripType,createCloudClientApi} from "../cloud-client-api";
 
 /** Correct a client record dispatch already entered. The operator fields and the pickup

@@ -1,16 +1,18 @@
 import { companyBranchScope } from "@kavaroutes/api-contracts/security";
 
-const dispatchOrganizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
 
 /** Socket frames invalidate REST state; they never supply trip or shift authority. */
 export function connectCloudDispatch(options: {
   origin: string;
+  organizationId:string;
   serviceDate: string;
   snapshot(): Promise<string>;
   refresh(): Promise<void>;
   status(value: "connecting" | "live" | "reconnecting" | "unavailable"): void;
   socket?: (url: string, protocol: string) => WebSocket;
 }) {
+  if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(options.organizationId))throw Error('INVALID_BUSINESS_ID');
   const origin = new URL(options.origin);
   const loopback = origin.protocol === "http:" && origin.hostname === "127.0.0.1" && Boolean(origin.port) && Number(origin.port) >= 1024;
   const edgePrototype = origin.protocol === "https:" && !origin.port;
@@ -65,8 +67,8 @@ export function connectCloudDispatch(options: {
           if (!frame || typeof frame !== "object") throw new Error("INVALID_FRAME");
           if (frame.type === "connection.ready" && frame.protocol === "kavaroutes.realtime.v1") {
             connection.send(JSON.stringify({ type: "subscription.subscribe", messageId: "message:web:subscribe", subscriptionId,
-              organizationId: dispatchOrganizationId, purpose: "DISPATCH_CONTROL",
-              scope: { streamKind: "DISPATCH_DAY", scopeReference: companyBranchScope(dispatchOrganizationId), serviceDate: options.serviceDate }, cursor }));
+              organizationId: options.organizationId, purpose: "DISPATCH_CONTROL",
+              scope: { streamKind: "DISPATCH_DAY", scopeReference: companyBranchScope(options.organizationId), serviceDate: options.serviceDate }, cursor }));
           } else if (frame.type === "subscription.live" && frame.subscriptionId === subscriptionId && frame.code === "LIVE") {
             clearTimeout(watchdog); attempt = 0; options.status("live");
           } else if (frame.type === "change.batch" && frame.subscriptionId === subscriptionId && validCursor(frame.cursor) &&

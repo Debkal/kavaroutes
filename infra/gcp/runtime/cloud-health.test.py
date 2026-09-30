@@ -19,7 +19,7 @@ class HealthTests(unittest.TestCase):
                                        (200, b'CANARY_SECRET', False)]:
             with patch.object(health, 'exchange', return_value=(status, body)):
                 self.assertEqual(health.ready('worker'), expected)
-        with patch.object(health, 'exchange', return_value=(200, b'{"status":"ready","profile":"private-synthetic"}')):
+        with patch.object(health, 'exchange', return_value=(200, b'{"status":"ready","profile":"business-authenticated"}')):
             self.assertTrue(health.ready('api'))
         with patch.object(health, 'exchange', side_effect=RuntimeError('CANARY_TOKEN')):
             self.assertFalse(health.ready('worker'))

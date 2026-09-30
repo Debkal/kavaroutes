@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
-import {DevelopmentApiError} from '@kavaroutes/api-contracts/private-development-transport';
+import {DevelopmentApiError} from '@kavaroutes/api-contracts/http-transport';
 import type {createCloudApi} from '../cloud-api';
 import type {CloudAssignmentCommand} from '../cloud-board-contract';
 import {recoveryIdentity,type PendingAssignment} from '../cloud-command-recovery';
@@ -30,7 +30,7 @@ export function CloudBoard({api,enabled,serviceDate,onServiceDateChange,focusRun
  const refresh=useRef(async()=>{});refresh.current=async()=>{const result=await board.refetch();if(result.isError)throw new Error('BOARD_REFRESH_FAILED');await cache.invalidateQueries({queryKey:dispatchKeys.snapshot(day)});};
  useEffect(()=>{
   if(!enabled)return;
-  return connectCloudDispatch({origin:window.location.origin,serviceDate:day,snapshot:async()=>(await cache.fetchQuery(dispatchQueries.snapshot(api,day))).value.cursor,refresh:()=>refresh.current(),status:setLive});
+  return connectCloudDispatch({origin:window.location.origin,organizationId:api.organizationId,serviceDate:day,snapshot:async()=>(await cache.fetchQuery(dispatchQueries.snapshot(api,day))).value.cursor,refresh:()=>refresh.current(),status:setLive});
  },[api,enabled,day,cache]);
  useEffect(()=>{
   const warn=(event:BeforeUnloadEvent)=>{if(pending.current){event.preventDefault();event.returnValue='';}};

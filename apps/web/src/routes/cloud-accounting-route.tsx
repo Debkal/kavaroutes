@@ -1,10 +1,11 @@
+import {businessQueryScope} from '../business-context';
 import {useEffect,useMemo,useState} from "react";
 import {useQuery} from "@tanstack/react-query";
 import {routeCostProfileDefaults, estimateRouteCost, pricingVolume, validCostProfile, type RouteCostProfile} from "@kavaroutes/api-contracts/route-costing";
 import {QuickQuote} from '../components/QuickQuote';
 import {CostNumberInput} from '../components/CostNumberInput';
 import {BusinessInsurance} from '../components/BusinessInsurance';
-import {DevelopmentApiError} from "@kavaroutes/api-contracts/private-development-transport";
+import {DevelopmentApiError} from "@kavaroutes/api-contracts/http-transport";
 import {createCloudAccountingApi} from "../cloud-accounting-api";
 import {createCloudClientApi} from "../cloud-client-api";
 import {clientHistoryRows, downloadCsv, estimateRows, invoiceClaimRows} from "../csv";
@@ -53,13 +54,13 @@ export function Component(){
  const accounting=useMemo(()=>createCloudAccountingApi(window.location.origin,window.fetch.bind(window)),[]);
  const clients=useMemo(()=>createCloudClientApi(window.location.origin,window.fetch.bind(window)),[]);
 
- const stored=useQuery({queryKey:["accounting","cost-profile"],queryFn:({signal})=>accounting.costProfile(signal),retry:false});
- const estimates=useQuery({queryKey:["accounting","estimates",serviceDate],queryFn:({signal})=>accounting.estimates(serviceDate,signal),retry:false,refetchInterval:30000});
- const invoices=useQuery({queryKey:["accounting","invoices"],queryFn:({signal})=>accounting.invoices(50,signal),retry:false,refetchInterval:30000});
- const roster=useQuery({queryKey:["accounting","clients"],queryFn:({signal})=>clients.roster(undefined,signal),retry:false});
+ const stored=useQuery({queryKey:[...businessQueryScope(),"accounting","cost-profile"],queryFn:({signal})=>accounting.costProfile(signal),retry:false});
+ const estimates=useQuery({queryKey:[...businessQueryScope(),"accounting","estimates",serviceDate],queryFn:({signal})=>accounting.estimates(serviceDate,signal),retry:false,refetchInterval:30000});
+ const invoices=useQuery({queryKey:[...businessQueryScope(),"accounting","invoices"],queryFn:({signal})=>accounting.invoices(50,signal),retry:false,refetchInterval:30000});
+ const roster=useQuery({queryKey:[...businessQueryScope(),"accounting","clients"],queryFn:({signal})=>clients.roster(undefined,signal),retry:false});
  const [clientId,setClientId]=useState("");
  const [lookback,setLookback]=useState<number>(90);
- const history=useQuery({queryKey:["accounting","history",clientId,lookback],queryFn:({signal})=>accounting.clientHistory(clientId,lookback,signal),enabled:!!clientId,retry:false});
+ const history=useQuery({queryKey:[...businessQueryScope(),"accounting","history",clientId,lookback],queryFn:({signal})=>accounting.clientHistory(clientId,lookback,signal),enabled:!!clientId,retry:false});
 
  // A stored profile is the operator's own quote; the research defaults are only a
  // starting point, so the stored values replace them as soon as they load.
@@ -97,7 +98,7 @@ export function Component(){
  const [periodStart,setPeriodStart]=useState(()=>businessToday().slice(0,8)+"01");
  const [periodEnd,setPeriodEnd]=useState(()=>businessToday());
  const [payerKind,setPayerKind]=useState<string>("BROKER");
- const [payerName,setPayerName]=useState("Synthetic Broker");
+ const [payerName,setPayerName]=useState("");
  const [claimReference,setClaimReference]=useState("");
  const [hcpcsCode,setHcpcsCode]=useState("A0130");
  const [authorizationNumber,setAuthorizationNumber]=useState("");

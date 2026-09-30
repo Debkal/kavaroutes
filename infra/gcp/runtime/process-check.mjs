@@ -45,8 +45,8 @@ export async function checkProcesses(configFor) {
       assert.equal(ready, true, `${role} process readiness`);
       item.child.kill(role === 'api' ? 'SIGTERM' : 'SIGINT');
       assert.deepEqual(await exitWithin(item), { code: 0, signal: null });
-      assert.equal(item.output().trim(), 'RUNTIME_STARTED_PRIVATE_SYNTHETIC');
-      const production = start(role, path, { NODE_ENV: 'production' });
+      assert.equal(item.output().trim(), 'RUNTIME_STARTED');
+      const production = start(role, path, { NODE_ENV: 'production', KR_CLOUD_LOCAL_TEST:'0' });
       assert.equal((await exitWithin(production)).code, 1);
       assert.equal(production.output().trim(), 'RUNTIME_START_FAILED');
       const bad = { ...config, databaseUrl: config.databaseUrl.replace(/:[^:@]+@/, ':synthetic-wrong-password@') };

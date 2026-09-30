@@ -9,7 +9,7 @@ for(const directory of ['dist','dist-driver']){
   assert.ok(entries.length>0,`${directory}: missing JavaScript bundle`);
   for(const file of entries){
     const source=await readFile(path.join(assets,file),'utf8');
-    for(const marker of ['trip-synthetic-','facility-synthetic-alpha','idempotency-stable-1','CANARY_SECRET_TOKEN'])
+    for(const marker of ['trip-synthetic-','facility-synthetic-alpha','idempotency-stable-1','CANARY_SECRET_TOKEN','Synthetic principal_','principal_dispatcher','principal_policy_override'])
       assert.ok(!source.includes(marker),`${directory}/${file}: test fixture shipped (${marker})`);
   }
 }

@@ -1,3 +1,4 @@
+import {businessQueryScope} from '../business-context';
 import {useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import L from 'leaflet';
@@ -39,7 +40,7 @@ export function RouteStreetMap({api,day,track,clientId=null,history=false,select
     const fresh=track.trace.filter(point=>Date.parse(point.capturedAt)>last).map(point=>({...point,window:0}));
     return fresh.length?[...saved,...fresh]:saved;
   },[saved,track.trace,history,clientId]);
-  const match=useQuery({queryKey:['private-cloud','dispatch-trace-match',day,track.shiftReference,clientId],
+  const match=useQuery({queryKey:[...businessQueryScope(),'dispatch-trace-match',day,track.shiftReference,clientId],
     queryFn:()=>api.traceMatch(day,track.shiftReference,clientId),enabled:history&&points.length>1,
     refetchInterval:query=>query.state.data?.value.status==='PENDING'?5000:false,staleTime:5*60_000,retry:false});
   const visiblePoints=useMemo(()=>selectedWindow===null?points:points.filter(point=>point.window===selectedWindow),[points,selectedWindow]);

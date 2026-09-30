@@ -7,7 +7,7 @@ try {
   const passwords = await readSecretJson(passwordsPath);
   if (!passwords || Object.keys(passwords).sort().join(',') !== 'kr_cloud_api,kr_cloud_worker') throw new Error('SECRET_SCHEMA_INVALID');
   await initializeDatabase(config, passwords);
-  process.stdout.write('RUNTIME_DATABASE_INITIALIZED_SYNTHETIC\n');
+  process.stdout.write('RUNTIME_DATABASE_INITIALIZED\n');
 } catch {
   process.stderr.write('RUNTIME_DATABASE_INIT_FAILED\n');
   process.exitCode = 1;

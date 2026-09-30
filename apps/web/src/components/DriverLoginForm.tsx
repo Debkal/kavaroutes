@@ -1,7 +1,8 @@
+import {dispatchQueries} from '../dispatch-queries';
 import {useRef,useState} from "react";
 import {useQuery} from "@tanstack/react-query";
 import {Link} from "react-router";
-import {DevelopmentApiError} from "@kavaroutes/api-contracts/private-development-transport";
+import {DevelopmentApiError} from "@kavaroutes/api-contracts/http-transport";
 import type {createCloudApi} from "../cloud-api";
 
 const LOGIN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/;
@@ -22,7 +23,7 @@ export function DriverLoginForm({api,serviceDate}:{api:ReturnType<typeof createC
   const [busy,setBusy]=useState(false);
   const pending=useRef<{request:{driverId:string;loginId:string};key:string}|null>(null);
   const addPending=useRef<{request:{displayName:string;loginId:string;workforceRelationship:'OWNER_OPERATOR'|'EMPLOYEE'|'CONTRACTOR'};key:string}|null>(null);
-  const board=useQuery({queryKey:["private-cloud","driver-logins","fleet",serviceDate],queryFn:({signal})=>api.board(serviceDate,signal),retry:false});
+  const board=useQuery(dispatchQueries.board(api,serviceDate));
   const drivers=board.data?.value.drivers??[];
   const choose=(value:string)=>{
     if(pending.current)return;
@@ -100,7 +101,7 @@ export function DriverLoginForm({api,serviceDate}:{api:ReturnType<typeof createC
     <button disabled={busy||!driverId||!!pending.current} onClick={()=>void submit(true)}>Reset password</button></div>
     <p className="form-hint">Resetting invalidates the current password and creates a new one-time code. The driver must set a new password before signing in again.</p>
     <p role="status">{message}</p>
-    {invite&&<div role="status" className="driver-login-code"><span>One-time code for {invite.loginId}</span><strong>{invite.inviteCode}</strong><a className="action-link" href={`https://driver.kavaroutes.com/driver?businessId=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa&driverId=${encodeURIComponent(invite.driverId)}`}>Open driver setup link</a><small>Give this link and code to the driver. The code will not be shown again.</small></div>}
+    {invite&&<div role="status" className="driver-login-code"><span>One-time code for {invite.loginId}</span><strong>{invite.inviteCode}</strong><a className="action-link" href={`https://driver.kavaroutes.com/driver?businessId=${encodeURIComponent(api.organizationId)}&driverId=${encodeURIComponent(invite.driverId)}`}>Open driver setup link</a><small>Give this link and code to the driver. The code will not be shown again.</small></div>}
     </div></div>
   </section>;
 }

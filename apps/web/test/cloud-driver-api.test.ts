@@ -31,7 +31,7 @@ describe("Driver web cloud adapter", () => {
         return response({driverId,loginId:'joel',status:'ACTIVE',claimedAt:'2026-09-23T19:00:00Z',lastLoginAt:'2026-09-23T19:00:00Z',version:2,sessionToken:token});
       }
       expect(init.headers.authorization).toBe(`DriverSession ${token}`);
-      if(url.endsWith('/v1/me'))return response({principalKind:'SYNTHETIC_DEVICE',organizations:[{organizationId:driverOrganizationId,capabilities:['driver:manifest:read','driver:execute']}]});
+      if(url.endsWith('/v1/me'))return response({principalKind:'DRIVER_DEVICE',organizations:[{organizationId:driverOrganizationId,capabilities:['driver:manifest:read','driver:execute']}]});
       return response({driverReference:driverId,serviceDate:'2026-09-14',legs:[leg]});
     }) as unknown as DevelopmentFetch;
     const api=createCloudDriverWebApi("https://app.kavaroutes.com", fetcher,driverOrganizationId);

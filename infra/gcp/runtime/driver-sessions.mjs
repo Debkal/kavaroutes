@@ -32,9 +32,9 @@ export function createDriverSessions({synthetic,credentialVersion,allowSynthetic
       if(typeof authorization!=='string')return null;
       const match=tokenPattern.exec(authorization);
       if(!match){
-        const principal=await synthetic.verify(authorization);
+        const principal=await synthetic?.verify(authorization);
         // A shared prototype driver can never reach live driver resources.
-        return principal?.kind==='SYNTHETIC_DEVICE'&&!allowSyntheticDriver?null:principal;
+        return allowSyntheticDriver?principal??null:null;
       }
       const key=digest(match[1]),session=sessions.get(key);
       if(!session)return null;
@@ -43,7 +43,7 @@ export function createDriverSessions({synthetic,credentialVersion,allowSynthetic
       try{current=await credentialVersion(session.organizationId,session.driverId);}
       catch{return null;}
       if(!current||current.status!=='ACTIVE'||current.version!==session.version){sessions.delete(key);persist();return null;}
-      return Object.freeze({id:session.driverId,kind:'SYNTHETIC_DEVICE',organizationId:session.organizationId,
+      return Object.freeze({id:session.driverId,kind:'DRIVER_DEVICE',organizationId:session.organizationId,
         subjectId:session.driverId,capabilities:new Set(roleCapabilities.DRIVER),purposes:new Set(rolePurposes.DRIVER),
         branchScopes:new Set([companyBranchScope(session.organizationId)]),fleetScopes:new Set([companyFleetScope(session.organizationId)])});
     },

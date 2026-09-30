@@ -23,6 +23,10 @@ import shutil
 import subprocess
 import sys
 import time
+import importlib.util
+_file_spec=importlib.util.spec_from_file_location("promotion_files",pathlib.Path(__file__).with_name("promotion-files.py"))
+_file_module=importlib.util.module_from_spec(_file_spec)
+_file_spec.loader.exec_module(_file_module)
 
 ROOT = pathlib.Path('/opt/kavaroutes/runtime')
 BACKUP_DIR = pathlib.Path('/opt/kavaroutes/backups')
@@ -54,6 +58,7 @@ def main():
     label = sys.argv[2] if len(sys.argv) == 3 else sys.argv[1].split(':')[1][:12]
     if not LABEL.fullmatch(label):
         raise ValueError('invalid invocation')
+    files=_file_module.PromotionFiles(ROOT,BACKUP_DIR,label)
     previous_config = ROOT / ('vm.env.pre-' + label)
     backup = BACKUP_DIR / (label + '-before.dump')
     overlay = ROOT / 'prototype-compose.override.yaml'
@@ -84,6 +89,7 @@ def main():
     BACKUP_DIR.mkdir(mode=0o700, exist_ok=True)
     if BACKUP_DIR.is_symlink():
         raise ValueError('backup path invalid')
+    files.preserve()
     previous_config.write_text(env)
     os.chmod(previous_config, 0o600)
     stopped = False
@@ -105,6 +111,7 @@ def main():
             shutil.copy2(WEB_API, previous_api)
             shutil.copy2(candidate_api, WEB_API)
             api_replaced = True
+        files.apply()
         next_env = env.replace('KR_RUNTIME_IMAGE=' + old, 'KR_RUNTIME_IMAGE=' + target)
         next_env = re.sub(r'^KR_BUILD_ID=[a-zA-Z0-9_-]+$', 'KR_BUILD_ID=' + label, next_env, flags=re.M)
         (ROOT / 'vm.env').write_text(next_env)
@@ -160,6 +167,7 @@ def main():
                 (ROOT / 'vm.env').write_text(env)
                 if api_replaced:
                     shutil.copy2(previous_api, WEB_API)
+                files.restore()
                 if database_restored:
                     try:
                         run(base + ['up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', '--pull', 'never'] + hosts)

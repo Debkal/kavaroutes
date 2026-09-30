@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createOutboxStore, createPgBossTransactionalTransport, createOrderedConsumer, ROUTE_POLICIES, validateThinJobPayload } from '@kavaroutes/durable-execution';
-import { createTestOnlyCursorCodec } from '@kavaroutes/realtime';
+import { createRealtimeCursorCodec } from '@kavaroutes/realtime';
 import { createPostgresRealtimeStore } from '@kavaroutes/realtime/postgres';
 import { makePool, makeBoss, verifyRuntimeDatabase } from './database.mjs';
 import { companyBranchScope } from '@kavaroutes/api-contracts/security';
@@ -22,7 +22,7 @@ export async function createRuntimeWorker(input) {
   let enrolled = new Set();
   const consumer = createOrderedConsumer(pool, { consumerName: 'projection.trip', purposeReference: 'RIDER_INTAKE',
     authorize: async input => enrolled.has(input.tenantId) });
-  const realtime = createPostgresRealtimeStore(pool, createTestOnlyCursorCodec({ secret: config.cursorSecret }));
+  const realtime = createPostgresRealtimeStore(pool, createRealtimeCursorCodec({ secret: config.cursorSecret }));
   const publisherId = `cloud.${randomUUID()}`;
   // Readiness is a function of the current state, not of a remembered success: a cycle
   // that completed with no unresolved work is what makes the worker ready, and a cycle
@@ -143,7 +143,7 @@ export async function createRuntimeWorker(input) {
   }
   function runOnce() {
     if (stopped) throw new Error('WORKER_STOPPED');
-    if (!inFlight) inFlight = cycle().finally(() => { inFlight = undefined; });
+    if (!inFlight) inFlight = cycle().catch(error=>{lastCycleCompleted=0;lastCycleFailure=classifyFailure(error);throw error;}).finally(() => { inFlight = undefined; });
     return inFlight;
   }
   const tick = async () => {

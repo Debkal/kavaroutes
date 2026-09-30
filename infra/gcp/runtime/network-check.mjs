@@ -53,7 +53,7 @@ export async function checkLiveNetwork(configFor) {
   async function stop(process, signal = 'SIGTERM') {
     process.child.kill(signal);
     assert.deepEqual(await bounded(process.exited, 15000, 'SHUTDOWN'), { code: 0, signal: null });
-    assert.equal(process.output().trim(), 'RUNTIME_STARTED_PRIVATE_SYNTHETIC');
+    assert.equal(process.output().trim(), 'RUNTIME_STARTED');
   }
   try {
     const worker = await start('worker');

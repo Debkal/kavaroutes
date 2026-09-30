@@ -8,7 +8,7 @@ import { validateConfig, classifyFailure, retryDue, readConfig } from './config.
 import { runtimeManifest, validateManifest } from './manifest.mjs';
 
 test('adapter manifest rejects missing, unknown, live and falsely promoted adapters', () => {
-  assert.equal(validateManifest().environment, 'private-synthetic');
+  assert.equal(validateManifest().environment, 'business-authenticated');
   for (const mutate of [value => value.adapters.pop(), value => value.adapters.push({ id: 'unknown' }),
     value => { value.adapters.find(item => item.id === 'maps').implementation = 'google'; },
     value => { value.adapters.find(item => item.id === 'storage').decision = 'replace'; },
@@ -22,9 +22,12 @@ export function config(role, password, port = 58080, dbPort = 55434) {
   return { profile: 'private-synthetic', databaseUrl: `postgresql://kr_cloud_${role}:${password}@127.0.0.1:${dbPort}/kavaroutes_cloud`,
     etagSecret: `synthetic-etag-secret-${randomBytes(32).toString('base64url')}`, cursorSecret: randomBytes(32).toString('base64url'), port };
 }
-test('configuration is closed, private and synthetic-only', () => {
+test('configuration requires explicit test opt-in or real business identity', () => {
   const valid = config('api', randomBytes(32).toString('base64url'));
+  assert.equal(validateConfig({...valid,profile:'business-authenticated'}).profile,'business-authenticated');
+  const old=process.env.KR_CLOUD_LOCAL_TEST;process.env.KR_CLOUD_LOCAL_TEST='1';
   assert.equal(validateConfig(valid).profile, 'private-synthetic');
+  if(old===undefined)delete process.env.KR_CLOUD_LOCAL_TEST;else process.env.KR_CLOUD_LOCAL_TEST=old;
   for (const change of [{ profile: 'production' }, { maps: 'google' }, { port: 80 }, { etagSecret: '' },
     { mapsApiKey: 'bad key with spaces' }, { mapsStaticKey: 'bad key with spaces' },
     { databaseUrl: valid.databaseUrl.replace('127.0.0.1', 'example.com') },
@@ -35,11 +38,11 @@ test('configuration is closed, private and synthetic-only', () => {
 test('secret files reject missing, permissive, malformed, oversized, symlink and wrong-role inputs', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'kr-secret-test-'));
   const path = join(directory, 'secret.json');
-  const valid = config('api', randomBytes(32).toString('base64url'));
+  const valid = {...config('api', randomBytes(32).toString('base64url')),profile:'business-authenticated'};
   try {
     await assert.rejects(() => readConfig(path, 'api'), /RUNTIME_SECRET_FILE_INVALID/);
     await writeFile(path, JSON.stringify(valid), { mode: 0o600 });
-    assert.equal((await readConfig(path, 'api')).profile, 'private-synthetic');
+    assert.equal((await readConfig(path, 'api')).profile, 'business-authenticated');
     await assert.rejects(() => readConfig(path, 'worker'), /RUNTIME_DATABASE_ROLE_INVALID/);
     await symlink(path, join(directory, 'link.json'));
     await assert.rejects(() => readConfig(join(directory, 'link.json'), 'api'), /RUNTIME_SECRET_FILE_INVALID/);

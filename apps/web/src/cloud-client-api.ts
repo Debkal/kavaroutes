@@ -1,10 +1,9 @@
-import {createPrivateDevelopmentTransport,type DevelopmentFetch} from "@kavaroutes/api-contracts/private-development-transport";
+import {type DevelopmentFetch} from "@kavaroutes/api-contracts/http-transport";
 
 /** Dispatch-authored client intake. A client carries the trip pattern it books: one
  * pickup address, one or more drop-off addresses and ONE_WAY or ROUND_TRIP. The
  * roster and the create command are the dispatcher surface only. */
-export const clientOrganizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const prefix = `/v1/organizations/${clientOrganizationId}/clients`;
+import {businessContext,createBusinessTransport} from "./business-context";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const object = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("INVALID_CLIENT_RESPONSE");
@@ -97,8 +96,9 @@ const decodeReceipt = (value: unknown): ClientCreateReceipt => {
   return {clientId: source.clientId, version: Number(source.version), displayName: text(source.displayName, 200), dropoffCount: Number(source.dropoffCount)};
 };
 
-export function createCloudClientApi(baseUrl: string, fetcher: DevelopmentFetch) {
-  const transport = createPrivateDevelopmentTransport({baseUrl, persona: "dispatcher", fetch: fetcher, browserSameOrigin: new URL(baseUrl).protocol === "https:"});
+export function createCloudClientApi(baseUrl: string, fetcher: DevelopmentFetch, clientOrganizationId=businessContext().organizationId) {
+  const prefix=`/v1/organizations/${clientOrganizationId}/clients`;
+  const transport=createBusinessTransport(baseUrl,fetcher,clientOrganizationId);
   const body = (request: ClientCreateRequest) => {
     const value: Record<string, unknown> = {displayName: request.displayName};
     for (const field of ["entityName", "phone", "pickupAddress", "notes"] as const) {
@@ -129,7 +129,7 @@ export function createCloudClientApi(baseUrl: string, fetcher: DevelopmentFetch)
     async authenticate(signal?: AbortSignal) {
       return transport.request("/v1/me", value => {
         const source = object(value);
-        if (source.principalKind !== "SYNTHETIC_USER" || !Array.isArray(source.organizations)) throw new Error("INVALID_CLIENT_SESSION");
+        if (source.principalKind !== "BROWSER_USER" || !Array.isArray(source.organizations)) throw new Error("INVALID_CLIENT_SESSION");
         const membership = source.organizations.map(object).find(item => item.organizationId === clientOrganizationId);
         if (!membership || !Array.isArray(membership.capabilities) || !membership.capabilities.includes("trips:read")) throw new Error("INVALID_CLIENT_SESSION");
         return {principalId: String(source.principalId), organizationId: clientOrganizationId};

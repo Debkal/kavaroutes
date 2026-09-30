@@ -7,7 +7,7 @@ import {createCloudAccountingApi} from '../src/cloud-accounting-api';
 
 /**
  * The local stack is http://127.0.0.1, so a transport that forgets the same-origin HTTPS
- * flag still looks fine in development and then throws PRIVATE_DEVELOPMENT_LOOPBACK_REQUIRED
+ * flag still looks fine in development and then throws API_ORIGIN_INVALID
  * on the deployed origin — the shell answers 200 and the router shows "We could not open
  * this view". These cases pin the deployed origin for every web API.
  */
@@ -37,8 +37,8 @@ describe('web transports at the deployed origin', () => {
     // a portless https origin is treated as the edge prototype, while plain http must be
     // loopback and anything with an explicit port is refused outright.
     expect(() => createCloudAccountingApi('http://127.0.0.1:8080', fetcher)).not.toThrow();
-    expect(() => createCloudAccountingApi('http://192.168.1.10:8080', fetcher)).toThrow(/PRIVATE_DEVELOPMENT_LOOPBACK_REQUIRED/);
-    expect(() => createCloudAccountingApi('https://app.kavaroutes.com:8443', fetcher)).toThrow(/PRIVATE_DEVELOPMENT_LOOPBACK_REQUIRED/);
+    expect(() => createCloudAccountingApi('http://192.168.1.10:8080', fetcher)).toThrow(/API_ORIGIN_INVALID/);
+    expect(() => createCloudAccountingApi('https://app.kavaroutes.com:8443', fetcher)).toThrow(/API_ORIGIN_INVALID/);
     expect(() => createCloudAccountingApi('https://app.kavaroutes.com/', fetcher)).not.toThrow();
   });
 });

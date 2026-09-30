@@ -21,7 +21,7 @@ describe("private cloud web adapter", () => {
   it("reads the remote trip collection and preserves cursor", async () => {
     const fetcher: DevelopmentFetch = async (url, init) => {
       expect(url).toContain("/v1/organizations/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/trips?limit=50");
-      expect(init.headers.authorization).toBe("Synthetic principal_dispatcher");
+      expect(init.headers.authorization).toBeUndefined();expect(init.headers['x-kr-business-id']).toBe('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
       return response({ items: [trip], page: { nextCursor: "opaque-cursor" } });
     };
     expect((await createCloudApi("http://127.0.0.1:4311", fetcher).list()).value).toEqual({ items: [trip], nextCursor: "opaque-cursor" });
@@ -39,7 +39,7 @@ describe("private cloud web adapter", () => {
     await expect(api.list()).rejects.toMatchObject({ code: "BACKEND_UNAVAILABLE" });
   });
   it("requires membership and capability from server session", async () => {
-    const api = createCloudApi("http://127.0.0.1:4311", async () => response({ principalKind: "SYNTHETIC_USER", organizations: [{ organizationId: "other-tenant", capabilities: ["trips:read"] }] }));
+    const api = createCloudApi("http://127.0.0.1:4311", async () => response({ principalKind: "BROWSER_USER", organizations: [{ organizationId: "other-tenant", capabilities: ["trips:read"] }] }));
     await expect(api.authenticate()).rejects.toMatchObject({ code: "INVALID_API_RESPONSE" });
   });
 });

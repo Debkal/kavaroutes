@@ -13,7 +13,7 @@ test('Command access management is tenant scoped and records code actions',async
   await writeFile(join(directory,'access.json'),JSON.stringify({version:1,codes:[],devices:[],driverTokens:[],events:[],driverTokens:[]}));
   const app=Fastify();
   const principal={id:'dispatcher-test',kind:'SYNTHETIC_USER',organizationId:business,capabilities:new Set(['dispatch:command']),purposes:new Set(['ASSIGNED_SERVICE_DELIVERY'])};
-  registerDriverAccessManagement(app,{directory,verify:async authorization=>authorization==='Synthetic principal_dispatcher'?principal:null});
+  registerDriverAccessManagement(app,{directory,verify:async request=>request.headers.authorization==='Synthetic principal_dispatcher'?principal:null});
   const path=id=>`/v1/organizations/${id}/driver-access`;
   const headers={authorization:'Synthetic principal_dispatcher',origin:'https://app.kavaroutes.com','content-type':'application/json'};
   try{

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {checkBusinessIdentity} from './business-identity-check.mjs';
 import { checkIdentityMembership } from './identity-membership-check.mjs';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
@@ -60,6 +61,7 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     await initializeDatabase(admin, passwords);
     await initializeDatabase(admin, passwords); // Restart-safe migration and seed.
     await checkIdentityMembership(control, cfg('api', passwords.kr_cloud_api).databaseUrl);
+    await checkBusinessIdentity(control,cfg('api', passwords.kr_cloud_api).databaseUrl);
     await checkDatabaseGuards(admin, passwords, cfg, control);
     await checkProcesses(role => cfg(role, passwords[`kr_cloud_${role}`]));
     api = await createRuntimeApi(cfg('api', passwords.kr_cloud_api));
@@ -83,7 +85,7 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     const driverAuth={authorization:`DriverSession ${verified.json().sessionToken}`};
     const driverProfile=await api.app.inject({url:'/v1/me',headers:driverAuth});
     assert.equal(driverProfile.statusCode,200,driverProfile.body);
-    assert.equal(driverProfile.json().principalKind,'SYNTHETIC_DEVICE');
+    assert.equal(driverProfile.json().principalKind,'DRIVER_DEVICE');
     const ownItinerary=await api.app.inject({url:`${driverRoot}/driver/itineraries/2026-09-24`,headers:driverAuth});
     assert.equal(ownItinerary.statusCode,200,ownItinerary.body);
     assert.equal(ownItinerary.json().driverReference,driverId);
@@ -100,6 +102,10 @@ test('private PostgreSQL API/outbox/worker integration', { skip: process.env.KR_
     await worker.runOnce();
     assert.equal(worker.healthy(), true);
     assert.equal((await control.query('SELECT count(*)::int AS n FROM outbox.consumer_inbox')).rows[0].n, 1);
+    for(let attempt=0;attempt<10;attempt++){
+      if((await control.query('SELECT count(*)::int AS n FROM realtime.change')).rows[0].n>=1)break;
+      await worker.runOnce();await delay(20);
+    }
     assert.equal((await control.query('SELECT count(*)::int AS n FROM realtime.change')).rows[0].n, 1);
     const denied = await api.app.inject({ method: 'GET', url: `/v1/organizations/22222222-2222-4222-8222-222222222222/trips/${tripId}`, headers: auth });
     assert.equal(denied.statusCode, 404);

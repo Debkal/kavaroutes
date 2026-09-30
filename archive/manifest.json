@@ -620,6 +620,39 @@
           "sha256": "2b50c963a4572eb7596a105c209633410613183a86d24e56d5d5f3c08d63d024"
         }
       ]
+    },
+    {
+      "original": "infra/gcp/runtime/prototype-web-gateway.mjs",
+      "archived": "archive/infra/gcp/runtime/prototype-web-gateway.mjs",
+      "reason": "Retired shared synthetic identity implementation; live path migrated to authenticated business/driver sessions",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/prototype-web-gateway.mjs",
+          "sha256": "a31ef3d65de4920f9343c75b3fafb72fdd3cad13b2bf4775e7b8c5434ae8fa82"
+        }
+      ]
+    },
+    {
+      "original": "infra/gcp/runtime/driver-sessions.mjs",
+      "archived": "archive/infra/gcp/runtime/driver-sessions.mjs",
+      "reason": "Retired shared synthetic identity implementation; live path migrated to authenticated business/driver sessions",
+      "sourceFiles": [
+        {
+          "original": "infra/gcp/runtime/driver-sessions.mjs",
+          "sha256": "3d2eebd56c8685c9c4b29e694820dc2d224fc4981f4c242c7965393952989d33"
+        }
+      ]
+    },
+    {
+      "original": "packages/api-contracts/src/private-development-transport.ts",
+      "archived": "archive/packages/api-contracts/src/private-development-transport.ts",
+      "reason": "Retired shared synthetic identity implementation; live path migrated to authenticated business/driver sessions",
+      "sourceFiles": [
+        {
+          "original": "packages/api-contracts/src/private-development-transport.ts",
+          "sha256": "5ba570468a461772d80408179b1781b2f48a805d134e44d0f27e8309c9eb65a2"
+        }
+      ]
     }
   ]
 }
