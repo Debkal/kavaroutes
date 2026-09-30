@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { chooseDriverWork, nextControl } from "../src/routes/cloud-driver-route";
+import { chooseDriverWork, nextControl,selectDriverLeg } from "../src/routes/cloud-driver-route";
 import type { DriverLeg } from "../src/cloud-driver-api";
 import type {DriverItinerary,DriverShiftState} from '@kavaroutes/api-contracts/client-web';
 
@@ -92,5 +92,19 @@ describe('driver sign-in without an unfinished trip',()=>{
     const selected=await chooseDriverWork(manifest([item('COMPLETED','completed'),unfinished]),read);
     expect(selected).toMatchObject({leg:unfinished,shift:null,hasUnfinished:true});
     expect(read).toHaveBeenCalledTimes(1);
+  });
+  it('resumes the unfinished return leg rather than the completed outbound leg in an open shift',async()=>{
+    const outbound=item('COMPLETED','outbound');
+    const returning=item('DISPATCHED','return');
+    const active={lifecycle:'ACTIVE'} as DriverShiftState;
+    expect(await chooseDriverWork(manifest([outbound,returning]),async()=>active))
+      .toMatchObject({leg:returning,shift:active,hasUnfinished:true});
+  });
+  it('advances the current trip to the unfinished return without marking that leg complete',()=>{
+    const outbound=item('COMPLETED','outbound') as DriverLeg;
+    const returning=item('DISPATCHED','return') as DriverLeg;
+    expect(selectDriverLeg([outbound,returning],'outbound')).toBe(returning);
+    expect(returning.execution?.lifecycle).toBe('DISPATCHED');
+    expect(selectDriverLeg([outbound],'outbound')).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-30T01:20:01.249Z",
-  "sourceFiles": 608,
+  "generatedAt": "2026-09-30T01:47:56.569Z",
+  "sourceFiles": 610,
   "verifiedArchivedFiles": 118,
   "scope": "Whole repository first-party source, SQL, configuration and tools; generated output, secrets, dependencies and archive excluded from active-code analysis.",
   "limitations": "Decision counts are a review aid, not a proof of cyclomatic complexity or correctness. Markers alone do not prove obsolescence. High-branch safety and command validation remain explicit.",
@@ -555,6 +555,10 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/components/DriverInspectionForm.tsx",
       "category": "application-or-runtime"
     },
@@ -892,6 +896,10 @@
     },
     {
       "file": "apps/web/test/dispatch-requests.test.tsx",
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
       "category": "test-support"
     },
     {
@@ -2456,9 +2464,9 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 115,
+      "line": 121,
       "name": "Component",
-      "decisions": 82,
+      "decisions": 81,
       "category": "application-or-runtime"
     },
     {
@@ -2498,9 +2506,9 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 293,
+      "line": 299,
       "name": "submitWorkflow",
-      "decisions": 47,
+      "decisions": 48,
       "category": "application-or-runtime"
     },
     {
@@ -2708,7 +2716,7 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 179,
+      "line": 185,
       "name": "signIn",
       "decisions": 24,
       "category": "application-or-runtime"
@@ -2841,7 +2849,7 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 21,
+      "line": 22,
       "name": "failureText",
       "decisions": 19,
       "category": "application-or-runtime"
@@ -2897,7 +2905,7 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 82,
+      "line": 88,
       "name": "nextControl",
       "decisions": 18,
       "category": "application-or-runtime"
@@ -3632,7 +3640,14 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 262,
+      "line": 73,
+      "name": "chooseDriverWork",
+      "decisions": 11,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-driver-route.tsx",
+      "line": 268,
       "name": "submitAction",
       "decisions": 11,
       "category": "application-or-runtime"
@@ -3809,13 +3824,6 @@
       "file": "apps/web/src/route-history-index.ts",
       "line": 8,
       "name": "indexRouteHistory",
-      "decisions": 10,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 67,
-      "name": "chooseDriverWork",
       "decisions": 10,
       "category": "application-or-runtime"
     },
@@ -4738,7 +4746,7 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 418,
+      "line": 426,
       "name": "signOutDriver",
       "decisions": 7,
       "category": "application-or-runtime"
@@ -5347,14 +5355,14 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 383,
+      "line": 391,
       "name": "signOff",
       "decisions": 6,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 516,
+      "line": 526,
       "name": "NativeLocationPanel",
       "decisions": 6,
       "category": "application-or-runtime"
@@ -6180,21 +6188,21 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 243,
+      "line": 249,
       "name": "callback",
       "decisions": 5,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 365,
+      "line": 373,
       "name": "submitSignature",
       "decisions": 5,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 404,
+      "line": 412,
       "name": "emergencyStop",
       "decisions": 5,
       "category": "application-or-runtime"
@@ -7132,22 +7140,15 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 105,
+      "line": 111,
       "name": "blockedControlMessage",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 252,
+      "line": 258,
       "name": "submitCheck",
-      "decisions": 4,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 485,
-      "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
     },
@@ -8693,21 +8694,14 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 139,
+      "line": 145,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 148,
-      "name": "callback",
-      "decisions": 3,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 151,
+      "line": 154,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -8721,14 +8715,21 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 166,
+      "line": 163,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 189,
+      "line": 172,
+      "name": "callback",
+      "decisions": 3,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-driver-route.tsx",
+      "line": 195,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -10681,8 +10682,8 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 117,
-      "name": "callback",
+      "line": 68,
+      "name": "selectDriverLeg",
       "decisions": 2,
       "category": "application-or-runtime"
     },
@@ -10695,14 +10696,28 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 240,
+      "line": 129,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 505,
+      "line": 246,
+      "name": "callback",
+      "decisions": 2,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-driver-route.tsx",
+      "line": 495,
+      "name": "callback",
+      "decisions": 2,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-driver-route.tsx",
+      "line": 515,
       "name": "DriverSignOut",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -13690,6 +13705,13 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 7,
+      "name": "DriverCompletedTrips",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/components/DriverInspectionForm.tsx",
       "line": 18,
       "name": "callback",
@@ -13943,35 +13965,21 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 58,
+      "line": 59,
       "name": "savedKey",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 147,
+      "line": 153,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 448,
-      "name": "callback",
-      "decisions": 1,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 467,
-      "name": "callback",
-      "decisions": 1,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 477,
+      "line": 476,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -23882,6 +23890,34 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 4,
+      "name": "driverLegLifecycle",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 5,
+      "name": "completedDriverLegs",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 5,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 12,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/components/DriverInspectionForm.tsx",
       "line": 18,
       "name": "initial",
@@ -26018,70 +26054,63 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 62,
+      "line": 63,
       "name": "time",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 63,
+      "line": 64,
       "name": "label",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 63,
+      "line": 64,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 122,
+      "line": 69,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 127,
+      "line": 70,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 145,
+      "line": 128,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 148,
+      "line": 133,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 148,
+      "line": 151,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 153,
-      "name": "callback",
-      "decisions": 0,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 153,
+      "line": 154,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -26096,7 +26125,7 @@
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
       "line": 159,
-      "name": "check",
+      "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
@@ -26109,21 +26138,21 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 164,
+      "line": 160,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 168,
-      "name": "onResume",
+      "line": 165,
+      "name": "check",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 168,
+      "line": 165,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -26137,6 +26166,20 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
+      "line": 174,
+      "name": "onResume",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-driver-route.tsx",
+      "line": 174,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-driver-route.tsx",
       "line": 176,
       "name": "callback",
       "decisions": 0,
@@ -26144,35 +26187,42 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 249,
+      "line": 182,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 283,
+      "line": 255,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 303,
+      "line": 289,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 374,
+      "line": 310,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 446,
+      "line": 382,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-driver-route.tsx",
+      "line": 454,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -26186,14 +26236,14 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 459,
+      "line": 457,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 466,
+      "line": 457,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -26214,28 +26264,28 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 480,
+      "line": 475,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 481,
+      "line": 475,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 482,
+      "line": 490,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 485,
+      "line": 491,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -26249,49 +26299,70 @@
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 493,
+      "line": 495,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 494,
+      "line": 495,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 496,
+      "line": 502,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 499,
+      "line": 503,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 510,
+      "line": 504,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 511,
+      "line": 506,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/routes/cloud-driver-route.tsx",
-      "line": 512,
+      "line": 509,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-driver-route.tsx",
+      "line": 520,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-driver-route.tsx",
+      "line": 521,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/routes/cloud-driver-route.tsx",
+      "line": 522,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -28460,6 +28531,27 @@
       "category": "test-support"
     },
     {
+      "file": "apps/web/test/cloud-driver-controls.test.ts",
+      "line": 96,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/cloud-driver-controls.test.ts",
+      "line": 100,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/cloud-driver-controls.test.ts",
+      "line": 103,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
       "file": "apps/web/test/cloud-live.test.ts",
       "line": 4,
       "name": "callback",
@@ -29505,6 +29597,34 @@
     {
       "file": "apps/web/test/dispatch-requests.test.tsx",
       "line": 55,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 10,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 11,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 19,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 26,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"

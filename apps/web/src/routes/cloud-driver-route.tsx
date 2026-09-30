@@ -6,6 +6,7 @@ import { createCloudDriverWebApi, type DriverCommand, type DriverLeg } from "../
 import { DriverInspectionForm } from "../components/DriverInspectionForm";
 import { DriverLoginPanel } from "../components/DriverLoginPanel";
 import { DriverSignaturePad } from "../components/DriverSignaturePad";
+import {DriverCompletedTrips,completedDriverLegs,driverLegLifecycle} from '../components/DriverCompletedTrips';
 import {businessToday} from "../business-time";
 import {ServiceDatePicker} from "../components/ServiceDatePicker";
 import {LocationSharingPanel} from "../components/LocationSharingPanel";
@@ -64,6 +65,11 @@ const label = (value: string) => value.toLowerCase().replaceAll("_", " ").replac
 
 export type DriverWorkflow = "PICKUP_COMPLETE" | "DROPOFF_COMPLETE" | "PICKUP_CONTROLS" | "DROPOFF_CONTROLS";
 
+export function selectDriverLeg(legs:readonly DriverLeg[],selected:string|null){
+  return legs.find(leg=>leg.tripLegId===selected&&!terminal.has(driverLegLifecycle(leg)))
+    ??legs.find(leg=>!terminal.has(driverLegLifecycle(leg)))??null;
+}
+
 export async function chooseDriverWork(manifest:DriverItinerary,readShift:(assignmentId:string)=>Promise<DriverShiftState|null>){
   const unfinished=new Map<string,DriverLeg>();
   for(const leg of manifest.legs)if(!terminal.has(leg.execution?.lifecycle??'')&&!unfinished.has(leg.assignmentId))unfinished.set(leg.assignmentId,leg);
@@ -73,7 +79,7 @@ export async function chooseDriverWork(manifest:DriverItinerary,readShift:(assig
     if(checked.has(leg.assignmentId))continue;
     checked.add(leg.assignmentId);
     const shift=await readShift(leg.assignmentId);
-    if(shift?.lifecycle==='ACTIVE')return {leg,shift,hasUnfinished:unfinished.size>0};
+    if(shift?.lifecycle==='ACTIVE')return {leg:unfinished.get(leg.assignmentId)??leg,shift,hasUnfinished:unfinished.size>0};
     if(!shift&&unfinished.has(leg.assignmentId)&&!startable)startable=unfinished.get(leg.assignmentId)!;
   }
   return {leg:startable,shift:null,hasUnfinished:unfinished.size>0};
@@ -296,7 +302,8 @@ export function Component() {
     try {
       let completionMessage = workflow === "PICKUP_COMPLETE"
         ? "Pickup confirmed. Dispatch can see that the client is onboard."
-        : "Drop-off confirmed. Dispatch has the completed trip update.";
+        : "Drop-off update recorded. Dispatch can see this trip's progress.";
+      const completedMessage=`Trip completed: ${leg.riderLabel} · ${leg.pickupLabel} → ${leg.dropoffLabel}.`;
       for (let step = 0; step < 4; step += 1) {
         const latestShift = (await api.shift(shift.effectivePolicy.assignmentId)).value;
         const manifest = (await api.itinerary(serviceDate)).value;
@@ -333,7 +340,7 @@ export function Component() {
             ? "Rider unloaded. Collect the required drop-off signature next."
             : "Rider unloaded. Finish this trip next.";
         } else {
-          if (execution.lifecycle === "COMPLETED") break;
+          if (execution.lifecycle === "COMPLETED") {completionMessage=completedMessage;break;}
           if (execution.lifecycle === "ONBOARD") command = "ARRIVE_DROPOFF";
           else if (execution.lifecycle === "ARRIVED_DROPOFF" && !service.safelyUnloaded) { command = "UNLOAD_RIDER"; details = { attestation: "UNLOADED_AND_ASSISTED" }; }
           else if (execution.lifecycle === "ARRIVED_DROPOFF" && proof.rule.dropoffRequired && !service.dropoffEvidenceId) {
@@ -347,6 +354,7 @@ export function Component() {
           expectedTag: execution.expectedTag, idempotencyKey: `driver-action-${id}`, command, ...details } as DriverActionItem;
         const result = await api.action({ deviceSessionId: savedKey("device-session").slice(-36), shiftReference: latestShift.shiftReference, shiftGeneration: latestShift.shiftGeneration, items: [item] }, `driver-batch-${id}`);
         const receipt = result.value.items[0]; if (!receipt || receipt.outcome === "REJECTED") throw new Error(receipt?.code ?? "DRIVER_ACTION_REJECTED");
+        if(command==='COMPLETE_LEG')completionMessage=completedMessage;
         acceptedSteps+=1;
       }
       setSignatureEvent(null);
@@ -445,7 +453,8 @@ export function Component() {
       <ServiceDatePicker value={serviceDate} onChange={setServiceDate} disabled={busy}/>
       <button className="driver-primary" disabled={busy} onClick={()=>void signIn()}>{busy?'Checking assignments…':'Load assignments'}</button>
       {message&&<p role="status" className="driver-message">{message}</p>}
-      {itinerary.legs.length>0&&<ul>{itinerary.legs.map(leg=><li key={leg.tripLegId}>{leg.riderLabel} · {label(leg.execution?.lifecycle??leg.runLifecycle)}</li>)}</ul>}
+      <DriverCompletedTrips legs={itinerary.legs}/>
+      {itinerary.legs.some(leg=>driverLegLifecycle(leg)!=='COMPLETED')&&<ul>{itinerary.legs.filter(leg=>driverLegLifecycle(leg)!=='COMPLETED').map(leg=><li key={leg.tripLegId}>{leg.riderLabel} · {leg.pickupLabel} → {leg.dropoffLabel} · {label(driverLegLifecycle(leg))}</li>)}</ul>}
     </section>
     {nativeDriver?<NativeLocationPanel status={nativeTracking}/>:<LocationSharingPanel controller={sharing} busy={busy}/>}
     <DriverSignOut busy={busy} activeShift={false} onSignOut={signOutDriver}/>
@@ -465,7 +474,7 @@ export function Component() {
 
   const assigned = itinerary.legs.filter(leg => leg.assignmentId === shift.effectivePolicy.assignmentId).sort((a, b) => a.ordinal - b.ordinal);
   const allComplete = assigned.length > 0 && assigned.every(leg => terminal.has(leg.execution?.lifecycle ?? ""));
-  const active = assigned.find(leg => leg.tripLegId === selectedLeg) ?? assigned[0];
+  const active = selectDriverLeg(assigned,selectedLeg);
   const control = active ? nextControl(active) : null;
   const postRequired = shift.effectivePolicy.postInspection.mode !== "DISABLED" || shift.effectivePolicy.endOdometer.mode !== "DISABLED";
   const needsPostcheck = allComplete && postRequired && !closure?.postcheck;
@@ -474,7 +483,8 @@ export function Component() {
   return <main id="main-content" className="driver-shell">
     <header className="driver-mobile-header"><div><p className="driver-step">Signed in · {shift.effectivePolicy.commercialTier.replaceAll("_", " ")}</p><h1>Today’s route</h1></div><span className={closure?.lifecycle!=="SHIFT_ENDED"&&((nativeDriver&&nativeTracking.state==='delayed')||sharing.deliveryError||closure?.tracking.contactDriver) ? "driver-status warning" : "driver-status"}>{closure?.lifecycle === "SHIFT_ENDED" ? "Signed off" : nativeDriver ? nativeTracking.state==='delayed'?'Updates delayed':'Background GPS' : sharing.deliveryError ? "Updates delayed" : "Tracking " + label(closure?.tracking.status ?? "starting")}</span></header>
     {message && <p role="status" className="driver-message">{message}</p>}
-    <section className="driver-summary"><div><span>Vehicle</span><strong>{assigned[0]?.vehicleLabel ?? "Pending"}</strong></div><div><span>Trips</span><strong>{assigned.filter(leg => terminal.has(leg.execution?.lifecycle ?? "")).length}/{assigned.length}</strong></div><div><span>Updates</span><strong>{closure?.lifecycle==="SHIFT_ENDED"?"Stopped":nativeDriver?nativeTracking.state==='delayed'?'Delayed':'Background':sharing.deliveryError?"Delayed":closure?.tracking.status === "UPDATES_CURRENT" ? "Live" : "Foreground"}</strong></div></section>
+    <section className="driver-summary"><div><span>Vehicle</span><strong>{assigned[0]?.vehicleLabel ?? "Pending"}</strong></div><div><span>Completed trips</span><strong>{completedDriverLegs(assigned).length}/{assigned.length}</strong></div><div><span>Updates</span><strong>{closure?.lifecycle==="SHIFT_ENDED"?"Stopped":nativeDriver?nativeTracking.state==='delayed'?'Delayed':'Background':sharing.deliveryError?"Delayed":closure?.tracking.status === "UPDATES_CURRENT" ? "Live" : "Foreground"}</strong></div></section>
+    <DriverCompletedTrips legs={assigned}/>
 
     {closure?.lifecycle === "SHIFT_ENDED" ? <section className="driver-card driver-complete"><p className="driver-step">Shift complete</p><h2>You’re signed off</h2><p>Your shift end is recorded. Location sharing has stopped.</p></section>
     : needsPrecheck ? <DriverInspectionForm key={`${shift.shiftReference}-${precheckDefault}`} stage="pre" shift={shift} vehicleId={assigned[0]?.vehicleId ?? ""} precheckDefault={precheckDefault} busy={busy} onSubmit={request => submitCheck(request, "pre")} />
@@ -482,7 +492,7 @@ export function Component() {
     : allComplete ? <section className="driver-card driver-return"><p className="driver-step">Final step</p><h2>Return vehicle and sign off</h2><p>Park at the assigned return location. The app cannot verify return proximity yet, so dispatch must review and end the shift. Location sharing continues until then.</p>{returnExceptionRecorded?<p role="status">Return request recorded and waiting on dispatch review. Do not press sign-off again; the reviewer ends the shift from that single request.</p>:null}<button className="driver-primary" disabled={busy||returnExceptionRecorded} onClick={() => void signOff()}>{busy ? "Requesting review…" : returnExceptionRecorded ? "Waiting for dispatch review" : "Request return review"}</button></section>
     : <div className="driver-workspace">
       <section className="driver-card driver-itinerary" aria-labelledby="itinerary-title"><div className="driver-card-heading"><div><p className="driver-step">Step 3</p><h2 id="itinerary-title">Daily itinerary</h2></div><span className="driver-pill">{serviceDate}</span></div>
-        <ol>{assigned.map(leg => <li key={leg.tripLegId}><button className={leg.tripLegId === active?.tripLegId ? "active" : ""} onClick={() => { setSelectedLeg(leg.tripLegId); setSignatureEvent(null); }}><span className="driver-stop-number">{leg.ordinal}</span><span><strong>{leg.riderLabel}</strong><small>{time(leg.plannedStartAt, leg.serviceTimezone)} · {leg.pickupLabel} → {leg.dropoffLabel}</small></span><span className={`driver-leg-state ${terminal.has(leg.execution?.lifecycle ?? "") ? "done" : ""}`}>{label(leg.execution?.lifecycle ?? leg.runLifecycle)}</span></button></li>)}</ol>
+        <ol>{assigned.filter(leg=>driverLegLifecycle(leg)!=='COMPLETED').map(leg => <li key={leg.tripLegId}><button disabled={terminal.has(driverLegLifecycle(leg))} className={leg.tripLegId === active?.tripLegId ? "active" : ""} onClick={() => { setSelectedLeg(leg.tripLegId); setSignatureEvent(null); }}><span className="driver-stop-number">{leg.ordinal}</span><span><strong>{leg.riderLabel}</strong><small>{time(leg.plannedStartAt, leg.serviceTimezone)} · {leg.pickupLabel} → {leg.dropoffLabel}</small></span><span className={`driver-leg-state ${terminal.has(driverLegLifecycle(leg)) ? "done" : ""}`}>{label(driverLegLifecycle(leg))}</span></button></li>)}</ol>
       </section>
       {active && <section className="driver-card driver-current"><p className="driver-step">Current client · Stop {active.ordinal}</p><h2>{active.riderLabel}</h2>
         <div className="driver-route-line"><div><span>Pickup</span><strong>{active.pickupLabel}</strong><small>{time(active.plannedStartAt, active.serviceTimezone)}</small></div><div><span>Drop-off</span><strong>{active.dropoffLabel}</strong><small>{time(active.plannedEndAt, active.serviceTimezone)}</small></div></div>
