@@ -19,6 +19,8 @@ export async function checkContainers(docker, databaseName, configFor, control) 
       await writeFile(path, JSON.stringify(config), { mode: 0o600 });
       const name = `kr-cloud-test-${role}-${randomUUID().slice(0,8)}`; names.push(name);
       docker(['run','--detach','--name',name,'--label','kavaroutes.scope=cld006-disposable',
+        '--env','KR_CLOUD_LOCAL_TEST=1',
+        '--user',`${process.getuid()}:${process.getgid()}`,
         '--network',`container:${databaseName}`,'--read-only','--cap-drop','ALL','--security-opt','no-new-privileges',
         '--pids-limit','128','--memory','384m','--cpus','1','--mount',`type=bind,src=${path},dst=/run/secrets/config.json,readonly`,
         '--health-cmd',`node infra/gcp/runtime/health.mjs ${port}`,'--health-interval','1s',
@@ -52,7 +54,7 @@ export async function checkContainers(docker, databaseName, configFor, control) 
     for (const name of names) {
       docker(['stop','--time','15',name]);
       assert.equal(docker(['inspect','--format','{{.State.ExitCode}}',name]).trim(),'0');
-      assert.equal(docker(['logs',name]).trim(),'RUNTIME_STARTED_PRIVATE_SYNTHETIC');
+      assert.equal(docker(['logs',name]).trim(),'RUNTIME_STARTED');
     }
   } finally {
     for (const name of names) docker(['rm','--force','--volumes',name]);

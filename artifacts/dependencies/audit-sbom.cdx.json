@@ -3392,9 +3392,9 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/%40grpc%2Fgrpc-js@1.14.5",
+      "bom-ref": "pkg:npm/%40grpc%2Fgrpc-js@1.13.6",
       "name": "@grpc/grpc-js",
-      "version": "1.14.5",
+      "version": "1.13.6",
       "licenses": [
         {
           "license": {
@@ -3402,27 +3402,7 @@
           }
         }
       ],
-      "purl": "pkg:npm/%40grpc%2Fgrpc-js@1.14.5",
-      "properties": [
-        {
-          "name": "kavaroutes:license-review",
-          "value": "Apache-2.0"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:npm/%40grpc%2Fgrpc-js@1.9.16",
-      "name": "@grpc/grpc-js",
-      "version": "1.9.16",
-      "licenses": [
-        {
-          "license": {
-            "name": "Apache-2.0"
-          }
-        }
-      ],
-      "purl": "pkg:npm/%40grpc%2Fgrpc-js@1.9.16",
+      "purl": "pkg:npm/%40grpc%2Fgrpc-js@1.13.6",
       "properties": [
         {
           "name": "kavaroutes:license-review",
@@ -4872,6 +4852,206 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-android-arm-eabi@1.2.6",
+      "name": "@rolldown/binding-android-arm-eabi",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-android-arm-eabi@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-android-arm64@1.2.6",
+      "name": "@rolldown/binding-android-arm64",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-android-arm64@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-darwin-arm64@1.2.6",
+      "name": "@rolldown/binding-darwin-arm64",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-darwin-arm64@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-darwin-x64@1.2.6",
+      "name": "@rolldown/binding-darwin-x64",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-darwin-x64@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-freebsd-x64@1.2.6",
+      "name": "@rolldown/binding-freebsd-x64",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-freebsd-x64@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-linux-arm-gnueabihf@1.2.6",
+      "name": "@rolldown/binding-linux-arm-gnueabihf",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-linux-arm-gnueabihf@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-linux-arm64-gnu@1.2.6",
+      "name": "@rolldown/binding-linux-arm64-gnu",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-linux-arm64-gnu@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-linux-arm64-musl@1.2.6",
+      "name": "@rolldown/binding-linux-arm64-musl",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-linux-arm64-musl@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-linux-ppc64-gnu@1.2.6",
+      "name": "@rolldown/binding-linux-ppc64-gnu",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-linux-ppc64-gnu@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-linux-s390x-gnu@1.2.6",
+      "name": "@rolldown/binding-linux-s390x-gnu",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-linux-s390x-gnu@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/%40rolldown%2Fbinding-linux-x64-gnu@1.2.6",
       "name": "@rolldown/binding-linux-x64-gnu",
       "version": "1.2.6",
@@ -4883,6 +5063,86 @@
         }
       ],
       "purl": "pkg:npm/%40rolldown%2Fbinding-linux-x64-gnu@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-linux-x64-musl@1.2.6",
+      "name": "@rolldown/binding-linux-x64-musl",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-linux-x64-musl@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-openharmony-arm64@1.2.6",
+      "name": "@rolldown/binding-openharmony-arm64",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-openharmony-arm64@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-win32-arm64-msvc@1.2.6",
+      "name": "@rolldown/binding-win32-arm64-msvc",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-win32-arm64-msvc@1.2.6",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40rolldown%2Fbinding-win32-x64-msvc@1.2.6",
+      "name": "@rolldown/binding-win32-x64-msvc",
+      "version": "1.2.6",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/%40rolldown%2Fbinding-win32-x64-msvc@1.2.6",
       "properties": [
         {
           "name": "kavaroutes:license-review",
@@ -8732,9 +8992,9 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/fast-uri@3.1.7",
+      "bom-ref": "pkg:npm/fast-uri@3.1.8",
       "name": "fast-uri",
-      "version": "3.1.7",
+      "version": "3.1.8",
       "licenses": [
         {
           "license": {
@@ -8742,7 +9002,7 @@
           }
         }
       ],
-      "purl": "pkg:npm/fast-uri@3.1.7",
+      "purl": "pkg:npm/fast-uri@3.1.8",
       "properties": [
         {
           "name": "kavaroutes:license-review",
@@ -8752,9 +9012,9 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/fast-uri@4.1.4",
+      "bom-ref": "pkg:npm/fast-uri@4.1.5",
       "name": "fast-uri",
-      "version": "4.1.4",
+      "version": "4.1.5",
       "licenses": [
         {
           "license": {
@@ -8762,7 +9022,7 @@
           }
         }
       ],
-      "purl": "pkg:npm/fast-uri@4.1.4",
+      "purl": "pkg:npm/fast-uri@4.1.5",
       "properties": [
         {
           "name": "kavaroutes:license-review",
@@ -8812,9 +9072,9 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/fastify@5.12.1",
+      "bom-ref": "pkg:npm/fastify@5.12.5",
       "name": "fastify",
-      "version": "5.12.1",
+      "version": "5.12.5",
       "licenses": [
         {
           "license": {
@@ -8822,7 +9082,7 @@
           }
         }
       ],
-      "purl": "pkg:npm/fastify@5.12.1",
+      "purl": "pkg:npm/fastify@5.12.5",
       "properties": [
         {
           "name": "kavaroutes:license-review",
@@ -9203,6 +9463,46 @@
         }
       ],
       "purl": "pkg:npm/fresh@0.5.2",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/fsevents@2.3.2",
+      "name": "fsevents",
+      "version": "2.3.2",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/fsevents@2.3.2",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MIT"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/fsevents@2.3.3",
+      "name": "fsevents",
+      "version": "2.3.3",
+      "licenses": [
+        {
+          "license": {
+            "name": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/fsevents@2.3.3",
       "properties": [
         {
           "name": "kavaroutes:license-review",
@@ -10932,6 +11232,146 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:npm/lightningcss-android-arm64@1.33.0",
+      "name": "lightningcss-android-arm64",
+      "version": "1.33.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/lightningcss-android-arm64@1.33.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MPL-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/lightningcss-darwin-arm64@1.33.0",
+      "name": "lightningcss-darwin-arm64",
+      "version": "1.33.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/lightningcss-darwin-arm64@1.33.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MPL-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/lightningcss-darwin-x64@1.33.0",
+      "name": "lightningcss-darwin-x64",
+      "version": "1.33.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/lightningcss-darwin-x64@1.33.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MPL-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/lightningcss-freebsd-x64@1.33.0",
+      "name": "lightningcss-freebsd-x64",
+      "version": "1.33.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/lightningcss-freebsd-x64@1.33.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MPL-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/lightningcss-linux-arm-gnueabihf@1.33.0",
+      "name": "lightningcss-linux-arm-gnueabihf",
+      "version": "1.33.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/lightningcss-linux-arm-gnueabihf@1.33.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MPL-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/lightningcss-linux-arm64-gnu@1.33.0",
+      "name": "lightningcss-linux-arm64-gnu",
+      "version": "1.33.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/lightningcss-linux-arm64-gnu@1.33.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MPL-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/lightningcss-linux-arm64-musl@1.33.0",
+      "name": "lightningcss-linux-arm64-musl",
+      "version": "1.33.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/lightningcss-linux-arm64-musl@1.33.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MPL-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:npm/lightningcss-linux-x64-gnu@1.33.0",
       "name": "lightningcss-linux-x64-gnu",
       "version": "1.33.0",
@@ -10952,21 +11392,75 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:npm/limiter@1.1.5",
-      "name": "limiter",
-      "version": "1.1.5",
+      "bom-ref": "pkg:npm/lightningcss-linux-x64-musl@1.33.0",
+      "name": "lightningcss-linux-x64-musl",
+      "version": "1.33.0",
       "licenses": [
         {
           "license": {
-            "name": "MIT"
+            "name": "MPL-2.0"
           }
         }
       ],
+      "purl": "pkg:npm/lightningcss-linux-x64-musl@1.33.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MPL-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/lightningcss-win32-arm64-msvc@1.33.0",
+      "name": "lightningcss-win32-arm64-msvc",
+      "version": "1.33.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/lightningcss-win32-arm64-msvc@1.33.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MPL-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/lightningcss-win32-x64-msvc@1.33.0",
+      "name": "lightningcss-win32-x64-msvc",
+      "version": "1.33.0",
+      "licenses": [
+        {
+          "license": {
+            "name": "MPL-2.0"
+          }
+        }
+      ],
+      "purl": "pkg:npm/lightningcss-win32-x64-msvc@1.33.0",
+      "properties": [
+        {
+          "name": "kavaroutes:license-review",
+          "value": "MPL-2.0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/limiter@1.1.5",
+      "name": "limiter",
+      "version": "1.1.5",
+      "licenses": [],
       "purl": "pkg:npm/limiter@1.1.5",
       "properties": [
         {
           "name": "kavaroutes:license-review",
-          "value": "MIT"
+          "value": "UNKNOWN"
         }
       ]
     },

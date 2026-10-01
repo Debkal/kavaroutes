@@ -1,0 +1,15 @@
+**
+!package.json
+!package-lock.json
+!apps
+!apps/site
+!apps/site/**
+!apps/site/package.json
+!infra
+!infra/vps
+!infra/vps/health.mjs
+**/node_modules
+**/dist
+**/.env*
+**/*.log
+**/test

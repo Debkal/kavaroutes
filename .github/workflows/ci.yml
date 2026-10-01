@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      deploy_vps:
+        description: Deploy the verified release to the provisioned VPS
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,6 +43,8 @@ jobs:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: node scripts/ci-scope.mjs
       - run: node --test scripts/ci-scope.test.mjs
+      - name: Release integrity and recovery drills
+        run: python3 -m unittest discover -s infra/vps -p '*_test.py'
       - if: steps.scope.outputs.code == 'true'
         run: npm ci --ignore-scripts --no-audit
       - name: Build once and check boundaries
@@ -52,7 +59,7 @@ jobs:
       - name: Server and authentication contracts
         if: steps.scope.outputs.server == 'true'
         run: |
-          node --test --test-concurrency=1 test/core.test.mjs test/architecture-negative.test.mjs test/api.test.mjs test/telemetry.test.mjs test/websocket.test.mjs test/smoke.test.mjs test/container-policy.test.mjs apps/api-host/test/*.test.mjs packages/google-identity/test/*.test.mjs
+          node --test --test-concurrency=1 test/core.test.mjs test/architecture-negative.test.mjs test/api.test.mjs test/telemetry.test.mjs test/websocket.test.mjs test/smoke.test.mjs test/container-policy.test.mjs test/dependency-assurance.test.mjs test/deployment-provenance.test.mjs apps/api-host/test/*.test.mjs packages/google-identity/test/*.test.mjs
           npm run kavaroutes:database:lint
           npm run kavaroutes:api:test
           node --test --test-concurrency=1 packages/api-contracts/test/driver-session-issue.test.mjs infra/gcp/runtime/driver-sessions.test.mjs infra/gcp/runtime/road-routing.test.mjs
@@ -100,50 +107,110 @@ jobs:
       - name: Release dependency audit
         if: github.event_name == 'workflow_dispatch'
         run: npm audit --audit-level=moderate
-      - name: Build single release candidate
+      - name: Retain native Driver platform bundles
         if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: driver-bundles-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            apps/driver-native/dist/android/
+            apps/driver-native/dist/ios/
+          if-no-files-found: error
+          retention-days: 3
+
+  vps-release:
+    name: Verify complete VPS release
+    needs: [checks, browser-acceptance]
+    if: >-
+      always() && !cancelled() && needs.checks.result == 'success' &&
+      (needs.browser-acceptance.result == 'success' || needs.browser-acceptance.result == 'skipped') &&
+      needs.checks.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    outputs:
+      artifact: ${{ steps.release.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - name: Build host verification tools
         run: |
-          docker build --iidfile /tmp/kavaroutes-image-id -f infra/gcp/runtime/Dockerfile .
-          printf 'KR_CLOUD_IMAGE=%s\n' "$(cat /tmp/kavaroutes-image-id)" >> "$GITHUB_ENV"
-      - name: Verify exact candidate and disposable PostgreSQL integration
-        if: github.event_name == 'workflow_dispatch'
+          npm ci --ignore-scripts --no-audit
+          npm run build
+      - name: Build one release from this source revision
+        id: release
+        env:
+          RELEASE_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          python3 infra/vps/release.py build /tmp/vps-release "$RELEASE_ID" "$GITHUB_SHA"
+          printf 'artifact=vps-%s\n' "$RELEASE_ID" >> "$GITHUB_OUTPUT"
+          printf 'RELEASE_ID=%s\n' "$RELEASE_ID" >> "$GITHUB_ENV"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          manifest=json.loads(Path('/tmp/vps-release/manifest.json').read_text())
+          with open(os.environ['GITHUB_ENV'],'a') as output:
+              output.write('KR_CLOUD_IMAGE='+manifest['images']['runtime']['id']+'\n')
+          PY
+      - name: Verify runtime provenance and PostgreSQL command integration
         env:
           KR_CLOUD_LOCAL_TEST: '1'
         run: |
           node infra/gcp/runtime/image-evidence.mjs "$KR_CLOUD_IMAGE"
           node --test --test-isolation=none infra/gcp/runtime/integration.test.mjs
-          git rev-parse HEAD > .tooling/gcp/image-evidence/source-commit.txt
-          docker save "$KR_CLOUD_IMAGE" | gzip > /tmp/kavaroutes-runtime.tar.gz
-      - name: Package separately built live applications
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          tar -czf /tmp/kavaroutes-web.tar.gz -C apps/web dist dist-driver
-          tar -czf /tmp/kavaroutes-site.tar.gz -C apps/site dist server package.json
-          tar -czf /tmp/kavaroutes-admin.tar.gz -C apps/admin src bin public package.json
-          sha256sum /tmp/kavaroutes-runtime.tar.gz /tmp/kavaroutes-web.tar.gz /tmp/kavaroutes-site.tar.gz /tmp/kavaroutes-admin.tar.gz > /tmp/kavaroutes-live-bundles.sha256
-      - name: Retain verified candidate (no deployment)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Check production Compose and authentication boundaries
+        run: python3 infra/vps/smoke.py "$RELEASE_ID"
+      - name: Retain exact tested release and evidence
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: runtime-${{ github.sha }}-${{ github.run_attempt }}
-          path: |
-            /tmp/kavaroutes-runtime.tar.gz
-            .tooling/gcp/image-evidence/
+          name: ${{ steps.release.outputs.artifact }}
+          path: /tmp/vps-release/
+          include-hidden-files: true
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+
+      - name: Retain runtime verification evidence
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: vps-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          path: .tooling/gcp/image-evidence/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 3
-      - name: Retain live app bundles and endpoint evidence
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+
+  deploy-vps:
+    name: Deploy verified VPS release
+    needs: vps-release
+    # Only a successful manual run of trusted main can reach the private runner.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.deploy_vps
+    runs-on: [self-hosted, linux, x64, kavaroutes-vps]
+    environment: production
+    timeout-minutes: 30
+    concurrency:
+      group: kavaroutes-vps-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: live-apps-${{ github.sha }}-${{ github.run_attempt }}
-          path: |
-            /tmp/kavaroutes-web.tar.gz
-            /tmp/kavaroutes-site.tar.gz
-            /tmp/kavaroutes-admin.tar.gz
-            /tmp/kavaroutes-live-bundles.sha256
-          if-no-files-found: error
-          retention-days: 3
+          name: ${{ needs.vps-release.outputs.artifact }}
+          path: ${{ runner.temp }}/kavaroutes-vps-release
+      - name: Verify, back up, migrate, start and check exact images
+        env:
+          RELEASE_DIRECTORY: ${{ runner.temp }}/kavaroutes-vps-release
+          SOURCE_COMMIT: ${{ github.sha }}
+          VPS_ENV_FILE: ${{ vars.KR_VPS_ENV_FILE || '/etc/kavaroutes/vps.env' }}
+          VPS_RELEASE_ROOT: ${{ vars.KR_VPS_RELEASE_ROOT || '/opt/kavaroutes-vps/releases' }}
+        run: |
+          artifact="$RELEASE_DIRECTORY"
+          test -f "$artifact/manifest.json"
+          sudo -n python3 "$artifact/deploy.py" "$artifact" "$SOURCE_COMMIT" "$VPS_ENV_FILE" "$VPS_RELEASE_ROOT"
 
   browser-acceptance:
     name: Web browser acceptance and accessibility

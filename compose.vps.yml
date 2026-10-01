@@ -1,0 +1,237 @@
+name: kavaroutes-vps
+
+# Linux VPS: current services bind to loopback, so the host tunnel/reverse proxy
+# and the API/worker share the host network. No public Docker port publishing.
+x-app: &app
+  network_mode: host
+  init: true
+  read_only: true
+  user: "${KR_APP_UID:-1000}:${KR_APP_GID:-1000}"
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 128
+  mem_limit: 384m
+  cpus: 1
+  stop_grace_period: 20s
+  restart: unless-stopped
+  tmpfs: ["/tmp:size=16m,mode=1777,noexec,nosuid"]
+  logging: &logging
+    driver: json-file
+    options: {max-size: 5m, max-file: "2"}
+
+x-runtime: &runtime
+  <<: *app
+  image: kavaroutes/runtime:${KR_BUILD_ID:?set a release build ID}
+  pull_policy: never
+  environment: {KR_BUILD_ID: "${KR_BUILD_ID}"}
+
+x-bind: &bind
+  type: bind
+  bind: {create_host_path: false}
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.5@sha256:624f5195b91d424dbebf018890148cc0e5a3e80db5467da8b53cc2ed2ce49216
+    network_mode: host
+    command: [postgres, -c, listen_addresses=127.0.0.1, -c, port=5432, -c, shared_preload_libraries=pg_stat_statements, -c, timezone=UTC, -c, max_connections=80, -c, log_min_error_statement=panic]
+    environment:
+      POSTGRES_USER: kr_cloud_admin
+      POSTGRES_DB: kavaroutes_cloud
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres-password
+    volumes:
+      - database:/var/lib/postgresql/data
+      - <<: *bind
+        source: ${KR_SECRETS_DIRECTORY:?set the private secrets directory}/postgres-password
+        target: /run/secrets/postgres-password
+        read_only: true
+    healthcheck:
+      test: [CMD, pg_isready, -h, 127.0.0.1, -U, kr_cloud_admin, -d, kavaroutes_cloud]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 1
+    shm_size: 128m
+    stop_grace_period: 30s
+    restart: unless-stopped
+    logging: *logging
+
+  initialize:
+    <<: *runtime
+    profiles: [initialize]
+    restart: "no"
+    depends_on:
+      postgres: {condition: service_healthy}
+    entrypoint: [node, infra/gcp/runtime/init.mjs]
+    command: [/run/secrets/admin.json, /run/secrets/database-passwords.json]
+    healthcheck: {disable: true}
+    volumes:
+      - <<: *bind
+        source: ${KR_SECRETS_DIRECTORY}/admin.json
+        target: /run/secrets/admin.json
+        read_only: true
+      - <<: *bind
+        source: ${KR_SECRETS_DIRECTORY}/database-passwords.json
+        target: /run/secrets/database-passwords.json
+        read_only: true
+
+  api:
+    <<: *runtime
+    build:
+      context: .
+      dockerfile: infra/gcp/runtime/Dockerfile
+    env_file: ["${KR_SECRETS_DIRECTORY}/geoapify.env"]
+    environment:
+      KR_BUILD_ID: ${KR_BUILD_ID}
+      KR_BUSINESS_IDENTITY_FILE: /run/secrets/business-identity.json
+      KR_DRIVER_ADMINS_FILE: /run/secrets/driver-admins.json
+      KR_DRIVER_ACCESS_DIRECTORY: /run/driver-access
+      KR_DRIVER_SESSIONS_FILE: /run/driver-access/sessions.json
+      GOOGLE_APPLICATION_CREDENTIALS: /run/google/service-account.json
+    depends_on:
+      postgres: {condition: service_healthy}
+    command: [api, /run/secrets/api.json]
+    volumes:
+      - <<: *bind
+        source: ${KR_SECRETS_DIRECTORY}/api.json
+        target: /run/secrets/api.json
+        read_only: true
+      - <<: *bind
+        source: ${KR_SECRETS_DIRECTORY}/business-identity.json
+        target: /run/secrets/business-identity.json
+        read_only: true
+      - <<: *bind
+        source: ${KR_SECRETS_DIRECTORY}/driver-admins.json
+        target: /run/secrets/driver-admins.json
+        read_only: true
+      - <<: *bind
+        source: ${KR_DRIVER_ACCESS_DIRECTORY:?set the persistent Driver access directory}
+        target: /run/driver-access
+      - <<: *bind
+        source: ${KR_GOOGLE_DIRECTORY:?set the private Google credential directory}
+        target: /run/google
+        read_only: true
+    healthcheck:
+      test: [CMD, node, infra/gcp/runtime/health.mjs, "58082"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  worker:
+    <<: *runtime
+    depends_on:
+      postgres: {condition: service_healthy}
+    command: [worker, /run/secrets/worker.json]
+    volumes:
+      - <<: *bind
+        source: ${KR_SECRETS_DIRECTORY}/worker.json
+        target: /run/secrets/worker.json
+        read_only: true
+    healthcheck:
+      test: [CMD, node, infra/gcp/runtime/health.mjs, "58081"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  gateway:
+    <<: *app
+    image: kavaroutes/gateway:${KR_BUILD_ID}
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: infra/vps/Gateway.Dockerfile
+      args: {KR_BUILD_ID: "${KR_BUILD_ID}"}
+    environment:
+      KR_WEB_ROOT: /app/dist
+      KR_DRIVER_WEB_ROOT: /app/dist-driver
+      KR_DRIVER_ACCESS_DIRECTORY: /run/driver-access
+      KR_WEB_PORT: "58080"
+      KR_API_PORT: "58082"
+    volumes:
+      - <<: *bind
+        source: ${KR_DRIVER_ACCESS_DIRECTORY}
+        target: /run/driver-access
+    depends_on:
+      api: {condition: service_healthy}
+    mem_limit: 128m
+    cpus: 0.5
+    healthcheck:
+      test: [CMD, node, health.mjs, "58080", app.kavaroutes.com, ready]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  site:
+    <<: *app
+    user: "${KR_SITE_UID:-1000}:${KR_SHARED_GID:-1000}"
+    image: kavaroutes/site:${KR_BUILD_ID}
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: infra/vps/Site.Dockerfile
+    env_file: ["${KR_SECRETS_DIRECTORY}/site.env"]
+    environment:
+      NODE_ENV: production
+      KR_SITE_ORIGIN: https://kavaroutes.com
+      KR_SITE_PORT: "58110"
+      KR_SITE_DATABASE: /var/lib/kavaroutes-site/accounts.sqlite
+      KR_SITE_REGISTRATIONS_DIRECTORY: /var/lib/kavaroutes-registrations
+      GOOGLE_APPLICATION_CREDENTIALS: /run/google/service-account.json
+    volumes:
+      - <<: *bind
+        source: ${KR_SITE_DIRECTORY:?set the persistent homepage directory}
+        target: /var/lib/kavaroutes-site
+      - <<: *bind
+        source: ${KR_REGISTRATIONS_DIRECTORY:?set the shared registrations directory}
+        target: /var/lib/kavaroutes-registrations
+      - <<: *bind
+        source: ${KR_GOOGLE_DIRECTORY}
+        target: /run/google
+        read_only: true
+    healthcheck:
+      test: [CMD, node, /app/health.mjs, "58110", kavaroutes.com, ready]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  admin:
+    <<: *app
+    # Enable after restoring/initializing the private Admin database and config.
+    profiles: [admin]
+    user: "${KR_ADMIN_UID:-1000}:${KR_SHARED_GID:-1000}"
+    group_add: ["${KR_APP_GID:-1000}"]
+    image: kavaroutes/admin:${KR_BUILD_ID}
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: infra/vps/Admin.Dockerfile
+    command: [node, src/main.mjs, /var/lib/kavaroutes-admin/config.json]
+    volumes:
+      - <<: *bind
+        source: ${KR_ADMIN_DIRECTORY:?set the persistent Admin directory}
+        target: /var/lib/kavaroutes-admin
+      - <<: *bind
+        source: ${KR_REGISTRATIONS_DIRECTORY}
+        target: /var/lib/kavaroutes-registrations
+        read_only: true
+      - <<: *bind
+        source: ${KR_DRIVER_ACCESS_DIRECTORY}
+        target: /run/kavaroutes-driver-access
+    healthcheck:
+      test: [CMD, node, /app/health.mjs, "58100", admin.kavaroutes.com, READY]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  database:
+    # Explicit existing volume prevents a change of Compose project name from
+    # silently switching the business database to an empty volume.
+    external: true
+    name: ${KR_POSTGRES_VOLUME:?set the existing PostgreSQL volume name}

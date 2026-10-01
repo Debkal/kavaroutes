@@ -49,7 +49,10 @@ test("local container definitions are pinned, non-root, bounded, health-checked,
 // (docker compose build, 2026-09-17T00:09:34Z, HEAD 1f37ec42).
 const allowListDockerfiles = [
   "../infra/gcp/runtime/Dockerfile",
-  "../infra/local/Web.Dockerfile"
+  "../infra/local/Web.Dockerfile",
+  "../infra/vps/Gateway.Dockerfile",
+  "../infra/vps/Site.Dockerfile",
+  "../infra/vps/Admin.Dockerfile"
 ];
 
 function contextSources(dockerfile) {
