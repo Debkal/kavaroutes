@@ -16,6 +16,7 @@ export interface StoredDriverItineraryLeg {
   readonly tripId: string;
   readonly tripLegId: string;
   readonly ordinal: number;
+  readonly riderReference: string;
   readonly riderLabel: string;
   readonly pickupLabel: string;
   readonly dropoffLabel: string;
@@ -35,7 +36,7 @@ export function createDriverItineraryReader(pool: Pool) {
         r.id AS run_id, r.aggregate_version AS run_version, r.lifecycle_reference AS run_lifecycle,
         a.vehicle_id, v.synthetic_reference AS vehicle_label,
         t.id AS trip_id, l.id AS trip_leg_id, rl.ordinal,
-        rider.synthetic_reference AS rider_label, origin.customer_label AS pickup_label,
+        t.rider_id AS rider_reference, rider.synthetic_reference AS rider_label, origin.customer_label AS pickup_label,
         destination.customer_label AS dropoff_label, l.planned_start_at, l.planned_end_at, t.appointment_length_minutes, r.service_timezone,
         execution.rows AS execution_rows
         FROM dispatch.assignment a
@@ -77,7 +78,7 @@ export function createDriverItineraryReader(pool: Pool) {
         runId: String(row.run_id), runVersion: Number(row.run_version), runLifecycle: String(row.run_lifecycle),
         vehicleId: row.vehicle_id === null ? null : String(row.vehicle_id), vehicleLabel: row.vehicle_label === null ? null : String(row.vehicle_label),
         tripId: String(row.trip_id), tripLegId: String(row.trip_leg_id), ordinal: Number(row.ordinal),
-        riderLabel: String(row.rider_label), pickupLabel: String(row.pickup_label), dropoffLabel: String(row.dropoff_label),
+        riderReference: String(row.rider_reference), riderLabel: String(row.rider_label), pickupLabel: String(row.pickup_label), dropoffLabel: String(row.dropoff_label),
         plannedStartAt: (row.planned_start_at as Date).toISOString(), plannedEndAt: (row.planned_end_at as Date).toISOString(),
         appointmentLengthMinutes: Number(row.appointment_length_minutes),
         serviceTimezone: String(row.service_timezone),

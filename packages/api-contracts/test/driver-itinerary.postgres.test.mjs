@@ -37,8 +37,9 @@ test('persisted driver day enforces tenant, subject, date and cancellation bound
     const otherDriver = randomUUID();
     const tripId = randomUUID(); const legId = randomUUID(); const runId = randomUUID(); const assignmentId = randomUUID();
     const tenantId = syntheticIds.organizationA;
+    const rider = randomUUID();
     await withTenantTransaction(pool, tenantId, 'kavaroutes_api', async db => {
-      const branch = randomUUID(), rider = randomUUID(), origin = randomUUID(), destination = randomUUID(), vehicle = randomUUID();
+      const branch = randomUUID(), origin = randomUUID(), destination = randomUUID(), vehicle = randomUUID();
       await db.query("INSERT INTO platform.organization(tenant_id,id,synthetic_name) VALUES ($1,$1,'Synthetic driver test')", [tenantId]);
       await db.query("INSERT INTO platform.branch(tenant_id,id,organization_id,synthetic_label) VALUES ($1,$2,$1,'Synthetic branch')", [tenantId, branch]);
       await db.query("INSERT INTO fleet.driver(tenant_id,id,synthetic_reference) VALUES ($1,$2,'Synthetic driver'),($1,$3,'Other synthetic driver')", [tenantId, driverId, otherDriver]);
@@ -57,6 +58,7 @@ test('persisted driver day enforces tenant, subject, date and cancellation bound
     const reader = createDriverItineraryReader(pool);
     const legs = await reader(tenantId, driverId, '2026-09-13');
     assert.equal(legs.length, 1); assert.equal(legs[0].tripLegId, legId); assert.equal(legs[0].pickupLabel, 'Synthetic pickup');
+    assert.equal(legs[0].riderReference,rider,'grouping uses the assigned client identity, never their display name');
     assert.equal(legs[0].execution, null, 'an assignment must not fabricate dispatched execution');
     assert.equal(legs[0].appointmentLengthMinutes, 45, 'the driver projection carries the planned appointment / wait the dispatcher entered');
     assert.deepEqual(await reader(tenantId, otherDriver, '2026-09-13'), []);
@@ -76,6 +78,7 @@ test('persisted driver day enforces tenant, subject, date and cancellation bound
       driverShiftReader: createPostgresDriverShiftStateReader(pool) });
     const result = await app.inject({ url: `/v1/organizations/${tenantId}/driver/itineraries/2026-09-13`, headers: { authorization: 'Synthetic principal_driver' } });
     assert.equal(result.statusCode, 200, result.body); assert.equal(result.json().legs[0].assignmentId, assignmentId);
+    assert.equal(result.json().legs[0].riderReference,rider,'the authorized itinerary response retains the client reference');
     const shiftUrl = `/v1/organizations/${tenantId}/driver/shifts/commands/start`;
     const shiftHeaders = { authorization: 'Synthetic principal_driver', 'idempotency-key': 'persisted-shift-start-0001' };
     const shiftBody = { assignmentId, serviceDate: '2026-09-13', expectedAssignmentVersion: 1 };

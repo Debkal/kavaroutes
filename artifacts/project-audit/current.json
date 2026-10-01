@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-30T01:47:56.569Z",
+  "generatedAt": "2026-09-30T02:55:47.277Z",
   "sourceFiles": 610,
   "verifiedArchivedFiles": 118,
   "scope": "Whole repository first-party source, SQL, configuration and tools; generated output, secrets, dependencies and archive excluded from active-code analysis.",
@@ -2666,6 +2666,13 @@
       "category": "application-or-runtime"
     },
     {
+      "file": "apps/web/src/cloud-driver-api.ts",
+      "line": 28,
+      "name": "decodeDriverItinerary",
+      "decisions": 26,
+      "category": "application-or-runtime"
+    },
+    {
       "file": "apps/web/src/road-route-contract.ts",
       "line": 18,
       "name": "decodeRoadPreview",
@@ -2732,13 +2739,6 @@
       "file": "apps/site/src/main.tsx",
       "line": 40,
       "name": "Authentication",
-      "decisions": 23,
-      "category": "application-or-runtime"
-    },
-    {
-      "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 28,
-      "name": "decodeDriverItinerary",
       "decisions": 23,
       "category": "application-or-runtime"
     },
@@ -2898,7 +2898,7 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 70,
+      "line": 71,
       "name": "decodeLoginState",
       "decisions": 18,
       "category": "application-or-runtime"
@@ -3187,6 +3187,13 @@
       "file": "apps/web/src/components/CloudCommandRecovery.tsx",
       "line": 6,
       "name": "CloudCommandRecovery",
+      "decisions": 14,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 15,
+      "name": "groupCompletedDriverTrips",
       "decisions": 14,
       "category": "application-or-runtime"
     },
@@ -3787,7 +3794,7 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 46,
+      "line": 47,
       "name": "decodeShift",
       "decisions": 10,
       "category": "application-or-runtime"
@@ -4242,14 +4249,14 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 63,
+      "line": 64,
       "name": "decodeClosure",
       "decisions": 8,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 193,
+      "line": 194,
       "name": "callback",
       "decisions": 8,
       "category": "application-or-runtime"
@@ -4718,7 +4725,7 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 55,
+      "line": 56,
       "name": "decodePrecheck",
       "decisions": 7,
       "category": "application-or-runtime"
@@ -5278,7 +5285,7 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 125,
+      "line": 126,
       "name": "callback",
       "decisions": 6,
       "category": "application-or-runtime"
@@ -6006,7 +6013,7 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 179,
+      "line": 180,
       "name": "callback",
       "decisions": 5,
       "category": "application-or-runtime"
@@ -6587,7 +6594,7 @@
     },
     {
       "file": "packages/postgres-persistence/src/driver-itinerary.ts",
-      "line": 72,
+      "line": 73,
       "name": "callback",
       "decisions": 5,
       "category": "application-or-runtime"
@@ -7049,14 +7056,14 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 155,
+      "line": 156,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 206,
+      "line": 207,
       "name": "callback",
       "decisions": 4,
       "category": "application-or-runtime"
@@ -8435,28 +8442,28 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 84,
+      "line": 85,
       "name": "createCloudDriverWebApi",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 115,
+      "line": 116,
       "name": "restoreNativeSession",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 135,
+      "line": 136,
       "name": "claimLogin",
       "decisions": 3,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 171,
+      "line": 172,
       "name": "callback",
       "decisions": 3,
       "category": "application-or-runtime"
@@ -10360,35 +10367,35 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 89,
+      "line": 90,
       "name": "callback",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 94,
+      "line": 95,
       "name": "acceptLogin",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 120,
+      "line": 121,
       "name": "nativeTrackingSession",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 142,
+      "line": 143,
       "name": "verifyLogin",
       "decisions": 2,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 165,
+      "line": 166,
       "name": "precheck",
       "decisions": 2,
       "category": "application-or-runtime"
@@ -10794,7 +10801,7 @@
     },
     {
       "file": "apps/web/test/cloud-driver-api.test.ts",
-      "line": 27,
+      "line": 33,
       "name": "callback",
       "decisions": 2,
       "category": "test-support"
@@ -13412,70 +13419,70 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 93,
+      "line": 94,
       "name": "authenticatedDriver",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 106,
+      "line": 107,
       "name": "signOut",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 108,
+      "line": 109,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 146,
+      "line": 147,
       "name": "itinerary",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 150,
+      "line": 151,
       "name": "roadRoute",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 154,
+      "line": 155,
       "name": "startShift",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 161,
+      "line": 162,
       "name": "shift",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 177,
+      "line": 178,
       "name": "signature",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 185,
+      "line": 186,
       "name": "closure",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 191,
+      "line": 192,
       "name": "locationBatch",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -13706,8 +13713,22 @@
     },
     {
       "file": "apps/web/src/components/DriverCompletedTrips.tsx",
-      "line": 7,
+      "line": 17,
+      "name": "callback",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 36,
       "name": "DriverCompletedTrips",
+      "decisions": 1,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 41,
+      "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
@@ -15617,14 +15638,14 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 154,
+      "line": 157,
       "name": "callback",
       "decisions": 1,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 197,
+      "line": 200,
       "name": "changeExecution",
       "decisions": 1,
       "category": "test-support"
@@ -16009,14 +16030,14 @@
     },
     {
       "file": "packages/postgres-persistence/src/driver-itinerary.ts",
-      "line": 30,
+      "line": 31,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
     },
     {
       "file": "packages/postgres-persistence/src/driver-itinerary.ts",
-      "line": 32,
+      "line": 33,
       "name": "callback",
       "decisions": 1,
       "category": "application-or-runtime"
@@ -22344,91 +22365,91 @@
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 36,
+      "line": 37,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 88,
+      "line": 89,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 105,
+      "line": 106,
       "name": "clearDriverSession",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 124,
+      "line": 125,
       "name": "authenticate",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 128,
+      "line": 129,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 138,
+      "line": 139,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 144,
+      "line": 145,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 148,
+      "line": 149,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 163,
+      "line": 164,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 168,
+      "line": 169,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 170,
+      "line": 171,
       "name": "action",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 187,
+      "line": 188,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/cloud-driver-api.ts",
-      "line": 205,
+      "line": 206,
       "name": "close",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -23891,28 +23912,63 @@
     },
     {
       "file": "apps/web/src/components/DriverCompletedTrips.tsx",
-      "line": 4,
+      "line": 5,
       "name": "driverLegLifecycle",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DriverCompletedTrips.tsx",
-      "line": 5,
+      "line": 6,
       "name": "completedDriverLegs",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DriverCompletedTrips.tsx",
-      "line": 5,
+      "line": 6,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
     },
     {
       "file": "apps/web/src/components/DriverCompletedTrips.tsx",
-      "line": 12,
+      "line": 9,
+      "name": "clientKey",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 10,
+      "name": "place",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 16,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 18,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 37,
+      "name": "callback",
+      "decisions": 0,
+      "category": "application-or-runtime"
+    },
+    {
+      "file": "apps/web/src/components/DriverCompletedTrips.tsx",
+      "line": 42,
       "name": "callback",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -28392,28 +28448,42 @@
     },
     {
       "file": "apps/web/test/cloud-driver-api.test.ts",
-      "line": 25,
+      "line": 24,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "apps/web/test/cloud-driver-api.test.ts",
-      "line": 46,
+      "line": 28,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "apps/web/test/cloud-driver-api.test.ts",
-      "line": 48,
+      "line": 31,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "apps/web/test/cloud-driver-api.test.ts",
-      "line": 58,
+      "line": 52,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/cloud-driver-api.test.ts",
+      "line": 54,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/cloud-driver-api.test.ts",
+      "line": 64,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -29603,28 +29673,77 @@
     },
     {
       "file": "apps/web/test/driver-completed-trips.test.tsx",
-      "line": 10,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "apps/web/test/driver-completed-trips.test.tsx",
       "line": 11,
+      "name": "finished",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 14,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "apps/web/test/driver-completed-trips.test.tsx",
-      "line": 19,
+      "line": 15,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "apps/web/test/driver-completed-trips.test.tsx",
-      "line": 26,
+      "line": 23,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 30,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 39,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 49,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 52,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 56,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 58,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "apps/web/test/driver-completed-trips.test.tsx",
+      "line": 63,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -39459,28 +39578,21 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 40,
+      "line": 41,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 70,
+      "line": 72,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 106,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 112,
+      "line": 109,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -39501,43 +39613,22 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 124,
+      "line": 121,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 132,
+      "line": 127,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 135,
       "name": "insertReceipt",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 137,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 138,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 138,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 139,
-      "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
@@ -39550,14 +39641,28 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 144,
+      "line": 141,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 146,
+      "line": 141,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 142,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 143,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -39571,13 +39676,6 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 148,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
       "line": 149,
       "name": "callback",
       "decisions": 0,
@@ -39585,28 +39683,35 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 150,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
       "line": 151,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 152,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 154,
       "name": "runTransaction",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 159,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 159,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 160,
+      "line": 162,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -39620,14 +39725,14 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 170,
+      "line": 163,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 170,
+      "line": 165,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -39641,154 +39746,161 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 174,
+      "line": 173,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 181,
+      "line": 176,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 186,
+      "line": 177,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 186,
+      "line": 184,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 187,
+      "line": 189,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 187,
+      "line": 189,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 188,
+      "line": 190,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 193,
+      "line": 190,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 193,
+      "line": 191,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 204,
+      "line": 196,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 204,
+      "line": 196,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 206,
+      "line": 207,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 210,
+      "line": 207,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 223,
+      "line": 209,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 213,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 226,
       "name": "send",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 243,
+      "line": 246,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 244,
+      "line": 247,
       "name": "precheckPayload",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 249,
+      "line": 252,
       "name": "submitCheck",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 260,
+      "line": 263,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 262,
+      "line": 265,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 277,
+      "line": 280,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 277,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 278,
+      "line": 280,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -39809,22 +39921,22 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 307,
+      "line": 287,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 314,
+      "line": 310,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 317,
       "name": "tripList",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 316,
-      "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
@@ -39837,21 +39949,14 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 324,
+      "line": 322,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 339,
-      "name": "callback",
-      "decisions": 0,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 340,
+      "line": 327,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -39865,8 +39970,8 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 344,
-      "name": "createPolicyShift",
+      "line": 343,
+      "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
@@ -39879,6 +39984,13 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 347,
+      "name": "createPolicyShift",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
       "line": 348,
       "name": "callback",
       "decisions": 0,
@@ -39886,105 +39998,112 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 365,
+      "line": 351,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 370,
+      "line": 368,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 374,
+      "line": 373,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 376,
+      "line": 377,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 380,
+      "line": 379,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 384,
+      "line": 383,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 385,
+      "line": 387,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 385,
+      "line": 388,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 393,
+      "line": 388,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 401,
+      "line": 396,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 420,
+      "line": 404,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 420,
+      "line": 423,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 421,
+      "line": 423,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 429,
+      "line": 424,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 439,
+      "line": 432,
+      "name": "callback",
+      "decisions": 0,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 442,
       "name": "callback",
       "decisions": 0,
       "category": "test-support"
@@ -43421,7 +43540,7 @@
     },
     {
       "file": "packages/postgres-persistence/src/driver-itinerary.ts",
-      "line": 29,
+      "line": 30,
       "name": "createDriverItineraryReader",
       "decisions": 0,
       "category": "application-or-runtime"
@@ -49247,11 +49366,6 @@
       "category": "application-or-runtime"
     },
     {
-      "file": "packages/api-contracts/src/driver-itinerary.ts",
-      "line": 26,
-      "category": "application-or-runtime"
-    },
-    {
       "file": "packages/api-contracts/src/driver-precheck.ts",
       "line": 38,
       "category": "application-or-runtime"
@@ -49428,11 +49542,6 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 42,
-      "category": "test-support"
-    },
-    {
-      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
       "line": 43,
       "category": "test-support"
     },
@@ -49458,67 +49567,67 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 59,
+      "line": 48,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 66,
+      "line": 60,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 77,
+      "line": 68,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 80,
+      "line": 79,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 99,
+      "line": 83,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 110,
+      "line": 102,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 213,
+      "line": 113,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 217,
+      "line": 216,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 247,
+      "line": 220,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 249,
+      "line": 250,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 256,
+      "line": 252,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 262,
+      "line": 259,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 272,
+      "line": 265,
       "category": "test-support"
     },
     {
@@ -49528,27 +49637,27 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 315,
+      "line": 278,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 364,
+      "line": 318,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 394,
+      "line": 367,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 413,
+      "line": 397,
       "category": "test-support"
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 419,
+      "line": 416,
       "category": "test-support"
     },
     {
@@ -49558,7 +49667,12 @@
     },
     {
       "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
-      "line": 427,
+      "line": 425,
+      "category": "test-support"
+    },
+    {
+      "file": "packages/api-contracts/test/driver-itinerary.postgres.test.mjs",
+      "line": 430,
       "category": "test-support"
     },
     {

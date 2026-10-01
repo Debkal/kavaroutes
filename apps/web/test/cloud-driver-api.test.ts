@@ -21,6 +21,12 @@ describe("Driver web cloud adapter", () => {
     expect(value.legs[0]?.tripLegId).toBe(leg.tripLegId);
     expect(() => decodeDriverItinerary({ driverReference: "40000000-0000-4000-8000-000000000001", serviceDate: "2026-09-14", legs: [leg] },driverId)).toThrow("INVALID_DRIVER_ITINERARY");
   });
+  it('accepts stable client identities for grouping and rejects malformed references',()=>{
+    const driverId='44444444-4444-4444-8444-444444444444',riderReference='55555555-5555-4555-8555-555555555555';
+    const payload={driverReference:driverId,serviceDate:'2026-09-14',legs:[{...leg,riderReference}]};
+    expect(decodeDriverItinerary(payload,driverId).legs[0]?.riderReference).toBe(riderReference);
+    expect(()=>decodeDriverItinerary({...payload,legs:[{...leg,riderReference:'same-name'}]},driverId)).toThrow('INVALID_DRIVER_ITINERARY');
+  });
 
   it("uses the verified driver's memory-only session for itinerary requests", async () => {
     const driverId="44444444-4444-4444-8444-444444444444", token=`dvs_${'a'.repeat(43)}`;
