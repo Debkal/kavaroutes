@@ -1,11 +1,13 @@
 # Project documentation and local planning records
 .gitignore
+!/.gitignore
 *.md
 *.mdx
 
 # Codex and agent-local state
 .agents/
 .codex/
+.aws/
 **/.tooling/
 **/tooling/
 **/.gradle/
@@ -25,9 +27,12 @@ jspm_packages/
 .node-gyp/
 .yarn/cache/
 .yarn/install-state.gz
+# The npm workspace uses the root lockfile.
+/apps/*/package-lock.json
 
 # Build output and framework artifacts
 dist/
+dist-driver/
 build/
 builds/
 **/builds/
@@ -109,6 +114,15 @@ artifacts/mobile-builds/
 *.db-journal
 *.db-wal
 *.db-shm
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.dump
+*.sql.gz
+/backups/
 
 # Cloud credentials and local secrets
 google-services.json
@@ -118,6 +132,7 @@ firebase-adminsdk*.json
 credentials/
 secrets/
 .deployment-evidence/
+.terraform/
 *.tfplan
 *.tfstate
 *.tfstate.*
@@ -136,14 +151,22 @@ tmp/
 temp/
 *.tmp
 *.temp
+*.orig
+*.rej
 
 # Local tooling output (never committed)
 .audit_write_probe.txt
 .playwright-mcp/
+*.hprof
+*.heapdump
+*.pcap
+*.pcapng
 
-# Archived source and live Driver output
-archive/apps/driver/android/
-archive/apps/driver/ios/
-apps/web/dist-driver/
-!archive/README.md
+# Local archives and operational reports (tracked snapshots stay tracked)
+/archive/
+/infra/admin/artifacts/
+admin*.json
+admin-response*.json
+
+# Documentation retained with the project
 !docs/project-cleanup-audit-2026-09-29.md
